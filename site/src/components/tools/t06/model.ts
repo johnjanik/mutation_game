@@ -29,7 +29,7 @@ import {
   toPopulation,
   toPositions,
 } from '@two-games/engine';
-import type { AnyBoard, Board, Rational } from '@two-games/engine';
+import type { Board, Rational } from '@two-games/engine';
 import { bigBoard, type ToolState } from '../../../lib/state';
 import { speak } from '../../../lib/a11y';
 import { isLong, shortValue } from '../t01/longNumber';
@@ -186,12 +186,12 @@ export function geometry(name: T06Board): Geometry {
     positive: posKeys.has(q.join(',')),
     y: picture({ U } as Geometry, q),
   }));
-  // The window: a square centred on the origin, 2.5 times the larger of the longest root and the default
+  // The window: a square centred on the origin, twice the larger of the longest root and the default
   // point a = (1, 1), rounded up to a half unit (plan), so that every root, the default point and its
   // orbit fit with a margin. The same scale serves the snapping.
   const longest = Math.max(...drawn.map((r) => Math.hypot(r.y[0], r.y[1])));
   const rho = apply2(W, [1, 1]);
-  const R = Math.ceil(2.5 * Math.max(longest, Math.hypot(rho[0], rho[1])) * 2) / 2;
+  const R = Math.ceil(2 * Math.max(longest, Math.hypot(rho[0], rho[1])) * 2) / 2;
   const reach = R * Math.SQRT2 * 1.05;
   const mirrors: MirrorLine[] = pos.map((q, k) => {
     const normal = picture({ U } as Geometry, q);
@@ -273,12 +273,12 @@ export function screenPair(g: Geometry, y: Vec2): string {
 /** A position by position (bigint entries, exact). */
 export type Position = bigint[];
 
-function inArith(board: AnyBoard, v: readonly bigint[]): unknown[] {
+function inArith(board: Board<unknown>, v: readonly bigint[]): unknown[] {
   return typeof board.arith.zero === 'bigint' ? [...v] : v.map((x) => board.arith.fromInt(Number(x)));
 }
 
-function fromArith(board: AnyBoard, v: readonly unknown[]): bigint[] {
-  return v.map((x) => (board.arith as Board<unknown>['arith']).toBig(x));
+function fromArith(board: Board<unknown>, v: readonly unknown[]): bigint[] {
+  return v.map((x) => board.arith.toBig(x));
 }
 
 function safe(v: readonly bigint[]): boolean {
@@ -289,8 +289,8 @@ function safe(v: readonly bigint[]): boolean {
 }
 
 /** The board to compute with: the SafeInt board while the values are safe, its Big copy otherwise (E-2, 5.8). */
-function arithFor(g: Geometry, v: readonly bigint[]): AnyBoard {
-  return safe(v) ? g.board : bigBoard(g.board);
+function arithFor(g: Geometry, v: readonly bigint[]): Board<unknown> {
+  return (safe(v) ? g.board : bigBoard(g.board)) as Board<unknown>;
 }
 
 /** The population C^{-1} a (exact, by position); never null on these boards (det C is 3, 2, 2, 1). */

@@ -29,7 +29,6 @@ import {
   snap,
   stepped,
   toScreen,
-  type T06Board,
   type Vec2,
 } from '../../../src/components/tools/t06/model';
 import { decodeState, encodeState } from '../../../src/lib/urlCodec';
