@@ -1,0 +1,37 @@
+# CI: SPEC.md 7.8. Runs on every pull request and on every push to main.
+# One step per command, in order, so that P0-A6 can insert its steps after "npm run build".
+# Only astro build and astro preview are ever used (SPEC.md 7.2 item 9).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Type-check and test
+        run: npm run check
+      - name: Release build
+        run: npm run build:release
+      - name: Preview build
+        run: npm run build
+      - name: Upload the preview build
+        uses: actions/upload-artifact@v5
+        with:
+          name: site-dist
+          path: site/dist

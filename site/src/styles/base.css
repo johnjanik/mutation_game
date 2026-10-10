@@ -1,0 +1,96 @@
+/* Design tokens of SPEC.md 6.3 and 8.3, named as CONTRACTS.md section 8.
+   Light values on :root; dark values under prefers-color-scheme and the manual switch
+   (data-theme on <html>, stored in localStorage by the shell). Kept in one block so that
+   P1-A3 can move them. The focus ring, road and arrow colours are a [D] choice recorded
+   in decisions/P0-A1.md: they meet 3 to 1 against the page in both themes (SPEC 7.5 A-6). */
+
+:root {
+  --page: #FFFFFF;
+  --text: #1A1A1A;
+  --sign-pos-fill: #0072B2;
+  --sign-pos-numeral: #FFFFFF;
+  --sign-neg-outline: #D55E00;
+  --sign-zero-outline: #767676;
+  --edge-1: #0072B2;
+  --edge-2: #D55E00;
+  --edge-3: #009E73;
+  --edge-4: #CC79A7;
+  --edge-5: #B26F00;
+  --edge-6: #3A8FCB;
+  --edge-7: #807500;
+  --edge-8: #1A1A1A;
+  --accent-populations: #009E73;
+  --accent-numbers: #CC79A7;
+  --focus-ring: #0072B2;
+  --road: #1A1A1A;
+  --arrow: #1A1A1A;
+  --font-prose: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numerals: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #121212;
+    --text: #E8E8E8;
+    --sign-pos-fill: #56B4E9;
+    --sign-pos-numeral: #121212;
+    --sign-neg-outline: #E69F00;
+    --sign-zero-outline: #8A8A8A;
+    --edge-1: #56B4E9;
+    --edge-2: #FF8A4C;
+    --edge-3: #2DBE95;
+    --edge-4: #CC79A7;
+    --edge-5: #E69F00;
+    --edge-6: #6FA8FF;
+    --edge-7: #F0E442;
+    --edge-8: #E8E8E8;
+    --accent-populations: #009E73;
+    --accent-numbers: #CC79A7;
+    --focus-ring: #56B4E9;
+    --road: #E8E8E8;
+    --arrow: #E8E8E8;
+  }
+}
+
+:root[data-theme="dark"] {
+  --page: #121212;
+  --text: #E8E8E8;
+  --sign-pos-fill: #56B4E9;
+  --sign-pos-numeral: #121212;
+  --sign-neg-outline: #E69F00;
+  --sign-zero-outline: #8A8A8A;
+  --edge-1: #56B4E9;
+  --edge-2: #FF8A4C;
+  --edge-3: #2DBE95;
+  --edge-4: #CC79A7;
+  --edge-5: #E69F00;
+  --edge-6: #6FA8FF;
+  --edge-7: #F0E442;
+  --edge-8: #E8E8E8;
+  --accent-populations: #009E73;
+  --accent-numbers: #CC79A7;
+  --focus-ring: #56B4E9;
+  --road: #E8E8E8;
+  --arrow: #E8E8E8;
+}
+
+body {
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-prose);
+}
+
+.numeral,
+[data-value] {
+  font-family: var(--font-numerals);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

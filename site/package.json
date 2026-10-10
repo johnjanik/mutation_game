@@ -1,0 +1,23 @@
+{
+  "name": "@two-games/site",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check && svelte-check --tsconfig ./tsconfig.json"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "8.0.3",
+    "@astrojs/svelte": "9.0.1",
+    "astro": "7.3.8",
+    "nanostores": "1.5.5",
+    "svelte": "5.57.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "svelte-check": "4.7.6"
+  }
+}
