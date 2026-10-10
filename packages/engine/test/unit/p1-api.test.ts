@@ -17,6 +17,17 @@ const PHASE_1_NAMES = [
   'highestRoot', 'highestShortRoot', 'coxeterNumber', 'longestWord', 'minusW0', 'minusculeNodes',
 ] as const;
 
+// Phase 2 (P2-A1): the names appended to index.ts (CONTRACTS.md 2.1 and 2.4 phase 2, plus the plan's
+// nullVector, twistedAEven and the four require* guards). Added here so that the pinned list stays exact.
+const PHASE_2_NAMES = [
+  'symmetrizer', 'gram', 'cartanClass', 'relabellings', 'identify', 'affineCandidates', 'identifyAffine',
+  'classify', 'smallestNonfiniteSubboard', 'spectralRadius',
+  'affineExtension', 'nullVector', 'marks', 'comarks', 'level', 'twistedAEven',
+  'formValue', 'formIsInvariant', 'isRootPopulation', 'coroot',
+  'requireGcm', 'requireConnected', 'requireFinite', 'requireAffine',
+  'playFate',
+] as const;
+
 const PHASE_0_NAMES = [
   'SafeInt', 'Big', 'EngineError', 'NotABoard', 'NeedsTwoWayRoads', 'NeedsConnectedBoard', 'NotFiniteType',
   'NotAffine', 'NotAdmissible', 'EngineOverflow', 'CAPS', 'cartan', 'boardFromName', 'fromAdjacency',
@@ -31,7 +42,8 @@ describe('exports of src/index.ts', () => {
   it('has every phase-1 function of P1-A1 instruction section 1, after every phase-0 name', () => {
     for (const n of PHASE_1_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
     for (const n of PHASE_0_NAMES) expect(api).toHaveProperty(n);
-    expect(Object.keys(api).sort()).toEqual([...PHASE_0_NAMES, ...PHASE_1_NAMES].sort());
+    for (const n of PHASE_2_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
+    expect(Object.keys(api).sort()).toEqual([...PHASE_0_NAMES, ...PHASE_1_NAMES, ...PHASE_2_NAMES].sort());
   });
 
   it('exports the four types (checked by tsc on this file)', () => {

@@ -5,6 +5,10 @@
 import { Big, SafeInt } from './arith';
 import type { Arith, Matrix } from './arith';
 import { NotABoard } from './errors';
+// Phase 2 (P2-A1): the affine and twisted names of boardFromName. These two modules import this one in
+// turn; the cycle is safe because nothing runs at module load (P2-A1 instruction, trap 15).
+import { extendMatrix } from './affine';
+import { affineCandidates } from './classify';
 
 export interface Board<T = number> {
   n: number;
@@ -124,13 +128,53 @@ function makeBoard<T>(
   return Object.freeze(board);
 }
 
+/** Labels 0..n-1, for the affine and twisted boards (E-7). */
+function affineLabels(n: number): readonly number[] {
+  const labels: number[] = [];
+  for (let k = 0; k < n; k++) labels.push(k);
+  return Object.freeze(labels);
+}
+
 /**
  * A board from its name. Phase 0: the finite names that cartan accepts give a Board<number> with
  * SafeInt, labels 1..n in Bourbaki order, kind 'gcm' and the name as given ("B2" and "C2" are both
- * names). Every other name throws NotABoard; phase 2 extends this function with the affine, twisted
- * and preset names.
+ * names). Phase 2 (P2-A1, port of the oracle's board_from_name, lines 1786 to 1808): 'pentagon' and
+ * 'square' (the 5-cycle and the 4-cycle, labels 1..m round the cycle); "X~" for every finite name X
+ * (the untwisted affine extension, labels 0..n; "B2~" and "C2~" are both accepted and build the two
+ * numberings); the twisted names "A2^(2)" ... "D4^(3)" as listed by affineCandidates(m) for m = 2..13
+ * (labels 0..n in the order of their matrix). All of these are Board<bigint> with Big (E-2), kind 'gcm',
+ * and the name as given (plan). Every other name throws NotABoard.
  */
 export function boardFromName(name: string): AnyBoard {
+  if (name === 'pentagon' || name === 'square') {
+    const m = name === 'pentagon' ? 5 : 4;
+    const rows: bigint[][] = [];
+    for (let i = 0; i < m; i++) {
+      const row: bigint[] = [];
+      for (let j = 0; j < m; j++) {
+        const d = (((i - j) % m) + m) % m;
+        row.push(i === j ? 2n : d === 1 || d === m - 1 ? -1n : 0n);
+      }
+      rows.push(row);
+    }
+    return makeBoard(rows, bourbakiLabels(m), 'gcm', Big, name);
+  }
+  const affine = /^([A-G][1-9][0-9]*)~$/.exec(name);
+  if (affine !== null) {
+    const C = cartan(affine[1]!); // throws NotABoard on an unknown finite name
+    const ext = extendMatrix(C, false);
+    return makeBoard(ext.cartan.map((row) => row.map((x) => BigInt(x))), affineLabels(C.length + 1), 'gcm', Big, name);
+  }
+  if (/^[A-E][1-9][0-9]*\^\((2|3)\)$/.test(name)) {
+    for (let m = 2; m <= 13; m++) {
+      for (const cand of affineCandidates(m)) {
+        if (cand.name === name) {
+          return makeBoard(cand.cartan.map((row) => row.map((x) => BigInt(x))), affineLabels(m), 'gcm', Big, name);
+        }
+      }
+    }
+    throw new NotABoard(`${JSON.stringify(name)} is not the name of a twisted affine board with at most 13 nodes`);
+  }
   const C = cartan(name); // throws NotABoard on an unknown name
   return makeBoard(C, bourbakiLabels(C.length), 'gcm', SafeInt, name);
 }

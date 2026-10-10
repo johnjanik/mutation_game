@@ -44,4 +44,26 @@ export { orbit, orbitGraph, wordTo, roots, positiveRoots } from './search';
 export type { Enumeration, OrbitGraph } from './search';
 export { play, raisingPlay, kostantPlay } from './play';
 export type { PlayResult } from './play';
-export { highestRoot, highestShortRoot, coxeterNumber, longestWord, minusW0, minusculeNodes } from './finite';
+// Phase 2 (P2-A1): the six finite functions are re-exported from guards.ts, which adds the checks of
+// SPEC.md 5.6 (E-11) in front of P1-A1's functions of finite.ts.
+export { highestRoot, highestShortRoot, coxeterNumber, longestWord, minusW0, minusculeNodes } from './guards';
+// Phase 2 (P2-A1): appended after the phase-1 exports.
+export {
+  symmetrizer,
+  gram,
+  cartanClass,
+  relabellings,
+  identify,
+  affineCandidates,
+  identifyAffine,
+  classify,
+  smallestNonfiniteSubboard,
+  spectralRadius,
+} from './classify';
+export type { ClassifyRecord, NonfiniteSubboard } from './classify';
+export { affineExtension, nullVector, marks, comarks, level, twistedAEven } from './affine';
+export type { AffineExtension } from './affine';
+export { formValue, formIsInvariant, isRootPopulation, coroot } from './form';
+export type { InvarianceResult } from './form';
+export { requireGcm, requireConnected, requireFinite, requireAffine } from './guards';
+export { playFate } from './play';
