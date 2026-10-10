@@ -74,8 +74,13 @@ export const announceTemplates = {
   gameOver(moves: number): string {
     return `Game over after ${movesPhrase(moves)}.`;
   },
-  playedToEnd(moves: number, numbers: readonly Speakable[]): string {
-    return `Played ${movesPhrase(moves)} to the end. Numbers now ${speakList(numbers)}.`;
+  /**
+   * "Played 14 moves to the end. Numbers now 0, 0, 0, 0, minus 1." The trailing `noun` is a P1-A2
+   * extension (mirrors `undid`): a raising play (T9) says "Populations now ...". Default: numbers.
+   */
+  playedToEnd(moves: number, values: readonly Speakable[], noun: ValuesNoun = 'numbers'): string {
+    const word = noun === 'numbers' ? 'Numbers' : 'Populations';
+    return `Played ${movesPhrase(moves)} to the end. ${word} now ${speakList(values)}.`;
   },
   /**
    * "Undid move 4. Numbers now ...". The trailing `noun` is a P0-A5 extension (a deviation
