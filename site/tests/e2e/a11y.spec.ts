@@ -16,6 +16,9 @@ export const ROUTES: Route[] = [
   { name: 'index page', path: './', tool: true },
   { name: 'about page', path: 'about/', tool: false },
   { name: 'credits page', path: 'credits/', tool: false },
+  // MERGE, P1 stage 1.2 (requests of P1-A5 and P1-A6): the tool routes of phase 1.
+  { name: 'game board tool', path: 'tools/board/', tool: true },
+  { name: 'orbit garden tool', path: 'tools/garden/', tool: true },
 ];
 
 /** The pages with no tool, which fetch no script in phase 0. */
