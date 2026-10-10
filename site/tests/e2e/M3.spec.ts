@@ -647,9 +647,8 @@ test('islands: the first tool is idle, the others visible', () => {
 test('axe: no serious or critical violations on the lesson at 360 pixels', async ({ page }) => {
   await page.goto(ROUTE);
   for (const [id] of TOOLS) await hydrate(page, id);
-  // Excluded as in M1.spec.ts (request to P1-A6 in decisions/P1-A9.md): T2's layer chart is a
-  // scrolling box with no focusable content; it is drawn only off the finite types (b7 here).
-  const results = await new AxeBuilder({ page }).exclude('[data-instance="b7"] .chart-box').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
+  // The whole page is scanned, T2's layer chart on b7 included (it is focusable since stage 2.2).
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
   const serious = results.violations
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
