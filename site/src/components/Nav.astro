@@ -1,0 +1,27 @@
+---
+// The site navigation (P1-A4; SPEC.md 7.3, 7.5 A-1 and A-2, 7.6). A <nav> named "Site" with links to
+// the index, the module index, the glossary, the sources page, about and credits, each built from
+// import.meta.env.BASE_URL through linkIfReleased, so a target that is not released has no link.
+// No script: the shell's only island is the theme switch, which P1-A3 places in Base.astro's header
+// beside this component (<ThemeSwitch client:idle />); this file never writes a switch of its own.
+import { linkIfReleased, type Target } from '@lib/pages/released';
+
+const items: { target: Target; text: string }[] = [
+  { target: { kind: 'static', name: 'index' }, text: 'Home' },
+  { target: { kind: 'static', name: 'modules' }, text: 'Modules' },
+  { target: { kind: 'page', slug: 'glossary' }, text: 'Glossary' },
+  { target: { kind: 'static', name: 'sources' }, text: 'Sources' },
+  { target: { kind: 'page', slug: 'about' }, text: 'About' },
+  { target: { kind: 'page', slug: 'credits' }, text: 'Credits' },
+];
+const links = items.flatMap(({ target, text }) => {
+  const href = linkIfReleased(target);
+  return href === null ? [] : [{ href, text }];
+});
+const here = Astro.url.pathname;
+---
+<nav aria-label="Site" class="site-nav">
+  <ul>
+    {links.map((l) => <li><a href={l.href} aria-current={here === l.href ? 'page' : undefined}>{l.text}</a></li>)}
+  </ul>
+</nav>
