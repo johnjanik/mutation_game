@@ -1,0 +1,28 @@
+---
+// Spike B (P0-A3, temporary): katex.renderToString called in Node from .astro frontmatter.
+import katex from 'katex';
+
+const options = { output: 'htmlAndMathml', throwOnError: true, trust: false } as const;
+const inline = [
+  '\\alpha_1',
+  'C_{ij}=\\langle\\alpha_i^\\vee,\\alpha_j\\rangle',
+  'a<b',
+  '\\{1,2\\}',
+].map((src) => katex.renderToString(src, { ...options, displayMode: false }));
+const display = [
+  'p_i \\ \\longmapsto\\ -p_i + \\sum_{j\\ne i} A_{ji}\\,p_j \\;=\\; p_i - \\sum_{j} C_{ij}\\,p_j .',
+  'B_2=\\begin{pmatrix}2&-1\\\\-2&2\\end{pmatrix}',
+].map((src) => katex.renderToString(src, { ...options, displayMode: true }));
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Spike B</title>
+  </head>
+  <body>
+    <p>Inline: {inline.map((html) => <Fragment set:html={html} />)}</p>
+    {display.map((html) => <div set:html={html} />)}
+  </body>
+</html>
