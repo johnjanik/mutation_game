@@ -23,7 +23,7 @@
   import { nodePositions } from '../draw/layouts';
   import { MARGIN, toPixels } from '../draw/geometry';
   import { decodeState, encodeState, LINK_NOTICE } from '../../lib/urlCodec';
-  import { defaultStart, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
+  import { boardVerdictInLabels, defaultStart, isFiniteType, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
   import type { Prediction } from '../../tools/types';
   import { T1Game, exportValue, inLabelOrder, type T1Config } from './t01/model';
   import { moveSentence, playSentence, refusalSentence, spokenValue, undoSentence } from './t01/announce';
@@ -35,16 +35,28 @@
     endAnnouncement,
     endPanel,
     endSentence,
-    isNamedFinite,
     moodOfText,
     pickerGroups,
-    playControl,
     playOutcome,
     startFromLink,
     stepPosition,
     type EndPanel,
     type Mood,
   } from './t09/kostant';
+  // Phase 2 (P2-A7): the affine board of the recipe, the link to T4, "play on" off the finite types, and
+  // the finite test from classify's verdict (5.6). `isNamedFinite` and `playControl` of t09/kostant.ts
+  // are no longer called here (P2-A7 instruction 5.9 case 2); "play on" reaches the worker through
+  // t09/playOn.ts, imported on first use.
+  import {
+    affineBoardName as affineNameOf,
+    boardVerdictText,
+    capAnnouncement,
+    labHref,
+    playControlPhase2,
+    playDisabled,
+    playLabelOf,
+    playOnCap,
+  } from './t09/phase2';
 
   interface Props {
     id?: string;
@@ -106,6 +118,10 @@
   let version = $state(0);
   let notice = $state<string | null>(null);
   let limit = $state<string | null>(null);
+  /** Phase 2: the verdict of classify shown with the cap of a "play on" (SPEC 4 T9, G2). */
+  let playVerdict = $state<string | null>(null);
+  /** Phase 2: a "play on" is running (in the worker); the board waits for it. */
+  let busy = $state(false);
   let predictionResolved = $state(untrack(() => prediction === undefined));
 
   const touch = (): void => {
@@ -129,13 +145,21 @@
   // The end panel, computed in the script so that the server render writes it (trap 13).
   const panel: EndPanel | null = $derived.by(() => {
     const g = cur();
-    if (!goalMet || !isNamedFinite(g.board)) return null;
+    if (!goalMet || !isFiniteType(g.board)) return null;
     return endPanel(g.board as EngineBoard<unknown>, g.current.pop!, g.cursor);
   });
   const caption212 = $derived(panel === null ? null : affineCaptionParts(panel));
   // Phase-2 slots (P2-A7): the name of the affine board (kostant[T].affine_board_from_node) and the
-  // button that opens it in T4. Null in phase 1, so neither renders.
-  const affineBoardName: string | null = null;
+  // button that opens it in T4, once the play has ended at the highest root or the highest short root.
+  const affineBoardName: string | null = $derived.by(() => {
+    if (panel === null || panel.name === null) return null;
+    const g = cur();
+    return affineNameOf(g.board, g.current.pop!);
+  });
+  /** Phase 2: "play to the end" on a board classify calls finite, "play on" elsewhere (SPEC 4 T9, G2). */
+  const control = $derived(playControlPhase2(anyBoard));
+  const playLabel = $derived(playLabelOf(control));
+  const finiteBoard = $derived(isFiniteType(anyBoard));
   const states = $derived(moodsNow.map((m) => MOOD_STATE[m]));
   const spoken = $derived(pops.map(spokenValue));
   const labelsInOrder = $derived([...anyBoard.labels].sort((a, b) => a - b));
@@ -184,6 +208,7 @@
   function load(s: { board: BoardSpec; start?: (number | string)[]; moves?: number[] }): void {
     game = new T1Game(configOf(s));
     limit = null;
+    playVerdict = null;
     touch();
   }
 
@@ -222,12 +247,12 @@
   function withEnd(sentence: string, wasMet: boolean): string {
     const g = game;
     const metNow = g.shown.numbers.every((x) => moodOfText(x) !== 'unhappy');
-    if (!metNow || wasMet || !isNamedFinite(g.board)) return sentence;
+    if (!metNow || wasMet || !isFiniteType(g.board)) return sentence;
     return `${sentence} ${endAnnouncement(endPanel(g.board as EngineBoard<unknown>, g.current.pop!, g.cursor))}`;
   }
 
   function act(position: number, announce: (t: string) => void): void {
-    if (frozen) return;
+    if (frozen || busy) return;
     const wasMet = goalMet;
     const before = game.shown;
     const r = game.act(position);
@@ -236,12 +261,13 @@
       return;
     }
     limit = null;
+    playVerdict = null;
     touch();
     announce(withEnd(moveSentence('populations', game.labels, r.label, before, game.shown, game.cursor), wasMet));
   }
 
   function step(announce: (t: string) => void): void {
-    if (frozen) return;
+    if (frozen || busy) return;
     let k: number | null;
     try {
       k = stepPosition(game.board as EngineBoard<unknown>, game.current.pop!);
@@ -253,7 +279,11 @@
   }
 
   function playToEnd(announce: (t: string) => void): void {
-    if (frozen || atEnd) return;
+    if (frozen || atEnd || busy) return;
+    if (control === 'play on') {
+      void playOn(announce);
+      return;
+    }
     const wasMet = goalMet;
     // A named finite board: at most N moves (F13; at most 120 on E8), always on the main thread (E-9).
     const outcome = game.playToEnd(CAPS.playMoves);
@@ -262,11 +292,41 @@
     announce(withEnd(playSentence('populations', 'raising', game.labels, outcome.moves, outcome.status, game.shown), wasMet));
   }
 
+  /**
+   * Phase 2 (P2-A7): "play on" on a board that is not of finite type (an affine board in T9): one
+   * raisingPlay with the cap, in the worker (E-9 rule 2), never past the link maximum; its moves are
+   * appended like a play to the end, and the cap is reported with the verdict of classify (G2).
+   */
+  async function playOn(announce: (t: string) => void): Promise<void> {
+    const cap = playOnCap(game.cursor);
+    if (cap === 0 || busy) return;
+    busy = true;
+    try {
+      const current = game;
+      const { runPlayOn } = await import('./t09/playOn');
+      const result = await runPlayOn(current.board, current.current.pop!, cap);
+      if (current !== game) return; // the reader loaded another state meanwhile
+      const wasMet = goalMet;
+      const outcome = game.applyPlay(result);
+      limit = playOutcome(outcome, cap);
+      playVerdict = limit === null ? null : boardVerdictText(game.board);
+      touch();
+      announce(
+        outcome.status === 'cap'
+          ? capAnnouncement(outcome.moves)
+          : withEnd(playSentence('populations', 'raising', game.labels, outcome.moves, outcome.status, game.shown), wasMet),
+      );
+    } finally {
+      busy = false;
+    }
+  }
+
   function scrub(to: number, announce: (t: string) => void): void {
-    if (frozen) return;
+    if (frozen || busy) return;
     const from = game.cursor;
     if (!game.scrub(to)) return;
     limit = null;
+    playVerdict = null;
     touch();
     if (to < from) announce(undoSentence('populations', game.labels, to + 1, game.shownAt(to)));
     else announce(moveSentence('populations', game.labels, game.moves[to - 1]!, game.shownAt(to - 1), game.shownAt(to), to));
@@ -276,10 +336,11 @@
   const redo = (announce: (t: string) => void): void => scrub(game.cursor + 1, announce);
 
   function reset(announce: (t: string) => void): void {
-    if (frozen) return;
+    if (frozen || busy) return;
     const from = game.cursor;
     if (!game.reset()) return;
     limit = null;
+    playVerdict = null;
     touch();
     if (from > 0) announce(undoSentence('populations', game.labels, 1, game.shownAt(0)));
   }
@@ -333,7 +394,8 @@
             marked: panel.marked,
             returnCounts: panel.returnCounts?.map(exportValue) ?? null,
           };
-    return { ...base, moods: moodsInOrder, end };
+    // Phase 2: the verdict records (labels) and the affine board named in the caption (6.6 derived tables).
+    return { ...base, moods: moodsInOrder, end, verdict: boardVerdictInLabels(anyBoard), affineBoard: affineBoardName };
   }
 </script>
 
@@ -364,7 +426,7 @@
         name="Kostant's game on {title}"
         {states}
         {spoken}
-        disabled={frozen}
+        disabled={frozen || busy}
         hintFor={tooltip(pops)}
         onAct={(k) => act(k, api.announce)}
       />
@@ -402,6 +464,10 @@
          check of native MathML in phase 3 (P3-A5): if one engine fails, HTML spans with an aria-label. -->
     <p class="line" data-out="bridgeSentence">The number on node <math><mi>i</mi></math> is the amount by which a mutation would lower city <math><mi>i</mi></math>.</p>
     <p class="line" data-out="limit">{limit ?? ''}</p>
+    {#if !finiteBoard}
+      <!-- Phase 2 (P2-A7): the verdict of classify with the report of a "play on" (SPEC 4 T9, G2). -->
+      <p class="line" data-out="verdict">{playVerdict ?? ''}</p>
+    {/if}
     {#if panel !== null}
       <div class="end" data-out="endPanel">
         <p class="line" data-out="endName">{endSentence(panel)}</p>
@@ -420,16 +486,17 @@
             Join a new city to {panel.marked.length === 1 ? 'city' : 'cities'} {caption212.cities}. It sends <math><msub><mi>a</mi><mi>j</mi></msub></math> roads to each marked city
             <math><mi>j</mi></math> ({caption212.sends}) and receives <math><msub><mi>b</mi><mi>j</mi></msub></math> roads back ({caption212.receives}).{#if caption212.equal}
               On a simply laced board the two counts are equal.{/if} The board with the new city is an affine board{#if affineBoardName !== null}, <span
-                data-out="affineBoard">{affineBoardName}</span
+                data-out="affineBoard" data-name={affineBoardName}>{affineBoardName}</span
               >{/if}.
           </p>
           <p class="line">
             Roads back from each city to the new city: <span class="numeral" data-out="returnCounts">{panel.returnCounts.join(', ')}</span>.
           </p>
         {/if}
-        {#if affineBoardName !== null}
-          <!-- Phase 2 (P2-A7): M3's "add the city" opens T4 with the affine board. -->
-          <a class="control" data-control="openLab" href="{import.meta.env.BASE_URL}tools/lab/">add the city</a>
+        {#if affineBoardName !== null && !frozen}
+          <!-- Phase 2 (P2-A7): M3's "add the city" opens T4 with the affine board, by its name in the bare
+               key g of T4's own route (6.6), ~ ^ ( ) left readable. -->
+          <a class="control lab-link" data-control="openLab" href={labHref(import.meta.env.BASE_URL, affineBoardName)}>add the city</a>
         {/if}
       </div>
     {/if}
@@ -438,7 +505,7 @@
       cursor={cur().cursor}
       {positionNames}
       hydrated={api.hydrated}
-      {frozen}
+      frozen={frozen || busy}
       onUndo={() => undo(api.announce)}
       onRedo={() => redo(api.announce)}
       onReset={() => reset(api.announce)}
@@ -448,9 +515,14 @@
 {/snippet}
 
 {#snippet controls(api: FrameApi)}
-  <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || atEnd} onclick={() => step(api.announce)}>Step</button>
-  <button type="button" class="control" data-control="playToEnd" disabled={!api.hydrated || frozen || atEnd} onclick={() => playToEnd(api.announce)}
-    >{playControl(anyBoard) === 'play on' ? 'Play on' : 'Play to the end'}</button
+  <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || atEnd || busy} onclick={() => step(api.announce)}>Step</button>
+  <button
+    type="button"
+    class="control"
+    data-control="playToEnd"
+    data-play={playLabel.play}
+    disabled={playDisabled({ hydrated: api.hydrated, frozen, busy, atEnd, playOn: control === 'play on', cursor: cur().cursor })}
+    onclick={() => playToEnd(api.announce)}>{playLabel.text}</button
   >
   <label class="setting">
     <span>Start city</span>
@@ -640,6 +712,14 @@
   }
   .control:disabled {
     cursor: default;
+  }
+  /* Phase 2: the "add the city" link is a 44-pixel target like the buttons (A-7), placed at the start. */
+  .lab-link {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    box-sizing: border-box;
+    text-decoration: underline;
   }
   .control:focus-visible,
   .cell:focus-visible,
