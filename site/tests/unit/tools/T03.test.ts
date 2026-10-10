@@ -447,7 +447,7 @@ describe('T3 plan tests (instruction 5.12)', () => {
     expect(Object.keys(T03.presets).sort()).toEqual(['builder', 'default', 'meter', 'small-values']);
     for (const [id, p] of Object.entries(FORM_PRESETS)) {
       expect(T03.presets[id as keyof typeof T03.presets]!.caption).toBe(p.caption);
-      expect(p.caption).not.toMatch(/—/);
+      expect(p.caption).not.toMatch(/\u2014/);
       const link = encodeState(p.state);
       expect(link).toMatch(/^z=1&g=A[23]&c=p&s=1,0(,0)?&w=$/);
     }
