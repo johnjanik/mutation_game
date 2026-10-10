@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CAPS, EngineOverflow, boardFromName, kostantPlay, raisingNodes, raisingPlay, toNumbers } from '@engine';
-import type { AnyBoard, Board } from '@engine';
+import type { Board } from '@engine';
 import { createServer, type ViteDevServer } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import {

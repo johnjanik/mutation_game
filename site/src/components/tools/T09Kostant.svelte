@@ -417,7 +417,7 @@
         </p>
         {#if caption212 !== null && panel.returnCounts !== null}
           <p class="line" data-out="affineCaption">
-            Join a new city to city {caption212.cities}. It sends <math><msub><mi>a</mi><mi>j</mi></msub></math> roads to each marked city
+            Join a new city to {panel.marked.length === 1 ? 'city' : 'cities'} {caption212.cities}. It sends <math><msub><mi>a</mi><mi>j</mi></msub></math> roads to each marked city
             <math><mi>j</mi></math> ({caption212.sends}) and receives <math><msub><mi>b</mi><mi>j</mi></msub></math> roads back ({caption212.receives}).{#if caption212.equal}
               On a simply laced board the two counts are equal.{/if} The board with the new city is an affine board{#if affineBoardName !== null}, <span
                 data-out="affineBoard">{affineBoardName}</span
