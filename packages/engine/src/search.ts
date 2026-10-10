@@ -4,6 +4,7 @@
 // word_to (1373 to 1378), roots (186 to 190) and positive_roots (193 to 194). Positions are keyed by
 // their entries joined as decimal text; a cap is reported in `truncated`, never thrown (E-10).
 import type { Vec } from './arith';
+import { Big, SafeInt } from './arith';
 import type { Board } from './board';
 import { CAPS } from './caps';
 import type { Game } from './moves';
@@ -26,7 +27,12 @@ export interface OrbitGraph<T> {
 }
 
 function keyOf<T>(board: Board<T>, v: readonly T[]): string {
-  const show = board.arith.show;
+  // The entries joined as decimal text (5.5). Both arithmetics' `show` is the number's or the
+  // bigint's own text, which Array.prototype.join writes natively; the generic loop over `show`
+  // is kept for any other arithmetic (MERGE, stage 3.1, for the benchmark of 7.6).
+  const arith = board.arith;
+  if (arith === (SafeInt as unknown) || arith === (Big as unknown)) return v.join(',');
+  const show = arith.show;
   let key = show(v[0]!);
   for (let j = 1; j < v.length; j++) key += ',' + show(v[j]!);
   return key;

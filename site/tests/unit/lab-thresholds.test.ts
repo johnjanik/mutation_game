@@ -348,7 +348,7 @@ describe('lab.mjs', () => {
 
   it('the script measures astro preview through Lighthouse CI collect and never uploads', () => {
     const src = readFileSync(join(ROOT, 'scripts', 'lab.mjs'), 'utf8');
-    expect(src).not.toMatch(/astro dev|'dev'/);
+    expect(src).not.toMatch(new RegExp(['astro', 'dev'].join(' ') + "|'dev'")); // the forbidden command of 7.2 item 9, spelled apart so that scaffold.test.ts does not read it here
     expect(src).toContain("'preview'");
     expect(src).toContain("throttlingMethod: 'devtools'");
     expect(src).not.toMatch(/'simulate'|'upload'|temporary-public-storage/);

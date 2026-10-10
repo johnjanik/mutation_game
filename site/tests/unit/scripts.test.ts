@@ -202,13 +202,8 @@ describe('decisions/P0-A6.md', () => {
   });
 });
 
-describe('lab.mjs', () => {
-  it('lab stub exits 2 with the phase-3 message', () => {
-    const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'lab.mjs')], { encoding: 'utf8' });
-    expect(r.status).toBe(2);
-    expect(r.stderr.trim()).toBe('lab timings arrive in phase 3 (P3-A7)');
-  });
-});
+// The phase-0 stub test of lab.mjs was deleted at the stage 3.1 merge (request of P3-A7);
+// site/tests/unit/lab-thresholds.test.ts covers scripts/lab.mjs from phase 3 on.
 
 describe('report.mjs', () => {
   const openItems = (mode: string) => ({
