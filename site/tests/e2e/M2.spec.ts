@@ -427,8 +427,9 @@ test('the matrix figure shows 2I minus A for A3', async ({ page }) => {
   const arrows = await roots.locator('[data-root]').evaluateAll((els) => els.map((e) => e.getAttribute('data-root')));
   const expected = [...A2.positive_roots, ...A2.positive_roots.map((r) => r.map((x) => -x))].map((r) => r.join(',')).sort();
   expect([...arrows].sort()).toEqual(expected);
-  // No link to the Kaleidoscope while it is not released.
-  await expect(page.locator('a[href*="tools/mirror"]')).toHaveCount(0);
+  // The prose names the Kaleidoscope; since T6 was released (stage 3.2) the name is a link to it
+  // (MERGE: before that, the test asserted that no such link existed).
+  await expect(page.locator('a[data-tool-link="mirror"][href*="tools/mirror"]')).toHaveCount(1);
 });
 
 test('challenge: build the form on D4', async ({ page }) => {
