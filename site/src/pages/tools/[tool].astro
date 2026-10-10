@@ -18,6 +18,7 @@ import T02OrbitGarden from '@components/tools/T02OrbitGarden.svelte';
 import T03FormFinder from '@components/tools/T03FormFinder.svelte';
 import T04ClassificationLab from '@components/tools/T04ClassificationLab.svelte';
 import { testBoardPresets } from '@components/board/editor/presets';
+import T08WeylExplorer from '@components/tools/T08WeylExplorer.svelte';
 import T09Kostant from '@components/tools/T09Kostant.svelte';
 import T15AffinePlayground from '@components/tools/t15/T15Route.astro';
 import T16Sandbox from '@components/tools/T16Sandbox.svelte';
@@ -29,7 +30,7 @@ export function getStaticPaths(): ToolRoute[] {
 const { entry, caption } = Astro.props as ToolRoute['props'];
 
 /** The tools that have their static line below (MERGE adds the id with the import). */
-const HYDRATED: ReadonlySet<string> = new Set<string>(['affine', 'board', 'form', 'garden', 'kostant', 'lab', 'sandbox']);
+const HYDRATED: ReadonlySet<string> = new Set<string>(['affine', 'board', 'form', 'garden', 'kostant', 'lab', 'sandbox', 'weyl']);
 
 let Unhydrated: ((props: Record<string, unknown>) => unknown) | null = null;
 if (!HYDRATED.has(entry.id)) {
@@ -49,6 +50,7 @@ const toolProps = { id: '', caption, preset: 'default' };
     {entry.id === 'garden' && <T02OrbitGarden client:idle {...toolProps} />}
     {entry.id === 'form' && <T03FormFinder client:idle {...toolProps} />}
     {entry.id === 'lab' && <T04ClassificationLab client:idle {...toolProps} boardPresets={testBoardPresets()} />}
+    {entry.id === 'weyl' && <T08WeylExplorer client:idle {...toolProps} />}
     {entry.id === 'kostant' && <T09Kostant client:idle {...toolProps} />}
     {entry.id === 'affine' && <T15AffinePlayground hydrate="idle" {...toolProps} />}
     {entry.id === 'sandbox' && <T16Sandbox client:idle {...toolProps} boardPresets={testBoardPresets()} />}
