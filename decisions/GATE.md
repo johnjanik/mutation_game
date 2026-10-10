@@ -3,3 +3,6 @@ Decision: gate G0 run on d713654 after a first run on f7a47c3 failed its browser
 
 ## 2026-10-10 GATE: G1 build
 Decision: gate G1 measured 47bf8c4 after two runs on 1140392: the first an environment failure (Chromium crashed at launch with TMPDIR pointed at the scratchpad; repaired by the default temp directory), the second failing only two stale assertions of pages.spec.ts about an empty module index, fixed by MERGE as an integration fix. What the specification left open: nothing. Reason: a gate measures one commit; every command was rerun on it. No flaky test, no skipped test, no fragment left to fold. The red team of phase 1 was not run in this build (credit budget).
+
+## 2026-10-10 GATE: G2 build
+Decision: gate G2 measured 77ca18a after one run on 2490f29 that failed a single stale assertion of M2.spec.ts (the one-view check read M3's title in M2's next-module link), fixed by MERGE as an integration fix; the whole chain was rerun on 77ca18a. What the specification left open: nothing. Reason: a gate measures one commit. No flaky test, no skipped test, no fragment left to fold. The phase-2 keys were checked for the one-file rule by their covers() registrations (a plain substring search over-counts the key `affine`, which also names a board kind in three other files). The red team of phase 2 was not run in this build (credit budget).
