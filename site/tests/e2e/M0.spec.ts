@@ -22,6 +22,7 @@
 // every tool root ([data-tool]), every <details> (prediction reveals, challenge explanations, the
 // tables of A-10), every live or status region, the draft mark and the list of sources entries; each
 // KaTeX formula counts as one word. A word is a run of characters other than white space.
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -432,6 +433,19 @@ test('no forbidden statement', async ({ page }) => {
     /not of finite type/i,
   ];
   for (const re of forbidden) expect(text, String(re)).not.toMatch(re);
+});
+
+test('axe: no serious or critical violations on the lesson at 360 pixels', async ({ page }) => {
+  // a11y.spec.ts (P0-A5) lists its routes by name and does not include lessons yet; this repeats its
+  // rule for M0, with the tags of T01.spec.ts. A display formula wider than the column fails here
+  // (scrollable-region-focusable), so display formulas are kept narrow.
+  await page.goto(ROUTE);
+  await expect(tool(page, 'b1')).toHaveAttribute('data-hydrated', 'true');
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
+  const serious = results.violations
+    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
+  expect(serious).toEqual([]);
 });
 
 test('instance prefix: b3.w=2 opens beat 3 with node 2 fired', async ({ page }) => {

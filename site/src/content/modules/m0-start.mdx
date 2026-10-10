@@ -60,7 +60,7 @@ City <Tex src="2"/> changes type, which turns its Martian into an anti-Martian, 
 The second game keeps the <Term a="board">board</Term> and changes the record. In the **Numbers** view each node holds an integer, simply called its number, and the list of numbers is a **position**. To **fire** node $i$, node $i$ sends its number down every road that leaves it, then changes sign:
 
 $$
-a_i \longmapsto -a_i, \qquad a_j \longmapsto a_j + A_{ij}\, a_i \quad (j \ne i).
+\begin{aligned} a_i &\longmapsto -a_i, \\ a_j &\longmapsto a_j + A_{ij}\, a_i \quad (j \ne i). \end{aligned}
 $$
 
 The figure starts at the position <Tex src="(0,1,0)"/>. Firing node <Tex src="2"/> sends its <Tex src="1"/> to node <Tex src="1"/> and to node <Tex src="3"/> and leaves <Tex src="-1"/> behind, so the position becomes <Tex src="(1,-1,1)"/>. A firing changes the fired node and its neighbours; a mutation changes one city only.
