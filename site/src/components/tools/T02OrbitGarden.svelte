@@ -21,7 +21,7 @@
   import { shortcutOf } from '../board/keyboard';
   import { announceTemplates, moveAnnouncement, speakList } from '../../lib/a11y';
   import { highlight } from '../../lib/highlight';
-  import { bigBoard, followToolState, publishToolState, resolveBoard, type BoardSpec, type Coords, type ToolState } from '../../lib/state';
+  import { bigBoard, boardVerdict, followToolState, isFiniteType, publishToolState, resolveBoard, type BoardSpec, type Coords, type ToolState } from '../../lib/state';
   import { decodeState, encodeBoard } from '../../lib/urlCodec';
   import type { Prediction } from '../../tools/types';
   import {
@@ -33,16 +33,13 @@
     gameOf,
     grow,
     highlightFor,
-    isNamedFinite,
     jumpTo,
     keyOf,
-    layersBound,
     moveEdges,
     newPerLayer,
     playEdges,
     positionText,
     startVector,
-    totalOf,
     totalText,
     vertexIndex,
     visibleEdges,
@@ -61,6 +58,8 @@
   import { drawGarden } from './t02/drawing';
   import GardenGraph, { type GraphEdge, type GraphVertex } from './t02/GardenGraph.svelte';
   import LayerChart from './t02/LayerChart.svelte';
+  // Phase 2 (P2-A7): the finite test from classify's verdict (5.6), the verdict text beside the stop message.
+  import { gardenLayersBound, gardenTotal, verdictText } from './t02/phase2';
 
   interface Props {
     id?: string;
@@ -143,11 +142,11 @@
   const gb: AnyBoard = $derived(forceBig || startNeedsBig ? bigBoard(resolved) : resolved);
   const startVec: Vector = $derived(startVector(gb, start).v);
   const game = $derived(gameOf(grows, coords));
-  const bound = $derived(layersBound(gb, config.layers));
+  const bound = $derived(gardenLayersBound(resolved, config.layers));
   const boardText = $derived(typeof boardSpec === 'string' ? boardSpec : encodeBoard(boardSpec));
 
   /** Layers grown in `explore`. */
-  let layersGrown = $state(clampLayers(config.grown, layersBound(resolveBoard(config.defaults.board), config.layers)));
+  let layersGrown = $state(clampLayers(config.grown, gardenLayersBound(resolveBoard(config.defaults.board), config.layers)));
 
   const spec: GardenSpec = $derived(grows === 'roots' ? { board: gb, grows, game } : { board: gb, grows, game, seed: startVec });
 
@@ -300,9 +299,13 @@
   const message = $derived(growth === 'follow' ? followStopMessage(found, CAPS.gardenPositions) : stopMessage(gGraph, layersGrown, bound, CAPS.gardenPositions));
   const chart = $derived(growth === 'follow' && followModel !== null ? newPerLayer(followModel.rank).map((count, layer) => ({ layer, count, complete: true })) : chartLayers(gGraph));
   const growable = $derived(growth === 'explore' && canGrow(gGraph, layersGrown, bound));
-  const total = $derived(totalShown ? totalText(totalOf(spec, bound)) : '');
-  /** Phase 2 (P2-A7) supplies the verdict of `classify` here; this phase never computes or words one. */
-  const verdict: string | null = null;
+  const total = $derived(totalShown ? totalText(gardenTotal(spec, bound)) : '');
+  /**
+   * Phase 2 (P2-A7): the verdict of `classify`, computed once when the board was resolved (5.6), shown
+   * beside the stop message (SPEC 4 T2). A board classify calls finite shows no stop message and no
+   * verdict; the words come only from classify, never from a cap (4.0).
+   */
+  const verdict: string | null = $derived(isFiniteType(resolved) ? null : verdictText(boardVerdict(resolved)));
 
   const toolState: ToolState = $derived({ schema: 1, tool: 'garden', board: boardSpec, coords, start, moves: allMoves.slice(0, cursor) });
   const showBoard = $derived(config.linkTo === undefined);
@@ -329,7 +332,7 @@
     cursor = allMoves.length;
     positions = safeReplay(allMoves);
     if (boardChanged) {
-      layersGrown = clampLayers(config.grown, layersBound(resolveBoard(boardSpec), config.layers));
+      layersGrown = clampLayers(config.grown, gardenLayersBound(resolveBoard(boardSpec), config.layers));
       totalShown = false;
     }
     if (growth === 'follow') restartFollow();
@@ -383,7 +386,7 @@
 
   function revealTotal(announce: (t: string) => void): void {
     totalShown = true;
-    announce(`Total: ${totalText(totalOf(spec, bound))}.`);
+    announce(`Total: ${totalText(gardenTotal(spec, bound))}.`);
   }
 
   function jump(k: number, announce: (t: string) => void): void {
@@ -502,6 +505,7 @@
       completeLayers: growth === 'explore' ? gGraph.completeLayers : null,
       depthReached: growth === 'explore' ? gGraph.depthReached : null,
       stopMessage: message,
+      verdict: message ? verdict : null,
       found,
       total: totalShown ? total : null,
     };
