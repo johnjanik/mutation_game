@@ -277,3 +277,94 @@ export function toPositions(board: AnyBoard, labels: readonly number[]): number[
   }
   return out;
 }
+
+// =============================================================================================
+// Phase 1 (P1-A1): components, transposeBoard, subBoard. Appended after P0-A2's code; nothing above
+// this line is changed. SPEC.md 5.3, 5.6 (both work on a one-way board: roads in either direction join),
+// E-7 (subBoard keeps the labels of the chosen nodes). Ports of the oracle's components, transpose and
+// sub_matrix.
+// =============================================================================================
+
+/** Integer copy of a matrix in either arithmetic, for boardKind and the naming match. */
+function integerRows<T>(M: Matrix<T>): number[][] {
+  return (M as Matrix<number | bigint>).map((row) => row.map((x) => Number(x)));
+}
+
+/**
+ * The connected components as lists of positions, each sorted, in order of least position. Two positions
+ * are joined when C[i][j] or C[j][i] is nonzero (oracle lines 92 to 103).
+ */
+export function components<T>(board: Board<T>): number[][] {
+  const { n, cartan, arith } = board;
+  const seen: boolean[] = [];
+  for (let i = 0; i < n; i++) seen.push(false);
+  const out: number[][] = [];
+  for (let s = 0; s < n; s++) {
+    if (seen[s]) continue;
+    const comp: number[] = [];
+    const stack: number[] = [s];
+    seen[s] = true;
+    while (stack.length > 0) {
+      const i = stack.pop()!;
+      comp.push(i);
+      for (let j = 0; j < n; j++) {
+        if (seen[j] || i === j) continue;
+        if (arith.sign(cartan[i]![j]!) !== 0 || arith.sign(cartan[j]![i]!) !== 0) {
+          seen[j] = true;
+          stack.push(j);
+        }
+      }
+    }
+    comp.sort((a, b) => a - b);
+    out.push(comp);
+  }
+  return out;
+}
+
+/**
+ * The reversed board (SPEC.md 2.4(b), 5.3): cartan C^T in fresh rows, the same labels and arithmetic,
+ * the kind of the transposed matrix (the board's own), and the finite name whose standard matrix equals
+ * C^T, under the phase-0 rule of fromAdjacency (the C2 matrix stays unnamed); undefined otherwise (plan).
+ */
+export function transposeBoard<T>(board: Board<T>): Board<T>;
+export function transposeBoard(board: AnyBoard): AnyBoard;
+export function transposeBoard<T>(board: Board<T>): Board<T> {
+  const { n, cartan } = board;
+  const rows: T[][] = [];
+  for (let i = 0; i < n; i++) {
+    const row: T[] = [];
+    for (let j = 0; j < n; j++) row.push(cartan[j]![i]!);
+    rows.push(row);
+  }
+  const ints = integerRows(rows);
+  const kind = boardKind(ints);
+  if (kind === 'not-a-board') throw new NotABoard('the transposed matrix is not a board');
+  const match = finiteNameOf(ints);
+  const name = match !== null && match !== 'C2' ? match : undefined;
+  return makeBoard(rows, Object.freeze([...board.labels]), kind, board.arith, name);
+}
+
+/**
+ * The induced board on the chosen positions, sorted ascending (oracle sub_matrix, lines 734 to 736):
+ * position k of the result is the k-th smallest chosen position; labels are those of the chosen nodes,
+ * unchanged (E-7); kind from the induced matrix; the board's arithmetic; no name (plan). An empty list,
+ * a repeated position or a position outside 0..n-1 is a RangeError (plan).
+ */
+export function subBoard<T>(board: Board<T>, nodes: readonly number[]): Board<T>;
+export function subBoard(board: AnyBoard, nodes: readonly number[]): AnyBoard;
+export function subBoard<T>(board: Board<T>, nodes: readonly number[]): Board<T> {
+  if (nodes.length === 0) throw new RangeError('a sub-board needs at least one node');
+  const sorted = [...nodes].sort((a, b) => a - b);
+  for (let k = 0; k < sorted.length; k++) {
+    const p = sorted[k]!;
+    if (!Number.isInteger(p) || p < 0 || p >= board.n) {
+      throw new RangeError(`position ${String(p)} is outside 0..${board.n - 1}`);
+    }
+    if (k > 0 && sorted[k - 1] === p) throw new RangeError(`position ${p} is repeated`);
+  }
+  const rows: T[][] = sorted.map((i) => sorted.map((j) => board.cartan[i]![j]!));
+  const kind = boardKind(integerRows(rows));
+  if (kind === 'not-a-board') throw new NotABoard('the induced matrix is not a board');
+  const labels = Object.freeze(sorted.map((i) => board.labels[i]!));
+  return makeBoard(rows, labels, kind, board.arith);
+}
