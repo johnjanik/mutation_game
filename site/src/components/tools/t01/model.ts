@@ -19,9 +19,9 @@ import {
   toNumbers,
   toPopulation,
   toPositions,
-} from '@engine';
-import type { AnyBoard, Board, PlayResult, Rational } from '@engine';
-import { bigBoard, defaultStart, labelOrder, resolveBoard, type BoardSpec, type ToolState } from '@lib/state';
+} from '@two-games/engine';
+import type { AnyBoard, Board, PlayResult, Rational } from '@two-games/engine';
+import { bigBoard, defaultStart, labelOrder, resolveBoard, type BoardSpec, type ToolState } from '../../../lib/state';
 
 export type View = 'populations' | 'numbers' | 'linked';
 export type Mode = 'free' | 'legal' | 'raising';

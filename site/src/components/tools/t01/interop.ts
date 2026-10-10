@@ -1,11 +1,11 @@
 // T1 and the rest of the page (SPEC.md 7.4 "Tools on one page", 4.0 Predict): following a state
 // published under the instance's own id (T2's jump), the highlight store, and the check of a
 // prediction's answer. Pure helpers; the component wires them.
-import { encodeState } from '@lib/urlCodec';
-import { followToolState, type ToolState } from '@lib/state';
-import type { Highlight } from '@lib/highlight';
+import { encodeState } from '../../../lib/urlCodec';
+import { followToolState, type ToolState } from '../../../lib/state';
+import type { Highlight } from '../../../lib/highlight';
 import type { Prediction } from '../../../tools/types';
-import type { AnyBoard } from '@engine';
+import type { AnyBoard } from '@two-games/engine';
 import { inLabelOrder, type Shown } from './model';
 
 /**

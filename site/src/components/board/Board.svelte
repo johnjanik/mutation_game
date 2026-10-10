@@ -14,15 +14,15 @@
   // CONTRACTS 5.1 are unchanged): xy, states, spoken, ghosts, disabled, highlighted, onFocusNode.
   // Extra hooks on each button: data-sign (positive, negative, zero) and data-ring (true when the
   // may-act second ring is drawn).
-  import { mutate, toLabels, toPositions } from '@engine';
-  import type { Arith, Board as EngineBoard } from '@engine';
+  import { mutate, toLabels, toPositions } from '@two-games/engine';
+  import type { Arith, Board as EngineBoard } from '@two-games/engine';
   import Node from './Node.svelte';
   import Roads from './Roads.svelte';
   import { nodePositions } from '../draw/layouts';
   import { MARGIN, toPixels } from '../draw/geometry';
   import { arrowTarget, isArrowKey } from './keyboard';
   import { signOf } from './sign';
-  import { nodeName, speak, type NodeState } from '@lib/a11y';
+  import { nodeName, speak, type NodeState } from '../../lib/a11y';
   import type { BoardProps } from './types';
 
   let {

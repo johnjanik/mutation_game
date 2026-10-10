@@ -2,7 +2,7 @@
 // the A-4 template of lib/a11y.ts for a move, an undo, a play to the end or a refused action, and
 // speaks every value ("minus 2"; a fraction "2 over 3", plan). Values arrive as the hooks carry
 // them (decimal text or p/q), indexed by position; labels come with them.
-import { announceTemplates, moveAnnouncement, speak, CHANGED_ONLY_ABOVE } from '@lib/a11y';
+import { announceTemplates, moveAnnouncement, speak, CHANGED_ONLY_ABOVE } from '../../../lib/a11y';
 import type { Mode, Shown, View } from './model';
 
 /** A value read aloud: "minus 2"; a fraction "2 over 3", "minus 1 over 3" (plan). */

@@ -10,8 +10,8 @@
   //   linkTo (ignored: T1 is the tool others follow), layers (ignored: T1 never grows a set),
   //   script, goal, prediction, hints, panels, roadStyle, rounds, settings, onChange.
   import { untrack } from 'svelte';
-  import { CAPS } from '@engine';
-  import type { AnyBoard } from '@engine';
+  import { CAPS } from '@two-games/engine';
+  import type { AnyBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
@@ -19,12 +19,12 @@
   import Frac from '../math/Frac.svelte';
   import Bridge from './t01/Bridge.svelte';
   import { shortcutOf } from '../board/keyboard';
-  import { decodeState, encodeState } from '@lib/urlCodec';
-  import { defaultStart, firstForbiddenMove, isNamedFinite, publishToolState, resolveBoard, type BoardSpec, type ToolState } from '@lib/state';
-  import { engineCall, whereToRun } from '@lib/worker';
-  import { highlight } from '@lib/highlight';
+  import { decodeState, encodeState } from '../../lib/urlCodec';
+  import { defaultStart, firstForbiddenMove, isNamedFinite, publishToolState, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
+  import { engineCall, whereToRun } from '../../lib/worker';
+  import { highlight } from '../../lib/highlight';
   import { POPULATIONS_ICON, NUMBERS_ICON } from '../draw/palette';
-  import type { NodeState } from '@lib/a11y';
+  import type { NodeState } from '../../lib/a11y';
   import type { Prediction } from '../../tools/types';
   import type { RoadStyle } from '../board/types';
   import {
