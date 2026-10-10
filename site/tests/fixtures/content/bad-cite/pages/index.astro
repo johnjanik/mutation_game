@@ -1,0 +1,6 @@
+---
+// P0-A4 fixture (a test input, never a site page): an unknown <Cite> key must fail the build,
+// naming the key.
+import Cite from '@components/content/Cite.astro';
+---
+<p>See <Cite k="Nope99" />.</p>

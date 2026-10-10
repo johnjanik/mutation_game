@@ -1,0 +1,19 @@
+---
+title: Content components fixture
+---
+import { G, Tex, Cite, Unverified } from '@components/content';
+
+{/* P0-A4 fixture page (a test input, never a site page): every content component, imported
+    through the barrel, with the MDX attribute path of SPEC.md 7.3 for <Tex>. */}
+
+The order is <G k="types.E8.weyl_order"/> and the word is <G k="types.A2.longest_word" as="word"/>.
+
+<Tex src="|W(E_8)| = {{types.E8.weyl_order}} \quad \frac{1}{2}"/>
+
+Sources: <Cite k="Don08"/> and <Cite k="W20"/>.
+
+First: <Unverified item="E4" fallback="computed for every board of rank at most 8">Kac proves it.</Unverified>
+
+Second: <Unverified item="E4">Dropped in release.</Unverified>
+
+Third: <Unverified item="E99">Unknown item.</Unverified>
