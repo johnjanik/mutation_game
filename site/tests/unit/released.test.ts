@@ -22,6 +22,7 @@ import {
   toolsFromFiles,
   type Inventory,
 } from '../../src/lib/pages/released';
+import { routeOfContentFile, usagesFromFiles } from '../../src/lib/pages/openItems';
 
 const SITE_DIR = join(import.meta.dirname, '..', '..');
 
@@ -137,6 +138,20 @@ describe('released flag', () => {
     expect(slugCollisions(['sources'], [])).toHaveLength(1);
     expect(slugCollisions(['glossary', 'open-items'], [])).toHaveLength(1);
     expect(slugCollisions(['about', 'about'], ['m0', 'm0'])).toHaveLength(2);
+  });
+});
+
+describe('open-items usages', () => {
+  it('finds the pages that use an item by scanning the MDX sources', () => {
+    const map = usagesFromFiles({
+      '../../content/modules/m0-start.mdx': 'Text <Unverified item="E4" fallback="x">A</Unverified> and <Unverified item=\'E13\'>B</Unverified>.',
+      '../../content/pages/history.mdx': '<Unverified fallback="y" item="E4">C</Unverified> <Unverified item={"E18"}>D</Unverified>',
+      '../../content/pages/plain.mdx': 'no marks',
+      '../../other/file.mdx': '<Unverified item="E1">ignored</Unverified>',
+    });
+    expect(Object.fromEntries(map)).toEqual({ E4: ['history/', 'modules/m0-start/'], E13: ['modules/m0-start/'], E18: ['history/'] });
+    expect(routeOfContentFile('/x/src/content/modules/m1.mdx')).toBe('modules/m1/');
+    expect(routeOfContentFile('/x/src/content/pages/glossary.mdx')).toBe('glossary/');
   });
 });
 
