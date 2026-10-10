@@ -1,0 +1,174 @@
+---
+title: "The Weyl group inside the games"
+module: 5
+question: "What is being counted when a game always lasts the same number of moves?"
+phase: 3
+released: true
+draft: true
+outcomes: ["LO5"]
+sources: ["BB05", "Don08", "Ste59", "Ste96", "FZ03b", "W-MS", "Hum90", "Sta84", "BH95", "Kos59", "Mac72"]
+---
+import T01GameBoard from '@components/tools/T01GameBoard.svelte';
+import T05NumbersGameLab from '@components/tools/T05NumbersGameLab.svelte';
+import T07SymbolicGame from '@components/tools/T07SymbolicGame.svelte';
+import T08WeylExplorer from '@components/tools/T08WeylExplorer.svelte';
+import { G, Tex, Cite, Unverified } from '@components/content';
+import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
+import { linkIfReleased } from '@lib/pages/released';
+import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
+
+export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
+export const gv = (k) => resolveGoldenPath(k);
+export const fmt = (k, as) => formatGoldenValue(resolveGoldenPath(k), as);
+export const RHO3 = [1, 1, 1];
+export const COUNTER_BOARDS = ['A2', 'A3', 'A4', 'B3', 'D4'];
+export const DIM10 = 'weyl_dimension[type=A2;highest_weight=3,0].dimension';
+export const SEEN_POSITIONS = 'verified by computation for every board whose group has at most 60000 elements';
+export const SEEN_RANK = 'verified by computation for every board of rank at most 8';
+export const SEEN_DIM = `verified by computation on ${fmt('weyl_dimension', 'count')} representations`;
+
+{/* P3-A9: lesson M5, drafted from SPEC.md 2.6, 2.7 (F4 to F9, F12), 3 M5 and Appendix A.2 and A.3 in
+    the words of the site (D17: a draft until the owner approves it). Every number with a golden value
+    goes through G, Tex with a golden path, or resolveGoldenPath; every formula that holds a digit goes
+    through Tex, so scripts/numbers-in-prose.mjs finds nothing in this file. Theorem and page numbers of
+    the sources are locators, written as brace strings. Instance ids b1 to b15 in reading order; b1 is
+    client:idle, every other island client:visible. No apostrophe in this comment: the scanner reads
+    one as the start of a string. */}
+
+<Beat n={1}>
+
+In module four the numbers game on the board <Tex src="A_3"/> started from <Tex src="(1,1,1)"/>, one on every node, and fired only nodes holding a positive number. Whatever the order of the moves, the game stopped after the same number of moves, at the same position. This module explains what the game is counting. The start <Tex src="(1,1,1)"/> is called <Tex src="\rho"/>, the Greek letter rho.
+
+Firing a node is a reflection: in free play, firing the same node twice in a row gives back the position you had. The moves can be combined and undone, so together they form a group: the **Weyl group** of the board. On <Tex src="A_3"/> it is the group of all ways to shuffle four things.
+
+From <Tex src="\rho"/>, <Term a="legal-play">legal play</Term> reaches exactly <G k="types.A3.weyl_order"/> positions, one for each element of the group. Each element sends <Tex src="\rho"/> to a position of its own, and every element is reached by some legal play <Cite k="Don08"/> ({'Theorem 2.8'}). The textbook account is <Cite k="BB05"/> ({'section 4.3'}); that book allows moves on negative numbers as well. <Unverified item="E3" fallback="The site's statement follows Donnelly's Theorem 2.8.">The main theorem of that section, believed to be its {'Theorem 4.3.1'}, states the same correspondence.</Unverified>
+
+The Game Board below drives the Weyl Explorer under it. The explorer draws every reachable position as a dot, in layers by the number of moves, <G k="types.A3.length_distribution"/> dots per layer, and marks your game as a path from the top dot.
+
+<T01GameBoard slot="figure" client:idle id="b1" board="A3" view="numbers" mode="legal" coords="numbers" start={RHO3} prediction={{ question: 'Play legally from (1, 1, 1) until no number is positive. How many moves will the game take?', answer: { type: 'number', value: gv('types.A3.n_positive_roots') }, reveal: `${fmt('types.A3.n_positive_roots')} moves, in every order: beat two shows that each move uses up one of the ${fmt('types.A3.n_positive_roots')} positive roots of A3.` }} caption="Legal play on A3 from (1, 1, 1): fire any node whose number is positive, until none is." />
+<T08WeylExplorer slot="figure" client:visible id="b2" preset="default" board="A3" linkTo="b1" caption={`All ${fmt('types.A3.weyl_order')} positions that legal play reaches from (1, 1, 1) on A3, in layers of ${fmt('types.A3.length_distribution', 'plain')}; the game on the board above is the marked path.`} />
+</Beat>
+
+<Beat n={2}>
+
+A play is a list of moves, a **word** in the node labels. Two words can reach the same position: <Tex src="1,3"/> and <Tex src="3,1"/> both lead to <Tex src="(-1,3,-1)"/>. The **length** of a position is the least number of moves that reaches it, and it is the number of the layer its dot sits in.
+
+Each positive <Term a="root-population">root population</Term> of the board gives a mirror, and <Tex src="\rho"/> lies on the positive side of every mirror. On <Tex src="A_3"/> the test is a sum: a position lies on the negative side of the mirror of a root when the numbers on the nodes where the root has a <Tex src="1"/> add up to less than zero. Such a mirror **separates** the position from the start. After the play <Tex src="1,3,2"/> the position is <Tex src="(2,-3,2)"/>, and the mirrors of <G k="types.A3.positive_roots[1]"/>, <G k="types.A3.positive_roots[3]"/> and <G k="types.A3.positive_roots[4]"/> separate it: three mirrors, layer three.
+
+The length of a position always equals the number of mirrors that separate it from the start <Cite k="Hum90"/> ({'section 1.7'}). A node holds a positive number exactly when firing it crosses one more mirror, so a legal play crosses a new mirror at every move and never crosses back: it is a shortest word. A complete game ends at <Tex src="(-1,-1,-1)"/>, which lies beyond every mirror. So each move uses up one positive root, and every complete game has <G k="types.A3.n_positive_roots"/> moves, one for each positive root of <Tex src="A_3"/>. The element that every complete game reaches is the **longest element** of the group, the one that sends <Tex src="\rho"/> to <Tex src="-\rho"/>.
+
+<T08WeylExplorer slot="figure" client:visible id="b3" preset="default" board="A3" caption="Point at or focus a dot to see its position, a shortest word that reaches it and the roots whose mirrors separate it from the start; the dot of (2, −3, 2) on layer three has three." />
+</Beat>
+
+<Beat n={3}>
+
+Legal play leaves choices, so a board has many different complete games, one for each path from the top dot of the explorer to the bottom dot. The counter counts them. From all ones there are <G k="types.A2.n_reduced_words_w0"/> complete games on <Tex src="A_2"/>, <G k="types.A3.n_reduced_words_w0"/> on <Tex src="A_3"/> and <G k="types.A4.n_reduced_words_w0"/> on <Tex src="A_4"/>; <G k="types.B3.n_reduced_words_w0"/> on <Tex src="B_3"/>; and <G k="types.D4.n_reduced_words_w0"/> on <Tex src="D_4"/>.
+
+For the boards <Tex src="A_n"/> these counts are OEIS sequence {'A005118'}. <Unverified item="E16" fallback="The script that checks this site confirms that the count on the boards A_n equals the number of standard Young tableaux of a staircase shape, for every board of this kind of rank at most 7.">The theorem that the count on <Tex src="A_n"/> is the number of standard Young tableaux of a staircase shape is Stanley's <Cite k="Sta84"/>.</Unverified> For <Tex src="B_n"/> and <Tex src="C_n"/> the counts are OEIS sequence {'A039622'}, and Billey and Haiman match these games with shifted staircase tableaux <Cite k="BH95"/> ({'Proposition 3.3'}). The count on <Tex src="D_4"/> was computed for this site; no published value was found. The script that checks this site asserts all of these counts.
+
+<T08WeylExplorer slot="figure" client:visible id="b4" preset="counter" boardChoices={COUNTER_BOARDS} caption={`Complete games from all ones: ${fmt('types.A3.n_reduced_words_w0')} on A3; the picker gives ${fmt('types.A2.n_reduced_words_w0')} on A2, ${fmt('types.A4.n_reduced_words_w0')} on A4, ${fmt('types.B3.n_reduced_words_w0')} on B3 and ${fmt('types.D4.n_reduced_words_w0')} on D4.`} />
+</Beat>
+
+<Beat n={4}>
+
+Firing node <Tex src="1"/> and then node <Tex src="3"/> gives the same position as firing them the other way round, because the two nodes are not joined. Draw a play as a stack of bricks to forget such orders: one column for each node, and each move drops a brick into its column, where it rests on the highest earlier brick in its own column or in a column of a joined node. The stack is the **heap** of the play; Wildberger calls it a frame <Cite k="W-MS"/> ({'pp. 45-46'}).
+
+Two plays that differ by swapping neighbouring moves at nodes that are not joined have the same <Term a="heap">heap</Term>. The plays with a given heap are exactly the orders in which its bricks can be laid down, each brick after those beneath it <Cite k="Ste96"/> ({'Proposition 2.2'}). The plays <Tex src="1,3,2"/> and <Tex src="3,1,2"/> share a heap, and no other play has it, so the explorer counts <Tex src="2"/> plays for it. The <G k="heaps.A3.complete_games"/> complete games on <Tex src="A_3"/> make <G k="heaps.A3.distinct_heaps"/> different heaps, with <G k="heaps.A3.games_per_heap"/> games on them, as verified by computation.
+
+<T08WeylExplorer slot="figure" client:visible id="b5" preset="heap" board="A3" caption="The play 1, 3, 2 as a heap of bricks; load 3, 1, 2 with its button and the heap stays the same: two plays share it." />
+</Beat>
+
+<Beat n={5}>
+
+Now play with letters. Put <Tex src="x_1,x_2,x_3"/> on the nodes in place of the numbers and fire along the word <G k="types.A3.longest_word" as="plain"/>. The first move fires <Tex src="x_1"/> and leaves <Tex src="x_1+x_2"/> on node <Tex src="2"/>, which the second move fires. In all, the six moves fire the linear forms <Tex src="x_1,\ x_1+x_2,\ x_2,\ x_1+x_2+x_3,\ x_2+x_3,\ x_3"/>. Each is a positive root population of <Tex src="A_3"/> written with letters, and each root is fired exactly once.
+
+On every board the forms fired are the positive root populations of the **reversed board**, the board with every road turned round <Cite k="Don08"/> ({'Remark 2.13 and Theorem 5.2'}). Donnelly fires positive numbers, as this site does; his matrix is the transpose of the Cartan matrix used here. A board with single roads is its own reversed board, so on <Tex src="A_3"/> the forms are its own positive roots. From a start with every number positive, the numbers fired are these forms evaluated at the start.
+
+<T07SymbolicGame slot="figure" client:visible id="b6" preset="default" board="A3" moves={gv('types.A3.longest_word')} caption={`The complete game ${fmt('types.A3.longest_word', 'plain')} on A3, played with letters: each of the ${fmt('types.A3.n_positive_roots')} forms fired matches one positive root, and every root is used once.`} />
+</Beat>
+
+<Beat n={6}>
+
+From <Tex src="\rho"/> each form is evaluated at all ones, so the number fired is the sum of the coefficients of a positive root of the reversed board. These roots are the **coroots** of the board, and the sum is the **height** of the coroot. On <Tex src="A_3"/> and <Tex src="E_8"/> a coroot has the same height as its root; on boards with double roads the two can differ, which is why the numbers fired are heights of coroots.
+
+Make a **tally**: for each value, the number of times it is fired. On <Tex src="A_3"/> the game fires <G k="types.A3.fired_values" as="plain"/>: the value <Tex src="1"/> is fired <G k="types.A3.fired_tally.1"/> times, <Tex src="2"/> twice and <Tex src="3"/> once. Draw the tally as bars and read them sideways: row <Tex src="k"/> holds the bars of height at least <Tex src="k"/>. The lengths of the rows, in increasing order, are the **exponents** <G k="types.A3.exponents"/>. Add one to each and multiply: <Tex src="({{types.A3.exponents[0]}}+1)({{types.A3.exponents[1]}}+1)({{types.A3.exponents[2]}}+1)={{types.A3.weyl_order}}"/>, the number of positions of beat one.
+
+On <Tex src="E_8"/> the game has <G k="types.E8.n_positive_roots"/> moves. The value <Tex src="1"/> is fired <G k="types.E8.fired_tally.1"/> times and the value <G k="types.E8.exponents[7]"/> <G k="types.E8.fired_tally.29"/> time. Read sideways, the tally gives the exponents <G k="types.E8.exponents" as="plain"/>, and
+
+<Tex display src="({{types.E8.exponents[0]}}+1)({{types.E8.exponents[1]}}+1)({{types.E8.exponents[2]}}+1)({{types.E8.exponents[3]}}+1)({{types.E8.exponents[4]}}+1)({{types.E8.exponents[5]}}+1)({{types.E8.exponents[6]}}+1)({{types.E8.exponents[7]}}+1)={{types.E8.weyl_order}}"/>
+
+is the order of its Weyl group, <G k="types.E8.weyl_order"/>. Steinberg recorded this pattern for roots <Cite k="Ste59"/> ({'9.1'}) without a proof; Kostant gave the first proof that works on every board of finite type at once <Cite k="Kos59"/> and Macdonald another <Cite k="Mac72"/>, both as reported by later authors. The version for coroots, which is what the game gives, was verified by computation for every board of rank at most eight.
+
+<T05NumbersGameLab slot="figure" client:visible id="b7" preset="tally" board="A3" caption={`Fire the ${fmt('types.A3.n_positive_roots')} moves on A3 by hand: when the game ends, the tally read sideways gives the exponents ${fmt('types.A3.exponents', 'plain')} and the order ${fmt('types.A3.weyl_order')}.`} />
+<T05NumbersGameLab slot="figure" client:visible id="b8" preset="tally" board="E8" caption={`Press play to the end on E8: after ${fmt('types.E8.n_positive_roots')} moves the tally gives the exponents ${fmt('types.E8.exponents', 'plain')} and the order ${fmt('types.E8.weyl_order')}.`} />
+</Beat>
+
+<Beat n={7}>
+
+Colour the nodes with two colours so that joined nodes differ: on <Tex src="A_3"/>, nodes <Tex src="1"/> and <Tex src="3"/> take one colour and node <Tex src="2"/> the other. The nodes of one colour form a **colour class**. Starting from <Tex src="\rho"/>, fire every node of one class, then every node of the other, and repeat. Firing one colour class is one **round**; its nodes are not joined, so their order inside the round does not matter.
+
+On a board with at least two nodes, every firing of this **wave** is legal, and the game ends after the same number of rounds whichever colour starts <Cite k="FZ03b"/> ({'Lemma 2.1'}); <Cite k="Ste59"/> ({'6.3'}). The number of rounds is called <Tex src="h"/>, and it is one more than the largest exponent. Predict it on <Tex src="A_3"/> before you play the wave below.
+
+On <Tex src="A_3"/> the rounds pass through <Tex src="(-1,3,-1)"/>, <Tex src="(2,-3,2)"/>, <Tex src="(-2,1,-2)"/> and <Tex src="(-1,-1,-1)"/>: <G k="types.A3.coxeter_number"/> rounds and <G k="types.A3.n_positive_roots"/> moves. On <Tex src="E_8"/> the wave takes <G k="types.E8.coxeter_number"/> rounds, and indeed <Tex src="{{types.E8.exponents[7]}}+1={{types.E8.coxeter_number}}"/>.
+
+<T05NumbersGameLab slot="figure" client:visible id="b9" preset="wave" board="A3" prediction={{ question: 'The wave on A3 fires nodes 1 and 3, then node 2, and so on. How many rounds will it take?', answer: { type: 'number', value: gv('types.A3.coxeter_number') }, reveal: `${fmt('types.A3.coxeter_number')} rounds and ${fmt('types.A3.n_positive_roots')} moves, whichever colour starts: one more than the largest exponent, ${fmt('types.A3.exponents[2]')}.` }} caption={`The wave on A3: one colour class per round, every firing legal, ${fmt('types.A3.coxeter_number')} rounds to the end.`} />
+<T05NumbersGameLab slot="figure" client:visible id="b10" preset="wave" board="E8" caption={`The wave on E8 takes ${fmt('types.E8.coxeter_number')} rounds, one more than the largest exponent.`} />
+</Beat>
+
+<Beat n={8}>
+
+The last result multiplies the numbers fired. Each position <Tex src="\lambda"/> with no negative number labels a **representation** <Tex src="V(\lambda)"/>: a space of vectors on which the Lie algebra built from the board acts. Module eight builds both; here only its size, the **dimension**, is needed, and two games give it.
+
+Record the word of a complete game from <Tex src="\rho"/> and the product <Tex src="D"/> of the numbers it fires. Replay the same word from <Tex src="\lambda+\rho"/> and let <Tex src="M"/> be the product of the numbers fired there. Then <Tex src="\dim V(\lambda)=M/D"/>, which is Weyl's dimension formula. On <Tex src="A_2"/> with <Tex src="\lambda=(1,1)"/> the word is <Tex src="1,2,1"/>. From <Tex src="\rho"/> it fires <Tex src="1,2,1"/>, so <Tex src="D=2"/>; from <Tex src="\lambda+\rho=(2,2)"/> it fires <Tex src="2,4,2"/>, so <Tex src="M=16"/>. The quotient is <G k="weyl_dimension[type=A2;highest_weight=1,1].dimension"/>. The recipe was verified by computation on <G k="weyl_dimension" as="count"/> representations, from dimension <G k="weyl_dimension[type=A2;highest_weight=1,0].dimension"/> on <Tex src="A_2"/> to <G k="weyl_dimension[type=E8;highest_weight=1,0,0,0,0,0,0,0].dimension"/> on <Tex src="E_8"/>.
+
+<T05NumbersGameLab slot="figure" client:visible id="b11" preset="dimension" board="A2" lambda={[1, 1]} caption={`The dimension calculator on A2 with lambda (1, 1): the two tapes give the quotient ${fmt('weyl_dimension[type=A2;highest_weight=1,1].dimension')}.`} />
+</Beat>
+
+<Seen provenance={['Don08', 'Hum90', 'Ste96', 'Ste59', 'FZ03b', SEEN_POSITIONS, SEEN_RANK, SEEN_DIM]}>
+
+<ul data-seen-statements>
+<li data-seen-statement>From a start with every number positive, the positions reached by legal play match the elements of the Weyl group one to one, and the complete legal plays are the shortest words for the longest element. <Cite k="Don08"/>, {'Theorem 2.8'}; the count of positions is {SEEN_POSITIONS}.</li>
+<li data-seen-statement>The length of a position is the number of mirrors that separate it from the start, so every complete game from <Tex src="\rho"/> has one move for each positive root and ends at <Tex src="-\rho"/>. <Cite k="Hum90"/>, {'section 1.7'}; for the game, {SEEN_RANK}.</li>
+<li data-seen-statement>The plays with one heap are the orders in which its bricks can be laid down. <Cite k="Ste96"/>, {'Proposition 2.2'}. The counts of complete games are {SEEN_POSITIONS}.</li>
+<li data-seen-statement>Played with letters, a complete game fires each positive root of the reversed board once. <Cite k="Don08"/>, {'Remark 2.13 and Theorem 5.2'}.</li>
+<li data-seen-statement>From <Tex src="\rho"/> the numbers fired are the heights of the positive coroots; their tally read sideways gives the exponents, and the order of the group is the product of the exponents plus one. For roots: <Cite k="Ste59"/>, {'9.1'}; for coroots, {SEEN_RANK}.</li>
+<li data-seen-statement>The wave of colour classes ends after exactly <Tex src="h"/> rounds. <Cite k="FZ03b"/>, {'Lemma 2.1'}; <Cite k="Ste59"/>, {'6.3'}.</li>
+<li data-seen-statement>The dimension of <Tex src="V(\lambda)"/> is the quotient of the products of two games: {SEEN_DIM}.</li>
+</ul>
+
+</Seen>
+
+<LieTheory>
+
+Positions are weights in the basis of fundamental weights, and <Tex src="\rho"/> is the half-sum of the positive roots. The explorer draws the Hasse diagram of the left weak order on <Tex src="W"/>: the play <Tex src="i_1,\dots,i_k"/> reaches <Tex src="w=s_{i_k}\cdots s_{i_1}"/>, and the separating roots of its position are the inversion set of <Tex src="w^{-1}"/>, the positive roots that <Tex src="w^{-1}"/> makes negative <Cite k="Hum90"/> ({'section 1.7'}). Legal plays are reduced words, and complete ones are the reduced words of <Tex src="w_0"/>. A heap is the heap of a word in the sense of Viennot and Stembridge, and the plays with one heap form a commutation class <Cite k="Ste96"/>. The tally is the theorem of Shapiro, Steinberg, Kostant and Macdonald on heights and exponents <Cite k="Ste59"/>, <Cite k="Kos59"/>, <Cite k="Mac72"/>, here for the dual root system. The number of rounds of the wave is the Coxeter number <Tex src="h=m_n+1"/>. With <Tex src="c_0"/> and <Tex src="c_1"/> the products of the reflections of the two colour classes, the wave is the alternating product of <Tex src="h"/> factors <Tex src="\cdots c_0c_1c_0"/>, a reduced word of <Tex src="w_0"/> <Cite k="FZ03b"/>; for even <Tex src="h"/>, as on <Tex src="A_3"/> and <Tex src="E_8"/>, it is a power of the bipartite Coxeter element <Tex src="c_1c_0"/>, and for odd <Tex src="h"/> it is not. Beat eight computes <Tex src="\dim V(\lambda)=\prod_{\beta>0}\langle\lambda+\rho,\beta^\vee\rangle/\langle\rho,\beta^\vee\rangle"/>. The Cartan matrix here is <Tex src="C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle"/>; Bourbaki and Humphreys print its transpose.
+
+</LieTheory>
+
+## Challenges
+
+Each challenge watches the tool below it and says when its goal is reached.
+
+<Challenge client:visible for="b12" goal="By legal play from (1, 1, 1) on A3, reach the position (−2, 1, −2)." explanation="It lies on layer five, so five legal moves reach it. The wave of beat seven passes through it: fire nodes 1 and 3, then node 2, then nodes 1 and 3 again." check={{ kind: 'reach', board: 'numbers', values: [-2, 1, -2] }} />
+
+<T01GameBoard client:visible id="b12" board="A3" view="numbers" mode="legal" coords="numbers" start={RHO3} caption="Legal play on A3 from (1, 1, 1); the challenge above names the position to reach." />
+
+<Challenge client:visible for="b13" goal="On A3, make a legal play whose heap is shared by four different plays." explanation={`Two moves at nodes 1 and 3 can come in either order. The play 1, 3, 2, 1, 3 has two such pairs, so its heap is shared by 2 times 2 plays. Among the complete games, the largest heaps hold ${Math.max(...gv('heaps.A3.games_per_heap'))} games each.`} check={{ kind: 'out', name: 'heapCount', equals: String(Math.max(...gv('heaps.A3.games_per_heap'))) }} />
+
+<T08WeylExplorer client:visible id="b13" preset="heap" board="A3" moves={[]} caption="The heap view on A3, from no moves: fire nodes on the board and watch the heap and its count of plays." />
+
+<Challenge client:visible for="b14" goal={`On A2, find a lambda whose representation has dimension ${fmt(DIM10)}.`} explanation={`Try lambda (3, 0): from lambda plus rho = (4, 1) the word 1, 2, 1 fires 4, 5, 1, with product 20, and 20 divided by 2 is ${fmt(DIM10)}. Its mirror image (0, 3) works too.`} check={{ kind: 'out', name: 'dimension', equals: String(gv(DIM10)) }} />
+
+<T05NumbersGameLab client:visible id="b14" preset="dimension" board="A2" lambda={[1, 1]} caption={`The dimension calculator on A2, set to lambda (1, 1) and dimension ${fmt('weyl_dimension[type=A2;highest_weight=1,1].dimension')}; change lambda to reach the goal.`} />
+
+<Challenge client:visible for="b15" goal="Finish the tally game on B3 and read off its exponents." explanation={`B3 has double roads, so here the numbers fired are heights of coroots, which can differ from the heights of roots. The game fires ${fmt('types.B3.fired_values', 'plain')}; read sideways, the tally gives the exponents ${fmt('types.B3.exponents', 'plain')}, and the product of the exponents plus one is ${fmt('types.B3.weyl_order')}, the order of the group.`} check={{ kind: 'out', name: 'exponents', equals: fmt('types.B3.exponents', 'plain') }} />
+
+<T05NumbersGameLab client:visible id="b15" preset="tally" board="B3" caption="The tally game on B3 from all ones, before the first move." />
+
+<ModuleLinks module={5} board="A3" />
+
+<Sources keys={['BB05', 'Don08', 'Ste59', 'Ste96', 'FZ03b', 'W-MS', 'Hum90', 'Sta84', 'BH95', 'Kos59', 'Mac72']}>
+
+<Cite k="Don08"/>, {'Theorem 2.8, Remark 2.13 and Theorem 5.2'}, free on the arXiv. <Cite k="BB05"/>, {'section 4.3'}. <Cite k="W-MS"/>, an unpublished manuscript, undated {'(circulated c. 2001 to 2004)'}, {'pp. 45-46'}. <Cite k="Kos59"/> and <Cite k="Mac72"/> were not read; they are cited as later authors report them.
+
+</Sources>
