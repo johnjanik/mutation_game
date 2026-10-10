@@ -669,6 +669,9 @@ test('islands: the first tool is idle, the others visible', () => {
 });
 
 test('axe: no serious or critical violations on the lesson at 360 pixels', async ({ page }) => {
+  // The scan of this page (about 8500 elements, fifteen tools) took 19 to 24 s alone on the build
+  // machine, close to the default 30 s; two parallel workers pushed it over (decisions/P3-A9.md).
+  test.setTimeout(120_000);
   await page.goto(ROUTE);
   for (const [id] of TOOLS) await hydrate(page, id);
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
