@@ -1,0 +1,174 @@
+---
+title: "Glossary"
+phase: 1
+released: true
+description: "The words of this site beside the words of Wildberger, of the numbers-game literature and of Lie theory."
+---
+import { Cite } from '@components/content';
+
+{/* P1-A4: seeded from SPEC.md Appendix C, every row in the order of the appendix, each cell as
+    written there. Every term of the first column has its own anchor (glossary#<slug>); the slug
+    rule and the list of slugs are in decisions/P1-A4.md, and an anchor never changes once
+    published. Later agents add entries at the end. glossary.test.ts compares this file with the
+    appendix. */}
+
+This page lists the words this site uses and, beside each, the words other authors use for the same thing. Each entry starts with the site's own word. Three lines follow it. The first gives N. J. Wildberger's word in his texts on the mutation game (<Cite k="W20"/>, <Cite k="W-MS"/>). The second gives the word of the literature on the numbers game. The third gives the standard name in Lie theory. A line left empty means that the source has no word for the thing.
+
+<dl class="glossary">
+<div class="entry" data-row="1">
+<dt><dfn id="board">board</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> directed multigraph $X$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> weighted graph, Coxeter graph, "GCM graph"</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Dynkin diagram; generalized Cartan matrix</dd>
+</div>
+<div class="entry" data-row="2">
+<dt><dfn id="bidirected-board">bidirected board</dfn>; <dfn id="one-way-board">one-way board</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> bidirected multigraph; a multigraph with an edge of type $(m,0)$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> generalized Cartan matrix; (no counterpart)</dd>
+</div>
+<div class="entry" data-row="3">
+<dt><dfn id="node">node</dfn>, <dfn id="city">city</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> vertex, city</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> node</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> simple root $\alpha_i$</dd>
+</div>
+<div class="entry" data-row="4">
+<dt><dfn id="roads">roads</dfn>, <dfn id="counts">counts $(m,n)$</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> edge of type $(m,n)$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> amplitudes, weights $k_{ij}$</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Cartan integers $-C_{ji}$, $-C_{ij}$</dd>
+</div>
+<div class="entry" data-row="5">
+<dt><dfn id="population">population</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> population</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> (not used)</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> element of the root lattice, simple-root coordinates</dd>
+</div>
+<div class="entry" data-row="6">
+<dt><dfn id="numbers">numbers</dfn>, <dfn id="position">position</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> dual population; weight</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> position, configuration, labelling</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> weight, Dynkin labels</dd>
+</div>
+<div class="entry" data-row="7">
+<dt><dfn id="mutate">mutate</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> mutation, reflection $s_x$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> simple reflection on roots</dd>
+</div>
+<div class="entry" data-row="8">
+<dt><dfn id="fire">fire</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> dual mutation $r_x$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> firing, a move</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> simple reflection on weights</dd>
+</div>
+<div class="entry" data-row="9">
+<dt><dfn id="legal-play">legal play</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> positive dual mutations; "increasing" mutations seen from the other side</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> legal play, positive (or negative) play</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> descent in the weak order; reduced words</dd>
+</div>
+<div class="entry" data-row="10">
+<dt><dfn id="the-translator">the translator $a=Cp$</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> the map $\tau$ (with the opposite sign)</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> $\lambda\mapsto(\langle\lambda,\alpha_i^\vee\rangle)_i$</dd>
+</div>
+<div class="entry" data-row="11">
+<dt><dfn id="root-population">root population</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> root population, root</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> real root</dd>
+</div>
+<div class="entry" data-row="12">
+<dt><dfn id="simple-root-population">simple root population</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> simple root $\delta_x$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> simple root</dd>
+</div>
+<div class="entry" data-row="13">
+<dt><dfn id="fundamental-position">fundamental position $e_i$</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> fundamental weight $\epsilon_x$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> fundamental position</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> fundamental weight $\omega_i$</dd>
+</div>
+<div class="entry" data-row="14">
+<dt><dfn id="balanced-board">balanced board</dfn>, <dfn id="weights">weights $d_i$</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> balanced multigraph, balanced weights $\alpha_i$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> symmetrizable matrix; $(\alpha_i,\alpha_i)/2$</dd>
+</div>
+<div class="entry" data-row="15">
+<dt><dfn id="form-value">form value $(p,p)$</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> $Q(p)$, the Tits form</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> invariant bilinear form</dd>
+</div>
+<div class="entry" data-row="16">
+<dt><dfn id="frozen-population">frozen population</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> Perron-Frobenius population $\alpha_0$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> null root $\delta$; marks</dd>
+</div>
+<div class="entry" data-row="17">
+<dt><dfn id="level">level</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> $\delta\cdot v$ (with their matrix)</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> level $\langle\lambda,K\rangle$; comarks</dd>
+</div>
+<div class="entry" data-row="18">
+<dt><dfn id="finite">finite</dfn>, <dfn id="affine">affine</dfn>, <dfn id="neither">neither</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> List B, List A, spectral radius above 2</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> admissible, looping, divergent</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> finite, affine, indefinite type</dd>
+</div>
+<div class="entry" data-row="19">
+<dt><dfn id="raising-move">raising move</dfn>; <dfn id="kostants-game">Kostant's game</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> increasing mutation; incremental when the rise is 1</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> climbing the root poset</dd>
+</div>
+<div class="entry" data-row="20">
+<dt><dfn id="heap">heap</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> frame; X-string for the class of plays</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> heap of a word; commutation class</dd>
+</div>
+<div class="entry" data-row="21">
+<dt><dfn id="minuscule-node">minuscule node</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> incremental frames, minuscule heaps</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> $\lambda$-minuscule elements</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> minuscule weight</dd>
+</div>
+<div class="entry" data-row="22">
+<dt><dfn id="ring">ring</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> nonzero Dynkin label of a dominant weight</dd>
+</div>
+<div class="entry" data-row="23">
+<dt><dfn id="black">black</dfn>, <dfn id="white">white</dfn>, <dfn id="arrows">arrows</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> compact simple roots; non-compact; the involution $\tau$</dd>
+</div>
+<div class="entry" data-row="24">
+<dt><dfn id="shadow">shadow</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> restricted root</dd>
+</div>
+<div class="entry" data-row="25">
+<dt><dfn id="restricted-board">restricted board</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Dynkin diagram of the restricted root system; relative Weyl group</dd>
+</div>
+<div class="entry" data-row="26">
+<dt><dfn id="folded-board">folded board</dfn></dt>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> folding</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> folding by orbit sums; orbit Lie algebra</dd>
+</div>
+</dl>

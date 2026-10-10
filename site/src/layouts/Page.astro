@@ -113,6 +113,29 @@ const shippedCount = rows.filter((r) => r.shipped !== null).length;
   .where {
     overflow-wrap: anywhere;
   }
+  /* The glossary: one definition-list entry per term, reflowing at any width (A-11). */
+  .page :global(.glossary .entry) {
+    margin-block: 12px;
+    padding-block-end: 12px;
+    border-bottom: 1px solid var(--sign-zero-outline);
+  }
+  .page :global(.glossary dt) {
+    font-weight: 700;
+  }
+  .page :global(.glossary dfn) {
+    font-style: normal;
+  }
+  .page :global(.glossary dfn:target) {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .page :global(.glossary dd) {
+    margin-inline-start: 1em;
+    overflow-wrap: anywhere;
+  }
+  .page :global(.glossary .col) {
+    font-style: italic;
+  }
   .page :global(.katex-display) {
     overflow-x: auto;
     overflow-y: hidden;
