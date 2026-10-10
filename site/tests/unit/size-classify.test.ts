@@ -198,6 +198,9 @@ describe('size.mjs', () => {
       expect(src, forbidden).not.toContain(forbidden);
     }
     expect(src).toMatch(/newContext\(\{ viewport: \{ width: 360, height: 800 \}/);
+    // a foreground preview server that the finally block can stop (Astro 7 backgrounds it otherwise)
+    expect(src).toContain("'preview', '--port', String(opts.port), '--ignore-lock'");
+    expect(src).toContain('process.kill(-server.pid');
     expect(src).not.toContain('content-length');
     expect(src).not.toContain('sizes()');
   });

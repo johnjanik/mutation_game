@@ -6,7 +6,7 @@
 // No dependency beyond Playwright; everything else is a Node built-in.
 import { spawn } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
-import { get as httpGet } from 'node:http';
+import { createServer, get as httpGet } from 'node:http';
 import { dirname, join, relative, resolve, isAbsolute, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -308,6 +308,18 @@ function waitForServer(url, timeoutMs = 60000) {
   });
 }
 
+/**
+ * Rejects when something already listens on the port, so that the measurement never runs
+ * against another server (another worktree's build, or a lingering preview).
+ */
+function assertPortFree(port) {
+  return new Promise((resolvePromise, reject) => {
+    const probe = createServer();
+    probe.once('error', () => reject(new Error(`port ${port} is in use; stop the server there or pass --port`)));
+    probe.listen(port, () => probe.close(() => resolvePromise(undefined)));
+  });
+}
+
 function astroBin() {
   for (const dir of [join(SITE_DIR, 'node_modules', 'astro'), join(ROOT, 'node_modules', 'astro')]) {
     const bin = join(dir, 'bin', 'astro.mjs');
@@ -354,7 +366,11 @@ async function main() {
       origin = new URL(opts.url).origin;
     } else {
       origin = `http://localhost:${opts.port}`;
-      server = spawn(process.execPath, [astroBin(), 'preview', '--port', String(opts.port)], {
+      await assertPortFree(opts.port);
+      // --ignore-lock keeps the server in the foreground: Astro 7 otherwise moves `astro preview`
+      // into a detached background process when it detects a coding agent, which this script
+      // could not stop, and refuses a second server per site root through its lock file.
+      server = spawn(process.execPath, [astroBin(), 'preview', '--port', String(opts.port), '--ignore-lock'], {
         cwd: SITE_DIR,
         env: { ...process.env, OUT_DIR: distDir },
         stdio: ['ignore', 'ignore', 'inherit'],
