@@ -12,7 +12,7 @@
     "the rendering route is recorded in DECISIONS.md",
     "reference file hashes equal CONTRACTS.md section 9"
   ],
-  "ownerPart": "Put the repository on GitHub and enable Pages, run deploy.yml once by hand; answer or accept defaults for D1, D3, D4, D17.",
+  "ownerPart": "Enable GitHub Pages on github.com/johnjanik/mutation_game and set the repository variable DEPLOY_PAGES, then run deploy.yml once by hand; confirm the content licence (D4, CC BY-SA 4.0 default; the code licence is AGPL-3.0 by the owner's choice); answer or accept defaults for D1, D3, D17.",
   "stages": [
     {
       "name": "0.1",
@@ -66,7 +66,7 @@
       "title": "Repository scaffold, toolchain pins, workflows, CLAUDE.md",
       "size": "S",
       "isolation": "none",
-      "summary": "Turn /Users/john/Claude/MutationGame into the git repository of SPEC 7.3 with npm workspaces, Astro 7 static output, Svelte 5, MDX, TypeScript 6.0.x, Vitest 5, fast-check, Playwright with axe, every version pinned exactly after confirming it exists on the registry; CLAUDE.md from Appendix H; DECISIONS.md, licences, .gitignore; astro.config.mjs taking site and base from the environment; the three GitHub workflows; Vitest and Playwright configuration; stub npm scripts with the names of 7.7 so that later agents can fill their bodies; first commit on main.",
+      "summary": "Make the existing repository at /Users/john/Claude/MutationGame (main tracking github.com/johnjanik/mutation_game; LICENSE AGPL-3.0 already present) the repository of SPEC 7.3 with npm workspaces, Astro 7 static output, Svelte 5, MDX, TypeScript 6.0.x, Vitest 5, fast-check, Playwright with axe, every version pinned exactly after confirming it exists on the registry; CLAUDE.md from Appendix H; DECISIONS.md, licences, .gitignore; astro.config.mjs taking site and base from the environment; the three GitHub workflows; Vitest and Playwright configuration; stub npm scripts with the names of 7.7 so that later agents can fill their bodies; first commit on main.",
       "spec": [
         "0.2",
         "7.1",
@@ -101,14 +101,14 @@
         "decisions/P0-A1.md"
       ],
       "deliverables": [
-        "git repository with .gitignore covering node_modules, dist, .astro, site/src/generated, reports/* except reports/gate-*.md, playwright-report, test-results, coverage, .DS_Store, *.zip, SPEC-draft.pdf, .claude/settings.local.json (the owner's personal Claude Code settings for this project; never committed)",
+        "existing git repository (no git init; one commit on top of the history) with .gitignore extended to cover node_modules, dist, .astro, site/src/generated, reports/* except reports/gate-*.md, playwright-report, test-results, coverage, .DS_Store, *.zip, SPEC-draft.pdf, .claude/settings.local.json (the owner's personal Claude Code settings for this project; never committed)",
         "root package.json: private, workspaces [packages/*, site], engines node >=22.12, exact pins, scripts test/build/build:release/preview/e2e/size/lab/report/verify/typecheck/check (bodies may be stubs that exit 2 with 'not yet implemented: <owner>' where another agent owns the body)",
         "registry check: `npm view <pkg>@<version> version` for every pin of SPEC 7.1; a table of results in decisions/P0-A1.md; a differing version only when the pinned one does not exist, with the nearest existing version and the reason",
         "packages/engine skeleton: package.json with name @two-games/engine, type module, no dependencies, devDependencies typescript/vitest/fast-check; tsconfig strict; vitest config; src/index.ts",
         "site skeleton: astro.config.mjs with integrations mdx and svelte, output static, site and base from SITE_URL/BASE_PATH, else from GITHUB_REPOSITORY, else http://localhost and /; a placeholder index page; base stylesheet with the CSS custom property names of CONTRACTS section 8 (values from SPEC 6.3; light and dark)",
         "CLAUDE.md: Appendix H verbatim plus one closing paragraph pointing at build-plan/ for the multi-agent rules",
         "DECISIONS.md with a header explaining that entries come from decisions/*.md via MERGE and GATE",
-        "LICENSE (MIT) and LICENSE-content (CC BY-SA 4.0) per D4 default, SPDX identifiers in both package.json files",
+        "LICENSE kept as the owner's AGPL-3.0 file (D4 answered for the code licence on GitHub, 10 October 2026) and LICENSE-content (CC BY-SA 4.0, the D4 default for content), SPDX identifier AGPL-3.0-only in every package.json",
         ".github/workflows: ci.yml (on pull_request and push to main: npm ci, npm run check, npm run build, upload site/dist as artifact), deploy.yml (on tag v* and workflow_dispatch; job runs only if vars.DEPLOY_PAGES == 'true'; release build; official Astro Pages action), links.yml (weekly; external link check that opens an issue on failure and never fails a build)",
         "playwright.config.ts: webServer runs astro preview on the built site; project chromium (webkit added in phase 3); baseURL honours BASE_PATH; testDir site/tests/e2e",
         "vitest.workspace.ts covering packages/engine and site/tests/unit",
