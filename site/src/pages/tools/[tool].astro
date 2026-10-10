@@ -15,6 +15,8 @@ import { toolRoutes, type ToolRoute } from '../../tools/index';
 //   import T01GameBoard from '@components/tools/T01GameBoard.svelte';
 import T01GameBoard from '@components/tools/T01GameBoard.svelte';
 import T02OrbitGarden from '@components/tools/T02OrbitGarden.svelte';
+import T04ClassificationLab from '@components/tools/T04ClassificationLab.svelte';
+import { testBoardPresets } from '@components/board/editor/presets';
 import T09Kostant from '@components/tools/T09Kostant.svelte';
 
 export function getStaticPaths(): ToolRoute[] {
@@ -24,7 +26,7 @@ export function getStaticPaths(): ToolRoute[] {
 const { entry, caption } = Astro.props as ToolRoute['props'];
 
 /** The tools that have their static line below (MERGE adds the id with the import). */
-const HYDRATED: ReadonlySet<string> = new Set<string>(['board', 'garden', 'kostant']);
+const HYDRATED: ReadonlySet<string> = new Set<string>(['board', 'garden', 'lab', 'kostant']);
 
 let Unhydrated: ((props: Record<string, unknown>) => unknown) | null = null;
 if (!HYDRATED.has(entry.id)) {
@@ -42,6 +44,7 @@ const toolProps = { id: '', caption, preset: 'default' };
         {entry.id === 'board' && <T01GameBoard client:idle {...toolProps} />} */}
     {entry.id === 'board' && <T01GameBoard client:idle {...toolProps} />}
     {entry.id === 'garden' && <T02OrbitGarden client:idle {...toolProps} />}
+    {entry.id === 'lab' && <T04ClassificationLab client:idle {...toolProps} boardPresets={testBoardPresets()} />}
     {entry.id === 'kostant' && <T09Kostant client:idle {...toolProps} />}
     {Unhydrated && <Unhydrated {...toolProps} />}
   </div>
