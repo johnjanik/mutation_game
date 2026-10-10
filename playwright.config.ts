@@ -10,6 +10,8 @@ const { base } = siteAndBase(process.env);
 
 export default defineConfig({
   testDir: 'site/tests/e2e',
+  // basepath.spec.ts runs only through npm run e2e:basepath, against the BASE_PATH=/sub/path/ build.
+  testIgnore: process.env.BASE_PATH ? [] : ['**/basepath.spec.ts'],
   fullyParallel: false,
   retries: 0,
   reporter: process.env.CI ? 'github' : 'list',
@@ -21,7 +23,10 @@ export default defineConfig({
     { name: 'chromium', use: { browserName: 'chromium' } },
   ],
   webServer: {
-    command: `npm run preview -- --port ${PORT}`,
+    // P0-A6: `-w site --` so that npm hands --port to astro (the root script swallowed it), and
+    // --ignore-lock so that Astro 7 keeps the server in the foreground when it detects a coding
+    // agent instead of detaching it (Playwright then reported "exited early").
+    command: `npm run preview -w site -- --port ${PORT} --ignore-lock`,
     url: `http://localhost:${PORT}${base}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

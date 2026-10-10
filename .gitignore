@@ -23,3 +23,6 @@ packages/engine/test/golden/coverage.json
 packages/engine/test/golden/.coverage/
 # KaTeX assets copied at build time by scripts/katex-assets.mjs (P0-A3)
 site/public/katex/
+# KaTeX stylesheet and fonts copied at build time by scripts/katex-assets.mjs (CONTRACTS.md 4)
+# the BASE_PATH=/sub/path/ build of npm run e2e:basepath (OUT_DIR=dist-basepath)
+site/dist-basepath/
