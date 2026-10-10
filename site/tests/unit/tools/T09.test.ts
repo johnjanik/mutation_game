@@ -288,7 +288,9 @@ describe('T9 moods and moves', () => {
   it('the default state is the M1 configuration and is deterministic', () => {
     expect(T09.number).toBe(9);
     expect(T09.id).toBe('kostant');
-    expect(T09.boards).toEqual(TYPE_NAMES);
+    // MERGE, P2 stage 2.2 (request of P2-A7): the finite types first, then the affine boards the recipe can name.
+    expect((T09.boards as string[]).slice(0, TYPE_NAMES.length)).toEqual(TYPE_NAMES);
+    expect((T09.boards as string[]).slice(TYPE_NAMES.length).every((n) => /~$|\^\(\d\)$/.test(n))).toBe(true);
     const { caption, ...state } = T09.presets.default;
     expect(state).toEqual({ board: 'A3', coords: 'populations', start: [1, 0, 0], moves: [] });
     expect(Object.keys(T09.presets)).toEqual(['default']);
@@ -453,8 +455,9 @@ describe('T9 server render', () => {
     expect(outs(b3, 'endName')[0]).toContain('the highest short root');
     expect(outs(b3, 'hMinus2')).toEqual([]);
     expect(outs(b3, 'affineCaption')[0]).toMatch(/affine board/);
-    expect(outs(b3, 'affineBoard')).toEqual([]);
-    expect(b3).not.toContain('data-control="openLab"');
+    // MERGE, P2 stage 2.2: P2-A7 fills the phase-2 slot (the affine board's name and the T4 link).
+    expect(outs(b3, 'affineBoard')).toHaveLength(1);
+    expect(b3).toContain('data-control="openLab"');
     const a3 = render({ board: 'A3', moves: [2, 3] });
     expect(outs(a3, 'hMinus2')[0]).toContain('2');
     expect(a3).toMatch(/data-out="hMinus2"[^>]*>[\s\S]*?<math/);

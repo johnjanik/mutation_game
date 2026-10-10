@@ -454,8 +454,8 @@ describe('T1 model', () => {
     expect(frac.ghosts().populations![0]).toBe(ratToString(toPopulation(boardFromName('A2') as Board<number>, fire(boardFromName('A2') as Board<number>, [1, 0], 0))![0]!));
   });
 
-  it('no panel in phase 1', () => {
-    expect(panelsToDraw(['form', 'level', 'colours', 'lengths'])).toEqual([]);
+  it('no colours panel before phase 3 (MERGE, P2 stage 2.2: form, level and lengths arrived with P2-A7)', () => {
+    expect(panelsToDraw(['form', 'level', 'colours', 'lengths'])).not.toContain('colours');
     expect(panelsToDraw(undefined)).toEqual([]);
   });
 
@@ -674,9 +674,9 @@ describe('T1 server render', () => {
     expect(roadStyles(render({ board: oneWay, view: 'numbers', coords: 'numbers', roadStyle: 'dynkin' }))).toEqual(['roads']);
   });
 
-  it('no panel in phase 1', () => {
+  it('no colours panel before phase 3 (MERGE, P2 stage 2.2)', () => {
     const body = render({ board: 'A3', panels: ['form', 'level', 'colours', 'lengths'] });
-    expect(body).not.toMatch(/data-panel="/);
+    expect(body).not.toMatch(/data-panel="colours"/);
     expect(out(body, 'notice')).toBeNull();
   });
 

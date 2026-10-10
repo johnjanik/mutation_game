@@ -6,7 +6,8 @@
 import { boardFromName, kostantPlay } from '@two-games/engine';
 import type { Board } from '@two-games/engine';
 import type { ToolRegistryEntry } from '../types';
-import { KOSTANT_BOARDS } from '../../components/tools/t09/boards';
+import { KOSTANT_AFFINE_EXTRA, KOSTANT_BOARDS } from '../../components/tools/t09/boards';
+import { AFFINE_BOARDS } from '../../components/tools/t15/boards';
 
 // Only kostantPlay here: this module is loaded on every tool page (the codec reads the registry), so
 // it must not pull in T9's end panel. F13 names the end "the highest root" on a simply laced board;
@@ -16,6 +17,7 @@ const play = kostantPlay(A3, 0);
 
 /** Every data-out name T9 renders (SPEC 4.0 Test hooks; listed in site/tests/e2e/T09.spec.ts). */
 export const T09_OUTS = [
+  'verdict', // P2-A7: the verdict of classify beside the play-on report (MERGE added the name)
   'caption',
   'notice',
   'noscript',
@@ -45,7 +47,8 @@ export default {
   id: 'kostant',
   title: "Kostant's Game",
   phase: 1,
-  boards: [...KOSTANT_BOARDS],
+  // MERGE, P2 stage 2.2 (request of P2-A7): the affine boards too, so that a link such as g=D4~ loads the phase-2 'play on'.
+  boards: [...KOSTANT_BOARDS, ...AFFINE_BOARDS.filter((n) => n !== 'square' && n !== 'pentagon'), ...KOSTANT_AFFINE_EXTRA],
   presets: {
     default: {
       board: 'A3',

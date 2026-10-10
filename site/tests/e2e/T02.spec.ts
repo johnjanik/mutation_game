@@ -86,7 +86,8 @@ test('the triangle grows to 243 and says stopped after 40 layers', async ({ page
   const counts = await page.locator('[data-out="layerChart"] [data-layer]').evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-count'))));
   expect(counts).toEqual(TRIANGLE.new_per_layer);
   expect(await page.locator('body').textContent()).not.toContain('not of finite type');
-  await expect(out(page, 'verdict')).toHaveCount(0);
+  // MERGE, P2 stage 2.2: the verdict of classify stands beside the stop message (P2-A7).
+  await expect(out(page, 'verdict')).toContainText('affine');
 });
 
 test('the star with five arms stops at 2000 positions', async ({ page }) => {

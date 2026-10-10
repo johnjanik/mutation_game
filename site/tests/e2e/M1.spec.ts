@@ -491,7 +491,10 @@ test('no forbidden statement', async ({ page }) => {
   }
   // Beat 5 and its figure: no inference from the cap.
   const beat5 = norm(await page.locator('[data-beat="5"]').innerText());
-  expect(beat5).not.toMatch(/infinite|not of finite type|never stops|affine/i);
+  // MERGE, P2 stage 2.2: the tool's own verdict (data-out="verdict", from classify) may read 'affine'; the prose may not.
+  expect(beat5).not.toMatch(/infinite|not of finite type|never stops/i);
+  const beat5Prose = await page.locator('[data-beat="5"]').evaluate((el) => { const c = el.cloneNode(true) as HTMLElement; c.querySelectorAll('[data-tool]').forEach((t) => t.remove()); return c.textContent ?? ''; });
+  expect(beat5Prose).not.toMatch(/affine/i);
   expect(beat5).toContain(`stopped after ${TRIANGLE.layers} layers`);
   // The bridge sentence: T9 renders it in SPEC's words; any other copy on the page reads the same.
   for (const id of ['b5', 'b10']) expect(norm(await out(page, id, 'bridgeSentence').textContent())).toBe(BRIDGE);

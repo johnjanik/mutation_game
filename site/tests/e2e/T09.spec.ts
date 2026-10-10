@@ -115,8 +115,9 @@ test('A3 from city 1 ends at (1,1,1) after 2 moves with final numbers (1,0,1)', 
   await expect(out(page, 'goal')).toHaveAttribute('data-met', 'true');
   await expect(out(page, 'goalMet')).toHaveText('Goal reached.');
   await expect(out(page, 'affineCaption')).toContainText('affine board');
-  await expect(out(page, 'affineBoard')).toHaveCount(0);
-  await expect(control(page, 'openLab')).toHaveCount(0);
+  // MERGE, P2 stage 2.2: the phase-2 slot is filled (P2-A7).
+  await expect(out(page, 'affineBoard')).toHaveCount(1);
+  await expect(control(page, 'openLab')).toHaveCount(1);
   await expect(control(page, 'step')).toBeDisabled();
   await expect(control(page, 'playToEnd')).toBeDisabled();
   // The marked cities carry a decoration on the board (not colour alone).
@@ -391,7 +392,7 @@ test('the board picker groups the 32 types by letter and resets start and moves'
 
 test('the codec refuses boards, views and modes T9 does not offer', async ({ page }) => {
   for (const query of [
-    'g=B3~&c=p&s=1,0,0,0',
+    'g=pentagon&c=p&s=1,0,0,0,0', // MERGE, P2 stage 2.2: affine names are offered from phase 2; the polygons are not
     'g=c:2,-1;-1,2&c=p&s=1,0',
     'g=A3&v=n&c=p&s=1,0,0',
     'g=A3&v=l&c=p&s=1,0,0',

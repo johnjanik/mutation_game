@@ -12,6 +12,10 @@ const numbers = toNumbers(A2, [1, 0]).map((x) => String(x).replace('-', '−'));
 
 /** Every data-out name T1 renders (SPEC 4.0 Test hooks; listed in site/tests/e2e/T01.spec.ts). */
 export const T01_OUTS = [
+  'formValue', // P2-A7: the three panels of phase 2 and the play-on fate (MERGE added the names)
+  'level',
+  'lengths',
+  'fate',
   'caption',
   'moveCounter',
   'historyStrip',
@@ -33,7 +37,8 @@ export const T01_OUTS = [
 ] as const;
 
 /** The outs that only properties can produce (script, rounds, goal, prediction): checked by server render. */
-export const T01_PROP_ONLY_OUTS: readonly string[] = ['scriptCaption', 'roundCounter', 'goal', 'goalMet', 'goalNote', 'predictResult', 'predictReveal'];
+// The phase-2 panels appear only when a page names them in `panels`, and the fate only off the finite types (P2-A7).
+export const T01_PROP_ONLY_OUTS: readonly string[] = ['scriptCaption', 'roundCounter', 'goal', 'goalMet', 'goalNote', 'predictResult', 'predictReveal', 'formValue', 'level', 'lengths', 'fate'];
 
 export default {
   number: 1,
