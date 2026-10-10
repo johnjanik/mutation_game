@@ -1,0 +1,28 @@
+---
+// Places T15 on a page with the rule of <Unverified> applied at build time (SPEC.md 7.3; P0-A4's
+// unverifiedRegistry.ts). The island cannot import that registry (Node only, never shipped), so this
+// wrapper decides the mode of the one statement of T15 that rests on an open item, the fate table of
+// 2.12 on boards that are not simple graphs (Appendix E item 6), and passes it as `unverifiedMode`:
+// 'marked' in a preview build, 'fallback' in a release build while E6 is open, 'plain' once it is closed.
+// It also records the page as a user of E6 for the release report. The tool route uses it (one import
+// and one line in pages/tools/[tool].astro); a lesson can place T15 through it too, with
+// `hydrate="visible"` for any tool after the first on the page (7.6). Every other property is passed on.
+import T15AffinePlayground from '../T15AffinePlayground.svelte';
+import { decide, isReleaseBuild, registerUsage } from '../../../lib/unverifiedRegistry';
+
+interface Props {
+  hydrate?: 'idle' | 'visible';
+  [key: string]: unknown;
+}
+
+const { hydrate = 'idle', ...props } = Astro.props;
+const shown = decide('E6', isReleaseBuild(), true);
+registerUsage('E6', Astro.url.pathname, true);
+const unverifiedMode = shown === 'marked' ? 'marked' : shown === 'plain' ? 'plain' : 'fallback';
+---
+
+{hydrate === 'visible' ? (
+  <T15AffinePlayground client:visible {...props} unverifiedMode={unverifiedMode} />
+) : (
+  <T15AffinePlayground client:idle {...props} unverifiedMode={unverifiedMode} />
+)}
