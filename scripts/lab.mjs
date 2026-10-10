@@ -355,8 +355,22 @@ export function settled(lhr) {
 }
 
 /**
- * @typedef {{ lcpMs?: number; tbtMs?: number; cls?: number; error?: string }} Run
+ * @typedef {{ lcpMs?: number; tbtMs?: number; cls?: number; error?: string;
+ *   longTasks?: { url: string; startTime: number; duration: number }[] }} Run
  */
+
+/**
+ * The long tasks Lighthouse lists (audit long-tasks), for the evidence of an OVER on TBT.
+ * @param {Report} lhr
+ * @returns {{ url: string; startTime: number; duration: number }[]}
+ */
+export function longTasksFrom(lhr) {
+  const items = lhr.audits?.['long-tasks']?.details?.items;
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter((t) => typeof t.startTime === 'number' && typeof t.duration === 'number')
+    .map((t) => ({ url: String(t.url ?? ''), startTime: Math.round(t.startTime), duration: Math.round(t.duration) }));
+}
 
 /**
  * One run's numbers from its report; any missing number or an unsettled run makes it an error.
@@ -372,6 +386,8 @@ export function runFromReport(lhr) {
   const run = { lcpMs: lcp.value, tbtMs: tbt.value, cls: cls.value };
   const errors = [s.ok ? undefined : s.error, lcp.error, tbt.error, cls.error].filter(Boolean);
   if (errors.length > 0) run.error = errors.join('; ');
+  const tasks = longTasksFrom(lhr);
+  if (tasks.length > 0) run.longTasks = tasks;
   return run;
 }
 
@@ -842,7 +858,7 @@ async function main() {
         continue;
       }
       const url = routeUrl(origin, base, entry.route);
-      progress(`route ${i + 1}/${routeList.length} ${entry.route} (${url}), ${opts.runs} runs`);
+      progress(`route ${i + 1}/${routeList.length} ${entry.route} (${url}), runs: ${opts.runs}`);
       /** @type {number | undefined} */
       let status;
       try { status = await httpStatus(url); } catch (err) { status = undefined; }
@@ -863,8 +879,9 @@ async function main() {
     const evaluation = evaluate(measured);
     const code = exitCode({ evaluation, canary, processor });
     const seconds = Math.round((Date.now() - started) / 1000);
-    const distShown = relative(ROOT, distDir) || '.';
-    console.log(`lab: Lighthouse CI (@lhci/cli ${lhci.lhci}, Lighthouse ${lhci.lighthouse}) on ${chromeVersion}; profile ${PROFILE.width}x${PROFILE.height}, CPU slowdown ${PROFILE.cpuSlowdown}x, network not throttled; ${opts.runs} runs per route, median per metric; dist ${distShown}; base ${base}; processor check: ${processor.ok ? 'ok' : 'FAILED'}, ${processor.found}`);
+    const relDist = relative(ROOT, distDir);
+    const distShown = relDist === '' ? '.' : relDist.startsWith('..') ? distDir : relDist;
+    console.log(`lab: Lighthouse CI (@lhci/cli ${lhci.lhci}, Lighthouse ${lhci.lighthouse}) on ${chromeVersion}; profile ${PROFILE.width}x${PROFILE.height}, CPU slowdown ${PROFILE.cpuSlowdown}x, network not throttled; runs per route: ${opts.runs}, median per metric; dist ${distShown}; base ${base}; processor check: ${processor.ok ? 'ok' : 'FAILED'}, ${processor.found}`);
     console.log(formatTable(evaluation, canary));
     if (!processor.ok) console.error(`lab: the processor slowdown did not take effect (${processor.found})`);
     progress(`finished in ${seconds} s`);

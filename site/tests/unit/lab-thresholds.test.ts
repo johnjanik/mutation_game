@@ -23,6 +23,7 @@ import {
   formatTable,
   lcpFrom,
   lighthouseSettings,
+  longTasksFrom,
   median,
   parseArgs,
   processorVerdict,
@@ -36,6 +37,8 @@ import { routesOf } from '../../../scripts/size.mjs';
 import { siteAndBase } from '../../astro.config.mjs';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
+/** U+2014, written by its code so that this file holds none. */
+const EM_DASH = String.fromCharCode(0x2014);
 const temps: string[] = [];
 function tempDir(): string {
   const d = mkdtempSync(join(tmpdir(), 'lab-test-'));
@@ -149,6 +152,12 @@ describe('lab.mjs', () => {
     expect(lcpFrom(lhr)).toEqual({ value: 1234.5 });
     expect(tbtFrom(report(1, 230, 0))).toEqual({ value: 230 });
     expect(clsFrom(report(1, 0, 0.25))).toEqual({ value: 0.25 });
+    // The long tasks behind a TBT are kept as evidence for the owner of an OVER route.
+    const withTasks = report(1, 230, 0, {}, {});
+    (withTasks.audits as Record<string, unknown>)['long-tasks'] = { details: { items: [{ url: 'http://x/_astro/a.js', startTime: 812.4, duration: 280.6 }, { url: 'Unattributable', startTime: 'n/a', duration: 60 }] } };
+    expect(longTasksFrom(withTasks)).toEqual([{ url: 'http://x/_astro/a.js', startTime: 812, duration: 281 }]);
+    expect(runFromReport(withTasks).longTasks).toHaveLength(1);
+    expect(longTasksFrom(report(1, 0, 0))).toEqual([]);
   });
 
   it('LCP is the largest-contentful-paint audit; no value is an error, never zero', () => {
@@ -334,7 +343,7 @@ describe('lab.mjs', () => {
     expect(lines[3]).toMatch(/^\/modules\/m4-\*\/\s+-\s+-\s+-\s+missing \(no lesson whose slug begins with m4-\)$/);
     expect(lines[4]).toMatch(/^canary \(slow fixture, not a route\)\s+3\.500\s+550\.0\s+0\.3000\s+over on LCP, TBT, CLS/);
     expect(lines[5]).toBe('lab: 3 routes measured, 1 over threshold, 1 missing or in error');
-    expect(text).not.toContain('—');
+    expect(text).not.toContain(EM_DASH);
   });
 
   it('the script measures astro preview through Lighthouse CI collect and never uploads', () => {
@@ -344,6 +353,6 @@ describe('lab.mjs', () => {
     expect(src).toContain("throttlingMethod: 'devtools'");
     expect(src).not.toMatch(/'simulate'|'upload'|temporary-public-storage/);
     expect(src).toContain("'collect'");
-    expect(src).not.toContain('—');
+    expect(src).not.toContain(EM_DASH);
   });
 });
