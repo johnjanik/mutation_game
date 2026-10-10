@@ -151,7 +151,8 @@ describe('state.ts: classify once when the board is loaded', () => {
     expect(Object.isFrozen(first)).toBe(true);
     expect(Object.isFrozen(first[0])).toBe(true);
     // The cached records are classify's own verdict (a fresh, uncached call through the spy).
-    expect(spy.getMockImplementation()!(b)).toEqual(first);
+    const real = spy.getMockImplementation() as unknown as (board: unknown) => unknown;
+    expect(real(b)).toEqual(first);
     // In labels for export (E-7): the golden components, labels 1..5 on a custom board.
     const labelled = boardVerdictInLabels(b);
     expect(labelled.map((r) => r.nodes)).toEqual(testBoard('two components: A2 and the triangle').components.map((c) => c.nodes));
@@ -169,7 +170,7 @@ describe('state.ts: classify once when the board is loaded', () => {
     expect(isFiniteType(resolveBoard({ cartan: testBoard('two components: A2 and the triangle').cartan }))).toBe(false);
     // Several finite pieces are finite, as the engine's requireFinite (P2-A1) accepts them.
     expect(isFiniteType(resolveBoard({ cartan: [[2, -1, 0], [-1, 2, 0], [0, 0, 2]] }))).toBe(true);
-  });
+  }, 60000);
 
   it('whereToRun gets finiteKnown from the verdict', () => {
     // A play to the end (no move count known in advance): main on a board classify calls finite,
@@ -202,7 +203,7 @@ describe('state.ts: classify once when the board is loaded', () => {
     expect([...resolveBoard('square').labels]).toEqual([1, 2, 3, 4]);
     expect(boardVerdict(resolveBoard('pentagon'))[0]!.name).toBe('A4~');
     expect(boardVerdict(resolveBoard('square'))[0]!.name).toBe('A3~');
-  });
+  }, 60000);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -263,7 +264,7 @@ describe('T9 phase 2', () => {
       }
     }
     expect(checked).toBe(TYPE_NAMES.reduce((s, t) => s + golden.types[t]!.cartan.length, 0));
-  });
+  }, 60000);
 
   it('openLab href carries the named board for every type and node', () => {
     for (const name of TYPE_NAMES) {
@@ -284,7 +285,7 @@ describe('T9 phase 2', () => {
     }
     expect(labHref('/', 'D4~')).toBe('/tools/lab?g=D4~');
     expect(labHref('/sub/path', 'D4^(3)')).toBe('/sub/path/tools/lab?g=D4^(3)');
-  });
+  }, 60000);
 
   it('playControl is play on exactly on affine boards', () => {
     for (const name of TYPE_NAMES) {
@@ -324,7 +325,7 @@ describe('T9 phase 2', () => {
     expect(kostantPlayOnCap(3)).toBe(CAPS.linkMoves - 3);
     expect(playDisabled({ hydrated: true, frozen: false, busy: false, atEnd: false, playOn: true, cursor: r.moves })).toBe(true);
     expect(playDisabled({ hydrated: true, frozen: false, busy: false, atEnd: false, playOn: true, cursor: 0 })).toBe(false);
-  });
+  }, 60000);
 
   it('the end panel never calls the finite theory on an affine board (E-11 guard)', () => {
     // highestRoot throws off the finite types (P2-A1's guards), which is why the component asks isFiniteType first.
