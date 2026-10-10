@@ -58,7 +58,8 @@ test.describe('pages', () => {
       await expect(page.locator('main footer'), p.name).toHaveCount(0);
     }
     await page.goto('modules/');
-    await expect(page.locator('main')).toContainText('No module is published yet.');
+    // MERGE, G1: the index lists the released modules, or says that none is published yet (true before M0).
+    await expect(page.locator('main')).toContainText(/No module is published yet\.|Start here: two games, one board/);
     await page.goto('credits/');
     await expect(page.locator('tr[data-package="katex"] [data-licence]')).toHaveText('MIT');
     await expect(page.locator('main')).toContainText('used only as a black-box source of test data');
@@ -243,7 +244,8 @@ test.describe('without JavaScript', () => {
     await expect(page.locator('[id="W20"]')).toBeVisible();
     expect(await page.locator('main math').count()).toBeGreaterThan(150);
     await page.goto('modules/');
-    await expect(page.locator('main')).toContainText('No module is published yet.');
+    // MERGE, G1: the index lists the released modules, or says that none is published yet (true before M0).
+    await expect(page.locator('main')).toContainText(/No module is published yet\.|Start here: two games, one board/);
     await page.goto('open-items/');
     await expect(page.locator('li[id="E1"] [data-field="statement"]')).toBeVisible();
     // The theme switch is present and disabled until its script runs.
