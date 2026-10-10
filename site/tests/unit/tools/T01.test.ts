@@ -42,6 +42,12 @@ import type { Prediction } from '../../../src/tools/types';
 import { createServer, type ViteDevServer } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
+
+/** A short key of this checkout, so that concurrent worktrees never share a compile cache (MERGE, P2 stage 2.1). */
+function checkoutKey(): string {
+  return createHash('sha256').update(import.meta.url).digest('hex').slice(0, 8);
+}
 import { join } from 'node:path';
 
 const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../../../reference/golden_data.json', import.meta.url)), 'utf8')) as {
@@ -591,7 +597,7 @@ beforeAll(async () => {
     configFile: false,
     root: SITE,
     logLevel: 'silent',
-    cacheDir: join(tmpdir(), 'two-games-ssr-test-cache-t01'),
+    cacheDir: join(tmpdir(), 'two-games-ssr-test-cache-t01-' + checkoutKey()),
     appType: 'custom',
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     optimizeDeps: { noDiscovery: true, include: [] },

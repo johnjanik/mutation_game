@@ -69,7 +69,7 @@ describe('ToolFrame', () => {
     const ranges = disabledFieldsetRanges(body);
     expect(ranges).toHaveLength(2); // the controls row and the table
     const buttons = [...body.matchAll(/<button\b[^>]*>/g)];
-    expect(buttons.length).toBe(2 + 3 + 1 + 2 + 2); // nodes, undo/redo/reset, step, copy/download, table
+    expect(buttons.length).toBe(2 + 3 + 1 + 2 + 2 + 2); // nodes, undo/redo/reset, step, copy/download, export svg/png (P2-A6), table
     for (const b of buttons) {
       const inside = ranges.some(([s, e]) => b.index! > s && b.index! < e);
       expect(attr(b[0], 'disabled') !== null || inside, b[0]).toBe(true);

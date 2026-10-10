@@ -8,6 +8,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
+
+/** A short key of this checkout, so that concurrent worktrees never share a compile cache (MERGE, P2 stage 2.1). */
+function checkoutKey(): string {
+  return createHash('sha256').update(import.meta.url).digest('hex').slice(0, 8);
+}
 import { join } from 'node:path';
 import { CAPS, EngineOverflow, boardFromName, kostantPlay, raisingNodes, raisingPlay, toNumbers } from '@engine';
 import type { Board } from '@engine';
@@ -382,7 +388,7 @@ beforeAll(async () => {
     configFile: false,
     root: SITE,
     logLevel: 'silent',
-    cacheDir: join(tmpdir(), 'two-games-ssr-test-cache-t09'),
+    cacheDir: join(tmpdir(), 'two-games-ssr-test-cache-t09-' + checkoutKey()),
     appType: 'custom',
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     optimizeDeps: { noDiscovery: true, include: [] },
