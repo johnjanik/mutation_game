@@ -1,0 +1,25 @@
+---
+// <G k="types.E8.weyl_order"/> (SPEC.md 7.3; 8.4).
+// Every number in a lesson that has a golden value is written this way, so prose cannot drift
+// from the data.
+// The path is resolved at build time; a path that does not lead to exactly one value, or a value
+// that cannot be printed in prose, throws here and fails `astro build`, naming the path. There is
+// deliberately no `try`: the uncaught error is the mechanism of the Content row of SPEC.md 7.7.
+// No JavaScript, no style of its own: the number takes the typeface of its sentence.
+import { goldenProse, GoldenPathError, type GoldenFormat } from '@lib/golden';
+
+interface Props {
+  /** The golden path (SPEC.md 7.3 grammar). */
+  k: string;
+  /** word: labels separated by thin spaces; count: the length of a list; plain: no grouping, no brackets. */
+  as?: GoldenFormat;
+}
+
+const { k, as } = Astro.props;
+if (typeof k !== 'string' || k.trim() === '') throw new GoldenPathError('<G> needs a path in its k attribute', '', 0);
+if (as !== undefined && as !== 'word' && as !== 'count' && as !== 'plain') {
+  throw new GoldenPathError(`<G k="${k}"> has as="${String(as)}"; use word, count or plain`, k, 0);
+}
+const text = goldenProse(k, as);
+---
+<span class="g" data-golden={k}>{text}</span>

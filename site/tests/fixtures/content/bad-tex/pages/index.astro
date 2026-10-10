@@ -1,0 +1,6 @@
+---
+// P0-A4 fixture (a test input, never a site page): a {{path}} in <Tex> that does not resolve must
+// fail the build, naming the path.
+import Tex from '@components/math/Tex.astro';
+---
+<p><Tex src="{{types.E9.x}}" /></p>

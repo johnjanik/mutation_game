@@ -1,0 +1,121 @@
+[
+  {
+    "id": "E1",
+    "status": "open",
+    "statement": "Satake multiplicities against Helgason. The black nodes and arrows were confirmed in two independent published encodings. The multiplicities for A II, A III and C II with $p=q$, D III (except $n=5$), E II, E VI, E VII and E IX rest on computation and on dimension counts, with no published number read. A reviewer of this specification recalls Helgason's table as agreeing with every line of section 6.4, these lines included; that is memory, and it does not close the item.",
+    "whereToCheck": "Open [Hel01] pp. 532-534 (or Araki's table, [Ara62] pp. 32-33) and compare with section 6.4 and Appendix B.",
+    "gate": "G6"
+  },
+  {
+    "id": "E2",
+    "status": "open",
+    "statement": "Mozes' paper.",
+    "whereToCheck": "Open [Moz90] (free to read, 15 pages). Record its sign convention, its matrix convention, the numbers of the theorems on order independence and termination, whether its introduction mentions the Olympiad problem, and whether it uses the words \"numbers game\". Update the history page and section 2.9.",
+    "gate": "G3"
+  },
+  {
+    "id": "E3",
+    "status": "open",
+    "statement": "Björner and Brenti, section 4.3.",
+    "whereToCheck": "Confirm the number of the main theorem (believed to be 4.3.1) and its wording.",
+    "gate": "G3"
+  },
+  {
+    "id": "E4",
+    "status": "open",
+    "statement": "Kac's book. Places suggested from a reviewer's memory, to be confirmed: Theorem 4.3, Proposition 4.7 and Theorem 4.8 for the classification; Proposition 3.12 for the Tits cone, which gives the lowering lemma; Proposition 5.8 for the Tits cone of an affine matrix; Proposition 6.3 for the real roots of affine algebras, which gives the table of least $k$ in section 2.12.",
+    "whereToCheck": "Look up and record: the definition of symmetrizable and Exercise 2.1; the classification by principal minors (believed to be Proposition 4.7) and the fact that matrices of finite and affine type are symmetrizable, both used by `cartan_class`; the statement that real roots are positive or negative, and the lemma that a positive real root other than a simple one is lowered by some simple reflection, used by `is_root_population`; marks, comarks and the word \"level\"; the names of the twisted affine diagrams and which is the transpose of which; Kac's numbering of $E_6$, $E_7$, $E_8$, $G_2$ for the Atlas.",
+    "gate": "G6"
+  },
+  {
+    "id": "E5",
+    "status": "open",
+    "statement": "Wildberger's lectures.",
+    "whereToCheck": "Open the two channels and list the episodes of \"Dynamics on Graphs\" with titles, dates and whether each is public. Check every video link in `SOURCES.md` 11.1. Decide which to link.",
+    "gate": "G6"
+  },
+  {
+    "id": "E6",
+    "status": "open",
+    "statement": "The affine fate table for non-simply-laced and twisted boards (section 2.12). The section now carries an argument supplied by a reviewer.",
+    "whereToCheck": "Confirm its second reference (Kac, the Tits cone of an affine matrix), or find the table stated in Eriksson's survey [Eri94a]; until then the site keeps the wording \"computed, with this argument\".",
+    "gate": "G2"
+  },
+  {
+    "id": "E7",
+    "status": "open",
+    "statement": "The face-counting rule of section 2.14: it now agrees with exact convex hulls in 48 cases, so what remains is its attribution. The published face counts of $1_{22}$, $2_{31}$, $2_{41}$ and $1_{42}$, with which the rule was also compared, were typed from memory; look them up before the site calls them published values (a reviewer recalls the four lists as the published ones).",
+    "whereToCheck": "Compare with [CKPS95] or Coxeter before naming anyone.",
+    "gate": "G4"
+  },
+  {
+    "id": "E8",
+    "status": "open",
+    "statement": "Is the link between Satake diagrams and node-firing games new? No source was found that plays $\\theta$, or the restricted reflections, as moves of these games; but the literature search for this question was not run, because the search allowance was exhausted.",
+    "whereToCheck": "The site should make no claim of novelty until a search has been done.",
+    "gate": "G6"
+  },
+  {
+    "id": "E9",
+    "status": "open",
+    "statement": "Attribution of the golden folding $E_8\\to H_4$ (Lusztig; Shcherbak; Moody and Patera) and of the name \"rectified $4_{21}$\" for the orbit of $\\omega_7$.",
+    "whereToCheck": "Attribution of the golden folding $E_8\\to H_4$ (Lusztig; Shcherbak; Moody and Patera) and of the name \"rectified $4_{21}$\" for the orbit of $\\omega_7$.",
+    "gate": "G4"
+  },
+  {
+    "id": "E10",
+    "status": "open",
+    "statement": "Section and theorem numbers quoted from memory: everything marked [U] in `SOURCES.md` 11.5 (Humphreys, Bourbaki, Fulton and Harris), Smith's theorem on graphs of spectral radius 2, the item of [Ste59] behind F14 (a reviewer suggests, from memory, Bourbaki, Chapter VI, section 1, no. 11, Proposition 31), and the journal data marked [U] in 11.1, 11.2 and 11.4.",
+    "whereToCheck": "Everything marked [U] in `SOURCES.md` 11.5 (Humphreys, Bourbaki, Fulton and Harris), Smith's theorem on graphs of spectral radius 2, the item of [Ste59] behind F14 (a reviewer suggests, from memory, Bourbaki, Chapter VI, section 1, no. 11, Proposition 31), and the journal data marked [U] in 11.1, 11.2 and 11.4.",
+    "gate": "G6"
+  },
+  {
+    "id": "E11",
+    "status": "open",
+    "statement": "The proposer of the 1986 Olympiad problem, if the history page names one.",
+    "whereToCheck": "The proposer of the 1986 Olympiad problem, if the history page names one.",
+    "gate": "G6"
+  },
+  {
+    "id": "E12",
+    "status": "open",
+    "statement": "Whether route (a) for mathematics works with MDX under Astro 7 (section 7.2 item 3).",
+    "whereToCheck": "This is the phase 0 spike.",
+    "gate": "G6"
+  },
+  {
+    "id": "E13",
+    "status": "open",
+    "statement": "Kostant's game: A. Knutson's MathOverflow answer (thread 171999), for the wording of the attribution.",
+    "whereToCheck": "A. Knutson's MathOverflow answer (thread 171999), for the wording of the attribution.",
+    "gate": "G6"
+  },
+  {
+    "id": "E14",
+    "status": "open",
+    "statement": "Wildberger's List A against Kac's affine tables, edge by edge, if the site says they are the same list. A reviewer's reading of the printed labels, to be confirmed: (a) $\\tilde A_n$, (b) $\\tilde D_4$, (c) $\\tilde D_n$, (d) to (f) $\\tilde E_6$, $\\tilde E_7$, $\\tilde E_8$, (g) $D_{n+1}^{(2)}$, (h) $\\tilde B_n$, (i) $\\tilde C_n$, (j) $A_{2n-1}^{(2)}$, (k) $A_{2n}^{(2)}$, (l) $E_6^{(2)}$, (m) $\\tilde F_4$, (n) $\\tilde G_2$, (o) $D_4^{(3)}$, (p) $A_2^{(2)}$, (q) $\\tilde A_1$.",
+    "whereToCheck": "Wildberger's List A against Kac's affine tables, edge by edge, if the site says they are the same list.",
+    "gate": "G6"
+  },
+  {
+    "id": "E15",
+    "status": "open",
+    "statement": "The last sentence on a failed condition 3 in section 2.15 (that the same permutation of roots arises from $\\mathfrak{sl}(3,\\mathbb R)$ on a Cartan subalgebra that is not maximally split, as Vogan diagrams record). A reviewer derived the substance: on the fundamental Cartan subalgebra of $\\mathfrak{sl}(3,\\mathbb R)$ the Cartan involution fixes one pair of roots, which must be non-compact because $\\dim\\mathfrak k=3$, and exchanges the other two pairs, and this is $-s_1$. What remains open is the wording about Vogan diagrams.",
+    "whereToCheck": "A reader who knows [Kna02] chapter VI can confirm or reword it.",
+    "gate": "G6"
+  },
+  {
+    "id": "E16",
+    "status": "open",
+    "statement": "Attributions of the tableau counts in F12 (Stanley for the staircase; the square shape for types $B$ and $C$), and a reference for the remark in section 2.13 that the fixed subalgebra for $A_{2n}$ is of type $B_n$.",
+    "whereToCheck": "Attributions of the tableau counts in F12 (Stanley for the staircase; the square shape for types $B$ and $C$), and a reference for the remark in section 2.13 that the fixed subalgebra for $A_{2n}$ is of type $B_n$.",
+    "gate": "G6"
+  },
+  {
+    "id": "E17",
+    "status": "open",
+    "statement": "Everything else labelled [U]. Known cases that no item above covers: the reading of Proctor's restricted game in this document's sign convention (section 2.9); in Appendix F, the state of the Java applets, the licence of CoReLG, the remark on the orthogonal group, and the two statements that nothing was found; in `SOURCES.md`, the labels [U] of sections 11.0, 11.3 and 11.4 that items 1 and 10 do not name.",
+    "whereToCheck": "A lesson that needs any other statement labelled [U] adds an item with the next free number (`E18`, `E19`, ...) to `content/unverified.json`, quoting the statement and saying where it can be checked. The [U] labels of section 7 concern tools, and the builder settles each one when the tool is first used.",
+    "gate": "G6"
+  }
+]

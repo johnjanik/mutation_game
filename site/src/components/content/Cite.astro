@@ -1,0 +1,19 @@
+---
+// <Cite k="Don08"/> (SPEC.md 7.3): the key in square brackets, linked to its entry on the sources
+// page (anchor `sources#<key>`, the key as it stands), with the entry's first line as the title.
+// A key not defined in SOURCES.md throws SourcesKeyError here, uncaught, and fails the build.
+// Plain HTML: no JavaScript and no colour of its own.
+import { citeTitle, entry } from '@lib/sources';
+
+interface Props {
+  k: string;
+}
+
+const { k } = Astro.props;
+if (typeof k !== 'string' || k === '') throw new Error('<Cite> needs a key in its k attribute');
+entry(k);
+const title = citeTitle(k);
+const base = import.meta.env.BASE_URL;
+const href = `${base.endsWith('/') ? base : `${base}/`}sources#${k}`;
+---
+<a class="cite" data-cite={k} href={href} title={title}>[{k}]</a>
