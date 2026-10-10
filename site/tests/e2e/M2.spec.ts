@@ -373,10 +373,11 @@ test('one view only', async ({ page }) => {
   const text = norm(await page.locator('main').textContent());
   expect(text).not.toContain('is the amount by which a mutation would lower city');
   expect(text).not.toMatch(/The number on (?:node|a node)/);
-  // M3's words stay out of the prose (the tools' own verdicts are not prose).
+  // M3's words stay out of the prose (the tools' own verdicts are not prose, and neither is the
+  // closing navigation, whose "Next" link carries M3's own title once M3 is released).
   const prose = await page.locator('article').evaluate((article) => {
     const c = article.cloneNode(true) as HTMLElement;
-    c.querySelectorAll('[data-tool], .katex').forEach((t) => t.remove());
+    c.querySelectorAll('[data-tool], .katex, [data-anatomy="links"]').forEach((t) => t.remove());
     return c.textContent ?? '';
   });
   expect(prose).not.toMatch(/\b(?:affine|indefinite|frozen population|spectral|one-way)\b/i);
