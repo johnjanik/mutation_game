@@ -121,21 +121,21 @@ describe('scaffold', () => {
   });
 
   it('base.css tokens', () => {
-    const css = read('site/src/styles/base.css');
+    const css = read('site/src/styles/tokens.css').replace(/\/\*[\s\S]*?\*\//g, ''); // P1-A3 moved the tokens; MERGE pointed this test at tokens.css (comments stripped before slicing)
     const names = ['--page', '--text', '--sign-pos-fill', '--sign-pos-numeral', '--sign-neg-outline', '--sign-zero-outline', '--edge-1', '--edge-2', '--edge-3', '--edge-4', '--edge-5', '--edge-6', '--edge-7', '--edge-8', '--accent-populations', '--accent-numbers', '--focus-ring', '--road', '--arrow'];
     for (const n of names) expect(css, n).toContain(`${n}:`);
     const light: Record<string, string> = { '--page': '#FFFFFF', '--text': '#1A1A1A', '--sign-pos-fill': '#0072B2', '--sign-pos-numeral': '#FFFFFF', '--sign-neg-outline': '#D55E00', '--sign-zero-outline': '#767676', '--edge-1': '#0072B2', '--edge-2': '#D55E00', '--edge-3': '#009E73', '--edge-4': '#CC79A7', '--edge-5': '#B26F00', '--edge-6': '#3A8FCB', '--edge-7': '#807500', '--edge-8': '#1A1A1A', '--accent-populations': '#009E73', '--accent-numbers': '#CC79A7' };
     const dark: Record<string, string> = { '--page': '#121212', '--text': '#E8E8E8', '--sign-pos-fill': '#56B4E9', '--sign-pos-numeral': '#121212', '--sign-neg-outline': '#E69F00', '--sign-zero-outline': '#8A8A8A', '--edge-1': '#56B4E9', '--edge-2': '#FF8A4C', '--edge-3': '#2DBE95', '--edge-4': '#CC79A7', '--edge-5': '#E69F00', '--edge-6': '#6FA8FF', '--edge-7': '#F0E442', '--edge-8': '#E8E8E8', '--accent-populations': '#009E73', '--accent-numbers': '#CC79A7' };
     const rootBlock = css.slice(css.indexOf(':root {'), css.indexOf('@media (prefers-color-scheme: dark)'));
     const darkBlock = css.slice(css.indexOf('@media (prefers-color-scheme: dark)'), css.indexOf(':root[data-theme="dark"]'));
-    const switchBlock = css.slice(css.indexOf(':root[data-theme="dark"]'), css.indexOf('body {'));
+    const switchBlock = css.slice(css.indexOf(':root[data-theme="dark"]'));
     for (const [n, v] of Object.entries(light)) expect(rootBlock, `light ${n}`).toContain(`${n}: ${v};`);
     for (const [n, v] of Object.entries(dark)) {
       expect(darkBlock, `dark ${n}`).toContain(`${n}: ${v};`);
       expect(switchBlock, `switch ${n}`).toContain(`${n}: ${v};`);
     }
     expect(css).toContain(':root:not([data-theme="light"])');
-    expect(css).toContain('prefers-reduced-motion: reduce');
+    expect(read('site/src/styles/base.css')).toContain('prefers-reduced-motion: reduce');
   });
 
   it('licences and SPDX', () => {

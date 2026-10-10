@@ -1,84 +1,13 @@
-/* The design tokens live in tokens.css (P1-A3), imported first so every page receives them.
-   The block below repeats the same values only because P0-A1's test
-   site/tests/unit/scaffold.test.ts > base.css tokens reads them from this file; P1-A3 asked MERGE
-   to point that test at tokens.css, after which this block is deleted. Until then
-   site/tests/unit/contrast.test.ts fails if a value here differs from tokens.css. */
+/* The design tokens live in tokens.css (P1-A3), imported first so every page receives them
+   (MERGE, P1 stage 1.1: the duplicate block P0-A1 wrote here was removed once the scaffold test
+   read the tokens from tokens.css). */
 @import './tokens.css';
 
-/* Design tokens of SPEC.md 6.3 and 8.3, named as CONTRACTS.md section 8.
-   Light values on :root; dark values under prefers-color-scheme and the manual switch
-   (data-theme on <html>, stored in localStorage by the shell). The focus ring, road and arrow
-   colours are a [D] choice recorded in decisions/P0-A1.md: they meet 3 to 1 against the page in
-   both themes (SPEC 7.5 A-6). */
-
+/* The two font stacks of SPEC 6.3 and 8.3 [D]: system fonts for prose, a monospaced system stack
+   with tabular figures for numerals; no font file beyond KaTeX's own. */
 :root {
-  --page: #FFFFFF;
-  --text: #1A1A1A;
-  --sign-pos-fill: #0072B2;
-  --sign-pos-numeral: #FFFFFF;
-  --sign-neg-outline: #D55E00;
-  --sign-zero-outline: #767676;
-  --edge-1: #0072B2;
-  --edge-2: #D55E00;
-  --edge-3: #009E73;
-  --edge-4: #CC79A7;
-  --edge-5: #B26F00;
-  --edge-6: #3A8FCB;
-  --edge-7: #807500;
-  --edge-8: #1A1A1A;
-  --accent-populations: #009E73;
-  --accent-numbers: #CC79A7;
-  --focus-ring: #0072B2;
-  --road: #1A1A1A;
-  --arrow: #1A1A1A;
   --font-prose: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-numerals: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --page: #121212;
-    --text: #E8E8E8;
-    --sign-pos-fill: #56B4E9;
-    --sign-pos-numeral: #121212;
-    --sign-neg-outline: #E69F00;
-    --sign-zero-outline: #8A8A8A;
-    --edge-1: #56B4E9;
-    --edge-2: #FF8A4C;
-    --edge-3: #2DBE95;
-    --edge-4: #CC79A7;
-    --edge-5: #E69F00;
-    --edge-6: #6FA8FF;
-    --edge-7: #F0E442;
-    --edge-8: #E8E8E8;
-    --accent-populations: #009E73;
-    --accent-numbers: #CC79A7;
-    --focus-ring: #56B4E9;
-    --road: #E8E8E8;
-    --arrow: #E8E8E8;
-  }
-}
-
-:root[data-theme="dark"] {
-  --page: #121212;
-  --text: #E8E8E8;
-  --sign-pos-fill: #56B4E9;
-  --sign-pos-numeral: #121212;
-  --sign-neg-outline: #E69F00;
-  --sign-zero-outline: #8A8A8A;
-  --edge-1: #56B4E9;
-  --edge-2: #FF8A4C;
-  --edge-3: #2DBE95;
-  --edge-4: #CC79A7;
-  --edge-5: #E69F00;
-  --edge-6: #6FA8FF;
-  --edge-7: #F0E442;
-  --edge-8: #E8E8E8;
-  --accent-populations: #009E73;
-  --accent-numbers: #CC79A7;
-  --focus-ring: #56B4E9;
-  --road: #E8E8E8;
-  --arrow: #E8E8E8;
 }
 
 body {

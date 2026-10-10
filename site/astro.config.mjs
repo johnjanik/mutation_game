@@ -9,6 +9,17 @@ import { unified } from '@astrojs/markdown-remark';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { openItemsReportIntegration } from './src/lib/unverifiedRegistry.ts';
+import { execSync } from 'node:child_process';
+
+/** The git commit of the build, for exportJSON and the Cite text (request of P1-A2; MERGE P1 stage 1.1). */
+function gitCommit() {
+  if (given(process.env.PUBLIC_GIT_COMMIT)) return process.env.PUBLIC_GIT_COMMIT;
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 
 /** An environment value counts as set only when it is a non-empty string. */
 function given(value) {
@@ -60,5 +71,6 @@ export default defineConfig({
   outDir: outDirFrom(process.env),
   output: 'static',
   integrations: [mdx(), svelte(), openItemsReportIntegration()],
+  vite: { define: { 'import.meta.env.PUBLIC_GIT_COMMIT': JSON.stringify(gitCommit()) } },
   markdown: { processor: unified({ remarkPlugins: [remarkMath], rehypePlugins: [[rehypeKatex, { output: 'htmlAndMathml' }]] }) },
 });

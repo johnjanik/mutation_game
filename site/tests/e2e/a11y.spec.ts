@@ -55,7 +55,8 @@ test('about and credits fetch no script and carry no data-tool', async ({ page }
     await page.goto(route.path, { waitUntil: 'networkidle' });
     page.off('request', listener);
     expect(scripts, route.name).toEqual([]);
-    await expect(page.locator('script'), route.name).toHaveCount(0);
+    // MERGE (P1 stage 1.1): the shell's theme switch is one small inline script (P1-A4); no script file is fetched.
+    await expect(page.locator('script[src]'), route.name).toHaveCount(0);
     await expect(page.locator('[data-tool]'), route.name).toHaveCount(0);
     await expect(page.locator('main h1'), route.name).toHaveCount(1);
   }
