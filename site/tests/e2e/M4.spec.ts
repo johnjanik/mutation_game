@@ -43,6 +43,8 @@ const ROUTE = 'modules/m4-numbers/';
 const LESSON_PATH = fileURLToPath(new URL('../../src/content/modules/m4-numbers.mdx', import.meta.url));
 const UNVERIFIED_PATH = fileURLToPath(new URL('../../src/content/unverified.json', import.meta.url));
 const GOLDEN_PATH = fileURLToPath(new URL('../../../reference/golden_data.json', import.meta.url));
+const EM_DASH = '\u2014';
+const EN_DASH = '\u2013';
 const BUILT = `${distDir()}/modules/m4-numbers/index.html`;
 /** SPEC 2.4(a), verbatim [D]. */
 const BRIDGE = 'The number on node i is the amount by which a mutation would lower city i.';
@@ -290,12 +292,12 @@ test('word count between 800 and 1800', async ({ page }) => {
 
 test('no em-dash in the built text', async ({ page }) => {
   const html = readFileSync(BUILT, 'utf8');
-  expect(html.includes('—'), 'U+2014 in the built HTML').toBe(false);
+  expect(html.includes(EM_DASH), 'U+2014 in the built HTML').toBe(false);
   await page.goto(ROUTE);
   const text = await page.locator('main').innerText();
-  expect(text.includes('—'), 'U+2014 in the text').toBe(false);
-  expect(text.includes('–'), 'U+2013 in the text').toBe(false);
-  expect(readFileSync(LESSON_PATH, 'utf8').includes('—'), 'U+2014 in the source').toBe(false);
+  expect(text.includes(EM_DASH), 'U+2014 in the text').toBe(false);
+  expect(text.includes(EN_DASH), 'U+2013 in the text').toBe(false);
+  expect(readFileSync(LESSON_PATH, 'utf8').includes(EM_DASH), 'U+2014 in the source').toBe(false);
 });
 
 test('numbers-in-prose report lists only the allowed numbers', () => {
