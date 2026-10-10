@@ -32,6 +32,9 @@ import {
   verifyGoldenHash,
 } from '../golden/_harness';
 
+// the em-dash (U+2014), forbidden by COMMON.md 4.4 in everything the team writes
+const EM_DASH = new RegExp(String.fromCharCode(0x2014));
+
 describe('comparison helpers', () => {
   it('intEq accepts equal integers, bigint against decimal strings and bigint against numbers', () => {
     expect(() => intEq([1n, 2n], ['1', '2'])).not.toThrow();
@@ -186,7 +189,7 @@ describe('src imports only src', () => {
       expect(text).not.toMatch(/\bconsole\.log\b/);
       expect(text).not.toMatch(/\bMath\.random\b/);
       expect(text).not.toMatch(/\bnew Date\b/);
-      expect(text).not.toMatch(/—/);
+      expect(text).not.toMatch(EM_DASH);
     });
   }
 });
@@ -247,7 +250,7 @@ describe('error classes', () => {
       expect(e.name).toBe(name);
       expect(typeof e.message).toBe('string');
       expect(e.message.length).toBeGreaterThan(0);
-      expect(e.message).not.toMatch(/—/);
+      expect(e.message).not.toMatch(EM_DASH);
     });
   }
 
