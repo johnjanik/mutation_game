@@ -189,6 +189,19 @@ describe('root package.json', () => {
   });
 });
 
+describe('decisions/P0-A6.md', () => {
+  it('decisions fragment covers 5.11', () => {
+    const text = readFileSync(join(ROOT, 'decisions', 'P0-A6.md'), 'utf8');
+    const entries = text.match(/^## \d{4}-\d{2}-\d{2} P0-A6: .+$/gm) ?? [];
+    expect(entries.length).toBeGreaterThan(0);
+    for (const term of ['1000 bytes', '--limit-override', 'PYTHON', 'numbers-in-prose', 'P3-A7', 'open-items-report.json', 'prebuild', 'dist-basepath', 'testIgnore', '4323', 'siteAndBase', '/404', 'Links', 'D18']) {
+      expect(text, term).toContain(term);
+    }
+    expect(text).toContain('Decision:');
+    expect(text).not.toContain(String.fromCharCode(0x2014)); // no em-dash (COMMON.md 4.4)
+  });
+});
+
 describe('lab.mjs', () => {
   it('lab stub exits 2 with the phase-3 message', () => {
     const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'lab.mjs')], { encoding: 'utf8' });
