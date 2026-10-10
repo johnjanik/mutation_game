@@ -67,3 +67,5 @@ export { formValue, formIsInvariant, isRootPopulation, coroot } from './form';
 export type { InvarianceResult } from './form';
 export { requireGcm, requireConnected, requireFinite, requireAffine } from './guards';
 export { playFate } from './play';
+// phase 3 (P3-A2): heaps.ts, geometry.ts
+export { heap, heapKey, commutationClassSize, symbolicPlay, allCompleteGames } from './heaps';
