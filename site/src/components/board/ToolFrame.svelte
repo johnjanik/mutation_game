@@ -16,10 +16,11 @@
   // change size (7.6). The frame never starts a play.
   // Hooks: data-frame, data-tool, data-moves, data-hydrated on the root; data-out="caption",
   // "notice", "noscript"; data-control="undo", "redo", "reset", "copyLink", "downloadData"; data-live.
+  // P2-A6 (additive): data-export="svg", "png"; data-export-option="footer", "labels"; data-out="exportNotice".
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import { createAnnouncer } from '../../lib/a11y';
-  import { copyLink, registerInstance, stateChanged, unregisterInstance } from '../../lib/history';
+  import { copyLink, linkFor, registerInstance, stateChanged, unregisterInstance } from '../../lib/history';
   import type { ToolId, ToolState } from '../../lib/state';
 
   interface Props {
@@ -42,6 +43,8 @@
     defaults?: ToolState;
     /** Called with the state re-read from the URL after the back button (history.ts). */
     onPopState?: (state: ToolState, notice: string | null) => void;
+    /** P2-A6: the board name of the export footer (SPEC 8.3, D19); default: state.board when it is a name, else `custom board`. */
+    boardName?: string;
     figure: Snippet<[FrameApi]>;
     controls?: Snippet<[FrameApi]>;
     table?: Snippet<[FrameApi]>;
@@ -61,6 +64,7 @@
     figureLabel,
     defaults,
     onPopState,
+    boardName,
     figure,
     controls,
     table,
@@ -124,6 +128,50 @@
     setTimeout(() => URL.revokeObjectURL(url), 0);
     announce(`Downloaded ${filename}.`);
   }
+
+  // P2-A6: figure export (SPEC 4.0 "Share and export", 6.1, 8.3). The options act on the exported
+  // copy only: the page keeps its labels. Nothing starts on load; only a click or a key exports.
+  let figureEl: HTMLElement | undefined = $state();
+  let exportFooter = $state(true);
+  let exportLabels = $state(true);
+  let exportNotice = $state('');
+
+  /** The figure's drawings in document order: not inside a button, link, label or summary, at least 32 by 32. */
+  function figureSvgs(): SVGSVGElement[] {
+    if (!figureEl) return [];
+    return [...figureEl.querySelectorAll('svg')].filter((s) => {
+      if (s.parentElement?.closest('svg, button, a, label, summary')) return false;
+      const r = s.getBoundingClientRect();
+      return r.width >= 32 && r.height >= 32;
+    });
+  }
+
+  function save(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  async function onExport(kind: 'svg' | 'png'): Promise<void> {
+    try {
+      const ex = await import('../../lib/export');
+      const svgs = figureSvgs();
+      if (svgs.length === 0) throw new Error('nothing to export');
+      const name = boardName ?? (typeof toolState.board === 'string' ? toolState.board : 'custom board');
+      const footer = exportFooter ? { boardName: name, link: linkFor(instanceId) } : null;
+      const fig = !exportLabels ? ex.withoutLabels(ex.composeFigure(svgs)) : svgs.length === 1 ? svgs[0]! : ex.composeFigure(svgs);
+      const blob = kind === 'svg' ? new Blob([ex.exportSVG(fig, footer)], { type: 'image/svg+xml;charset=utf-8' }) : await ex.exportPNG(fig, footer);
+      save(blob, ex.exportFileName(toolId, name, kind));
+      exportNotice = '';
+    } catch (e) {
+      exportNotice = e instanceof Error ? e.message : String(e);
+    }
+  }
 </script>
 
 <section
@@ -139,7 +187,7 @@
   {#if notice}
     <p class="notice" data-out="notice" role="note">{notice}</p>
   {/if}
-  <figure class="tool-figure" aria-label={figureLabel} aria-labelledby={figureLabel ? undefined : captionId}>
+  <figure class="tool-figure" bind:this={figureEl} aria-label={figureLabel} aria-labelledby={figureLabel ? undefined : captionId}>
     {@render figure(api)}
     <figcaption id={captionId} data-out="caption">{caption}</figcaption>
   </figure>
@@ -159,7 +207,15 @@
   <div class="row share">
     <button type="button" class="control" data-control="copyLink" disabled={!hydrated} onclick={onCopyLink}>Copy link</button>
     <button type="button" class="control" data-control="downloadData" disabled={!hydrated} onclick={onDownloadData}>Download data</button>
-    <!-- Later buttons go here: "Export SVG" and "Export PNG" (phase 2, P2-A6); "Export LaTeX" and "Cite" (phase 6, P6-A5). -->
+    <button type="button" class="control" data-export="svg" disabled={!hydrated} onclick={() => onExport('svg')}>Export SVG</button>
+    <button type="button" class="control" data-export="png" disabled={!hydrated} onclick={() => onExport('png')}>Export PNG</button>
+    <!-- P6-A5 adds "Export LaTeX" and "Cite" here (phase 6). -->
+    <fieldset class="export-options">
+      <legend class="visually-hidden">Export options</legend>
+      <label class="export-option"><input type="checkbox" data-export-option="footer" disabled={!hydrated} bind:checked={exportFooter} /> Footer line</label>
+      <label class="export-option"><input type="checkbox" data-export-option="labels" disabled={!hydrated} bind:checked={exportLabels} /> Node labels</label>
+    </fieldset>
+    <span class="export-notice" data-out="exportNotice">{exportNotice}</span>
   </div>
   {#if table}
     <details class="table-view">
@@ -259,6 +315,35 @@
     clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
+  }
+  /* P2-A6: the export options; targets 44 pixels high, checkboxes 24 (A-7), wrapping at 320 (A-11). */
+  .export-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .export-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .export-option input {
+    width: 24px;
+    height: 24px;
+    margin: 0;
+  }
+  .export-option input:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .export-notice:empty {
+    display: none;
   }
   @media (max-width: 399.98px) {
     .tool-figure {
