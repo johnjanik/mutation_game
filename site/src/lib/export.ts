@@ -174,11 +174,22 @@ function isTransparent(colour: string): boolean {
   return colour === '' || colour === 'transparent' || /^rgba\(.*,\s*0(\.0+)?\)$/.test(colour);
 }
 
-function styleText(cs: CSSStyleDeclaration): string {
+/** The two properties of STYLE_PROPS that are not inherited, with their initial values. */
+const NOT_INHERITED: Record<string, string> = { opacity: '1', 'vector-effect': 'none' };
+
+/**
+ * The `style` text of one element: every property of STYLE_PROPS whose computed value differs from
+ * what the element would get anyway (its parent's computed value for an inherited property, the
+ * initial value otherwise), or that a presentation attribute of the element sets. `parent` null
+ * (the drawing's root) writes them all. This keeps the file small without changing what is drawn.
+ */
+function styleText(el: Element, cs: CSSStyleDeclaration, parent: CSSStyleDeclaration | null): string {
   const parts: string[] = [];
   for (const p of STYLE_PROPS) {
     const v = cs.getPropertyValue(p);
-    if (v !== '' && !v.includes('url(') && !v.includes('var(')) parts.push(`${p}: ${v}`);
+    if (v === '' || v.includes('url(') || v.includes('var(')) continue;
+    const implied = p in NOT_INHERITED ? NOT_INHERITED[p] : parent?.getPropertyValue(p);
+    if (parent === null || v !== implied || el.hasAttribute(p)) parts.push(`${p}: ${v}`);
   }
   return parts.join('; ');
 }
@@ -324,21 +335,37 @@ function drawOverlay(live: SVGSVGElement, clone: SVGSVGElement): void {
  */
 export function inlineStyles(live: SVGSVGElement): SVGSVGElement {
   needsBrowser();
+  // A colour transition still running (Node.svelte fades fills) is taken at its end, the state shown.
+  try {
+    for (const a of live.getAnimations({ subtree: true })) a.finish();
+  } catch {
+    // An animation that cannot finish (infinite) is taken as it is.
+  }
   const clone = live.cloneNode(true) as SVGSVGElement;
   const liveEls = [...live.querySelectorAll('*')];
   const cloneEls = [...clone.querySelectorAll('*')];
   const dropped: Element[] = [];
+  const computed = new Map<Element, CSSStyleDeclaration>([[live, getComputedStyle(live)]]);
+  clone.setAttribute('style', styleText(live, computed.get(live)!, null));
   liveEls.forEach((el, i) => {
     const copy = cloneEls[i]!;
     const tag = el.tagName.toLowerCase();
     if (tag === 'title' || tag === 'desc' || tag === 'style') return;
     const cs = getComputedStyle(el);
+    computed.set(el, cs);
     if (cs.display === 'none' || el.hasAttribute('data-ghost')) {
       dropped.push(copy);
       return;
     }
-    copy.setAttribute('style', styleText(cs));
+    const style = styleText(el, cs, (el.parentElement && computed.get(el.parentElement)) ?? null);
+    if (style === '') copy.removeAttribute('style');
+    else copy.setAttribute('style', style);
   });
+  // Hydration markers and other comments carry nothing a reader needs.
+  const walker = document.createTreeWalker(clone, NodeFilter.SHOW_COMMENT);
+  const comments: Node[] = [];
+  while (walker.nextNode()) comments.push(walker.currentNode);
+  for (const c of comments) c.parentNode?.removeChild(c);
   rewriteValues(live, liveEls, cloneEls);
   for (const el of dropped) el.remove();
   drawOverlay(live, clone);
