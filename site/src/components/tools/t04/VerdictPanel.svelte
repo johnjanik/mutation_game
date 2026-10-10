@@ -30,18 +30,16 @@
           >{/if}{#if c.record.name === 'C2~'}<span class="gloss">, the affine board of B<sub>2</sub> = C<sub>2</sub></span>{/if}
       </p>
       {#if c.matching !== null}
-        <table class="matching" aria-label="Matching of the nodes of {displayText(c.record.name ?? '')} to the Bourbaki labels">
-          <tbody>
-            <tr>
-              <th scope="row">Your node</th>
-              {#each c.matching as m (m.bourbaki)}<td>{m.reader}</td>{/each}
-            </tr>
-            <tr>
-              <th scope="row">Bourbaki label</th>
-              {#each c.matching as m (m.bourbaki)}<td>{m.bourbaki}</td>{/each}
-            </tr>
-          </tbody>
-        </table>
+        <div class="matching-box">
+          <span class="matching-key" aria-hidden="true">your node<br />Bourbaki</span>
+          <ul class="matching" aria-label="Matching of your nodes to the Bourbaki labels of {displayText(c.record.name ?? '')}">
+            {#each c.matching as m (m.bourbaki)}
+              <li><span class="visually-hidden">your node </span><span class="top">{m.reader}</span><span class="visually-hidden"> is Bourbaki node </span><span
+                  class="bottom">{m.bourbaki}</span
+                ></li>
+            {/each}
+          </ul>
+        </div>
         <p class="line">
           Your nodes in Bourbaki order: <span data-out="bourbakiOrder">{list(c.record.bourbaki_order ?? [])}</span>.
         </p>
@@ -76,7 +74,9 @@
 <style>
   .verdict {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px;
+    min-width: 0;
   }
   .line {
     margin: 0;
@@ -88,18 +88,45 @@
     border: 1px solid var(--sign-zero-outline);
     border-radius: 6px;
   }
+  .matching-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+  }
+  .matching-key {
+    font-size: 0.85em;
+    line-height: 1.6;
+  }
   .matching {
-    border-collapse: collapse;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
     font-variant-numeric: tabular-nums;
+    min-width: 0;
   }
-  .matching th,
-  .matching td {
-    padding: 2px 6px;
-    text-align: center;
+  .matching li {
+    display: grid;
+    justify-items: center;
+    line-height: 1.6;
   }
-  .matching th {
-    text-align: start;
-    font-weight: normal;
+  .matching .bottom {
+    border-top: 1px solid var(--sign-zero-outline);
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
   .numeral {
     font-variant-numeric: tabular-nums;

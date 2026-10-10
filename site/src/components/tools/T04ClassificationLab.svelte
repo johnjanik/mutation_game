@@ -457,7 +457,9 @@
 <style>
   .t04 {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
+    min-width: 0;
   }
   .line {
     margin: 0;

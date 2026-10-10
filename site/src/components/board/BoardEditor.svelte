@@ -337,6 +337,7 @@
             data-can-act="true"
             data-selected={k === subject ? 'true' : 'false'}
             data-marked={markedSet.has(labels[k]!) ? 'true' : 'false'}
+            data-xy={edit.xy[k]!.join(',')}
             onclick={() => onClick(k)}
             onfocus={() => (focused = k)}
             onkeydown={(e) => onNodeKey(e, k)}
@@ -428,7 +429,9 @@
 <style>
   .editor {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
+    min-width: 0;
   }
   .drawing-box {
     overflow-x: auto;
@@ -528,7 +531,9 @@
   }
   .tools {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
+    min-width: 0;
   }
   .status {
     margin: 0;
@@ -567,6 +572,8 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
+    min-width: 0;
+    max-width: 100%;
   }
   select {
     min-height: 44px;
