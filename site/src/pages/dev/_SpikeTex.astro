@@ -1,0 +1,15 @@
+---
+// Fixture (P0-A3): typesets `src` through renderTex, the call <Tex> will use, so that a page
+// proves backslashes in an MDX attribute reach KaTeX unchanged (SPEC.md 7.3).
+import { renderTex } from '@lib/katex';
+
+interface Props {
+  src: string;
+  display?: boolean;
+}
+
+const { src, display = false } = Astro.props;
+const html = renderTex(src, display);
+---
+
+<span set:html={html} />
