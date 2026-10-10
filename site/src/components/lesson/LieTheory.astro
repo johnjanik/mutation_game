@@ -1,0 +1,16 @@
+---
+// "For readers who know Lie theory" (P1-A4; SPEC.md 8.2 item 5, 1.2): the standard names of what
+// was just played, in one paragraph (the default slot). Hook: data-anatomy="lie-theory".
+---
+<section class="lie-theory" data-anatomy="lie-theory">
+  <h2>For readers who know Lie theory</h2>
+  <slot />
+</section>
+
+<style>
+  .lie-theory {
+    border-inline-start: 4px solid var(--sign-zero-outline);
+    padding-inline-start: 16px;
+    margin-block: 24px;
+  }
+</style>

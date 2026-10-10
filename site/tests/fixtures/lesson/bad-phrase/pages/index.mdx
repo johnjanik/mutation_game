@@ -1,0 +1,15 @@
+---
+layout: ../../../../../src/layouts/Lesson.astro
+title: "Fixture with a bad provenance"
+module: 0
+question: "Does a provenance that is neither a key nor a computation fail the build?"
+---
+import { Seen } from '@components/lesson';
+
+{/* P1-A4 fixture: "checked by hand" is neither a key nor "verified by computation". */}
+
+<Seen provenance={['W20', 'checked by hand']}>
+
+A statement.
+
+</Seen>

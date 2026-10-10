@@ -1,0 +1,75 @@
+---
+// The layout of a lesson (P1-A4; SPEC.md 8.2, 9.2; D17). It composes Base.astro and renders the
+// first item of the anatomy itself: the title (<h1 data-anatomy="title">) and the module's question
+// (<p data-anatomy="question">), followed by the draft mark when draft is true. The lesson places
+// the rest in order: the first figure (beat 1), Beat, Seen, LieTheory, Challenge, ModuleLinks and
+// Sources from @components/lesson. The layout adds no island and no script.
+// Columns: prose in a measure near 66 characters (max-inline-size 34em); figures in a wider column
+// on desktop (up to 60rem) and from edge to edge of the viewport below 400 pixels (SPEC.md 6.1).
+// Props: the frontmatter of the modules collection, either spread (modules/[slug].astro) or as
+// `frontmatter` (an MDX page that names this file as its layout).
+import Base from './Base.astro';
+import DraftMark from '../components/lesson/DraftMark.astro';
+
+interface LessonData {
+  title: string;
+  module: number;
+  question: string;
+  phase?: number;
+  released?: boolean;
+  draft?: boolean;
+  outcomes?: string[];
+  sources?: string[];
+}
+
+type Props = Partial<LessonData> & { frontmatter?: LessonData };
+
+const props = Astro.props;
+const data = (props.frontmatter ?? props) as LessonData;
+if (typeof data.title !== 'string' || typeof data.question !== 'string') throw new Error('Lesson.astro needs a title and a question');
+// D17: a lesson is a draft until the owner approves it; the schema's default is true.
+const draft = data.draft !== false;
+---
+
+<Base title={`${data.title}: Two Games on a Dynkin Diagram`} description={data.question}>
+  <article class="lesson" data-module={data.module}>
+    <h1 data-anatomy="title">{data.title}</h1>
+    <p class="question" data-anatomy="question">{data.question}</p>
+    {draft && <DraftMark />}
+    <slot />
+  </article>
+</Base>
+
+<style>
+  .lesson {
+    --measure: 34em;
+    --figure-max: 60rem;
+  }
+  /* Prose and the lesson's boxes keep the measure; figures break out to the wider column. */
+  .lesson > :global(*),
+  .lesson :global([data-anatomy='beat'] > *:not([data-anatomy='figure'])) {
+    max-inline-size: var(--measure);
+  }
+  .lesson :global([data-anatomy='beat']) {
+    max-inline-size: none;
+  }
+  .lesson :global([data-anatomy='figure']) {
+    inline-size: min(var(--figure-max), calc(100vw - 32px));
+    margin-inline: calc(50% - min(var(--figure-max), calc(100vw - 32px)) / 2);
+    margin-block: 16px 24px;
+  }
+  .question {
+    font-size: 1.125rem;
+    font-style: italic;
+  }
+  .lesson :global(.katex-display) {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  @media (max-width: 399.98px) {
+    .lesson :global([data-anatomy='figure']) {
+      inline-size: 100vw;
+      margin-inline: calc(50% - 50vw);
+    }
+  }
+</style>

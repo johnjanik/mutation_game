@@ -1,0 +1,47 @@
+---
+layout: ../../../../../src/layouts/Lesson.astro
+title: "Fixture lesson"
+module: 0
+question: "Does the layout place every part of a lesson in order?"
+phase: 1
+released: false
+outcomes: ["LO1"]
+sources: ["W20"]
+---
+import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
+
+{/* P1-A4 fixture (a test input, never a site page): the anatomy of SPEC.md 8.2 with every lesson
+    component, through the barrel. No draft field, so the schema default (draft) applies. Built by
+    released.test.ts > lesson anatomy fixture. */}
+
+<Beat n={1}>
+
+The first beat, with its figure.
+
+<figure slot="figure"><svg viewBox="0 0 10 10" role="img" aria-label="A dot"><circle cx="5" cy="5" r="2" /></svg><figcaption>A dot.</figcaption></figure>
+
+</Beat>
+
+<Beat n={2}>
+
+The second beat, with no figure.
+
+</Beat>
+
+<Seen provenance={['W20', 'verified by computation']}>
+
+The general statement.
+
+</Seen>
+
+<LieTheory>
+
+The standard names.
+
+</LieTheory>
+
+<Challenge client:visible goal="Explain the move." explanation="The site's explanation." check={{ kind: 'explain' }} />
+
+<ModuleLinks module={0} board="A3" />
+
+<Sources keys={frontmatter.sources} />

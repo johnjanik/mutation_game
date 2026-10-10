@@ -1,0 +1,15 @@
+---
+layout: ../../../../../src/layouts/Lesson.astro
+title: "Fixture with an unknown key"
+module: 0
+question: "Does an unknown provenance key fail the build?"
+---
+import { Seen } from '@components/lesson';
+
+{/* P1-A4 fixture: W99 is not a key of SOURCES.md, so the build must fail naming it. */}
+
+<Seen provenance="W99">
+
+A statement.
+
+</Seen>
