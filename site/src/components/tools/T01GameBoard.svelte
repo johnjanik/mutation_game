@@ -20,7 +20,7 @@
   import Bridge from './t01/Bridge.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { decodeState, encodeState } from '../../lib/urlCodec';
-  import { defaultStart, firstForbiddenMove, isNamedFinite, publishToolState, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
+  import { boardVerdictInLabels, defaultStart, firstForbiddenMove, isFiniteType, publishToolState, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
   import { engineCall, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
   import { POPULATIONS_ICON, NUMBERS_ICON } from '../draw/palette';
@@ -39,7 +39,6 @@
     goalNote,
     inLabelOrder,
     limitText,
-    panelsToDraw,
     requirePair,
     requireScript,
     roundCount,
@@ -58,6 +57,21 @@
   import { gameOverSentence, moveSentence, playSentence, refusalSentence, spokenValue, undoSentence } from './t01/announce';
   import { followJumps, highlightBoardName, highlightMatches } from './t01/interop';
   import { isLong } from './t01/longNumber';
+  // Phase 2 (P2-A7): the panels form, level and lengths with their engine functions, "play on" off the
+  // finite types (playFate, raisingPlay), and the finite test from classify's verdict (5.6, E-9).
+  import {
+    fateText,
+    formPanel,
+    lengthSentence,
+    lengthsReport,
+    levelValue,
+    loopedSentence,
+    phase2Panels,
+    playControlDisabled,
+    playLabel,
+    playOnCap,
+    signedText,
+  } from './t01/phase2';
 
   interface Props {
     id?: string;
@@ -125,6 +139,8 @@
   let version = $state(0);
   let notice = $state<string | null>(null);
   let limit = $state<string | null>(null);
+  /** Phase 2: the looped fate of a "play on" (SPEC 4 T15's words). */
+  let fate = $state<string | null>(null);
   let busy = $state(false);
   let scriptBase = $state(initialGame.cursor);
   let predictionResolved = $state(untrack(() => prediction === undefined));
@@ -160,7 +176,17 @@
   const progress = $derived(script ? scriptProgress(script, scriptBase, (cur().applied)) : 0);
   const goalNow = $derived(goal ? goalMet(goal, anyBoard, shown, game.coords) : false);
   const goalNoteText = $derived(goal ? goalNote(goal, goalNow, (cur().cursor)) : null);
-  const drawnPanels = $derived(panelsToDraw(panels));
+  const drawnPanels = $derived(phase2Panels(panels, anyBoard));
+  // Phase 2 (P2-A7): the finite test from classify's verdict, cached when the board was resolved.
+  const finite = $derived(isFiniteType(anyBoard));
+  const play = $derived(playLabel(finite));
+  const formShown = $derived.by(() => {
+    if (!drawnPanels.includes('form')) return null;
+    const g = cur();
+    return g.showsPopulations ? formPanel(anyBoard, g.current.pop, g.current.frac) : formPanel(anyBoard, null, null);
+  });
+  const levelShown = $derived(drawnPanels.includes('level') ? levelValue(anyBoard, cur().current.a) : null);
+  const lengthsShown = $derived(drawnPanels.includes('lengths') ? lengthsReport(anyBoard) : null);
   const lit = $derived(highlightMatches($highlight, boardName, anyBoard, shown));
   const stepOffered = $derived(game.mode !== 'free');
   const atEnd = $derived((cur().stepPosition() === null));
@@ -184,6 +210,7 @@
     game = new T1Game(configOf(s));
     scriptBase = 0;
     limit = null;
+    fate = null;
     goalWasMet = false;
     touch();
   }
@@ -244,6 +271,7 @@
       return;
     }
     limit = null;
+    fate = null;
     touch();
     afterMove(announce, moveSentence(game.view, game.labels, r.label, before, game.shown, game.cursor));
   }
@@ -262,24 +290,46 @@
   async function playToEnd(announce: (t: string) => void): Promise<void> {
     if (frozen || busy || game.stepPosition() === null) return;
     const call = game.playCall();
-    const hint = { board: game.board, kind: 'play' as const, finiteKnown: isNamedFinite(game.board) };
+    // Phase 2 (P2-A7): finiteKnown from classify's verdict (E-9 rule 2). Off the finite types the control
+    // is "play on" (4.0): legal play through playFate (always in the worker), raising play as before,
+    // with the cap kept under the link maximum of 20000 moves in all (6.6).
+    const finiteNow = isFiniteType(game.board);
+    const hint = { board: game.board, kind: 'play' as const, finiteKnown: finiteNow };
+    const cap = finiteNow ? CAPS.playMoves : playOnCap(game.cursor);
+    if (cap === 0) return;
+    const fn = !finiteNow && game.mode === 'legal' ? 'playFate' : call.fn;
     let outcome;
-    if (whereToRun(hint) === 'main') {
+    if (fn !== 'playFate' && whereToRun(hint) === 'main') {
       outcome = game.playToEnd();
     } else {
       busy = true;
       try {
         const current = game;
-        const result = await engineCall(call.fn, [current.board, call.vector, undefined, CAPS.playMoves] as never, hint);
+        const result = await engineCall(fn, [current.board, call.vector, undefined, cap] as never, hint);
         if (current !== game) return; // the reader loaded another state meanwhile
-        outcome = game.applyPlay(result);
+        outcome = game.applyPlay(result as { status: 'ended' | 'looped' | 'cap'; word: readonly number[] });
       } finally {
         busy = false;
       }
     }
     limit = limitText(outcome);
+    fate = fateText(outcome);
     touch();
-    afterMove(announce, playSentence(game.view, game.mode, game.labels, outcome.moves, outcome.status, game.shown), false);
+    const sentence =
+      outcome.status === 'looped'
+        ? loopedSentence(game.board, outcome.moves, game.shown.numbers)
+        : playSentence(game.view, game.mode, game.labels, outcome.moves, outcome.status, game.shown);
+    afterMove(announce, sentence, false);
+  }
+
+  /** Phase 2 (P2-A7): the panel values and the verdict records for "Download data" (6.6). */
+  function phase2Derived(): Record<string, unknown> {
+    const out: Record<string, unknown> = { verdict: boardVerdictInLabels(game.board) };
+    if (formShown !== null) out.formValue = formShown.kind === 'value' ? formShown.value : null;
+    if (levelShown !== null) out.level = levelShown;
+    if (lengthsShown !== null) out.lengths = lengthsShown.kind === 'unbalanced' ? null : lengthsShown.parts;
+    if (fate !== null) out.fate = fate;
+    return out;
   }
 
   function arrive(to: number, from: number, announce: (t: string) => void): void {
@@ -292,6 +342,7 @@
     const from = game.cursor;
     if (!game.scrub(to)) return;
     limit = null;
+    fate = null;
     touch();
     arrive(to, from, announce);
   }
@@ -304,6 +355,7 @@
     const from = game.cursor;
     if (!game.reset()) return;
     limit = null;
+    fate = null;
     scriptBase = 0;
     touch();
     arrive(0, from, announce);
@@ -431,13 +483,43 @@
       </div>
     {/if}
     {#each drawnPanels as p (p)}
-      <div class="panel extra" data-panel={p}></div>
+      <!-- Phase 2 (P2-A7): each panel is text (A-5); a value is a signed numeral with a true minus sign. -->
+      <div class="panel extra" data-panel={p}>
+        {#if p === 'form' && formShown !== null}
+          <p class="line" data-out="formValue" data-value={formShown.kind === 'value' ? formShown.value : ''}>
+            Form value (p, p): {#if formShown.kind === 'value'}<span class="numeral" title={isLong(formShown.value) ? formShown.value : null}>{signedText(formShown.value)}</span>{:else}{formShown.text}{/if}
+          </p>
+        {:else if p === 'level' && levelShown !== null}
+          <p class="line" data-out="level" data-value={levelShown}>
+            Level: <span class="numeral" title={isLong(levelShown) ? levelShown : null}>{signedText(levelShown)}</span>
+          </p>
+        {:else if p === 'lengths' && lengthsShown !== null}
+          <div data-out="lengths">
+            {#if lengthsShown.kind === 'unbalanced'}
+              <p class="line">The board is not balanced, so its nodes have no lengths.</p>
+            {:else}
+              {#each lengthsShown.parts as part (part.labels.join(','))}
+                <p class="line">{lengthSentence(part, lengthsShown.parts.length > 1)}</p>
+                <ul class="lengths">
+                  {#each part.nodes as nd (nd.label)}
+                    <li data-label={nd.label} data-length={nd.length}>Node {nd.label}: {nd.length === 'value' ? `2d = ${nd.squared}` : nd.length === 'equal' ? 'same length' : nd.length}</li>
+                  {/each}
+                </ul>
+              {/each}
+            {/if}
+          </div>
+        {/if}
+      </div>
     {/each}
     {#if game.mode === 'legal'}
       <p class="line" data-out="gameOver">{gameOverText}</p>
     {/if}
     {#if game.mode !== 'free'}
       <p class="line" data-out="limit">{limit ?? ''}</p>
+    {/if}
+    {#if game.mode !== 'free' && !finite}
+      <!-- Phase 2 (P2-A7): the looped fate of a "play on" (SPEC 4 T15's report). -->
+      <p class="line" data-out="fate">{fate ?? ''}</p>
     {/if}
     {#if rounds !== undefined}
       <p class="line" data-out="roundCounter">Round {roundCount((cur().cursor), rounds)}</p>
@@ -459,8 +541,13 @@
 {#snippet controls(api: FrameApi)}
   {#if stepOffered}
     <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || busy || atEnd} onclick={() => step(api.announce)}>Step</button>
-    <button type="button" class="control" data-control="playToEnd" disabled={!api.hydrated || frozen || busy || atEnd} onclick={() => playToEnd(api.announce)}
-      >Play to the end</button
+    <button
+      type="button"
+      class="control"
+      data-control="playToEnd"
+      data-play={play.play}
+      disabled={playControlDisabled({ hydrated: api.hydrated, frozen, busy, atEnd, finite, cursor: cur().cursor })}
+      onclick={() => playToEnd(api.announce)}>{play.text}</button
     >
   {/if}
   {#if script}
@@ -488,16 +575,17 @@
     <label class="setting">
       <span>View</span>
       <select data-control="view" disabled={!api.hydrated} onchange={(e) => pickView((e.currentTarget as HTMLSelectElement).value as View)}>
-        {#each ['populations', 'numbers', 'linked'] as v (v)}
-          <option value={v} selected={game.requestedView === v}>{v}</option>
+        <!-- Phase 2 (P2-A7): a numbers start on a singular (affine) board is offered the numbers view only (SPEC 4 T1). -->
+        {#each game.singular ? ['numbers'] : ['populations', 'numbers', 'linked'] as v (v)}
+          <option value={v} selected={(game.singular ? game.view : game.requestedView) === v}>{v}</option>
         {/each}
       </select>
     </label>
     <label class="setting">
       <span>Mode</span>
       <select data-control="mode" disabled={!api.hydrated} onchange={(e) => pickMode((e.currentTarget as HTMLSelectElement).value as Mode)}>
-        {#each MODES_OF_VIEW[game.requestedView] as m (m)}
-          <option value={m} selected={game.requestedMode === m}>{MODE_TEXT[m]}</option>
+        {#each MODES_OF_VIEW[game.singular ? game.view : game.requestedView] as m (m)}
+          <option value={m} selected={(game.singular ? game.mode : game.requestedMode) === m}>{MODE_TEXT[m]}</option>
         {/each}
       </select>
     </label>
@@ -547,7 +635,7 @@
     {defaults}
     {notice}
     {figureLabel}
-    derivedForExport={() => game.derived()}
+    derivedForExport={() => ({ ...game.derived(), ...phase2Derived() })}
     onPopState={(s, n) => {
       load(s);
       notice = n;
@@ -614,6 +702,23 @@
   }
   .script {
     flex: 1 1 100%;
+  }
+  /* Phase 2 (P2-A7): the panels reflow at 320 pixels (A-11). */
+  .panel.extra {
+    padding: 4px 8px;
+    box-shadow: inset 0 0 0 1px var(--sign-zero-outline);
+    overflow-wrap: anywhere;
+  }
+  .lengths {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .numeral {
+    font-variant-numeric: tabular-nums;
   }
   .setting {
     display: inline-flex;

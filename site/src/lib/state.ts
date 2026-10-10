@@ -15,12 +15,14 @@ import {
   SafeInt,
   boardFromName,
   boardKind,
+  classify,
   fire,
   fromAdjacency,
   mutate,
+  toLabels,
   toPositions,
 } from '@two-games/engine';
-import type { AnyBoard, Board } from '@two-games/engine';
+import type { AnyBoard, Board, ClassifyRecord } from '@two-games/engine';
 import { map } from 'nanostores';
 
 export type ToolId =
@@ -139,7 +141,73 @@ export function bigBoard(board: AnyBoard): Board<bigint> {
     arith: Big,
   };
   if (board.name !== undefined) out.name = board.name;
-  return Object.freeze(out);
+  const frozen = Object.freeze(out);
+  // P2-A7: the copy has the same matrix, so it shares the verdict already computed (no second classify).
+  const known = verdicts.get(board);
+  if (known !== undefined) verdicts.set(frozen, known);
+  return frozen;
+}
+
+// ---------------------------------------------------------------------------------------------
+// The verdict of classify, once per board (P2-A7; SPEC 5.6 last sentence, E-9, E-11)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * The records of `classify` for each board object this module has resolved or been asked about
+ * (plan). E-11: "boards are immutable, so the cache cannot go stale". The engine keeps its own private
+ * cache for its guards (P2-A1's guards.ts); this one is the site's, so that a tool never classifies a
+ * board twice and the records it shows are the ones it decided with. The records are frozen.
+ */
+const verdicts = new WeakMap<AnyBoard, readonly ClassifyRecord[]>();
+
+function deepFreeze<T>(x: T): T {
+  if (x !== null && typeof x === 'object' && !Object.isFrozen(x)) {
+    Object.freeze(x);
+    for (const v of Object.values(x as Record<string, unknown>)) deepFreeze(v);
+  }
+  return x;
+}
+
+function verdictOf(board: AnyBoard): readonly ClassifyRecord[] {
+  const known = verdicts.get(board);
+  if (known !== undefined) return known;
+  const records = deepFreeze(classify(board));
+  verdicts.set(board, records);
+  return records;
+}
+
+/**
+ * The verdict of `classify` on a board, one record per component, nodes as positions (CONTRACTS 2.2).
+ * A board resolved by resolveBoard was classified there; any other board object (one built by
+ * boardFromName directly) is classified here once and cached. The records are frozen: read only.
+ */
+export function boardVerdict(board: AnyBoard): ClassifyRecord[] {
+  return verdictOf(board) as ClassifyRecord[];
+}
+
+/**
+ * True exactly when every component of the board is of finite type by `classify` (a one-way
+ * component, `class: null`, makes it false). The same rule as the engine's `requireFinite` (P2-A1),
+ * which throws unless every component's class is 'finite'. This, not a name and never a cap, is the
+ * finite test of every tool from phase 2 (4.0; 5.6; E-9 rule 2 `finiteKnown`).
+ */
+export function isFiniteType(board: AnyBoard): boolean {
+  const records = verdictOf(board);
+  return records.length > 0 && records.every((r) => r.class === 'finite');
+}
+
+/**
+ * The verdict with every node list in labels (E-7: everything outside the engine speaks labels), for
+ * "Download data" (6.6: the derived tables shown on screen). Plain copies, safe to serialise.
+ */
+export function boardVerdictInLabels(board: AnyBoard): Record<string, unknown>[] {
+  return verdictOf(board).map((r) => {
+    const out: Record<string, unknown> = { ...r, nodes: toLabels(board, r.nodes) };
+    if (r.bourbaki_order !== undefined) out.bourbaki_order = toLabels(board, r.bourbaki_order);
+    if (r.marks !== undefined) out.marks = [...r.marks];
+    if (r.comarks !== undefined) out.comarks = [...r.comarks];
+    return out;
+  });
 }
 
 /** A custom board without its name, in Big arithmetic (E-2: every other board uses Big). */
@@ -157,8 +225,18 @@ function customBig(board: AnyBoard): Board<bigint> {
  * "board has more than 12 nodes"). A custom board is Big even when its matrix equals a named type's,
  * has no name, and has labels 1..n in order of creation (E-7). Its `cartan` holds the rows of C;
  * fromAdjacency takes A with A[i][j] = -C[j][i]. An unknown name throws NotABoard.
+ * From phase 2 (P2-A7) every name of 6.6 resolves through boardFromName (finite types, `X~` with
+ * `B2~` and `C2~`, the twisted names, `pentagon`, `square`, with the engine's labels, E-7), and the
+ * board is classified once here (SPEC 5.6: "by calling classify once when the board is loaded"); the
+ * records are kept for boardVerdict and isFiniteType. The returned board is the same object.
  */
 export function resolveBoard(spec: BoardSpec): AnyBoard {
+  const board = buildBoard(spec);
+  verdictOf(board);
+  return board;
+}
+
+function buildBoard(spec: BoardSpec): AnyBoard {
   if (typeof spec === 'string') return boardFromName(spec);
   if (spec === null || typeof spec !== 'object' || !Array.isArray(spec.cartan)) {
     throw new NotABoard('a custom board needs a cartan matrix');
