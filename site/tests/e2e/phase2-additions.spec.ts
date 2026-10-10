@@ -424,5 +424,5 @@ test('open-problem text has no em-dash', async ({ page }) => {
   await page.goto('open-problem/');
   const text = (await page.locator('main').textContent()) ?? '';
   expect(text.length).toBeGreaterThan(1000);
-  expect(text).not.toContain('—');
+  expect(text).not.toContain('\u2014');
 });
