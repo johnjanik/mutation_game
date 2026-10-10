@@ -19,9 +19,12 @@
 //   lesson anatomy (P1-A4 Lesson.astro and site/src/components/lesson): data-anatomy = title,
 //     question, draft, beat, figure, seen, lie-theory, links, sources; data-beat; data-provenance;
 //     data-challenge, data-kind, data-met, data-challenge-result (text "Goal reached."); data-source
-//   this lesson's own markup: data-figure ("m2-matrix-a3", "m2-roots-a2"), data-figure-text (the
-//     text alternative of each static figure), data-root (one per arrow of the roots figure),
-//     data-seen-statement
+//   T6, registry site/src/tools/registry/T06.ts (decisions/P3-A4.md): data-tool "mirror"; data-out
+//     caption, noscript, root (data-value: the root in label order; one per arrow of the roots
+//     overlay), bridge; node buttons with data-board="numbers"
+//   this lesson's own markup: data-figure ("m2-matrix-a3"), data-figure-text (the text alternative
+//     of the static figure), data-seen-statement. The static roots figure of beat 4
+//     (data-figure "m2-roots-a2", phase 2) was replaced by the T6 instance b4 (P3-X1).
 //
 // Word-counting rule (as M0.spec.ts and M1.spec.ts): the words of the <article> after removing every
 // tool root ([data-tool]), every <details>, every live or status region, the draft mark and the list
@@ -47,18 +50,19 @@ const COUNTEREXAMPLE = [1, 1, 1, 0, 1];
 /** A population of A3 that is not a root population (form value 4; the engine judges it, no golden key). */
 const NOT_A_ROOT = [1, 0, 1];
 
-/** The tool instances in reading order (b4 is reserved for the Kaleidoscope of phase 3). */
-const TOOLS: [string, 'board' | 'form'][] = [
+/** The tool instances in reading order (b4 is the Kaleidoscope of beat 4, since phase 3). */
+const TOOLS: [string, 'board' | 'form' | 'mirror'][] = [
   ['b1', 'board'],
   ['b2', 'form'],
   ['b3', 'form'],
+  ['b4', 'mirror'],
   ['b5', 'form'],
   ['b6', 'form'],
   ['b7', 'form'],
   ['b8', 'board'],
   ['b9', 'form'],
 ];
-const FIGURE_TOOLS: Record<string, number> = { b1: 1, b2: 1, b3: 2, b5: 5, b6: 5 };
+const FIGURE_TOOLS: Record<string, number> = { b1: 1, b2: 1, b3: 2, b4: 4, b5: 5, b6: 5 };
 
 interface TypeRecord {
   cartan: number[][];
@@ -177,8 +181,13 @@ test.describe('without JavaScript', () => {
     for (const [id, beat] of Object.entries(FIGURE_TOOLS)) {
       await expect(page.locator(`[data-beat="${beat}"] [data-anatomy="figure"] [data-tool][data-instance="${id}"]`), id).toHaveCount(1);
     }
-    // The two static figures of beats 3 and 4, each with a caption and a text alternative.
-    for (const [name, beat] of [['m2-matrix-a3', 3], ['m2-roots-a2', 4]] as const) {
+    // The static figure of beat 3, with a caption and a text alternative; beat 4 holds b4 (T6) and
+    // no static figure any more.
+    await expect(page.locator('figure[data-figure="m2-roots-a2"]')).toHaveCount(0);
+    await expect(page.locator('figure[data-figure]')).toHaveCount(1);
+    // b4 draws its six root arrows at build time (overlay "roots" switched on by the lesson).
+    await expect(out(page, 'b4', 'root')).toHaveCount(A2.n_roots);
+    for (const [name, beat] of [['m2-matrix-a3', 3]] as const) {
       const fig = page.locator(`[data-beat="${beat}"] [data-anatomy="figure"] figure[data-figure="${name}"]`);
       await expect(fig, name).toHaveCount(1);
       expect(norm(await fig.locator('figcaption').textContent()), `${name} caption`).not.toBe('');
@@ -369,8 +378,18 @@ test('numbers-in-prose report for this file is empty', () => {
 test('one view only', async ({ page }) => {
   await page.goto(ROUTE);
   for (const [id] of TOOLS) await hydrate(page, id);
-  await expect(page.locator('[data-board="numbers"]')).toHaveCount(0);
-  const text = norm(await page.locator('main').textContent());
+  // SPEC 3 M2 row 4 puts T6 in beat 4, and T6 shows both views by design (its numbers, and the
+  // bridge sentence of 2.4(a)); the rule of one view (P4) holds for the lesson outside b4.
+  const B4 = '[data-tool][data-instance="b4"]';
+  await expect(page.locator(`${B4} [data-board="numbers"]`)).toHaveCount(A2.cartan.length);
+  await expect(page.locator(`[data-board="numbers"]:not(${B4} *)`)).toHaveCount(0);
+  const text = norm(
+    await page.locator('main').evaluate((main, b4) => {
+      const c = main.cloneNode(true) as HTMLElement;
+      c.querySelectorAll(b4).forEach((t) => t.remove());
+      return c.textContent ?? '';
+    }, B4),
+  );
   expect(text).not.toContain('is the amount by which a mutation would lower city');
   expect(text).not.toMatch(/The number on (?:node|a node)/);
   // M3's words stay out of the prose (the tools' own verdicts are not prose, and neither is the
@@ -419,17 +438,39 @@ test('the matrix figure shows 2I minus A for A3', async ({ page }) => {
   const tex = (await texOf(fig)).join(' ');
   expect(tex).toContain('2I-A');
   for (const row of A3.cartan) expect(tex, tuple(row)).toContain(`(${row.join(',')})`);
-  // The roots figure: one arrow per root population of A2, with the positive ones named in the legend.
-  const roots = page.locator('figure[data-figure="m2-roots-a2"]');
-  await expect(roots.locator('[data-root]')).toHaveCount(A2.n_roots);
-  const legend = minus(norm(await roots.locator('[data-figure-text]').textContent()));
-  for (const r of A2.positive_roots) expect(legend, tuple(r)).toContain(tuple(r));
-  const arrows = await roots.locator('[data-root]').evaluateAll((els) => els.map((e) => e.getAttribute('data-root')));
-  const expected = [...A2.positive_roots, ...A2.positive_roots.map((r) => r.map((x) => -x))].map((r) => r.join(',')).sort();
-  expect([...arrows].sort()).toEqual(expected);
   // The prose names the Kaleidoscope; since T6 was released (stage 3.2) the name is a link to it
   // (MERGE: before that, the test asserted that no such link existed).
   await expect(page.locator('a[data-tool-link="mirror"][href*="tools/mirror"]')).toHaveCount(1);
+});
+
+test('the Kaleidoscope of beat 4 draws the six roots of A2', async ({ page }) => {
+  await page.goto(ROUTE);
+  const b4 = tool(page, 'b4');
+  await expect(page.locator('[data-beat="4"] [data-anatomy="figure"] [data-tool][data-instance="b4"]')).toHaveCount(1);
+  await hydrate(page, 'b4');
+  await expect(b4).toHaveAttribute('data-tool', 'mirror');
+  await expect(out(page, 'b4', 'boardName')).toHaveAttribute('data-name', 'A2');
+  await expect(out(page, 'b4', 'caption')).toHaveText(
+    'Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its six roots, which you can play on.',
+  );
+  // One arrow per root of A2 (T6's roots overlay, switched on by the lesson), after hydration.
+  await expect(out(page, 'b4', 'root')).toHaveCount(A2.n_roots);
+  const arrows = await out(page, 'b4', 'root').evaluateAll((els) => els.map((e) => e.getAttribute('data-value')));
+  const expected = [...A2.positive_roots, ...A2.positive_roots.map((r) => r.map((x) => -x))].map((r) => r.join(',')).sort();
+  expect([...arrows].sort()).toEqual(expected);
+  await expect(control(page, 'b4', 'overlay-roots')).toBeChecked();
+  // The positive roots, named in the prose of beat 4 (the legend of the phase-2 figure moved there).
+  const beat4 = page.locator('[data-beat="4"]');
+  const prose = await beat4.evaluate((el) => {
+    const c = el.cloneNode(true) as HTMLElement;
+    c.querySelectorAll('[data-tool]').forEach((t) => t.remove());
+    return c.textContent ?? '';
+  });
+  for (const r of A2.positive_roots) expect(minus(norm(prose)), tuple(r)).toContain(tuple(r));
+  // The tool is playable: firing node 1 reflects the point and counts a move.
+  await tool(page, 'b4').locator('button[data-board="numbers"][data-node="1"]').click();
+  await expect(b4).toHaveAttribute('data-moves', '1');
+  await expect(out(page, 'b4', 'root')).toHaveCount(A2.n_roots);
 });
 
 test('challenge: build the form on D4', async ({ page }) => {

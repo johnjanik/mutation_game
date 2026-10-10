@@ -10,6 +10,7 @@ sources: ["W20", "W03a"]
 ---
 import T01GameBoard from '@components/tools/T01GameBoard.svelte';
 import T03FormFinder from '@components/tools/T03FormFinder.svelte';
+import T06Kaleidoscope from '@components/tools/T06Kaleidoscope.svelte';
 import { G, Tex, Cite } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased } from '@lib/pages/released';
@@ -43,8 +44,7 @@ export const SEEN_TAIL = 'verified by computation on the triangle with a tail';
     through G, through a golden path inside Tex, or through resolveGoldenPath in a property (listed
     in decisions/P2-A8.md); every formula that holds a digit goes through Tex, so
     scripts/numbers-in-prose.mjs finds nothing in this file. Instance ids in reading order: b1 and b2
-    (beat 1), b3 (beat 2), b4 reserved for the Kaleidoscope that replaces the static figure of beat 4
-    in phase 3, b5 and b6 (beat 5), b7 to b9 (challenges). b1 is client:idle, every other island
+    (beat 1), b3 (beat 2), b4 the Kaleidoscope of beat 4 (phase 3, P3-X1), b5 and b6 (beat 5), b7 to b9 (challenges). b1 is client:idle, every other island
     client:visible. The tailed triangle has no golden key: its matrix is the configuration of
     reference/verify.py section 17, typed once above. */}
 
@@ -112,31 +112,11 @@ which is the rule of module one. In linear algebra a reflection fixes a mirror a
 
 A pairing gives lengths and angles, as the dot product does. Read $(p,p)$ as the square of the length of $p$, and the angle $\theta$ between $p$ and $q$ from $(p,q)=|p|\,|q|\cos\theta$. One Martian in any city has squared length <Tex src="2"/>, so every city has the same length <Tex src="\sqrt2"/>. Two joined cities have $(e_i,e_j)$ equal to <Tex src="-1"/>, so <Tex src="\cos\theta=-1/2"/> and the angle between them is <Tex src="120^\circ"/>. Two cities that are not joined have $(e_i,e_j)$ equal to <Tex src="0"/>: they are perpendicular. On <Tex src="A_3"/>, cities <Tex src="1"/> and <Tex src="3"/> are perpendicular, and each makes <Tex src="120^\circ"/> with city <Tex src="2"/>.
 
-The picture draws <Tex src="A_2"/> in the plane so that the form is the ordinary dot product. The two cities are arrows of length <Tex src="\sqrt2"/> at <Tex src="120^\circ"/>, and all <G k="types.A2.n_roots"/> root populations are arrows of that same length, since every root population has form value <Tex src="2"/>. A later tool, <Kaleidoscope />, will replace this picture with one you can play on.
+The picture draws <Tex src="A_2"/> in the plane so that the form is the ordinary dot product. The two cities are arrows of length <Tex src="\sqrt2"/> at <Tex src="120^\circ"/>, and all <G k="types.A2.n_roots"/> root populations are arrows of that same length, since every root population has form value <Tex src="2"/>. Those with no anti-Martians are <G k="types.A2.positive_roots[1]"/>, one Martian in city <Tex src="1"/>; <G k="types.A2.positive_roots[0]"/>, one Martian in city <Tex src="2"/>; and <G k="types.A2.positive_roots[2]"/>, one Martian in each city. The others are their negatives, with anti-Martians only. The picture below is <Kaleidoscope />, and you can play on it.
 
-{/* P2-A8: static placeholder for SPEC 3 M2 row 4. The phase-3 tool T6 replaces this one figure element
-    (data-figure m2-roots-a2) with the instance b4 when T6 is released; nothing else on the page changes. */}
-<figure slot="figure" class="m2-static" data-figure="m2-roots-a2" style={{ margin: '0 16px' }}>
-<svg viewBox="0 0 220 200" width="220" height="200" role="img" aria-label="Six arrows of equal length from one point, sixty degrees apart. The arrow pointing right is one Martian in city 1; the arrow pointing up and to the left is one Martian in city 2; the arrow pointing up and to the right is one Martian in each city; the three opposite arrows are their negatives. A short arc marks the angle of 120 degrees between the first two." style={{ maxWidth: '100%', height: 'auto' }}>
-<defs>
-<marker id="m2-arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" style={{ fill: 'var(--text)' }} /></marker>
-</defs>
-<path d="M 140 100 A 30 30 0 0 0 95 74.02" style={{ fill: 'none', stroke: 'var(--road)', strokeWidth: 2 }} />
-<line data-root="1,0" x1="110" y1="100" x2="190" y2="100" marker-end="url(#m2-arrowhead)" style={{ stroke: 'var(--text)', strokeWidth: 2 }} />
-<line data-root="0,1" x1="110" y1="100" x2="70" y2="30.72" marker-end="url(#m2-arrowhead)" style={{ stroke: 'var(--text)', strokeWidth: 2 }} />
-<line data-root="1,1" x1="110" y1="100" x2="150" y2="30.72" marker-end="url(#m2-arrowhead)" style={{ stroke: 'var(--text)', strokeWidth: 2 }} />
-<line data-root="-1,0" x1="110" y1="100" x2="30" y2="100" marker-end="url(#m2-arrowhead)" style={{ stroke: 'var(--text)', strokeWidth: 2, strokeDasharray: '6 3' }} />
-<line data-root="0,-1" x1="110" y1="100" x2="150" y2="169.28" marker-end="url(#m2-arrowhead)" style={{ stroke: 'var(--text)', strokeWidth: 2, strokeDasharray: '6 3' }} />
-<line data-root="-1,-1" x1="110" y1="100" x2="70" y2="169.28" marker-end="url(#m2-arrowhead)" style={{ stroke: 'var(--text)', strokeWidth: 2, strokeDasharray: '6 3' }} />
-</svg>
-<ul class="m2-legend" data-figure-text>
-<li>Solid, pointing right: <G k="types.A2.positive_roots[1]"/>, one Martian in city <Tex src="1"/>.</li>
-<li>Solid, pointing up and to the left: <G k="types.A2.positive_roots[0]"/>, one Martian in city <Tex src="2"/>.</li>
-<li>Solid, pointing up and to the right: <G k="types.A2.positive_roots[2]"/>, one Martian in each city.</li>
-<li>Dashed: the opposite arrows, the negatives of these three, with anti-Martians only.</li>
-</ul>
-<figcaption>The <G k="types.A2.n_roots"/> root populations of <Tex src="A_2"/> drawn with the form as the dot product: all of length <Tex src="\sqrt2"/>, the two simple root populations at <Tex src="120^\circ"/>, neighbouring arrows <Tex src="60^\circ"/> apart.</figcaption>
-</figure>
+{/* P3-X1 (at the request of P3-A4; SPEC 3 M2 row 4): T6 on A2 with its roots overlay replaces the static
+    figure of phase 2 (data-figure m2-roots-a2); the legend of that figure became the sentence above. */}
+<T06Kaleidoscope slot="figure" client:visible id="b4" preset="default" overlays={["roots"]} caption="Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its six roots, which you can play on." />
 </Beat>
 
 <Beat n={5}>
