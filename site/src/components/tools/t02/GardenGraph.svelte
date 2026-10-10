@@ -81,6 +81,8 @@
 <div class="garden-box" style="height: {Math.min(layout.height, 520)}px;">
   <div class="canvas" style="width: {layout.width}px; height: {layout.height}px;">
     <svg class="edges" width={layout.width} height={layout.height} viewBox="0 0 {layout.width} {layout.height}" aria-hidden="true" focusable="false">
+      <!-- MERGE, P1 stage 1.3 (request of P1-A9): a title keeps the drawing non-empty before hydration, even with one vertex and no edge. -->
+      <title>Edges of the garden: {edges.length} drawn</title>
       {#each edges as e, k (k)}
         <g
           data-out="edge"

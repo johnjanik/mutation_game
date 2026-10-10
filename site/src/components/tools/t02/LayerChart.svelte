@@ -15,7 +15,8 @@
   );
 </script>
 
-<div class="chart-box">
+<!-- MERGE, P1 stage 1.3 (request of P1-A9): the box scrolls, so it is focusable and named (axe scrollable-region-focusable). -->
+<div class="chart-box" tabindex="0" role="region" aria-label="Chart of new positions per layer">
   <div class="chart" data-out="layerChart" role="img" aria-label={alt}>
     {#each layers as l (l.layer)}
       <div
