@@ -6,7 +6,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { AstroIntegration } from 'astro';
-import seed from '../content/unverified.json';
+import seed from '../content/unverified.json' with { type: 'json' };
 
 export type UnverifiedStatus = 'open' | 'closed';
 
