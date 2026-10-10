@@ -88,24 +88,26 @@ describe('renderTex', () => {
 describe('one KaTeX', () => {
   it('only one KaTeX is installed', () => {
     const fromSite = realpathSync(katexPackageJsonPath);
-    let rehypeKatexPackageJson: string | null = null;
+    // rehype-katex and remark-math export only their entry, so resolve the entry and require from there.
+    let rehypeKatexEntry: string | null = null;
     try {
-      rehypeKatexPackageJson = requireFromSite.resolve('rehype-katex/package.json');
+      rehypeKatexEntry = requireFromSite.resolve('rehype-katex');
     } catch {
-      rehypeKatexPackageJson = null;
+      rehypeKatexEntry = null;
     }
     const sitePackage = JSON.parse(readFileSync(join(siteDir, 'package.json'), 'utf8'));
     if (sitePackage.dependencies['rehype-katex'] !== undefined) {
       // Route (a): the KaTeX that rehype-katex resolves is the one the site resolves.
-      expect(rehypeKatexPackageJson).not.toBeNull();
-      const requireFromRehype = createRequire(rehypeKatexPackageJson as string);
+      expect(rehypeKatexEntry).not.toBeNull();
+      const requireFromRehype = createRequire(rehypeKatexEntry as string);
       expect(realpathSync(requireFromRehype.resolve('katex/package.json'))).toBe(fromSite);
-      const requireFromRemark = createRequire(requireFromSite.resolve('remark-math/package.json'));
-      const micromarkMath = requireFromRemark.resolve('micromark-extension-math/package.json');
+      // remark-math reaches KaTeX through micromark-extension-math; that copy must be the same too.
+      const requireFromRemark = createRequire(requireFromSite.resolve('remark-math'));
+      const micromarkMath = requireFromRemark.resolve('micromark-extension-math');
       expect(realpathSync(createRequire(micromarkMath).resolve('katex/package.json'))).toBe(fromSite);
     } else {
       // Route (b): rehype-katex must not be installed at all.
-      expect(rehypeKatexPackageJson).toBeNull();
+      expect(rehypeKatexEntry).toBeNull();
     }
     expect(sitePackage.dependencies.katex).toBe(installedVersion);
   });
