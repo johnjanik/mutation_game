@@ -603,3 +603,212 @@ Decision: the branches of P1-A1, P1-A2, P1-A3 and P1-A4 were merged in roster or
 - Passed to the orchestrator: P1-A1's contract additions (solve, inverse, the generic overloads of transposeBoard and subBoard) and the naming of rank-2 transposes; P1-A2's BoardSpec without labels for sub-boards and the table rule of nojs.spec.ts; P1-A3's flash of the system theme before the switch runs (now avoided: the inline script runs in the head); P1-A4's module mapping on the about page.
 - Requests carried to stage 1.2 (in the prompts of P1-A5, P1-A6, P1-A7): P1-A2's ToolFrame props, publish/follow, bigBoard and isNamedFinite, registry rules, the static line in [tool].astro; P1-A3's nodePositions/toPixels for Board.svelte, layeredLayout and edgeColour signatures; P1-A4's data-instance on the ToolFrame root and the released field on ToolRegistryEntry (to P1-A2's files, carried out by the tool agents or MERGE); ModuleLinks to use encodeState (P1-A4's file, later).
 - Integration fix after P1-A2 and P1-A4: the stand-in tool on site/src/pages/dev/lesson-check.mdx made a faithful tool root (labelled SVG, caption, disabled buttons, noscript line) so that nojs.spec.ts accepts the dev route; stage 1.1 checks then: npm test 1225 passed, e2e 71 passed, size 9 routes within budget (index 30.2 kB of 60), e2e:basepath 2 passed, release build ok.
+
+## 2026-10-10 MERGE: P1 stage 1.2
+
+# P1-A5 decisions
+
+## 2026-10-10 P1-A5: environment and starting point
+Decision: none; record. Worktree `/home/user/mutation_game/.claude/worktrees/agent-ae4b903777d23b376`, branch `worktree-agent-ae4b903777d23b376`, fast-forwarded to the integration branch `claude/session-6a181f60-hzzoud` at `279150f` before any work; `npm ci --prefer-offline` once; Node v22.22.0. Another agent's `astro preview` held port 4321 during this session, so browser runs used a scratch copy of `playwright.config.ts` on port 4391 (`reports/playwright.p1a5.config.ts`, ignored by git, identical except for the port and `reuseExistingServer: false`), and `npm run size` ran with `--port 4392`. No dependency added.
+
+## 2026-10-10 P1-A5: the default state of /tools/board
+Decision: `board: 'A2'`, `view: 'linked'`, `mode: 'free'`, `coords: 'populations'`, `start: [1, 0]`, no moves. The caption (registry `presets.default.caption`) states that one Martian in city 1 gives the numbers 2 and −1, computed with `toNumbers` in `T01.ts`, never typed, and that each number is the amount by which a mutation would lower its city. What the specification left open: the default of the tool's own route (4.0 "Starts meaningful"). Reason: the instruction (5.1); it shows both views, the bridge sentence and a negative and a positive number at once, and needs no worker. The component's own defaults when a lesson omits a property are the same view, mode and coords; `start` then comes from `defaultStart` (6.6).
+
+## 2026-10-10 P1-A5: no presets, but a default entry
+Decision: "T1 and T14 have no presets" (CONTRACTS 6). `ToolRegistryEntry` requires `presets.default` with a caption, so `T01.ts` holds the default state of the previous entry under `default` and nothing else. The `preset` property is accepted and ignored. Reason: P1-A2's registry rules.
+
+## 2026-10-10 P1-A5: the two boards of the linked view
+Decision: the populations board above, the line a = Cp and the bridge sentence between, the numbers board below, stacked at every width. Each board is its own group (one tab stop each), named "Populations board on <name>" and "Numbers board on <name>". Acting on node i of either board mutates city i and fires node i; both records are recomputed by the engine (mutate then toNumbers from a population start; fire then toPopulation from a numbers start). Reason: SPEC 4 T1 says only "one above the other" (plan order).
+
+## 2026-10-10 P1-A5: the a = Cp line and the bridge sentence
+Decision: the line is MathML, `<math aria-label="a equals C p"><mi>a</mi><mo>=</mo><mi>C</mi><mi>p</mi></math>` in `data-out="aCp"`; the aria-label is the fallback for SPEC 7.3's [U] on MathML in every engine (not settled here: phase 3 checks it). The bridge sentence is SPEC 2.4(a) verbatim, "The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.", in `data-out="bridgeSentence"`, rendered only in the linked view (the only place both views are shown), also without JavaScript. The roster paraphrase ("The number on a node ...") was not used: SPEC wins. D7 (a = Cp, the drop) and D8 (no reader-facing switch to the fire-negative convention) relied on.
+
+## 2026-10-10 P1-A5: view fallbacks and the singular board
+Decision: with `coords: numbers`, the start's population is `toPopulation`. When it is null (det C = 0; in phase 1 only a custom singular matrix such as the triangle, since affine names cannot reach T1) only the numbers view is drawn whatever view was asked, and a mode that the numbers view does not allow (raising) falls back to free play (plan). When the populations view is asked and some entry has a denominator other than 1, the linked view is drawn. The state and the link keep the view that was asked; only the drawing falls back, with no notice. The level-zero population of an affine board (its population up to multiples of the frozen population) is phase 2 work and is not computed. Reason: SPEC 4 T1 "Coordinates of the start"; traps 6 and 7.
+
+## 2026-10-10 P1-A5: affine boards absent from the picker; what boards: 'all' means
+Decision: in phase 1 the picker offers the 32 named types, grouped by letter A to G (one `<optgroup>` per letter, ranks increasing within a letter), and no affine or twisted name; any custom Cartan matrix of at most 12 nodes reaches T1 through a link (`g=c:...`). The name shown is the one chosen (D19: C2 shows `C2`; the group and the figure label carry it). A picker change keeps view, mode and coords, sets `start` to `defaultStart` for the new board and empties `moves`. Reason: 4.0 Board pickers; roster; P1-A2's codec offers 'all'.
+
+## 2026-10-10 P1-A5: the SafeInt-to-Big switch
+Decision: `t01/model.ts` uses P1-A2's `bigBoard` (state.ts): a start entry that is not a safe integer builds the game on `bigBoard(board)` at once; an `EngineOverflow` during any engine call switches to `bigBoard`, recomputes every position from the start, and repeats the call. No message, no notice; the board keeps its name and labels. No request for another helper is needed. Reason: SPEC 4 T1 last sentence of "Coordinates of the start"; trap 8.
+
+## 2026-10-10 P1-A5: long numbers and data-value
+Decision: more than 12 digits, counted without the sign, is long. A node draws "1.2345... x 10^83 (84 digits)" (a true minus sign before a negative one; a fraction is shortened part by part); the button's tooltip (`title`), the table view, `data-value` and Download data keep the exact digits. Reason: 4.0 Long numbers; `data-value` is "the value shown, as decimal text", read as the exact text (plan).
+
+## 2026-10-10 P1-A5: fractions
+Decision: populations from a numbers start are `ratToString` texts (`2/3`, `-1/3`, an integer as `p`). On a node they are drawn as an SVG stacked fraction; in the table through `Frac.svelte` (plain markup, `role="img"` with an aria-label). Spoken as "2 over 3", "minus 1 over 3" in node names, announcements and the table. A fraction's sign is its numerator's. Reason: SPEC 6.3, 7.3; A-3 has no template for fractions (plan).
+
+## 2026-10-10 P1-A5: data-sign and data-ring
+Decision: every node button carries `data-sign` (`positive`, `negative`, `zero`, from the value's sign) and `data-ring` (`true` exactly when the second "may act here" ring is drawn, which is when `data-can-act` is true). Reason: A-5 test hooks (plan).
+
+## 2026-10-10 P1-A5: the figure's text alternative
+Decision: ToolFrame's `figureLabel` reads "Game Board on <name>, <view> view, <mode text>: populations 1, 0; numbers 2, minus 1." (values spoken, in label order; a single view names only its record). Each board group has its own name (above). Reason: A-10 (plan wording).
+
+## 2026-10-10 P1-A5: mode text, game over, refusals and the linked sentences
+Decision: `data-out="mode"` reads `free play`, `legal play` or `raising moves`. In legal mode `data-out="gameOver"` reads `Game over after N moves.` (`1 move` in the singular, as P0-A5's template) when no number is positive, and is an empty reserved line otherwise. A move that ends a legal game appends `Game over after N moves.` to its announcement; a play to the end is one sentence (`Played N moves to the end. ...`, populations named for a raising play) and does not append it. A refused action in raising mode: `City 2 cannot be raised: its number is 1.` (plan; SPEC has no template). Linked view above four nodes: `Mutated city 2 and fired node 2. City 2 now 1; node 1 now 1, node 2 now 1, node 3 now minus 1. Move 1.` (plan). Undo in the linked view: `Undid move 4. Populations now ...; numbers now ....` (plan). A play stopped by its cap: `Still running after 20000 moves. Numbers now ...` in the live region and `still running after 20000 moves` in `data-out="limit"`; the words "not of finite type" never appear. Reason: A-4, 4.0 Stated limits.
+
+## 2026-10-10 P1-A5: step, play to the end, the worker
+Decision: Step and Play to the end appear in legal and raising modes only. Step makes the move at the lowest allowed position; play to the end calls `play` (legal; and raising from a numbers start, on -a, which makes the same moves because firing is linear) or `raisingPlay` (raising from a population), with no `choose` and the cap `CAPS.playMoves`, appends the word and keeps every position. `whereToRun({ board, kind: 'play', finiteKnown: isNamedFinite(board) })` is asked before each play; custom boards go to the worker through `engineCall`, named finite boards run on the main thread. "play on" and `playFate` are phase 2: on a custom board the control stays "Play to the end" and reports the cap. A link's move list is replayed on the main thread when the tool loads it, as `decodeState` itself does under P1-A2's accepted `LONG_LIST_REPLAY = 'sync'` reading (deviation from E-9 rule 2 for lists above 2000 moves, consistent with MERGE's stage 1.1 decision). Reason: 4.0, 5.6, E-9.
+
+## 2026-10-10 P1-A5: history, the state, view and mode choosers
+Decision: History.svelte is composed in the figure (after the boards, before the controls) and ToolFrame's own Undo/Redo/Reset are not used. `state.moves` holds the moves up to the cursor, so `data-moves` and the link follow undo and scrubbing; the redo tail stays in memory only. On the tool's own route (instance id empty; the `settings` property overrides) the controls row also holds the board picker and choosers for the view and the mode (`data-control="picker"`, `"view"`, `"mode"`); a view change keeps the moves (a mode the new view does not allow becomes free play); a mode change keeps the moves when `firstForbiddenMove` allows them all and otherwise restarts from the start (plan). Reason: 4.0 History; 6.6.
+
+## 2026-10-10 P1-A5: Download data
+Decision: `derived` is `{ view, mode, labels, positions }`, `positions` one entry per position of the current play up to the cursor: `{ move, populations?, numbers? }` in label order, safe integers as numbers, longer ones as decimal text, fractions as `p/q`; the linked view holds both. The state is the ToolState of the current point. Reason: 6.6 Data export (plan).
+
+## 2026-10-10 P1-A5: properties, shapes and the predicate list
+Decision: beyond the common ones: `view`, `mode`, `script: { move: label; caption }[]`, `goal` (`{ kind: 'reach', position, game?, text? }`, `{ kind: 'no-positive', text? }`, `{ kind: 'no-unhappy', text? }`, `{ kind: 'predicate', name: 'mixed-signs', giveUpAfter?, giveUpText?, text? }`), `prediction` (CONTRACTS 5.2 exactly, no field added), `hints: boolean`, `panels: ('form'|'level'|'colours'|'lengths')[]`, `roadStyle`, `rounds: number`, `settings: boolean`, `onChange({ state, populations, numbers })`. `linkTo`, `layers` and `preset` are accepted and ignored. The predicate list is `mixed-signs` (a population with a negative and a positive city; M1 beat 2). A reach goal compares values as text in label order, in the game of `coords` unless `game` says otherwise. `goalMet` shows `Goal reached.` (announced once, appended to the move's sentence); `goalNote` shows the give-up text once `giveUpAfter` moves are made and the goal is not met. Script: Next makes the next scripted move through the same path as a click; `scriptCaption` shows the caption of the next scripted move, `End of the script.` at the end, and `The script has ended: a move was made that it does not contain.` while the moves made differ from the script (undoing back onto it resumes it). A script move the mode forbids, or a view and mode outside the table, throws at build time naming the instance. `rounds`: `Round k` in `data-out="roundCounter"`, k = floor(moves made / rounds), following undo and scrubbing, not part of the state. Reason: SPEC 4 T1 Configuration; 3 M6 row 2 (plan).
+
+## 2026-10-10 P1-A5: prediction check
+Decision: `Predict.svelte` takes the `Prediction` of CONTRACTS 5.2 unchanged and checks `value` (number, position) or `correct` (choice); no `check` field was added, so there is no deviation of CONTRACTS 5.2. The engine check required by the plan is in `T01.test.ts > M0 figure configurations` (A3 from (1,1,0), city 2 gives 0). While a prediction is unanswered every node is `data-can-act="false"` and disabled, History and the step controls are disabled, and there are no hint ghosts. Without JavaScript the question is followed by `<details>` holding the answer and the reveal.
+
+## 2026-10-10 P1-A5: hints
+Decision: with `hints`, hovering or focusing a node draws below it (aria-hidden, `data-ghost`) the value it would take after acting there, from the engine (mutate or fire; both boards in the linked view), only where the mode allows, never during a prediction.
+
+## 2026-10-10 P1-A5: panels
+Decision: `panels` is accepted and filtered by `PANELS_AVAILABLE`, empty in phase 1: form value, level and long and short nodes arrive with their engine functions in phase 2 (formValue, level, symmetrizer), the colour classes in phase 3 (bipartition). No panel and no message in phase 1.
+
+## 2026-10-10 P1-A5: linkTo and the highlight
+Decision: on main P1-A2's `publishToolState` and `followToolState` (state.ts) exist, so no `t01/link.ts` was written. T1 publishes its ToolState under its instance id after every change (never positions) and follows the same id: a published state different from its own, on the same board, coords and start, is applied as a new move list from its own start (T2's jump). Highlight: hovering or focusing a node sets `{ kind: 'node', board: <name or c:matrix>, value: label }` and clears it on leaving; a `position` or `root` value equal to a board's current values (label order, same board name) marks that board (`data-highlighted`, a dashed outline).
+
+## 2026-10-10 P1-A5: Board family extensions (deviation record: optional props only)
+Decision: `Board.svelte` now lays out by `nodePositions(board, xy)` and `toPixels` (grid units = toPixels at u = 64 divided by 64; the CSS rule u = min(64, floor((W - 16)/k)) scales the box; hit side min(44, u)); a polygon or circle layout is a square box of side min(W, 360) with 44-pixel hit areas, the drawing scaled with the box, so the polygon radius is 150/360 of the side (at W = 320 the radius is 133 rather than the formula's 130; plan, recorded). W is the figure's width, which ToolFrame runs from edge to edge below 400 pixels (boardBoxWidth). New optional props: `xy`, `states`, `spoken`, `ghosts`, `disabled`, `highlighted`, `onFocusNode`; new hooks `data-sign`, `data-ring`. `Node.svelte` draws stacked fractions, shortened long numbers and the ghost; `History.svelte` gains `frozen` and the hooks `data-control="undo|redo|reset|historySlider"` and `data-step`. CONTRACTS 5.1 props unchanged; BoardSeed and P0-A5's tests unchanged and green. The Board family and T1 import the engine as `@two-games/engine` and lib by relative path (as lib/ does), because a Vite build without the site's aliases (P1-A2's toolframe-hydration fixture) reaches T1 through the registry's lazy import.
+
+## 2026-10-10 P1-A5: additive edits granted by MERGE
+Decision: `data-instance={instanceId}` on ToolFrame's root (for P1-A4's Challenge); `released?: boolean` on `ToolRegistryEntry`; in `pages/tools/[tool].astro` the static import of T01GameBoard, its `client:idle` line and `'board'` in `HYDRATED`.
+
+## 2026-10-10 P1-A5: defaults of SPEC section 10 relied on
+Decision: D7 (a = Cp), D8 (no convention switch), D19 (the picker shows the name chosen). D17 does not apply (no lesson). No [U] item settled.
+
+# P1-A6 decisions (T2, the Orbit Garden)
+
+## 2026-10-10 P1-A6: environment and starting point
+Decision: none; record. Worktree `/home/user/mutation_game/.claude/worktrees/agent-a39695ff4de568dc8`, branch `worktree-agent-a39695ff4de568dc8`, fast-forwarded to the integration branch `claude/session-6a181f60-hzzoud` at `279150f` before any work; `npm ci --prefer-offline` once; Node v22.22.0. No dependency added. The cap-9 check of the instruction (triangle, three single Martians, cap 9: 9 items, truncated, completeLayers 1) holds and is a unit test.
+
+## 2026-10-10 P1-A6: properties and presets
+Decision: properties beyond the common ones: `grown` (SPEC), `grows: 'roots' | 'orbit'`, `growth: 'follow' | 'explore'`, `positiveOnly`, `vertexLabels`, `boardChoices`. Presets (state part / options): `default` and `explore`: `A3`, populations, start (1, 0, 0), roots, explore, grown 0, labels on; `positive-roots`: as default with `grown` 40 and `positiveOnly`; `follow`: `A2` from (1, 0), growth follow, roots (orbit when the coords are numbers, the `grows` property overrides); `triangle-40`: custom `{ cartan: [[2,-1,-1],[-1,2,-1],[-1,-1,2]] }`, grown 40, layers 40. Options live in `components/tools/t02/presets.ts` (the registry's `PresetFields` type cannot hold them); the registry entry carries the state part and the caption. Captions take their numbers from the engine at module load (12, 6, 6, 243, 6), never typed. What the specification left open: names and option values (4.0 Configuration). Reason: the instruction's plan table.
+
+## 2026-10-10 P1-A6: M6 row 1 configuration
+Decision: M6 row 1 uses `grows: 'roots'`, `growth: 'explore'`, `grown: 2`, `board: 'B2'`, with `linkTo` naming the T1; `found` reads 8 at build time (unit test). `follow` cannot show 8 there: from (1, 0) mutation reaches only the 4 positions of its orbit (unit test feeds every reachable state). Reason: instruction 5.1 and trap 6.
+
+## 2026-10-10 P1-A6: hooks
+Decision: `data-out`: found, total, stopMessage, verdict (phase 2), layersGrown, layerChart (bars with data-layer, data-count, data-complete), vertex (data-position, data-layer), edge (data-label, data-from, data-to, data-rise), rise, tableRow (data-position, data-layer), chartRow (data-layer, data-count; addition, so that the chart's numbers in the table view are testable), strip. `data-control`: grow, showTotal, growth, grows, positiveOnly, vertexLabels, picker, scrub (strip buttons with data-step, or the slider), jumpRow (addition: the jump button of a table row); undo, redo, reset, copyLink, downloadData from ToolFrame. data-position and data-value use the ASCII hyphen; the drawn text uses U+2212.
+
+## 2026-10-10 P1-A6: undo, redo, reset and the strip (deviation from "History.svelte does this")
+Decision: the Undo, Redo and Reset buttons are ToolFrame's (hooked `data-control`), and the strip of past positions is drawn by T2 itself (buttons `data-control="scrub"` with `data-step`, a slider with a counter above 50 positions, as 4.0 says). `History.svelte` is not used because it renders its own unhooked Undo, Redo and Reset, which would duplicate ToolFrame's row. Request to P0-A5/P1-A5: a strip-only mode of History.svelte, after which T2 can use it. The `u` and `r` shortcuts are wired through `shortcutOf` while focus is inside the board.
+
+## 2026-10-10 P1-A6: the seed of a numbers link
+Decision: a link (or property) with `coords: numbers` names a numbers position, which only `orbit` mode can grow: T2 then grows that orbit in the firing game and the `grows` control is disabled. Reason: instruction 5.2.
+
+## 2026-10-10 P1-A6: reset
+Decision: reset empties the move list, returns `explore` to the configured `grown` layers (clamped to the layers bound) and `follow` to the current position alone (the start, since the moves are emptied). Reason: plan, instruction 5.2.
+
+## 2026-10-10 P1-A6: follow mechanics and ranking
+Decision: the garden starts with the position the board stands on when follow begins; a move adds the position it reaches when new, and the edge it travelled (labelled by the node) when that edge is new; undo, redo, scrubs and revisits add no vertex. (Plan said a revisit adds nothing; a revisit by a new road adds that road's edge, since every move is an edge; no vertex either way.) Each vertex is ranked by its depth in the bounded `orbitGraph` of the followed start, computed once; a position outside it goes one rank below the position it came from. Jumps in follow take their word from that bounded graph. With `linkTo`, a change of the followed state counts as a move when `moveMade` says the new list is a prefix of the old one plus one move; anything else adds the position only. `grown` is ignored. Positive roots only is available in explore only (the switch is disabled in follow and in orbit mode).
+
+## 2026-10-10 P1-A6: stop messages
+Decision: `stopMessage(graph, maxDepth, layersBound, cap)` in `t02/limits.ts`: the two sentences of 5.5 exactly; none for a completed search; none for a pause in explore below the bound, where `layersGrown` shows "N layers grown". In follow at 2000 visited positions: "stopped after 2000 positions" without the layers clause. The message is announced when a grow press brings it.
+
+## 2026-10-10 P1-A6: edges
+Decision: every move is applied once more to every item; each involutive pair is drawn once; a move that changes nothing (a self-loop) is not drawn; two nodes joining the same two positions give two edges, the second offset by 7 pixels. Colour from `edgeColour(label)` (tokens), the label as SVG text beside the line. In the positive view on a named finite-type board a rise of 2 or 3 is drawn as 2 or 3 parallel lines; on every other board the rise is written as `+k` at 58 percent of the edge's length on the opposite side from the label (at 42 percent), on every edge, 1 included.
+
+## 2026-10-10 P1-A6: finite test
+Decision: `isNamedFinite` in `t02/garden.ts` wraps state.ts's `isNamedFinite` (named finite types; every custom board counts as not finite, 4.0, E-9 rule 2). P2-A7 switches this one function to `classify`'s verdict. The layers bound is the `layers` property, else 40 off the finite types and none on a named finite board.
+
+## 2026-10-10 P1-A6: counter without a total
+Decision: when there is no total the counter shows `no total on this board`. An orbit search that stopped at the layers bound below 2000 positions gives no total, never "more than 2000" (a reading of SPEC 4 T2 Interactions: the SPEC names only the complete case and the 2000 case). The positive view does not change the counter. `totalOf` is the one function phase 3 changes for `orbitSize`.
+
+## 2026-10-10 P1-A6: highlight
+Decision: on hover or focus of a vertex the highlight atom gets `{ kind: 'root' | 'position', board: name or the codec's c: text, value: entries in label order }`; cleared on leave or blur; skipped (null) when an entry is not a safe integer. T2 does not mark vertices highlighted by other tools (optional).
+
+## 2026-10-10 P1-A6: vertex keyboard model, elements, names
+Decision: vertices are real `<button>` elements over the SVG of edges, in a group named "Garden of N positions", one in the tab order (roving tabindex). Left and Right move within a layer in drawn order, Up and Down to the nearest vertex (by x) of the nearest occupied layer, Home and End to the first and last in items order, Enter or Space jumps, the focused vertex is scrolled into view. Names: `Root population 1, minus 1, 0, layer 2` (orbit mode: `Position ...`; positive view: `total` instead of `layer`). Labelled vertices are at least 44 by 44 pixels, dots 24 by 24, spaced so none overlap; the box scrolls (A-7, A-11).
+
+## 2026-10-10 P1-A6: announcements
+Decision: moves on T2's board use `moveAnnouncement` and `announceTemplates.undid` unchanged. Others (plan): `Layer 3 grown: 3 new, 12 found so far.` (followed by the stop message as a sentence when one appears), `Total: 12.`, `Jumped to root population 1, 1, 0 by 2 moves.`, `Reset. The garden holds 3 positions.`, `Board D4. ...`, `Follow mode: ...`, `Explore mode: ...`.
+
+## 2026-10-10 P1-A6: linkTo
+Decision: no new mechanism: T2 uses P1-A2's `followToolState(linkTo, onChange)` from state.ts. It mirrors the followed state (board, coords, start, moves) as its own and shows no board of its own. A jump publishes `{ ...followedState, moves: word }` under the T1's id with `publishToolState`, the word being a shortest one from the T1's own start (`wordFromStart`). In orbit mode the seed is the followed start (the orbit of the current position is the same set). Requests: P1-A5 to publish T1's state on every change and to apply a state published under its own id. Protocol for P2-A2 and later tools: follow with `followToolState`, drive with `publishToolState` under the leader's id.
+
+## 2026-10-10 P1-A6: long numbers
+Decision: `t02/numbers.ts` `shortNumber`: `1.2345... x 10^16 (17 digits)`, a true minus sign in front when negative; values up to 12 digits unchanged. Exact digits in the table and the tooltip (`title`) and in the export. Request to MERGE: keep one copy with T1's, if P1-A5 wrote one.
+
+## 2026-10-10 P1-A6: picker
+Decision: the picker is a `<select>` with one `<optgroup>` per letter and plain-text names (an `<option>` cannot hold KaTeX HTML, and shipping names.json's HTML would cost bundle size); `boardChoices` limits it. A change resets start and moves to the defaults for the new board and regrows to `grown`. A custom board shows a disabled "Custom board" entry. (Deviation from "typeset from names.json".)
+
+## 2026-10-10 P1-A6: server-render test
+Decision: `T02.test.ts` renders the component with `svelte/server` through its own Vite server (the Svelte plugin and the aliases of CONTRACTS 1, which `_svelteSsr.ts`'s `tsconfigPaths` does not apply to `.svelte` importers such as Board.svelte). The triangle-40 preset renders 243 vertices, found 243 and `stopped after 40 layers`.
+
+## 2026-10-10 P1-A6: prediction
+Decision: the `prediction` property is accepted and not wired; Predict.svelte (P1-A5) is not on the integration branch. M1 places no prediction on T2. Request to MERGE.
+
+## 2026-10-10 P1-A6: defaults of SPEC 10 relied on
+Decision: D7 (the number on a node is the drop, a = Cp; the rise is -a_i) and D19 (the name the reader chose is shown in the picker). No [U] item touched.
+
+# P1-A7 decisions (T9, Kostant's Game)
+
+## 2026-10-10 P1-A7: environment and starting point
+Decision: none; record. Worktree `/home/user/mutation_game/.claude/worktrees/agent-a1e73d9add301f41e`, branch `worktree-agent-a1e73d9add301f41e`, fast-forwarded to the integration branch `claude/session-6a181f60-hzzoud` at `728c602` (T1 and T2 merged) before any work; `npm ci --prefer-offline` once; Node v22.22.0. Browser runs used a scratch copy of `playwright.config.ts` on port 4401 (`reports/playwright.p1a7.config.ts`, ignored by git: port, `reuseExistingServer: false`, paths relative to `reports/`, `cwd: '..'`), and `npm run size` ran with `--port 4402`. No dependency added. The check of the instruction holds: `kostantPlay(boardFromName('A3'), 0)` is `ended`, 2 moves, word `[1, 2]`, position `[1, 1, 1]` (unit test).
+
+## 2026-10-10 P1-A7: built on T1's parts and T1's model, not on T01GameBoard.svelte
+Decision: T9 composes ToolFrame (P1-A2), Board, History and Predict (P0-A5, P1-A5) and drives them with T1's own model, `T1Game` of `t01/model.ts`, configured with view `populations`, mode `raising`, coords `populations`; it also reuses T1's announcement helpers (`t01/announce.ts`) and long-number helper (`t01/longNumber.ts`, through Board and the tooltip). It does not render `T01GameBoard.svelte`. What the specification left open: SPEC 4 T9 says "T1 in the populations view and raising mode"; the orchestrator's handoff suggested composing T01GameBoard with props. Reason: T01GameBoard renders its own ToolFrame with `data-tool="board"`, title "Game Board", `toolId: 'board'` in Download data, and reads the URL as tool `board` (all boards offered, every view and mode); T9 needs `data-tool="kostant"`, the codec's refusals for tool `kostant`, its own refusals (another view or mode, a fractional numbers start), its moods and end panel inside the figure, and its own export. No second ToolFrame may be nested and my instruction forbids editing T1's files. Request to MERGE (and P1-A5): to make T9 a thin wrapper, T01GameBoard would need the props `toolId`, `title`, a decode tool id with a hook for a tool's own refusals, a snippet inside the figure after the board (and in the table), a decoration hook on Board for per-city glyphs, and an export hook; until then T9 stays on the shared parts, which keeps one game model.
+
+## 2026-10-10 P1-A7: the pure functions live in t09/
+Decision: `site/src/components/tools/t09/kostant.ts` (moods, MOOD_STATE, MOOD_SHAPE, moodOfText, endPanel, kostantSummary, oneMartian, stepPosition, recipeMatrix, isNamedFinite, playControl, startFromLink, playOutcome, pickerGroups, sentences) and `t09/boards.ts` (the 32 names, no import). Reason: the site-unit Vitest project compiles no `.svelte` file (instruction 5.11 fallback). `boards.ts` is separate because the registry entry is loaded on every tool page through the codec and must not pull in the end panel.
+
+## 2026-10-10 P1-A7: the default preset
+Decision: `{ board: 'A3', coords: 'populations', start: [1, 0, 0], moves: [] }` (M1 row 3's first board); caption "Start with one Martian in city 1 of A3 and mutate only where a city rises: the game stops after 2 moves at (1, 1, 1), the highest root, whatever the order of the moves.", the numbers from `kostantPlay` at module load (test against `kostant.A3`). The words "the highest root" are written, not computed, in the registry (F13 on a simply laced board; a unit test compares them with `kostantSummary`), to keep the registry light.
+
+## 2026-10-10 P1-A7: moods, shapes and the marking
+Decision: words `unhappy`, `happy`, `manic` (SPEC 2.16; "excited" not used). Shapes: unhappy a chevron pointing down, happy a level bar, manic a chevron pointing up, drawn in `--text` on the board beside each city (lower right; `data-glyph`) and in a list under the board (`City k`, the glyph, the word in `data-out="mood"` with `data-label` and `data-shape`), plus a legend sentence. Accessible names use `nodeName` through Board's `states` with the A-3 strings. Marked cities: a dashed ring around the city and a small "+" at its upper left (`data-mark`), drawn in `--text`. The board glyphs are an aria-hidden SVG overlay laid over Board.svelte with the same box rule (6.1), because Board has no decoration hook (CONTRACTS 5.1 `decoration` is not read by Board). Colour is never the only carrier: shape and word carry the meaning.
+
+## 2026-10-10 P1-A7: links with a start other than one Martian; numbers starts
+Decision: a link may carry any integer population; it is played as given ("raisingPlay starts from any population"). The end panel then names the population only when it equals `highestRoot` or `highestShortRoot`, and gives no recipe caption or return counts when it is unnamed (the recipe of 2.12 is about Kostant ends); the marked cities are still shown. A link with `c=n` is converted through `startFromLink` (`toPopulation` in Big arithmetic) when every entry is integral and written back as `c=p`; a fractional population loads the default state with the codec's `LINK_NOTICE`. A property `coords: 'numbers'` with a fractional population throws at build time naming the instance (authoring error).
+
+## 2026-10-10 P1-A7: the refusal of other views and modes (no codec hook needed)
+Decision: the codec already refuses a view and mode outside the table of T1 (rule 11: `v=n`, `m=l` with populations), a board not in the registry's list (rule 8: custom, affine), and a move the raising mode forbids (rule 6). T9 refuses in addition, after `decodeState`, a state whose view is not `populations` or whose mode is not `raising` (`v=l`, `m=f`), and a fractional numbers start, with the same `LINK_NOTICE` and the default state; the same check runs on popstate. No change to the codec was needed.
+
+## 2026-10-10 P1-A7: announcements
+Decision: a move: T1's `moveSentence` for the populations view (A-4 template; above four nodes `changedOnly` with `Mutated`/`city`). A refused city: T1's raising sentence `City 1 cannot be raised: its number is 2.`, so the site has one wording. Play to the end: `announceTemplates.playedToEnd(moves, populations, 'populations')` (P1-A2's noun extension; no request needed). When the goal becomes met, the sentence `No city is unhappy. This is the highest root.` (or `the highest short root`; `No city is unhappy.` for an unnamed end) is appended. Board and start changes: `Board D4. One Martian in city 1.`, `One Martian in city 3.`
+
+## 2026-10-10 P1-A7: the end panel and the return counts without coroot
+Decision: the end panel shows `endName` ("The game stops at the highest root, (1, 1, 1)."), `moveCount`, `hMinus2` only when `highestShortRoot` is null, `finalNumbers` (`toNumbers` of the end), `marked`, `affineCaption` and `returnCounts`. The return counts are `b = C^T beta^vee` with `beta^vee` the end itself on a simply laced board, `highestShortRoot(transposeBoard(board))` for the highest root and `highestRoot(transposeBoard(board))` for the highest short root (2.5, F11). The recipe matrix built from them equals `affine[T].cartan_node0_first` for all 125 long starts (unit test). P2-A7 may switch to `coroot`. The caption: "Join a new city to cities 1 and 3. It sends a_j roads to each marked city j (1 to city 1, 1 to city 3) and receives b_j roads back (1 from city 1, 1 from city 3). On a simply laced board the two counts are equal. The board with the new city is an affine board." No affine name in phase 1; the words "not of finite type" and "never ends" are not used.
+
+## 2026-10-10 P1-A7: inline MathML
+Decision: the `i` of the bridge sentence, `h − 2`, `a_j`, `b_j` and `j` are inline MathML written in the component (`<math><mi>i</mi></math>`, `<math><mi>h</mi><mo>−</mo><mn>2</mn></math>`, `<math><msub><mi>a</mi><mi>j</mi></msub></math>`), so A-12 holds without KaTeX at runtime. The bridge sentence's text content is SPEC 2.4(a)'s first sentence character for character. A comment marks that it follows P3-A5's outcome of SPEC 7.3's [U] check (fallback: HTML spans with an aria-label). Note: T1's `Bridge.svelte` writes the `i` as `<i>i</i>`, not MathML; same text content.
+
+## 2026-10-10 P1-A7: the stated-limit guard
+Decision: `playOutcome(result, cap)` gives `still running after <cap> moves` for `status: 'cap'`, shown in `data-out="limit"` with no end panel; unreachable on a named finite type (a raising play takes at most N moves: unit test on random starts from -6 to 6, the longest found above 28), tested with a cap of 5.
+
+## 2026-10-10 P1-A7: step, play to the end, the main thread
+Decision: step is `stepPosition(board, p)` = the word of `raisingPlay(board, p, undefined, 1)`, so the lowest-position rule lives in the engine; play to the end is `T1Game.playToEnd(CAPS.playMoves)` (raisingPlay, lowest position first). Both run on the main thread; T9 imports nothing from `lib/worker` (unit test reads the source).
+
+## 2026-10-10 P1-A7: picker, start city and "the tool's defaults for that board"
+Decision: the picker is a `<select>` (`data-control="picker"`) with one `<optgroup>` per letter A to G from `pickerGroups(boardChoices)`, plain names (an `<option>` cannot hold KaTeX markup; as P1-A5 and P1-A6 did); D19 is met since the reader's choice `B2` or `C2` is shown as chosen. Choosing a board sets one Martian in the city with the lowest label and empties the moves. The start-city chooser (`data-control="startCity"`) lists the labels and shows "other start" when the start is not one Martian. Both are shown on every instance (M1 needs the picker on a lesson page).
+
+## 2026-10-10 P1-A7: long numbers
+Decision: `shortNumber` was not written: Board/Node use P1-A5's `t01/longNumber.ts` (`1.0000... x 10^20 (21 digits)`), and T9's tooltip is the node button's `title` (exact digits, as T1). The `<title>` child with `data-exact` of the instruction was not possible: Board.svelte's SVG is aria-hidden and offers no hook on the numeral; the browser test reads the button's `title`, the drawn numeral (`data-numeral`), the table and the export. Request to MERGE if a `<title>` on the numeral is wanted.
+
+## 2026-10-10 P1-A7: properties
+Decision: beyond the common ones, `boardChoices: string[]`. `linkTo` and `layers` are accepted and ignored (T9 follows no tool; T9 grows no set, so 4.0 "Growth off the finite types" does not bind it); `preset` knows only `default`.
+
+## 2026-10-10 P1-A7: prediction
+Decision: Predict.svelte is on the integration branch and is wired: while unanswered the board, step, play to the end, the start city and the picker are disabled. The browser test bundles T9 with a prediction from a virtual Vite entry inside `T09.spec.ts` and serves it from a stub origin (as `toolframe-hydration.spec.ts` does), since no page of phase 1 places T9 with a prediction.
+
+## 2026-10-10 P1-A7: export
+Decision: Download data gives `kostant-<instance or kostant>.json`; `derived` is T1Game's `{ view, mode, labels, positions }` plus `moods` (label order) and `end` (`population`, `name`, `moves`, `h`, `finalNumbers`, `marked`, `returnCounts`, or null before the end), integers by the rule of 6.6.
+
+## 2026-10-10 P1-A7: no credit line
+Decision: the tool writes no credit of its own and carries its title "Kostant's Game" (SPEC 8.4, Appendix E item 13 open).
+
+## 2026-10-10 P1-A7: defaults of SPEC 10 relied on
+Decision: D7 (a = Cp, the drop: unhappy is a negative number), D19 (the picker shows the name chosen). No [U] item settled.
+
+## 2026-10-10 MERGE: P1 stage 1.2
+Decision: the branches of P1-A5, P1-A6 and P1-A7 were merged in roster order with --no-ff merge commits. What the specification left open: nothing. Reason: README 3.2.
+- Conflicts resolved: site/src/pages/tools/[tool].astro twice, the additive static import, hydration line and HYDRATED id of each tool kept (P1-A2's trap 1 protocol).
+- Integration fix after P1-A6: a nullable `text` in an edge-label tuple of T02.spec.ts (2b3a189).
+- Requests carried out: the tool routes /tools/board/, /tools/garden/, /tools/kostant/ and the lesson /modules/m0-start/ added to the route list of site/tests/e2e/a11y.spec.ts (P1-A5, P1-A6, P1-A8).
+- Deviations accepted: P1-A5 (Board, Node and History gain optional props and hooks with the contract props unchanged; polygon drawing scaled with the square box; a link's move list above 2000 moves replayed on the main thread under the 'sync' reading; the bridge sentence is SPEC 2.4(a) verbatim; its own SSR loader and package-name imports); P1-A6 (ToolFrame's hooked buttons and its own strip in place of History.svelte; a plain <select> picker; the extra hooks chartRow and jumpRow; preset options in t02/presets.ts); P1-A7 (T9 built on ToolFrame, Board, History, Predict and T1's model rather than wrapping T01GameBoard, because two ToolFrames cannot nest and T1's files were not its to edit; the tooltip as the button title; mood glyphs drawn in an overlay with the words in a list).
+- Passed to the orchestrator: P1-A5's question whether choosers appear on lesson instances; P1-A7's question whether T9 should be rebuilt on T01GameBoard once T1 exposes the needed hooks, and whether its inline MathML moves to LinearForm in phase 3; P1-A6's request for a strip-only History mode; P1-A7's request that the SSR test caches include the worktree path (a collision between concurrent worktrees only).
+- Checks after the merges (reports/merge-P1-1.2/): typecheck 0 errors after the fix; npm test 1288 then 1323 site-unit and engine tests; e2e 141 passed; size 11 routes within budget (/tools/board/ 55.7 kB, /tools/garden/ 53.9 kB of 90; index 34.3 kB of 60); e2e:basepath 2 passed; release build ok. T9 and M0 were merged after that run; the gate G1 run covers them.
