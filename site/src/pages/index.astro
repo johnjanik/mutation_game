@@ -1,5 +1,6 @@
 ---
 import '../styles/base.css';
+import { katexStylesheetHref } from '@lib/katex';
 ---
 
 <!doctype html>
@@ -8,6 +9,7 @@ import '../styles/base.css';
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Two Games on a Dynkin Diagram</title>
+    <link rel="stylesheet" href={katexStylesheetHref(import.meta.env.BASE_URL)} />
   </head>
   <body>
     <main>
