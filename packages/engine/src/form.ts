@@ -4,7 +4,7 @@
 // form_invariance_witness (1730 to 1741) and is_root_population (1274 to 1292). Every move goes through
 // mutate and toNumbers (never re-implemented); a cap is reported as null, never thrown (E-10).
 import type { Vec } from './arith';
-import type { Board } from './board';
+import type { AnyBoard, Board } from './board';
 import { CAPS } from './caps';
 import { mutate, mutationMatrix, toNumbers } from './moves';
 import type { Rational } from './rational';
@@ -41,6 +41,8 @@ export function formValueOf(B: Rational[][], p: readonly (number | bigint)[], q:
 }
 
 /** (p, q) = p^T B q as a rational, q defaulting to p; null when the board is not balanced (one-way boards included). */
+export function formValue<T>(board: Board<T>, p: Vec<T>, q?: Vec<T>): Rational | null;
+export function formValue(board: AnyBoard, p: Vec<number | bigint>, q?: Vec<number | bigint>): Rational | null;
 export function formValue<T>(board: Board<T>, p: Vec<T>, q?: Vec<T>): Rational | null {
   checkLength(board, p);
   if (q !== undefined) checkLength(board, q);
@@ -77,6 +79,8 @@ export function corootOf<T>(board: Board<T>, root: Vec<T>): number[] {
 }
 
 /** beta^vee = 2 beta / (beta, beta) in the simple coroots (SPEC.md 2.5), in the board's arithmetic; finite only (5.6). */
+export function coroot<T>(board: Board<T>, root: Vec<T>): T[];
+export function coroot(board: AnyBoard, root: Vec<number | bigint>): (number | bigint)[];
 export function coroot<T>(board: Board<T>, root: Vec<T>): T[] {
   checkLength(board, root);
   requireFinite(board);
@@ -117,6 +121,8 @@ function checkSymmetricMatrix<T>(board: Board<T>, M: number[][]): bigint[][] {
  * value changes. M must be a square symmetric integer matrix of the board's size (RangeError otherwise).
  * Works on one-way boards too.
  */
+export function formIsInvariant<T>(board: Board<T>, M: number[][]): InvarianceResult;
+export function formIsInvariant(board: AnyBoard, M: number[][]): InvarianceResult;
 export function formIsInvariant<T>(board: Board<T>, M: number[][]): InvarianceResult {
   const Mb = checkSymmetricMatrix(board, M);
   const n = board.n;
@@ -182,6 +188,8 @@ export function formIsInvariant<T>(board: Board<T>, M: number[][]): InvarianceRe
  * CAPS.rootTestSteps): null when the descent has not returned after `cap` mutations; a descent that reaches
  * the single Martian with its cap-th mutation returns true (plan). NeedsTwoWayRoads on a one-way board.
  */
+export function isRootPopulation<T>(board: Board<T>, v: Vec<T>, cap?: number): boolean | null;
+export function isRootPopulation(board: AnyBoard, v: Vec<number | bigint>, cap?: number): boolean | null;
 export function isRootPopulation<T>(board: Board<T>, v: Vec<T>, cap: number = CAPS.rootTestSteps): boolean | null {
   checkLength(board, v);
   if (!Number.isInteger(cap) || cap < 0) throw new RangeError(`the cap ${String(cap)} is not a non-negative integer`);

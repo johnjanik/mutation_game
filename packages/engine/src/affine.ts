@@ -5,7 +5,7 @@
 // with Big (E-2), labels 0..n (E-7). Nothing runs at module load (trap 15).
 import type { Vec } from './arith';
 import { Big } from './arith';
-import type { Board } from './board';
+import type { AnyBoard, Board } from './board';
 import { CAPS } from './caps';
 import { NotAffine, NotFiniteType } from './errors';
 import type { Rational } from './rational';
@@ -113,6 +113,8 @@ export function extendMatrix(C: number[][], short: boolean): { cartan: number[][
  * NeedsTwoWayRoads, NeedsConnectedBoard, NotFiniteType. The board is a Board<bigint> with labels 0..n
  * and, for an untwisted extension of a named board, the name "X~" (plan).
  */
+export function affineExtension<T>(board: Board<T>, short?: boolean): AffineExtension;
+export function affineExtension(board: AnyBoard, short?: boolean): AffineExtension;
 export function affineExtension<T>(board: Board<T>, short = false): AffineExtension {
   if (typeof short !== 'boolean') throw new RangeError('short must be a boolean');
   requireGcm(board);
@@ -202,6 +204,8 @@ export function nullVector(M: readonly (readonly (number | bigint)[])[]): number
 }
 
 /** The frozen population delta with C delta = 0 (SPEC.md 2.12 Marks); affine boards only (NotAffine otherwise, NeedsTwoWayRoads on a one-way board). */
+export function marks<T>(board: Board<T>): number[];
+export function marks(board: AnyBoard): number[];
 export function marks<T>(board: Board<T>): number[] {
   requireAffine(board);
   const v = nullVector(intCartan(board));
@@ -210,6 +214,8 @@ export function marks<T>(board: Board<T>): number[] {
 }
 
 /** The weights c of the conserved level with c^T C = 0 (SPEC.md 2.12 Comarks); affine boards only. */
+export function comarks<T>(board: Board<T>): number[];
+export function comarks(board: AnyBoard): number[];
 export function comarks<T>(board: Board<T>): number[] {
   requireAffine(board);
   const C = intCartan(board);
@@ -219,6 +225,8 @@ export function comarks<T>(board: Board<T>): number[] {
 }
 
 /** The level sum_i c_i a_i of a position in the board's arithmetic (SPEC.md 2.12, 5.4); affine boards only. */
+export function level<T>(board: Board<T>, a: Vec<T>): T;
+export function level(board: AnyBoard, a: Vec<number | bigint>): number | bigint;
 export function level<T>(board: Board<T>, a: Vec<T>): T {
   if (a.length !== board.n) throw new RangeError(`the vector has ${a.length} entries, but the board has ${board.n} nodes`);
   const c = comarks(board);

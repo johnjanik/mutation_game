@@ -5,7 +5,7 @@
 // The cap rule (plan): the game ends ('ended') when no node is allowed, even at exactly cap moves; a
 // game still open after cap moves stops before move cap + 1 with 'cap' and exactly cap moves.
 import type { Vec } from './arith';
-import type { Board } from './board';
+import type { AnyBoard, Board } from './board';
 import { CAPS } from './caps';
 import type { Choose, Word } from './moves';
 import { fire, legalNodes, mutate, raisingNodes, toNumbers } from './moves';
@@ -98,6 +98,8 @@ export function kostantPlay<T>(board: Board<T>, i: number, choose?: Choose<T>, c
  * has made `cap` moves without either (default CAPS.playMoves). The lowest position unless `choose`
  * picks one. Works on every kind of board. `cap` must be a positive integer (RangeError otherwise, plan).
  */
+export function playFate<T>(board: Board<T>, a: Vec<T>, choose?: Choose<T>, cap?: number): PlayResult<T>;
+export function playFate(board: AnyBoard, a: Vec<number | bigint>, choose?: Choose<number | bigint>, cap?: number): PlayResult<number | bigint>;
 export function playFate<T>(board: Board<T>, a: Vec<T>, choose?: Choose<T>, cap: number = CAPS.playMoves): PlayResult<T> {
   if (!Number.isInteger(cap) || cap < 1) throw new RangeError(`the cap ${String(cap)} is not a positive integer`);
   if (a.length !== board.n) throw new RangeError(`the vector has ${a.length} entries, but the board has ${board.n} nodes`);

@@ -75,6 +75,8 @@ function kindOf<T>(board: Board<T>): 'not-a-board' | 'one-way' | 'gcm' {
  * not balanced: null at once on a one-way board (the oracle's walk would divide by zero there), else
  * the walk of oracle lines 106 to 120 followed by the pair check of is_symmetrizable (1033 to 1039).
  */
+export function symmetrizer<T>(board: Board<T>): Rational[] | null;
+export function symmetrizer(board: AnyBoard): Rational[] | null;
 export function symmetrizer<T>(board: Board<T>): Rational[] | null {
   const C = intCartan(board);
   if (boardKind(C) !== 'gcm') return null;
@@ -108,6 +110,8 @@ export function symmetrizer<T>(board: Board<T>): Rational[] | null {
 }
 
 /** B = DC, B_ij = d_i C_ij, as rationals (oracle lines 123 to 126); null exactly when symmetrizer is null. */
+export function gram<T>(board: Board<T>): Rational[][] | null;
+export function gram(board: AnyBoard): Rational[][] | null;
 export function gram<T>(board: Board<T>): Rational[][] | null {
   const d = symmetrizer(board);
   if (d === null) return null;
@@ -124,6 +128,8 @@ export function gram<T>(board: Board<T>): Rational[][] | null {
  * is not balanced is indefinite; otherwise the leading principal minors of B = DC, exactly. Throws
  * NeedsTwoWayRoads on a one-way board, then NeedsConnectedBoard on a board in several pieces.
  */
+export function cartanClass<T>(board: Board<T>): 'finite' | 'affine' | 'indefinite';
+export function cartanClass(board: AnyBoard): 'finite' | 'affine' | 'indefinite';
 export function cartanClass<T>(board: Board<T>): 'finite' | 'affine' | 'indefinite' {
   if (kindOf(board) !== 'gcm') throw new NeedsTwoWayRoads('cartanClass needs a board on which every road has a road back');
   if (components(board).length !== 1) throw new NeedsConnectedBoard('cartanClass needs a connected board');
@@ -266,6 +272,8 @@ function finiteCandidates(n: number): string[] {
  * on a one-way board and on a connected gcm board that is not of finite type; NeedsConnectedBoard on
  * several pieces.
  */
+export function identify<T>(board: Board<T>): { name: string; order: number[] } | null;
+export function identify(board: AnyBoard): { name: string; order: number[] } | null;
 export function identify<T>(board: Board<T>): { name: string; order: number[] } | null {
   const C = intCartan(board);
   if (boardKind(C) !== 'gcm') return null;
@@ -300,6 +308,8 @@ export function affineCandidates(m: number): { name: string; cartan: number[][] 
 }
 
 /** The name of a connected affine board in any numbering (oracle lines 1221 to 1226); null on a one-way board and when no candidate matches. */
+export function identifyAffine<T>(board: Board<T>): string | null;
+export function identifyAffine(board: AnyBoard): string | null;
 export function identifyAffine<T>(board: Board<T>): string | null {
   const C = intCartan(board);
   if (boardKind(C) !== 'gcm') return null;
@@ -315,6 +325,8 @@ export function identifyAffine<T>(board: Board<T>): string | null {
 // ---------------------------------------------------------------------------------------------
 
 /** The verdict computed afresh (the cache of E-11 lives in guards.ts). */
+export function classifyUncached<T>(board: Board<T>): ClassifyRecord[];
+export function classifyUncached(board: AnyBoard): ClassifyRecord[];
 export function classifyUncached<T>(board: Board<T>): ClassifyRecord[] {
   const C = intCartan(board);
   if (boardKind(C) === 'not-a-board') {
@@ -360,6 +372,8 @@ function copyRecord(rec: ClassifyRecord): ClassifyRecord {
  * component gets kind 'one-way', balanced false, class null, name null. Throws NotABoard. The verdict is
  * cached per board object (E-11); every call returns a fresh copy.
  */
+export function classify<T>(board: Board<T>): ClassifyRecord[];
+export function classify(board: AnyBoard): ClassifyRecord[];
 export function classify<T>(board: Board<T>): ClassifyRecord[] {
   return cachedClassify(board).map(copyRecord);
 }
@@ -387,6 +401,8 @@ function eachCombination(n: number, k: number, f: (K: number[]) => boolean): boo
  * induced board is affine or indefinite, with its class; null when every connected subset is finite and
  * null on a board with a one-way road (the notion needs two-way roads). At most 2^n - 1 subsets.
  */
+export function smallestNonfiniteSubboard<T>(board: Board<T>): NonfiniteSubboard | null;
+export function smallestNonfiniteSubboard(board: AnyBoard): NonfiniteSubboard | null;
 export function smallestNonfiniteSubboard<T>(board: Board<T>): NonfiniteSubboard | null {
   if (kindOf(board) !== 'gcm') return null;
   const n = board.n;
@@ -413,6 +429,8 @@ export function smallestNonfiniteSubboard<T>(board: Board<T>): NonfiniteSubboard
  * scaled to length 1: y = Mx, estimate x.y, x = y/|y|; stop when two successive estimates differ by less
  * than 1e-13 or after 5000 steps; minus 1. null on a board with a one-way road.
  */
+export function spectralRadius<T>(board: Board<T>): number | null;
+export function spectralRadius(board: AnyBoard): number | null;
 export function spectralRadius<T>(board: Board<T>): number | null {
   if (kindOf(board) !== 'gcm') return null;
   const n = board.n;
