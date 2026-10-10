@@ -289,7 +289,10 @@ describe('public API from the package root', () => {
       expect(api, n).toHaveProperty(n);
       expect((api as Record<string, unknown>)[n]).toBeDefined();
     }
-    expect(Object.keys(api).sort()).toEqual([...names].sort());
+    // Phase 0 pinned the exact export set; later phases append their exports (CONTRACTS 2.1), so
+    // MERGE (P1 stage 1.1) made this an inclusion check. The full list per phase is pinned in
+    // test/unit/p1-api.test.ts and its successors.
+    for (const n of names) expect(Object.keys(api)).toContain(n);
   });
 
   it('exports the type-only names (checked by tsc on this file)', () => {
