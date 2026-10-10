@@ -12,27 +12,32 @@ interface Route {
   tool: boolean;
 }
 
-export const ROUTES: Route[] = [
-  { name: 'index page', path: './', tool: true },
-  { name: 'about page', path: 'about/', tool: false },
-  { name: 'credits page', path: 'credits/', tool: false },
-  // MERGE, P1 stage 1.2 (requests of P1-A5 and P1-A6): the tool routes of phase 1.
-  { name: 'game board tool', path: 'tools/board/', tool: true },
-  { name: 'orbit garden tool', path: 'tools/garden/', tool: true },
-  { name: 'kostant tool', path: 'tools/kostant/', tool: true },
-  { name: 'module M0', path: 'modules/m0-start/', tool: true },
-];
+// MERGE, P1 stage 1.3 (request of P1-A2 and P1-A8): every route of the built site is scanned, discovered
+// as nojs.spec.ts does, so that new lessons, tools and pages are covered without editing this list.
+// A route carries a tool when its HTML has a data-tool root; such a route is scanned after hydration.
+import { readFileSync } from 'node:fs';
+import { discoverRoutes } from './routes';
 
-/** The pages with no tool, which fetch no script in phase 0. */
+export const ROUTES: Route[] = discoverRoutes()
+  .filter((r) => r.path !== '404.html')
+  .map((r) => ({ name: r.path === './' ? 'index page' : r.path, path: r.path, tool: /data-tool=/.test(readFileSync(r.file, 'utf8')) }));
+
+/** The pages with no tool (SPEC 7.6, first row): they fetch no script file. */
 const SHELL_PAGES = ROUTES.filter((r) => !r.tool);
 
 async function openRoute(page: Page, route: Route): Promise<void> {
   await page.goto(route.path);
   if (route.tool) {
-    const tools = page.locator('[data-tool]');
+    // Every island on the page hydrates before the scan: client:visible islands below the fold are
+    // scrolled into view first (MERGE, P1 stage 1.3). A tool root outside an island (the stand-in of
+    // the dev lesson page) never hydrates and is scanned as it stands.
+    const tools = page.locator('astro-island [data-tool]');
     const n = await tools.count();
-    expect(n).toBeGreaterThan(0);
-    for (let k = 0; k < n; k++) await expect(tools.nth(k)).toHaveAttribute('data-hydrated', 'true');
+    for (let k = 0; k < n; k++) {
+      await tools.nth(k).scrollIntoViewIfNeeded();
+      await expect(tools.nth(k)).toHaveAttribute('data-hydrated', 'true');
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
   }
 }
 
