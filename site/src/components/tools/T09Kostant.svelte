@@ -25,7 +25,7 @@
   import { decodeState, encodeState, LINK_NOTICE } from '../../lib/urlCodec';
   import { defaultStart, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
   import type { Prediction } from '../../tools/types';
-  import { T1Game, inLabelOrder, type T1Config } from './t01/model';
+  import { T1Game, exportValue, inLabelOrder, type T1Config } from './t01/model';
   import { moveSentence, playSentence, refusalSentence, spokenValue, undoSentence } from './t01/announce';
   import { isLong } from './t01/longNumber';
   import {
@@ -325,13 +325,13 @@
       panel === null
         ? null
         : {
-            population: panel.end,
+            population: panel.end.map(exportValue),
             name: panel.name,
             moves: panel.moves,
             h: panel.h,
-            finalNumbers: panel.finalNumbers,
+            finalNumbers: panel.finalNumbers.map(exportValue),
             marked: panel.marked,
-            returnCounts: panel.returnCounts,
+            returnCounts: panel.returnCounts?.map(exportValue) ?? null,
           };
     return { ...base, moods: moodsInOrder, end };
   }
