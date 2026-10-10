@@ -6,7 +6,9 @@
   // the strip becomes a slider with a counter; Undo and Redo remain its button equivalent (A-8).
   import type { HistoryProps } from './types';
 
-  let { total, cursor, positionNames, hydrated, onUndo, onRedo, onReset, onScrub }: HistoryProps = $props();
+  let { total, cursor, positionNames, hydrated, onUndo, onRedo, onReset, onScrub, frozen = false }: HistoryProps = $props();
+  // P1-A5: `frozen` (a prediction step) disables every control; data-control hooks on the buttons.
+  const off = $derived(!hydrated || frozen);
 
   /** "A strip of more than 50 positions is shown as a slider with a counter" (4.0). */
   const STRIP_BUTTONS_MAX = 50;
@@ -22,9 +24,9 @@
 
 <div class="history">
   <div class="controls">
-    <button type="button" class="control" disabled={!hydrated} onclick={onUndo}>Undo</button>
-    <button type="button" class="control" disabled={!hydrated} onclick={onRedo}>Redo</button>
-    <button type="button" class="control" disabled={!hydrated} onclick={onReset}>Reset</button>
+    <button type="button" class="control" data-control="undo" disabled={off} onclick={onUndo}>Undo</button>
+    <button type="button" class="control" data-control="redo" disabled={off} onclick={onRedo}>Redo</button>
+    <button type="button" class="control" data-control="reset" disabled={off} onclick={onReset}>Reset</button>
     <span class="moves">Moves: <span class="numeral" data-out="moveCounter">{cursor}</span></span>
   </div>
   <div class="strip" data-out="historyStrip" role="group" aria-label="Past positions">
@@ -36,7 +38,8 @@
         max={total}
         step="1"
         value={cursor}
-        disabled={!hydrated}
+        disabled={off}
+        data-control="historySlider"
         aria-label="Position in the history"
         aria-valuetext={positionNames[cursor]}
         oninput={onRange}
@@ -48,7 +51,8 @@
           type="button"
           class="step numeral"
           class:current={k === cursor}
-          disabled={!hydrated}
+          disabled={off}
+          data-step={k}
           aria-label={positionNames[k]}
           aria-current={k === cursor ? 'step' : undefined}
           onclick={() => onScrub(k)}>{k}</button

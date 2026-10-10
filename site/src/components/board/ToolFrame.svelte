@@ -130,6 +130,7 @@
   class="tool-frame"
   data-frame=""
   data-tool={toolId}
+  data-instance={instanceId}
   data-moves={moves}
   data-hydrated={hydrated ? 'true' : undefined}
   aria-labelledby={titleId}
