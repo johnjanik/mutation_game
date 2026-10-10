@@ -14,7 +14,7 @@ import { Cite } from '@components/content';
 
 {/* P1-A4: a development page (released: false, never linked) that exercises Lesson.astro and the
     lesson components in the built site for pages.spec.ts. It is not a lesson and states no result.
-    The element marked data-tool="fixture" stands in for a tool root: static markup with the hooks
+    The figure marked data-tool="fixture" stands in for a tool root (MERGE, P1 stage 1.1: it now carries a labelled SVG, a caption, disabled buttons and the noscript line, so that P1-A2's run without JavaScript accepts it): static markup with the hooks
     of SPEC.md 4.0, which the browser test changes to drive the Challenge. Real lessons are M0 and M1
     (stage 1.3). */}
 
@@ -38,11 +38,21 @@ This first beat stands where a lesson puts its first figure, which already shows
 
 The second beat holds a stand-in for a tool, so that the challenge below has something to watch.
 
-<div slot="figure" class="fixture-tool" data-tool="fixture" data-instance="b1" data-moves="0">
-<button type="button" data-node="1" data-board="populations" data-value="0" data-can-act="true">City 1, population 0</button>
-<button type="button" data-node="2" data-board="populations" data-value="1" data-can-act="true">City 2, population 1</button>
-<button type="button" data-node="3" data-board="populations" data-value="0" data-can-act="true">City 3, population 0</button>
+<figure slot="figure" class="fixture-tool" data-tool="fixture" data-instance="b1" data-moves="0">
+<svg viewBox="0 0 300 60" role="img" aria-label="A stand-in board with three cities in a row">
+<line x1="50" y1="30" x2="250" y2="30" stroke="currentColor" stroke-width="2" />
+<circle cx="50" cy="30" r="12" fill="none" stroke="currentColor" stroke-width="2" />
+<circle cx="150" cy="30" r="12" fill="none" stroke="currentColor" stroke-width="2" />
+<circle cx="250" cy="30" r="12" fill="none" stroke="currentColor" stroke-width="2" />
+</svg>
+<div role="group" aria-label="Stand-in board">
+<button type="button" disabled data-node="1" data-board="populations" data-value="0" data-can-act="true">City 1, population 0</button>
+<button type="button" disabled data-node="2" data-board="populations" data-value="1" data-can-act="true">City 2, population 1</button>
+<button type="button" disabled data-node="3" data-board="populations" data-value="0" data-can-act="true">City 3, population 0</button>
 </div>
+<figcaption data-out="caption">A stand-in tool for the lesson components; it shows the population (0, 1, 0) and states no result.</figcaption>
+<p class="fixture-noscript"><noscript>This figure is interactive when scripts are allowed.</noscript></p>
+</figure>
 
 </Beat>
 
