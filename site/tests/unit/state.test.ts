@@ -52,7 +52,11 @@ describe('resolveBoard', () => {
     const twelve = thirteen.slice(1).map((r) => r.slice(1));
     expect(resolveBoard({ cartan: twelve }).n).toBe(12);
     expect(() => resolveBoard('Q7')).toThrow(NotABoard);
-    expect(() => resolveBoard('B3~')).toThrow(NotABoard); // until P2-A1 extends boardFromName
+    // P2-A1 extended boardFromName (MERGE, P2 stage 2.1): an affine name resolves to a Big board with labels from 0.
+    const affine = resolveBoard('B3~');
+    expect(affine.n).toBe(4);
+    expect(affine.arith).toBe(Big);
+    expect([...affine.labels]).toEqual([0, 1, 2, 3]);
   });
 });
 
