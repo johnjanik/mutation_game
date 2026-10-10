@@ -1,0 +1,70 @@
+{
+  "phase": 5,
+  "title": "Representations",
+  "gate": "G5",
+  "release": null,
+  "gateItems": [
+    "golden tests through phase 5 pass (minuscule_representations)",
+    "every Chevalley-Serre relation checks in the tool for every listed representation",
+    "acceptance of T12 as automated tests; no-JavaScript run, axe, sizes; reference hashes unchanged"
+  ],
+  "ownerPart": "none",
+  "stages": [
+    { "name": "5.1", "agents": ["P5-A1"], "isolation": "worktree", "mergeAfter": true },
+    { "name": "5.2", "agents": ["P5-A2"], "isolation": "worktree", "mergeAfter": true },
+    { "name": "5.3", "agents": ["P5-A3"], "isolation": "worktree", "mergeAfter": true },
+    { "name": "5.4", "gate": true }
+  ],
+  "redTeam": { "lenses": ["RT-01", "RT-02", "RT-03", "RT-04", "RT-05", "RT-06", "RT-07", "RT-08", "RT-09", "RT-10", "RT-11", "RT-12", "RT-13"], "maxRounds": 3 },
+  "agents": {
+    "P5-A1": {
+      "slug": "engine-phase-5",
+      "title": "Engine phase 5: sparse matrices, minuscule representations, Chevalley-Serre checks, strings",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "SparseMatrix operations over bigint, minusculeMatrices with the basis in decreasing lexicographic order and the cap, signedMoves, chevalleySerre returning both sides of every relation, stringThrough; the minuscule_representations golden tests.",
+      "spec": ["2.18 in full", "2.7 F11", "5.2 (SparseMatrix, RelationCheck)", "5.4 (Representations table)", "5.6 (repOrbit 2000)", "5.7 (phase 5 row)", "Appendix G (minuscule_representations)"],
+      "oracle": ["sp_mul, sp_add, sp_comm, sp_scale (l.811-836)", "chevalley_serre_ok (l.837)", "minuscule_matrices (l.856)", "signed_moves (l.1751)", "string_through (l.1744)"],
+      "golden": ["minuscule_representations"],
+      "contracts": ["2.1", "2.2", "2.4 (phase 5)", "3"],
+      "dependsOn": ["P4-A1"],
+      "owns": ["packages/engine/src/rep.ts, index.ts (exports)", "packages/engine/test/golden/p5-*.test.ts", "decisions/P5-A1.md"],
+      "deliverables": ["SparseMatrix as Map<'row,column', bigint> with multiply, add, commutator, scale, equality", "minusculeMatrices(board, i, cap): the orbit of omega_i (null above cap), basis in decreasing lexicographic order of positions, H_k diagonal by mu_k, F_k sending mu to R_k mu when mu_k = 1, E_k when mu_k = -1, the move matrices E_k + F_k + P_k^0", "signedMoves E_k - F_k + P_k^0; chevalleySerre returning a RelationCheck for every relation (hh, he, hf, ef, serre-e, serre-f) with both sides", "stringThrough(board, mu, i): mu, mu - alpha_i, ..., mu - mu_i alpha_i by subtracting column i of C", "golden tests: for all 18 records the dimension equals the orbit size, the weights equal weights_dynkin_labels where present, and every relation holds; for node 2 of D4 some relation fails and some number in the orbit is 2"],
+      "acceptance": ["minuscule_representations covered and passing (G5)", "the 56 of E7 builds in under two seconds"],
+      "traps": ["For a node that is not minuscule the recipe fails (D4 omega_2); the tool must show the failure, so chevalleySerre returns both sides rather than throwing.", "The basis order is the oracle's: decreasing lexicographic order of the positions (E-5).", "Moves in the representation use the firing R_k on positions (weights), not mutations."]
+    },
+    "P5-A2": {
+      "slug": "t12-representation-builder",
+      "title": "Tool T12 Representation Builder and MatrixView",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "For any node of a named board: the orbit drawn in layers with edges coloured by node; the matrices E_k, F_k, H_k as grids up to dimension 27 and as lists above; the relation checker; the move matrix beside its signed version; the string viewer; the failure explanation for non-minuscule nodes; every acceptance criterion of SPEC 4 T12 as tests.",
+      "spec": ["2.18", "4.0", "4 T12 in full", "5.4 (representation functions)", "5.6 (repOrbit 2000; matrixGridDim 27)", "6.6 (node and relation keys)", "7.3 (MatrixView as an HTML table with caption and headers)", "3 M8 figure table"],
+      "oracle": ["minuscule_matrices", "chevalley_serre_ok", "signed_moves", "string_through"],
+      "golden": ["minuscule_representations"],
+      "contracts": ["4", "5", "6 (T12 presets)"],
+      "dependsOn": ["P5-A1", "P1-A3", "P1-A5"],
+      "owns": ["site/src/components/tools/T12RepresentationBuilder.svelte and t12/", "site/src/components/math/MatrixView.svelte", "site/src/tools/registry/T12.ts", "site/tests/unit/tools/T12.test.ts, site/tests/e2e/T12.spec.ts", "decisions/P5-A2.md"],
+      "deliverables": ["the five features of SPEC 4 T12; matrices built only when the orbit has at most 2000 positions, else the explanation alone; grids up to 27, lists above; the relation checker displaying both sides (MatrixView) and the verdict; the string viewer accepting any position", "MatrixView.svelte: an HTML table with caption, row and column headers, sparse display option", "T12.test.ts: dimensions equal minuscule_representations[*].dimension; every relation checks for every listed representation; node 2 of D4 shows a failing relation and the explanation that some number in the orbit is 2", "T12.spec.ts: A2 node 1 relation checker [E1,F1] = H1 and [E1,F2] = 0; the string viewer on A2 for (2,0) at node 1 shows three positions with the middle one outside the orbit; E7 node 7 loads 56 as a list"],
+      "acceptance": ["every bullet of SPEC 4 T12 acceptance has a passing test (G5)", "the E7 56 computation runs in the worker or at build time, never as a long task on the main thread (E-9 rule 1: minusculeMatrices is an enumeration)"],
+      "traps": ["minusculeMatrices is listed in E-9 as an enumeration: above 2000 expected items it goes to the worker; the orbit sizes are known from orbitSize beforehand.", "Grids above dimension 27 become lists (5.6)."]
+    },
+    "P5-A3": {
+      "slug": "lesson-m8-and-not-quiver-page",
+      "title": "Lesson M8: From games to Lie algebras; the page on what mutation is not",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "Module M8 from SPEC 3 M8 and its figure table (strings, single steps, the 3x3 matrices of A2, the 8, 27 and 56, a move as a group element, why E8 is different, beat 7 for phase 7 as a placeholder, sidebars) and the not-quiver-mutation page of 2.16 with its comparison table; predictions, challenges, provenance, sources, draft marks.",
+      "spec": ["2.16 in full", "2.18 in full", "3 (M8 in full)", "7.3 (not-quiver-mutation page, phase 5)", "8.1 to 8.5", "9.2", "10 D16", "Appendix D (for the general wording, no reference to the note)", "Appendix F (statements not to repeat)"],
+      "sources": ["11.1 (W03a, W03c)", "11.3 (Gre13, vE, BGP73, FZ02, FZ03a, BKR16)"],
+      "oracle": [],
+      "golden": ["minuscule_representations; types.E8.* through <G>"],
+      "contracts": ["7"],
+      "dependsOn": ["P5-A2", "P1-A4"],
+      "owns": ["site/src/content/modules/m8-lie-algebras.mdx", "site/src/content/pages/not-quiver-mutation.mdx", "site/tests/e2e/M8.spec.ts", "decisions/P5-A3.md"],
+      "deliverables": ["m8-lie-algebras.mdx with beats 1 to 6 and 8 and their figures (T12 string viewer on A2; T12 on A1; T12 A2 relation checker; T12 D4 node 1, E6 node 1, E7 node 7; T12 A2 move beside signed; static E8 roots and zeros with a T10 link; static sidebar with the table of 2.16), beat 7 as a released:false placeholder; predictions and challenges; 'What we have seen' ([V] for the 18 representations; Hum72 section numbers wrapped as E10); Lie theory paragraph; sources", "not-quiver-mutation.mdx: the comparison table of 2.16, the smallest illustration (1 → 2 → 3 at vertex 2), the two meanings of 'arrow', with the corrections of Appendix D worded as general confusions (D16)", "M8.spec.ts as before"],
+      "acceptance": ["9.2 definition of done", "nojs, axe, size on both pages", "the not-quiver page makes no reference to the project note (D16)"],
+      "traps": ["'Mutation' in Fomin-Zelevinsky changes the quiver; Wildberger's never does. Keep the two meanings of 'arrow' apart (2.16).", "Wildberger's Theorem 4.1 is stated without proof; the proofs are in Gre13 (2.18)."]
+    }
+  }
+}

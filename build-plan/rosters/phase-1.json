@@ -1,0 +1,349 @@
+{
+  "phase": 1,
+  "title": "The two moves",
+  "gate": "G1",
+  "release": null,
+  "gateItems": [
+    "phase 0 and phase 1 golden tests pass (table of SPEC 5.7)",
+    "property tests 1, 2, 3, 4, 6, 7 (first half), 8 pass",
+    "acceptance of T1, T2, T9 (the phase-1 parts) as automated tests",
+    "the run without JavaScript passes on M0, M1, the tool routes and the pages",
+    "axe scan: no serious or critical violations on every page and tool route",
+    "the size limits of SPEC 7.6 hold on every route",
+    "reference file hashes unchanged"
+  ],
+  "ownerPart": "A first reading of M0 and M1 by two readers of the primary audience.",
+  "stages": [
+    { "name": "1.1", "agents": ["P1-A1", "P1-A2", "P1-A3", "P1-A4"], "isolation": "worktree", "mergeAfter": true },
+    { "name": "1.2", "agents": ["P1-A5", "P1-A6", "P1-A7"], "isolation": "worktree", "mergeAfter": true },
+    { "name": "1.3", "agents": ["P1-A8", "P1-A9"], "isolation": "worktree", "mergeAfter": true },
+    { "name": "1.4", "gate": true }
+  ],
+  "redTeam": { "lenses": ["RT-01", "RT-02", "RT-03", "RT-04", "RT-05", "RT-06", "RT-07", "RT-08", "RT-09", "RT-10", "RT-11", "RT-12", "RT-13"], "maxRounds": 3 },
+  "agents": {
+    "P1-A1": {
+      "slug": "engine-phase-1",
+      "title": "Engine phase 1: matrices, translator, plays, searches, roots, finite-type data",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "Every function marked phase 1 in SPEC 5.3 and 5.4, ported function by function from the oracle with the lowest-position rule and the exact search order and truncation semantics of 5.5, with their golden tests written first and property tests 1 to 4, 6, 7 (first half) and 8.",
+      "spec": ["2.2 to 2.8 in full", "2.11 (the one-way counterexample)", "2.12 (Kostant's recipe sentence)", "5.1", "5.2", "5.3 (phase 1 rows)", "5.4 (phase 1 rows)", "5.5 (Orbits; Order and truncation; The longest word; The highest short root without the form)", "5.6", "5.7 (phase 1 row; properties 1-4, 6-8; rules)", "Appendix A.1 to A.4", "Appendix G (types, kostant, one_way_counterexample, layer_growth_examples, bigint_test)"],
+      "oracle": ["components (l.92)", "transpose (l.82)", "sub_matrix (l.734)", "determinant (l.995)", "mutation_matrix (l.151)", "firing_matrix (l.156)", "dynkin_labels (l.210)", "weight_to_root_coords (l.678)", "solve/inverse (l.656-677)", "act_on_roots/act_on_weights (l.246-257)", "play (l.220)", "raising_play (l.701)", "kostant_play (l.696)", "orbit (l.165)", "orbit_graph (l.1328)", "orbit_graph_capped (l.1352)", "word_to (l.1373)", "roots (l.186)", "positive_roots (l.193)", "highest_root (l.1688)", "highest_short_root (l.1693)", "coxeter_number (l.1702)", "longest_word (l.235)", "minus_w0 (l.1707)", "minuscule_nodes (l.1713)"],
+      "golden": ["types[*].n_roots", "types[*].n_positive_roots", "types[*].positive_roots", "types[*].highest_root", "types[*].highest_short_root", "types[*].numbers_of_highest_root", "types[*].numbers_of_highest_short_root", "types[*].highest_root_of_reversed_board", "types[*].coxeter_number", "types[*].longest_word", "types[*].fired_values", "types[*].fired_tally", "types[*].minus_w0", "types[*].minuscule_nodes", "kostant[*].end_from_node", "kostant[*].moves_from_node", "kostant[*].final_numbers_from_node", "one_way_counterexample", "layer_growth_examples", "bigint_test"],
+      "contracts": ["2.1", "2.2", "2.4 (phase 1)", "2.5", "3"],
+      "dependsOn": ["P0-A2"],
+      "owns": [
+        "packages/engine/src/board.ts (phase-1 additions: components, transposeBoard, subBoard), moves.ts (additions), rational.ts, linalg.ts, search.ts, play.ts, finite.ts, index.ts (exports)",
+        "packages/engine/test/golden/p1-*.test.ts",
+        "packages/engine/test/properties/p2-translator.test.ts, p3-transpose.test.ts, p4-orders.test.ts, p6-convergence.test.ts, p7-roots-signs.test.ts, p8-generic-game.test.ts",
+        "decisions/P1-A1.md"
+      ],
+      "deliverables": [
+        "rational.ts and linalg.ts: Rational on bigint in lowest terms with positive denominator; determinant by fraction-free or rational elimination; solve and inverse",
+        "components, transposeBoard (reversed roads: C^T, labels kept, name undefined unless the transpose is itself a named type), subBoard (induced; labels of the chosen nodes unchanged)",
+        "mutationMatrix S_i = I - e_i e_i^T C, firingMatrix R_i = I - C e_i e_i^T, toNumbers a = Cp, toPopulation C^{-1}a as Rational[] or null when singular, applyWord, legalNodes, raisingNodes",
+        "play with Choose and cap: status ended or cap; fired values recorded; raisingPlay and kostantPlay with the lowest-position rule",
+        "orbit and orbitGraph with exactly the order and truncation of SPEC 5.5 (seeds first; nodes in increasing position; maxDepth stops expansion without truncation; cap stops when about to add item cap+1 with truncated true, exactly cap items, completeLayers = depth being expanded); wordTo",
+        "roots (seeds = all simple root populations, mutation game), positiveRoots sorted by total then lexicographically, highestRoot (largest total), highestShortRoot by the rule of 5.5 (the other positive root with no negative number, smaller total; null on simply laced), coxeterNumber = 2N/n, longestWord by legal play from all ones on the sub-board, minusW0, minusculeNodes (entry 1 in the highest root of the reversed board)",
+        "golden tests covering every key listed, with covers() calls; kostant tests over every type and every starting node; layer_growth_examples including new_per_layer, root_populations_found, largest_entry_digits, stop_at_2000 and stop_at_100000 (positions, truncated, complete_layers, positions_in_complete_layers); bigint_test both sequences with Big; one_way_counterexample plays to the mixed result",
+        "property tests 2 (toNumbers(mutate) = fire(toNumbers)), 3 (firingMatrix(B) = mutationMatrix(transpose B)^T), 4 (commuting unjoined moves; orders 3, 4, 6), 6 (strong convergence of two random legal plays), 7 first half (every root has one sign; the isRootPopulation half waits for phase 2), 8 (length N from all-positive starts; the word sends simple roots to negatives of simple roots)"
+      ],
+      "acceptance": [
+        "GOLDEN_KEYS_BY_PHASE[1] all present in coverage.json; all pass for the 32 types (G1)",
+        "properties 1-4, 6, 7a, 8 pass with the recorded seeds (G1)",
+        "orbitGraph on the star with five arms at cap 2000 gives completeLayers 10 and 1271 positions in complete layers; at 100000 gives 17 and 74311; at 150000 finds 136008 positions in 18 layers (SPEC 5.5)",
+        "play from all ones on every type fires exactly fired_values and ends at all minus ones",
+        "tsc strict passes; no dependency added"
+      ],
+      "traps": [
+        "highest_root_of_reversed_board differs from the coroot of the highest root (B3: (2,2,1) against (1,2,1)); minuscule nodes use the reversed board (F11).",
+        "positive_roots sorting: by total population first, then lexicographically as lists; match the oracle exactly.",
+        "fired_tally keys are strings in the golden file.",
+        "coxeterNumber = 2N/n needs the full root count; on A1 it is 2.",
+        "orbitGraph: completeLayers when the cap falls exactly at the end of a layer is still the depth of the position being expanded (SPEC 5.5).",
+        "On a one-way board everything in this phase must still work (SPEC 5.6 first row); do not guard here. Guards arrive in phase 2."
+      ]
+    },
+    "P1-A2": {
+      "slug": "site-infra",
+      "title": "State, URL codec, worker routing, JSON export, History API, highlight store, ToolFrame, tool routes, generic no-JavaScript run",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "The site's plumbing of SPEC 6.6 and 7.4: the state object and its defaults, the URL codec with every validation rule, the main-thread/worker decision of E-9 behind one promise-returning call, JSON data export, replaceState throttling and pushState on example loads, the per-page highlight store on Nano Stores, the ToolFrame chrome every tool uses, the tool and (later) embed routes generated from the registry, and the Playwright run with JavaScript disabled that every lesson must pass.",
+      "spec": ["4.0 (One state; History; Step and play to the end; Share and export; Stated limits; Test hooks)", "5.1 E-9 in full", "5.6", "6.6 in full", "7.3 (lib/ files; pages)", "7.4 in full", "7.5 A-4, A-10", "7.6 (budget per route; client:idle/visible)", "7.1 (Nano Stores row)"],
+      "oracle": [],
+      "golden": [],
+      "contracts": ["4", "5.1 (ToolFrame)", "5.2 (registry)", "6"],
+      "dependsOn": ["P0-A2", "P0-A4", "P0-A5"],
+      "owns": [
+        "site/src/lib/state.ts, urlCodec.ts, worker.ts, engine.worker.ts, export.ts, highlight.ts, history.ts",
+        "site/src/lib/a11y.ts (extensions only: coalescing counts, playedToEnd)",
+        "site/src/components/board/ToolFrame.svelte",
+        "site/src/tools/index.ts (registry collector), site/src/tools/types.ts",
+        "site/src/pages/tools/[tool].astro",
+        "site/tests/unit/urlCodec.test.ts, state.test.ts, worker-routing.test.ts, export.test.ts",
+        "site/tests/e2e/nojs.spec.ts, worker-on-demand.spec.ts",
+        "site/package.json (add nanostores 1.5.5 only)",
+        "decisions/P1-A2.md"
+      ],
+      "deliverables": [
+        "state.ts per CONTRACTS 4: ToolState, defaultState (all ones for numbers, one Martian in the first city for populations), resolveBoard (named finite → SafeInt board; everything else → Big; rejects not-a-board and more than 12 nodes), positionsOf",
+        "urlCodec.ts: encodeState assembling the query by hand with the one-letter keys of 6.6 (z g v m c s w x t r j e y k q d), prefix support for lesson pages, custom boards as c:rows;rows@xy; decodeState with URLSearchParams and every validation rule of 6.6 (unknown key ignored; each listed failure → defaults plus the notice 'the link could not be read'); a move the mode forbids at that point of the play is detected by replaying with the engine; `s` without `c` fails; missing z = schema 1",
+        "worker.ts: whereToRun(hint) implementing the three rules of E-9 exactly (enumeration not known to yield at most 2000; play or word over 2000 moves; counts and Satake data on large groups), with 'before phase 2 every custom board counts as not finite' and the finiteKnown flag that P2-A7 will set; engineCall posting to engine.worker.ts with the serialization of CONTRACTS 4; errors re-thrown as their classes; a call is never started in one place and continued in the other",
+        "export.ts: exportJSON with state, engine version, git commit (from a build-time constant), derived tables; safe integers as numbers, others as decimal strings",
+        "history.ts: replaceState half a second after the last move of a burst inside try; pushState on example or catalogue load; Copy link encodes the current state regardless of the address bar",
+        "highlight.ts: the Nano Store atom of CONTRACTS 4",
+        "ToolFrame.svelte per CONTRACTS 5.1: caption, controls disabled until hydration, step/play slots, Copy link, Download data, Show as table (A-10) with a button per node, live region, noscript line, data-tool and data-moves",
+        "tools/index.ts collecting registry entries by import.meta.glob; pages/tools/[tool].astro generating one route per registered tool with the bare keys of 6.6",
+        "nojs.spec.ts: for every released lesson and tool route, with JavaScript disabled: the prose, every default figure (one SVG per data-tool), every table and every caption are present; controls are disabled; the noscript line is present",
+        "worker-on-demand.spec.ts: intercepts the worker script URL and fails if it is requested before the first interaction on any route",
+        "unit tests: one test per validation rule of 6.6; round trip encode(decode(encode(s))) = encode(s); whereToRun for each rule of E-9 with boundary values (2000 items, 2001; 2000 moves, 2001; group order 2000, 2001)"
+      ],
+      "acceptance": [
+        "every validation rule of SPEC 6.6 has a failing input in urlCodec.test.ts and yields the default state with the notice",
+        "a link can never produce a position the mode forbids (test: a forbidden move in w → defaults)",
+        "whereToRun matches E-9 at every boundary (tests)",
+        "nojs.spec.ts and worker-on-demand.spec.ts run green on the phase-0 page and are ready for lessons (G1)",
+        "the shell for a page with no tool stays at or under 15 kB gzip (highlight store, theme switch, nav)"
+      ],
+      "traps": [
+        "Query strings are assembled by hand so that commas, semicolons, dots, ~ and ^ stay readable (6.6); do not URL-encode them away.",
+        "On lesson pages keys are prefixed by the instance id and a dot (b2.g=A3); only instances the reader changed are written.",
+        "A g parameter longer than 512 characters, a start entry longer than 40 digits, more than 20000 moves: all → defaults with the notice.",
+        "Positions are never in the state; they are recomputed from start and moves (7.4).",
+        "bigint does not survive postMessage as JSON; serialize as {\"$big\": \"...\"}.",
+        "Nano Store read as $name is the one store idiom allowed in Svelte 5 components (7.2 item 5)."
+      ]
+    },
+    "P1-A3": {
+      "slug": "draw-layout",
+      "title": "Node layouts, road styles, palette and themes, layered graph layout",
+      "size": "S",
+      "isolation": "worktree",
+      "summary": "The drawing conventions of SPEC 6.1 to 6.3 as code every tool shares: node positions for every named, affine, twisted, polygon and custom board with the grid-unit and hit-area rule; the dynkin and roads styles; the Okabe-Ito based palette and the two view accents as CSS custom properties in light and dark themes with the manual switch; the deterministic layered layout for ranked graphs (orbit graphs, root posets, the Weyl explorer); unit tests that the layouts and contrast ratios match the specification's numbers.",
+      "spec": ["6.1 in full (table, node 0 rule, size on screen)", "6.2", "6.3 in full (colours, ratios, edge palette, typefaces)", "7.5 A-5, A-6, A-7, A-11", "8.3", "7.1 (no layout library; purpose-built layered layout)"],
+      "oracle": [],
+      "golden": ["(none; verify.py section 20 asserts the contrast numbers; reproduce them in a test)"],
+      "contracts": ["5.1 (Roads API)", "8"],
+      "dependsOn": ["P0-A5"],
+      "owns": [
+        "site/src/components/draw/layouts.ts, roads.ts, palette.ts, layeredLayout.ts, geometry.ts (grid unit, hit area)",
+        "site/src/components/board/Roads.svelte (internals; props unchanged)",
+        "site/src/styles/tokens.css (the custom properties, both themes), theme switch component site/src/components/ThemeSwitch.svelte",
+        "site/tests/unit/layouts.test.ts, contrast.test.ts, layeredLayout.test.ts",
+        "decisions/P1-A3.md"
+      ],
+      "deliverables": [
+        "layouts.ts: nodePositions(board) returning grid coordinates per the table of 6.1 for A, B, C, F, G rows; D fork; E with node 2 above node 4; every untwisted affine board (A~ polygon with node 0 at the top and nodes clockwise; B~ node 0 above node 2; C~, F4~, E7~ node 0 left of node 1; D~ fork at both ends; E6~ node 0 above node 2; E8~ node 0 right of node 8; G2~ node 0 right of node 2); twisted boards (A_{2n}^{(2)} in a row; the others as the untwisted board they reverse); pentagon and square as regular polygons clockwise from the top; custom boards at their xy when whole, distinct, within 0..11, else on a circle in label order",
+        "geometry.ts: gridUnit(W, k) = min(64, floor((W-16)/k)); hit area min(44,u); polygon radius (min(W,360)-60)/2; the A-7 numbers at 320 pixels (44 for at most six in a row, 43 for seven, 38 for eight, 33 for nine, 25 for twelve) reproduced by tests",
+        "roads.ts and Roads.svelte: dynkin style (1, 2, 3 parallel lines; chevron toward the short node when counts differ; thick line with the two counts at its ends for products of 4 or more) and roads style (one curved arrow per road); the rule that a board with a one-way road always uses roads style",
+        "palette.ts and tokens.css: every value of the tables in 6.3 for both themes; the view accents of 8.3; edge colour for label k (k=1..8 → colour k; 0 → 8; 9..12 → 1..4); icons for the two views; theme switch storing data-theme in localStorage and respecting prefers-color-scheme by default",
+        "layeredLayout.ts: deterministic ranked layout (rank given per vertex; order within a rank by a barycenter pass with stable tie-break on the vertex key; integer coordinates; width of the widest rank reported so the tool can scroll inside its box per A-11)",
+        "tests: every named board's positions equal the table; hit areas never overlap on any standard layout; the grid unit and A-7 numbers; the contrast ratios of 6.3 computed with the WCAG formula meet 4.5 (numerals) and 3 (fills, outlines, edges) in both themes; the layered layout is deterministic and keeps ranks"
+      ],
+      "acceptance": [
+        "layouts.test.ts passes for all 32 types, 32 untwisted affine boards, 10 twisted boards, pentagon, square",
+        "contrast.test.ts reproduces the ratios stated in 6.3 (5.2, 8.1, 3.9, 8.3, 4.5, 5.4; edge colours >= 3) and the accents (3.4, 3.1, 5.5, 6.1)",
+        "A-7 numbers at 320 pixels reproduced"
+      ],
+      "traps": [
+        "D_n: node n-1 at (n-1, 0.6) and node n at (n-1, -0.6); E: node 2 at (3, 1) above node 4 (which is at x=3).",
+        "The dark-theme orange and yellow differ from Okabe-Ito; use the table's values.",
+        "Colour is never the only cue: edges also carry the node label as text (6.3)."
+      ]
+    },
+    "P1-A4": {
+      "slug": "pages-and-lesson-layout",
+      "title": "Glossary, sources page, open-items page, about and credits, lesson layout components, released flag",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "The non-lesson pages of phase 1 and the layout that every lesson uses: the glossary seeded from Appendix C, the sources page generated from SOURCES.md, the open-items page from unverified.json (preview builds only), the extended about and credits pages, the module page layout with the anatomy of 8.2, the lesson components (Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources, DraftMark), the content collections, and the released flag that drops links to unreleased targets.",
+      "spec": ["3 (M10 paragraph; the anatomy references)", "7.3 (pages paragraph; the sources page paragraph; released flag)", "7.4 (Citing)", "8.1", "8.2 in full", "8.4", "8.5", "9.2 (lesson definition of done)", "10 D15, D16, D17", "Appendix C in full", "Appendix E (for open-items)"],
+      "sources": ["11.0 (labels and status words)", "11.1 to 11.6 (published)", "11.7 to 11.9 (not published)"],
+      "oracle": [],
+      "golden": [],
+      "contracts": ["4 (sources.ts, katex.ts)", "7"],
+      "dependsOn": ["P0-A3", "P0-A4", "P0-A5"],
+      "owns": [
+        "site/src/content.config.ts (collections modules and pages with frontmatter schemas of CONTRACTS 7)",
+        "site/src/content/pages/glossary.mdx, about.mdx, credits.mdx",
+        "site/src/pages/sources.astro, open-items.astro, [page].astro, modules/[slug].astro, modules/index.astro",
+        "site/src/layouts/Lesson.astro, Page.astro; site/src/components/Nav.astro, Footer.astro",
+        "site/src/components/lesson/Beat.astro, Seen.astro, LieTheory.astro, Challenge.svelte, ModuleLinks.astro, Sources.astro, DraftMark.astro, index.ts",
+        "site/tests/unit/sources-page.test.ts, glossary.test.ts, released.test.ts",
+        "site/tests/e2e/pages.spec.ts",
+        "decisions/P1-A4.md"
+      ],
+      "deliverables": [
+        "glossary.mdx: one entry per row of Appendix C with the four columns (this site; Wildberger; numbers-game literature; Lie theory), anchors per term, the site's words first",
+        "sources.astro: renders SOURCES.md as Markdown (not MDX) with $...$ typeset through renderTex; publishes 11.1 to 11.6 only; status labels spelled out in words ([S] 'read in the source', [S2] 'reported by a later source', [V] 'checked by computation', [U] 'unverified'); an anchor per citation key; the links the Cite component targets",
+        "open-items.astro: present only in preview builds; lists every item of unverified.json with status, statement, where to check, the gate, and the pages that use it (from the registry of P0-A4)",
+        "about.mdx and credits.mdx: the storyline of 1.4 in brief, the names of 1.7, the credit rules of 7.9 and 8.4 (Wildberger's story and terminology acknowledged; Mozes, Proctor, Eriksson; Kostant 'attributed to'), the licences (D4), the version footer placeholder, the list of dependencies with licences",
+        "Lesson.astro with the anatomy of 8.2: title and question; first figure; beats; 'What we have seen' box; 'For readers who know Lie theory'; challenges; links (sandbox with the module's board, atlas, next module, each omitted when unreleased); sources; the draft mark when draft is true (D17); text column near 66 characters; tools full width on phones",
+        "lesson components: Beat (numbered, figure slot), Seen (framed, provenance prop: a citation key rendered through Cite or the words 'verified by computation'), LieTheory, Challenge (goal text; check function over a tool instance's state reporting success; without JavaScript the goal is shown with a <details> explanation), ModuleLinks, Sources, DraftMark",
+        "released flag: a page or tool with released: false is built (so its tests can run) but no link to it is rendered anywhere, and it is excluded from the module index and the sitemap",
+        "tests: every Appendix C row appears in the glossary; every key of SOURCES.md has an anchor on the sources page; sections 11.7 to 11.9 are absent from the built page; a link to an unreleased module is omitted; pages.spec.ts checks the about, credits, glossary, sources pages render and the nav works by keyboard"
+      ],
+      "acceptance": [
+        "sources page: every citation key resolves to an anchor; unpublished sections absent (test)",
+        "glossary: every Appendix C row present (test)",
+        "released flag drops links to unreleased targets (test)",
+        "the no-tool pages stay at or under 15 kB JavaScript gzip (size)",
+        "axe: no serious or critical violations on these pages"
+      ],
+      "traps": [
+        "SOURCES.md contains angle-bracket links that MDX rejects (7.3); render it as Markdown.",
+        "The sources page uses the same KaTeX call as <Tex> so one stylesheet fits (7.2 item 3).",
+        "Only the owner closes an item; the open-items page shows status, it never changes it.",
+        "No em-dashes anywhere in prose you write."
+      ]
+    },
+    "P1-A5": {
+      "slug": "t01-game-board",
+      "title": "Tool T1 Game Board, complete",
+      "size": "L",
+      "isolation": "worktree",
+      "summary": "The core component of the site: views populations, numbers and linked; modes free, legal, raising; coords with exact fractions when a start is given as numbers; script, goal, prediction, hints, panels, roadStyle; the bridge sentence of 2.4(a) verbatim in the linked view; the SafeInt-to-Big reload rule; every acceptance criterion of SPEC 4 T1 as an automated test; the registry entry and the hooks.",
+      "spec": ["2.2", "2.3", "2.4 (a) in full; the bridge sentence verbatim", "2.6 (table)", "4.0 in full", "4 T1 in full", "6.1 to 6.3", "6.6 (board, view, mode, coords, start, moves)", "7.4", "7.5 A-1 to A-12", "7.6 (90 kB per tool route; 60 kB page with one board)", "8.1 P1, P2, P5, P7, P9, P10", "8.5", "Appendix A.1, A.2"],
+      "oracle": ["mutate", "fire", "dynkin_labels", "weight_to_root_coords", "play", "raising_play"],
+      "golden": ["types[*].longest_word", "types[*].fired_values (acceptance: legal play of longest_word from all ones)", "pentagon_example (not yet; phase 2)"],
+      "contracts": ["4", "5 in full", "6 (T1 has no presets)", "7"],
+      "dependsOn": ["P1-A1", "P1-A2", "P1-A3"],
+      "owns": [
+        "site/src/components/tools/T01GameBoard.svelte and its sub-components under site/src/components/tools/t01/",
+        "site/src/components/math/Frac.svelte",
+        "site/src/components/board/Board.svelte, Node.svelte, History.svelte (extensions: linked view line, hints, roadStyle prop pass-through, prediction freeze)",
+        "site/src/components/board/Predict.svelte",
+        "site/src/tools/registry/T01.ts",
+        "site/tests/unit/tools/T01.test.ts, site/tests/e2e/T01.spec.ts",
+        "decisions/P1-A5.md"
+      ],
+      "deliverables": [
+        "Views and modes exactly as the table of T1; acting on a node of either board in linked view acts on both; 'game over after N moves' in legal mode when no number is positive; raising mode allows only cities whose number a_i is negative",
+        "coords: from a population the numbers are Cp; from numbers the population is C^{-1}a shown as exact stacked fractions (Frac.svelte); populations view with coords numbers only when integral, else fall back to linked; on a singular (affine) board a numbers start has a population only at level zero and only the numbers view is offered (level arrives in phase 2: in phase 1 affine boards are not offered by T1's picker; record this)",
+        "the sentence 'The number on a node is the amount by which a mutation would lower city i.' with the same wording wherever both views are shown (2.4(a)), shown beside the a = Cp line in linked view",
+        "Shows: labels, roads with multiplicity and arrowheads, values, which nodes may act (second ring, cursor), move counter; panels for form value, level, long/short arrive in phase 2 and colour classes in phase 3: accept the panels prop and render only the panels whose functions exist, stating in a comment which phase adds the rest",
+        "Hints: ghost of the value a node would take on focus or hover; off during prediction steps",
+        "Configuration props: board, view, mode, coords, start, moves, script (list of moves with a caption each, advanced by a Next button), goal (reach a position; no positive number; no unhappy city; a named predicate from a short list), prediction (Predict.svelte: question, answer type, engine-computed answer, reveal; board frozen until answered or 'show me'; <details> without JavaScript), hints, panels, roadStyle",
+        "Step and play to the end where a rule fixes the next move (legal and raising, lowest-node rule) via play/raisingPlay; the whole play appended to moves; one announcement for the whole play; no autoplay on load",
+        "SafeInt-to-Big reload: a link whose start or play leaves the safe range on a named finite board is reloaded with Big arithmetic with no message",
+        "URL state read on hydration via decodeState with the instance prefix; written back via encodeState; Copy link; Download data; Show as table; the live region announcements via a11y templates",
+        "registry T01.ts: id board, boards all, outs listed (moveCounter, gameOver, bridgeSentence, notice, ...)",
+        "T01.test.ts (Vitest over the engine): on every type, playing longest_word from all ones in legal mode is accepted move by move, fires fired_values, ends at all minus ones; linked view invariant a = Cp on 100 random populations and moves on A3, B3, G2, E8; undo restores exactly in all three modes (state-level test)",
+        "T01.spec.ts (Playwright): A2 numbers legal from (1,1): fire 1, 2, 1 shows (-1,2), (1,-2), (-1,-1), then 'game over after 3 moves'; B2 and G2 sequences of Appendix A.1 appear exactly; A2 linked coords numbers start (1,0) shows 2/3 and 1/3; screen reader: firing node 2 on A2 from (1,1) in numbers view is announced 'Fired node 2. Numbers now 2, minus 1. Move 1.'; keyboard operation; one case per kind of board offered (a simply laced type, a B/C/F/G type)"
+      ],
+      "acceptance": [
+        "every bullet of 'Acceptance' under SPEC 4 T1 has a passing test (G1)",
+        "the bridge sentence appears verbatim in linked view (test)",
+        "fractions shown exactly for A2 (1,0) (test)",
+        "size: /tools/board at most 90 kB; the index page at most 60 kB",
+        "hooks: every node button has the four data attributes; root has data-tool and data-moves; every output named in the registry's outs is rendered with data-out"
+      ],
+      "traps": [
+        "In linked view the number on node i is the DROP a mutation would cause (a = Cp), not Wildberger's gain (-Cp); D7 default.",
+        "Raising mode allows a city when its number a_i is negative (a mutation would raise it); legal mode allows a node when its number is positive. Do not confuse the two signs.",
+        "Fractions from C^{-1}a: denominators divide det C; show lowest terms with a stacked fraction, never a decimal.",
+        "A link with a forbidden move in the mode in force loads the default state with the notice (6.6), not a partial play.",
+        "No tool's default state may need the worker; T1 never enumerates.",
+        "The first tool on a page is client:idle, later ones client:visible; T1 placed by a lesson must honour whichever directive the lesson gives."
+      ]
+    },
+    "P1-A6": {
+      "slug": "t02-orbit-garden",
+      "title": "Tool T2 Orbit Garden",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "The garden that grows a set of positions as a graph: roots mode and orbit mode; follow and explore growth; the grown property computed at build time; the 2000-position bound with the exact stop messages and the complete layers; positive-roots-only poset view with rises drawn as single, double or triple lines or written on the edge; interactions (jump via wordTo, labels, found/total counter); the per-layer chart off the finite types.",
+      "spec": ["2.2", "2.7 F1, F13", "2.12 (affine growth)", "4.0 (Stated limits; Growth off the finite types has two bounds; Board pickers; Test hooks)", "4 T2 in full", "5.1 E-9", "5.4 (orbit, orbitGraph, wordTo, roots)", "5.5 (Order and truncation)", "5.6", "6.3 (edge colours and labels)", "7.4", "7.5 A-11 (scroll inside its box)", "3 M1 (figure table rows for T2)"],
+      "oracle": ["orbit_graph_capped", "word_to", "roots", "positive_roots"],
+      "golden": ["types[*].n_roots", "types[*].positive_roots (A4, B3, G2 layered view)", "layer_growth_examples (triangle 40 layers: 243, 6 per layer; star with five arms: 2000, layers 0-10 complete, 1271)"],
+      "contracts": ["4", "5", "6 (T2 presets)", "7"],
+      "dependsOn": ["P1-A1", "P1-A2", "P1-A3"],
+      "owns": [
+        "site/src/components/tools/T02OrbitGarden.svelte and site/src/components/tools/t02/",
+        "site/src/tools/registry/T02.ts",
+        "site/tests/unit/tools/T02.test.ts, site/tests/e2e/T02.spec.ts",
+        "decisions/P1-A6.md"
+      ],
+      "deliverables": [
+        "roots mode (seeds all single Martians, mutations) and orbit mode (seed = current position of a linked T1 or a given start, either game)",
+        "follow mode (vertices appear as the reader visits them on the linked T1) and explore mode (one breadth-first layer per press); grown property computed at build time as part of the default state (M1 uses 40 on the triangle)",
+        "size: at most 2000 positions; up to 300 every vertex and edge drawn; above that dots without labels and edges only at the focused vertex and along the current play; the stop messages 'stopped after 2000 positions; layers 0 to L are complete' and 'stopped after 40 layers' from completeLayers and depthReached exactly as 5.5",
+        "positive roots only: layers by total population; edge from p to S_i p when the mutation raises city i; double or triple line for rises of 2 or 3; the rise written on the edge off the finite types",
+        "interactions: click a vertex to jump (board shows a shortest word from wordTo); toggle labels; found so far / total with the total hidden until asked (roots on a named finite board: the number of roots; orbit mode: known when the enumeration completes within the bound, else 'more than 2000'; orbitSize arrives in phase 3; no total on other boards)",
+        "off the finite types: layers property default 40; a small chart of new positions per layer",
+        "the verdict from classify beside the message arrives in phase 2 (P2-A7); leave a slot",
+        "T02.test.ts: roots mode counts 12, 24, 72, 126, 240 on A3, D4, E6, E7, E8 and n_roots on every other type; layered positive roots of A4, B3, G2 equal positive_roots; triangle at 40 layers: 243 and 6 per layer; star with five arms: 2000 with layers 0-10 complete holding 1271",
+        "T02.spec.ts: the triangle preset shows the message 'stopped after 40 layers' and the counter 243; explore on A3 reaches 12 and the total appears on request; follow mode with a linked T1 adds a vertex per move; keyboard reachability of vertices"
+      ],
+      "acceptance": ["every bullet of 'Acceptance' under SPEC 4 T2 except the phase-2 verdict has a passing test (G1)", "size: /tools/garden at most 90 kB", "the default state of the M1 triangle figure is computed at build time (no worker before interaction)"],
+      "traps": [
+        "'stopped after 40 layers' is said when truncated is false and depthReached equals maxDepth; 'stopped after N positions; layers 0 to L are complete' when truncated is true (5.5).",
+        "Edges are coloured by node AND labelled with the node label (6.3).",
+        "The move graph has more edges than orbitGraph records; apply every move once more to draw them all (5.4 note).",
+        "Never say 'not of finite type' from a cap; only classify may say it (4.0)."
+      ]
+    },
+    "P1-A7": {
+      "slug": "t09-kostant",
+      "title": "Tool T9 Kostant's Game",
+      "size": "S",
+      "isolation": "worktree",
+      "summary": "T1 in the populations view and raising mode from one Martian, with the three moods, the goal 'no unhappy city', the end caption naming the population, the move count beside h-2 on simply laced boards, and the marking of cities whose final number is positive with the caption of 2.12 about the new city; the phase-2 additions (the affine board's name, the button, play on) are left as slots for P2-A7.",
+      "spec": ["2.4(a)", "2.7 F13", "2.12 (Building affine boards from finite ones)", "2.16 (Kostant's game paragraph; moods)", "4.0", "4 T9 in full", "5.4 (raisingPlay, kostantPlay)", "Appendix A.4", "3 M1 beat 3"],
+      "oracle": ["kostant_play", "raising_play"],
+      "golden": ["kostant[*].end_from_node", "kostant[*].moves_from_node", "kostant[*].final_numbers_from_node"],
+      "contracts": ["4", "5", "6 (T9 default preset)"],
+      "dependsOn": ["P1-A1", "P1-A2", "P1-A3", "P1-A5 (by contract; T1 props)"],
+      "owns": ["site/src/components/tools/T09Kostant.svelte", "site/src/tools/registry/T09.ts", "site/tests/unit/tools/T09.test.ts, site/tests/e2e/T09.spec.ts", "decisions/P1-A7.md"],
+      "deliverables": [
+        "T09Kostant.svelte composing T1 (populations, raising) with: mood display per city (unhappy a_i<0 would raise; happy 0; manic a_i>0 would lower); goal no unhappy city; at the end: the name of the population (highest root, or highest short root after a short start), the number of moves beside h-2 on simply laced boards, the cities whose final number is positive marked, and the caption of 2.12 (a new city joined to these with the stated road counts makes an affine board); the slot for the board's name and the T4 button (phase 2)",
+        "T09.test.ts: for every type and every starting node, kostantPlay reproduces end_from_node, moves_from_node and final_numbers_from_node",
+        "T09.spec.ts: A3 from city 1 ends (1,1,1) after 2 moves with final numbers (1,0,1); D4 from city 1 ends (1,2,1,1) after 4 with (0,1,0,0) and city 2 marked; B3 from city 1 (long) ends (1,2,2) after 3 moves; from city 3 (short) ends (1,1,1) after 2; E8 from any city ends at (2,3,4,6,5,4,3,2) after 28 (play to the end)"
+      ],
+      "acceptance": ["G1 part of T9's acceptance (three lists for every type and node) passes", "the moods are shown by text and shape as well as colour (A-5)"],
+      "traps": ["Moods are the signs of a_i = (Cp)_i: unhappy is negative (a mutation would raise), manic is positive (would lower). SPEC 2.16.", "On B/C/F/G the end depends on whether the start is long or short (F13).", "Phase 1 offers only named finite boards here; 'play on' for affine boards is phase 2."]
+    },
+    "P1-A8": {
+      "slug": "lesson-m0",
+      "title": "Lesson M0: Start here, two games, one board",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "Module M0 as MDX from SPEC 3 M0 and its figure table, in the site's own words, with the anatomy of 8.2, at least two predictions and three challenges (adding from 8.5 where section 3 names fewer), every golden number through <G>, provenance on every statement, the Lie theory paragraph, sources, and the draft mark of D17.",
+      "spec": ["1.4 (the seven statements, for beat 5)", "1.7 (names: Populations and Numbers; the Mars story with credit)", "2.2 to 2.4", "3 (introduction and M0 in full)", "8.1 to 8.5 in full", "9.2 (lesson definition of done)", "9.3", "10 D5, D7, D14, D17", "Appendix C (terms)"],
+      "sources": ["11.1 (W20 section 2; W-MS pp. 1, 30-32)"],
+      "oracle": [],
+      "golden": ["types.A3.* as needed through <G>"],
+      "contracts": ["7"],
+      "dependsOn": ["P1-A4", "P1-A5", "P1-A6"],
+      "owns": ["site/src/content/modules/m0-start.mdx", "site/tests/e2e/M0.spec.ts", "decisions/P1-A8.md"],
+      "deliverables": [
+        "m0-start.mdx with frontmatter (title, module 0, question, phase 1, released true, draft true, outcomes LO1 LO2, sources); the five beats with the figures of the table (T1 A3 populations free p=(0,1,0) goal mutate city 1 result (1,1,0); T1 prediction for city 2 from (1,1,0) answer 0; T1 A3 numbers free a=(0,1,0) firing node 2 gives (1,-1,1); T1 linked p=(0,1,0) numbers (-1,2,-1) mutating city 2 lowers by 2; the seven statements as links); predictions: the one in beat 2 plus at least one more from 8.5; challenges: at least three; 'What we have seen' with provenance; 'For readers who know Lie theory'; links; sources",
+        "every number with a golden value through <G> or {{path}}; the bridge sentence of 2.4(a) appears where the linked view is shown (T1 renders it; the prose may repeat it with the same wording)",
+        "M0.spec.ts: the page renders without JavaScript with all five figures; the prediction shows a <details> fallback; with JavaScript the prediction freezes the board until answered; word count between 800 and 1800; no em-dash character in the built text; numbers-in-prose report for this file is empty"
+      ],
+      "acceptance": ["9.2 lesson definition of done, every item, with the test or the owner's gate named", "nojs.spec.ts passes for /modules/m0-start", "axe passes", "size: at most 120 kB JavaScript on the page at 360x800"],
+      "traps": ["Write from SPEC sections 2 and 3, never from a paper; cite by key.", "Node i is 'node i' or 'city i', never both in one sentence (P8).", "No em-dashes. Plain declarative sentences. Terms from Appendix C.", "Credit: the mutation game is Wildberger's; retell the Mars story with credit (D5).", "The sandbox link appears automatically when phase 2 releases it; do not hand-write it."]
+    },
+    "P1-A9": {
+      "slug": "lesson-m1",
+      "title": "Lesson M1: The mutation game",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "Module M1 as MDX from SPEC 3 M1 and its figure table: the Mars story on A2, root populations and the one-sign observation, raising moves and Kostant's game on A3, D4, E8, the Orbit Garden on A3, D4, E8 and positive roots only, the triangle cliffhanger; predictions, challenges, provenance, Lie theory paragraph, sources, draft mark.",
+      "spec": ["2.2", "2.7 F1, F13", "2.11 (for the challenge about a population no mutation changes)", "2.12 (the triangle as a boundary board, lightly)", "3 (introduction and M1 in full)", "8.1 to 8.5", "9.2", "10 D5, D14, D17", "Appendix A.4", "Appendix C"],
+      "sources": ["11.1 (W20 sections 2, 5, 9; W03a section 3)"],
+      "oracle": [],
+      "golden": ["types.A2/A3/D4/E8/E6 values through <G>; kostant[E8]; layer_growth_examples[label=triangle]"],
+      "contracts": ["7"],
+      "dependsOn": ["P1-A4", "P1-A5", "P1-A6", "P1-A7"],
+      "owns": ["site/src/content/modules/m1-mutation.mdx", "site/tests/e2e/M1.spec.ts", "decisions/P1-A9.md"],
+      "deliverables": [
+        "m1-mutation.mdx with the five beats and the figures of the table (T1 A2 populations free p=(1,0) with T2 follow counting to 6; T1 A3 then D4 with the goal that cannot be met and the caption after 20 moves; T9 on A3 p=(1,0,0), D4, E8; T2 explore on A3 with a chooser offering D4 and E8, then positive roots only; T2 explore on the triangle preset with grown 40: 243 and still growing); the challenges named in section 3 (all 12 root populations of A3; the highest root of E6 by raising moves, exactly 10 moves; a population no single mutation changes) plus predictions to reach two; 'What we have seen'; Lie theory paragraph (root lattice, simple reflection, roots); sources F1, F13",
+        "M1.spec.ts as for M0, plus: the triangle garden's default state shows 243 and 'stopped after 40 layers' without JavaScript"
+      ],
+      "acceptance": ["9.2 lesson definition of done", "nojs, axe, size pass for /modules/m1-mutation", "the E6 challenge check reports success exactly when the highest root is reached by raising moves"],
+      "traps": ["The triangle is affine; 'the garden never stops growing' must not be stated as 'not of finite type' from a cap; say what the tool reports and point to M3.", "The E8 Kostant end (2,3,4,6,5,4,3,2) after 28 moves from any city is [V]; cite golden kostant.E8.", "No copied sentences."]
+    }
+  }
+}

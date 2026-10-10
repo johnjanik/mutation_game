@@ -1,0 +1,86 @@
+[
+ {
+  "file": "P0-A1",
+  "kind": "cross-file",
+  "what": "Every one of the six listed gaps is now closed. 1: index.ts is now exactly `export {};` with no comment in the table (line 68), in 5.5 (line 127) and in the section 6 test, which trims the file and compares it. 2: 5.10 now quotes SPEC 7.7 as \"opens an issue and does not fail a build\" and says 7.8 only says \"runs weekly\". 3: 5.11 now builds baseURL from `siteAndBase(process.env).base` and forbids the `??` form. 4: the action pins, the engine scripts, the engine vitest.config.ts and `noEmit` are now all marked (plan). 5: ci.yml now has an `npm run build:release` step, which is asserted by `workflows match SPEC 7.8`. 6: the last acceptance line is now named as a departure from COMMON 5.2 and listed under deviations. The revision did create one new mismatch with the plan file that receives this work. P0-A6-scripts-and-ci.md still describes the ci.yml it inherits as \"checkout, setup-node, `npm ci`, `npm run check`, `npm run build`, upload\", with no `npm run build:release` step. It also still describes P0-A1's baseURL as `process.env.BASE_PATH ?? '/'` and plans a 5.7 \"correction\" of it. P0-A1 5.11 does say P0-A6 should report that the correction is already in place. Even so, P0-A6's description of its inputs is now stale for both files, and P0-A1 is forbidden from editing P0-A6. The orchestrator should update P0-A6.",
+  "where": "P0-A1 5.10 ci.yml bullet and 5.11 against P0-A6-scripts-and-ci.md lines 37, 40, 167"
+ },
+ {
+  "file": "P0-A5",
+  "kind": "contradiction",
+  "what": "Closed: all four earlier gaps. The strip scrub/truncate test is at line 236, the 50-position slider test at line 237, the client:idle acceptance at line 249, the (plan) mark for the label colour at line 108, and the Home/End targets at line 229. I checked the values in the scrub test by hand against the A2 mutation and they hold: (1,0) to (-1,0) to (-1,-1), back to position 1 at (-1,0), then Enter gives (1,0). One new inconsistency remains. Section 5.8 (line 153) now says the strip holds one button per position, starting at position 0 (the start), so an empty history still shows one strip button. The History acceptance line (235) still says 'the Reset button empties the strip and data-moves'. A test writer could assert zero strip buttons after Reset, which contradicts 5.8. The line should say what is expected instead, for example: after Reset, [data-out=\"historyStrip\"] holds exactly one button (position 0) and data-moves is 0.",
+  "where": "6. Acceptance, line 235 (A-1 and 4.0 History) against 5.8 line 153"
+ },
+ {
+  "file": "MERGE",
+  "kind": "fidelity",
+  "what": "All seven listed gaps are closed. Gap 1: 5.13 now permits adopted regression tests and strength-only edits, and treats weakening as a conflict needing a decision. Gap 2: ownership comes from the cluster name in the branch plus the RT-FIX 10 deviations. Gap 3: 5.4 has a new paragraph giving each conflicting merge its own regeneration. Gap 4: 5.7 regenerates the lockfile for every dependency request. Gap 5: 5.3 now resets main to the start commit on blocked. Gap 6: item 8 cites P0-A4 5.8. Gap 7: each acceptance line names its gate, the lockfile line is conditional and cites 5.4 (plan), and the worktree line cites 5.10 (plan). One new problem came with the revision. 5.13 says a file outside the cluster area 'is a cause fix that RT-FIX.md 5.4 item 1 and 5.5 allow in packages/engine/src/, site/src/ and scripts/'. It then treats a file 'outside those three source directories and the fixer's test files' as a deviation against the fixer. Neither RT-FIX 5.4 item 1 nor 5.5 names these three directories. 5.4 item 1 allows a cause fix wherever the cause lies, with the file flagged in handoff, and 5.5 is a list of things never changed, not a list of allowed directories. So the citation is wrong and the restriction is invented. A legitimate cause fix in a file like site/astro.config.mjs would be judged a deviation. This should be marked as plan, or dropped in favour of the 5.5 never-change list.",
+  "where": "5.13 A red-team fix round (files outside the cluster area)"
+ },
+ {
+  "file": "GATE",
+  "kind": "fidelity",
+  "what": "Previous gap 1 (registry rewrites 'in every build'): GATE was changed to the old P0-A4 wording, but P0-A4 5.8 has itself been revised since, so GATE now contradicts it. P0-A4 5.8 now says the report 'is written once per release build whether or not any page uses <Unverified>': the astro:build:start hook of openItemsReportIntegration() writes a seventeen-item baseline with empty pages, and the registry then rewrites the files after each registration. Its acceptance line 257 adds 'A release build writes the report of open items even when no page uses <Unverified>'. The only case with no report is before MERGE wires the integration into astro.config.mjs. GATE still says 'a build in which no page uses <Unverified> (possible at G0 ...) writes neither file'. Because of that, the two expected exits for G0 (exit 0 when the log has 'open item' lines, exit 1 when it has none and no file was written) leave out the normal case: no 'open item' lines and a baseline report, which gives exit 0. At G3 and G6, 'if the release build registered no usage and wrote no report' should be stated as a failure of the integration wiring, not as a normal outcome.",
+  "where": "3. Inputs (open-items bullet); 5.5 step 9; 5.5 step 10 (G0 expected exits); 5.7 first release build; 9. Traps ('A preview build after the release build overwrites the open-items report')"
+ },
+ {
+  "file": "GATE",
+  "kind": "fidelity",
+  "what": "Previous gap 2 (fixture contamination): GATE added the move after npm test and the provenance check, but the premise behind them is now false. The revised P0-A4 runs every fixture build and registry unit test with OPEN_ITEMS_REPORT_DIR set to a temporary directory, 'so that a test never overwrites the owner's release report'. content-components.test.ts therefore no longer writes reports/open-items-report.json at the repository root. GATE 5.5 step 2 and the trap 'A stale report passes for a fresh one' still say it does, with E4 and E99 in mode release. The move does no harm, but the file states as fact a behaviour that the plan now rules out. It should instead say that a report found there after npm test points to a P0-A4 defect, and raise it as a lead.",
+  "where": "5.5 step 2; 6. Acceptance (provenance line); 9. Traps ('A stale report passes for a fresh one')"
+ },
+ {
+  "file": "GATE",
+  "kind": "fidelity",
+  "what": "New contradiction with the revised P0-A4 5.8. P0-A4 now says that 'In a preview build the registry writes no file and leaves any existing report untouched', and that mode is 'always release'. GATE still says the preview build of step 4 'may write the files again (mode preview)'. Its trap also says a later preview build would rewrite the report with mode preview, and it orders the release build last for that reason. The ordering is still sensible, because the release build has to come after the preview-build tests. The stated reason and the claim about mode preview are now wrong.",
+  "where": "5.5 step 2 (last sentence); 5.5 step 9 ('No preview build may run after this step'); 9. Traps ('A preview build after the release build ...')"
+ },
+ {
+  "file": "GATE",
+  "kind": "coverage",
+  "what": "The provenance check needs every page listed in the JSON to be a route with an index.html under site/dist. At G3 and G6, the first release build uses BASE_PATH=/<name>/ when a remote exists. GATE 5.7 itself says the second build lists 'the same pages, with paths under /'. That implies the first build's page paths may carry the base prefix. GATE does not say whether to strip the base before looking a page up in site/dist. If the paths carry the prefix, the first build's genuine report would fail the check. P0-A4 shows page paths only as /modules/m1-mutation/, so the plan leaves this undecided.",
+  "where": "5.5 step 10 (provenance check); 5.7 first and second release builds"
+ },
+ {
+  "file": "GATE",
+  "kind": "fidelity",
+  "what": "5.5 step 10 tells the agent to run the provenance check before citing npm run report at every gate. The check compares generatedAt with 'the start time of this run's release build'. At G1, G2, G4 and G5 no release build runs, so that comparison has no reference point. The step should say that at those gates the check only records whether a file is present, or that it is skipped.",
+  "where": "5.5 step 10"
+ },
+ {
+  "file": "P1-A2",
+  "kind": "contradiction",
+  "what": "All six listed gaps are closed. Rule 11 now lists the seven allowed pairs (line 251). The contract reading is the default and the G1 reading, with the proposal behind LONG_LIST_REPLAY (lines 129, 265, 266, 348). exampleLoaded covers catalogue entries and has a test (lines 170, 277). Hydration enabling the controls is tested (line 280). The rule 6 linked case is fully specified and correct, since a=Cp=(2,-1) on A2 (line 246). Encode above 2^53, defaults not mutated, and nothing written on load each have tests (lines 261, 262, 278). One new inconsistency came with the revision. The first sentence of the E-9 rule 2 bullet still says decodeState 'runs firstForbiddenMove itself only when whereToRun(...) is main (at most 2000 moves)'. Later sentences in the same bullet say the default contract reading replays every list of up to 20000 moves inside decodeState. Trap 12 (line 334) agrees with the later sentences. The opening sentence should say that the 2000-move limit applies only under the 'worker' setting.",
+  "where": "5.3 Rule details, E-9 rule 2 bullet (line 129), first sentence"
+ },
+ {
+  "file": "P1-A2",
+  "kind": "underspecified",
+  "what": "Minor point. LONG_LIST_REPLAY is described as 'one exported constant', but the acceptance test at line 266 sets it to 'worker' inside the test. An ES module constant cannot be reassigned from a test. The instruction does not say how the test should switch it, for example with vi.mock, an injectable option, or a setter used only by tests. Without that, the agent has to guess, and both readings may not get tested on the same build.",
+  "where": "6. Acceptance, line 266; 5.3 line 129"
+ },
+ {
+  "file": "P6-A8",
+  "kind": "fidelity",
+  "what": "All four gaps reported earlier are closed. Gap 1 (not-automated): each 8.4 rule now has an automated proxy reported as pass or fail, and the part no test decides goes under `deviations` in the COMMON 5.2 shape so MERGE can decide. Provenance is treated the same way. Gap 2 (conventions): line 128 now matches the SPEC 2.9 table row by row. It gives the Olympiad, Mozes (with the [U] matrix wrapped as E2) and Eriksson ($a=-x$, $C_{ts}=-k_{st}$), Gashi, Schedler and Speyer ($a=-v$, $C=c^{\\mathsf T}$), and Benkart, Klivans and Reiner ($a=-u$, $C=c^{\\mathsf T}$). Gap 3 (fallback figure): the matrix now goes through `<Tex>` with `types.B3.cartan` paths, which fits the 7.3 path grammar, and there is a no-typing fallback for the transpose. Gap 4 (15 kB): marked as a plan reading in 5.6 and 6. One new imprecision: the house-style proxy says the test checks for 'the list of RT-08 attack 40' but leaves out two items on that list, the 'It's not X. It's Y.' shape and 'beautiful' used of a result. The bullet calls its list a floor, so the test stays sound. Still, it should either add those two items or stop calling the list attack 40's, so the agent is not surprised when RT-08 flags them.",
+  "where": "6. Acceptance, writing-rules sub-bullet 'House style' (line 176)"
+ },
+ {
+  "file": "RT-04",
+  "kind": "contradiction",
+  "what": "Gap 1 is mostly closed: the long-list design is cited at line 41, attack 28 builds the 2500-move and 20000-move links with a late forbidden move, line 139 switches the unit check away from bad(), and method F names firstForbiddenMove. The revision describes only the proposed worker design, though, and never says that the P1-A2 instruction (section 5.3, line 129; acceptance line 265; trap 12) makes the contract reading the default. Under that reading LONG_LIST_REPLAY is 'sync' and gate G1 tests it: decodeState replays every list of up to 20000 moves itself, on the main thread, and returns the defaults and the notice. Attack 28 contradicts that default in two places. It says 'the worker must have been requested, whichever reading MERGE chose', yet under 'sync' the forbidden link fails inside decodeState and no worker call is needed. It also lists 'the replay run on the main thread for more than 2000 moves' as a failure, yet that is exactly what the default reading does by design, and P1-A2 records it as a deviation for MERGE to decide. If MERGE keeps the default, an attacker following attack 28 would report the planned behaviour as findings. The attack should name the switch LONG_LIST_REPLAY and its 'sync' default, and should make the worker-request and main-thread failure conditions apply only under the 'worker' reading. Under 'sync', the main-thread replay should be reported as a note against E-9 rule 2 that cites the open deviation.",
+  "where": "Section 2 line 41; section 4 attack 28 (line 92); section 5 line 139; against build-plan/agents/P1-A2 section 5.3 line 129 and acceptance lines 265-266"
+ },
+ {
+  "file": "RT-07",
+  "kind": "fidelity",
+  "what": "Gap 1 is closed for Methods 5.9 and attacks 19 and 20. The `cls +=` sum is gone, CLS now uses session windows, and the TBT comment clips tasks that straddle FCP, as P3-A7 5.6 does. Attack 8 was not updated to match. It still tells the lens to check that lab.mjs computes TBT as `duration - 50` for each long task from FCP on. P3-A7 5.6 and its lab-thresholds test count only the blocking part after FCP for a task that straddles FCP. A correct lab.mjs therefore fails the check as attack 8 words it, and a finding raised on that wording would be refuted by P3-A7. Attack 8 should say 'the blocking part of each long task between FCP and the end of the quiet window, as P3-A7 5.6 defines it', and it should also check that CLS uses session windows.",
+  "where": "Section 4 attack 8 (line 63)"
+ },
+ {
+  "file": "RT-11",
+  "kind": "citation",
+  "what": "All four listed gaps are closed. Gap 1 is closed by attack 42, mutant M52, the section 6 entry on exit status 0, the full quote in section 2 item 5 and the section 7 'Numbers in prose' line. Gap 2 is closed by attack 43 (internal links, with ownership taken from P0-A6 5.13) and the section 6 entry that excludes the external half. Gap 3 is closed by attack 44 (webServer, astro preview, reuseExistingServer in CI, no build output) and the section 7 'Browser server' line. Gap 4 is closed because attack 12 now names both halves of properties 9, 10 and 12. One new inaccuracy came in with the revision. Attack 42 and the M52 row cite 'scripts.test.ts > numbers-in-prose: prose numbers are listed and excluded regions are not' and 'scripts.test.ts > report summarises a fixture open-items report' as test names from the P0-A6 plan. P0-A6 5.10 (lines 200 to 206) describes these tests but never gives them those names. A red-team agent that searches for the exact names may report the tests as missing. The fix is to describe them as P0-A6 5.10 does: 'the scanner on a fixture MDX string' and 'report.mjs: the summary line from a fixture open-items-report.json'.",
+  "where": "RT-11 section 4 attack 42 (line 151); section 5.8 mutant row M52 (line 364); compare agents/P0-A6-scripts-and-ci.md 5.10 lines 200 to 206"
+ }
+]

@@ -1,0 +1,465 @@
+{
+  "phase": 0,
+  "title": "Foundations",
+  "gate": "G0",
+  "release": null,
+  "gateItems": [
+    "phase 0 golden tests pass for all 32 types (types[*].cartan, types[*].adjacency via cartan, adjacency, boardKind)",
+    "the index page shows mathematics and the A2 board with JavaScript disabled",
+    "the keyboard script passes on the board (A-1, A-3, A-4)",
+    "the first two limits of SPEC 7.6 hold (15 kB for a page with no tool; 60 kB for the page with one Game Board)",
+    "a preview build and a release build both succeed",
+    "the rendering route is recorded in DECISIONS.md",
+    "reference file hashes equal CONTRACTS.md section 9"
+  ],
+  "ownerPart": "Put the repository on GitHub and enable Pages, run deploy.yml once by hand; answer or accept defaults for D1, D3, D4, D17.",
+  "stages": [
+    {
+      "name": "0.1",
+      "agents": [
+        "P0-A1"
+      ],
+      "isolation": "none",
+      "note": "runs in the primary checkout; creates the repository and commits to main directly; the only build agent ever allowed to do so"
+    },
+    {
+      "name": "0.2",
+      "agents": [
+        "P0-A2",
+        "P0-A3",
+        "P0-A6"
+      ],
+      "isolation": "worktree",
+      "mergeAfter": true
+    },
+    {
+      "name": "0.3",
+      "agents": [
+        "P0-A4",
+        "P0-A5"
+      ],
+      "isolation": "worktree",
+      "mergeAfter": true
+    },
+    {
+      "name": "0.4",
+      "gate": true
+    }
+  ],
+  "redTeam": {
+    "lenses": [
+      "RT-01",
+      "RT-02",
+      "RT-03",
+      "RT-05",
+      "RT-06",
+      "RT-07",
+      "RT-10",
+      "RT-11",
+      "RT-12"
+    ],
+    "maxRounds": 3
+  },
+  "agents": {
+    "P0-A1": {
+      "slug": "repo-scaffold",
+      "title": "Repository scaffold, toolchain pins, workflows, CLAUDE.md",
+      "size": "S",
+      "isolation": "none",
+      "summary": "Turn /Users/john/Claude/MutationGame into the git repository of SPEC 7.3 with npm workspaces, Astro 7 static output, Svelte 5, MDX, TypeScript 6.0.x, Vitest 5, fast-check, Playwright with axe, every version pinned exactly after confirming it exists on the registry; CLAUDE.md from Appendix H; DECISIONS.md, licences, .gitignore; astro.config.mjs taking site and base from the environment; the three GitHub workflows; Vitest and Playwright configuration; stub npm scripts with the names of 7.7 so that later agents can fill their bodies; first commit on main.",
+      "spec": [
+        "0.2",
+        "7.1",
+        "7.2 (all ten items)",
+        "7.3",
+        "7.7 (commands)",
+        "7.8",
+        "7.9",
+        "9.3",
+        "10 (D1, D3, D4, D17, D18 defaults)",
+        "Appendix H"
+      ],
+      "sources": [
+        "11.8"
+      ],
+      "oracle": [],
+      "golden": [],
+      "contracts": [
+        "1",
+        "2.1 (file skeleton only)",
+        "10"
+      ],
+      "dependsOn": [],
+      "owns": [
+        "/.git (git init), .gitignore, .nvmrc, .editorconfig",
+        "package.json (root), package-lock.json, tsconfig.base.json",
+        "CLAUDE.md, DECISIONS.md (header only), LICENSE, LICENSE-content",
+        ".github/workflows/ci.yml, deploy.yml, links.yml",
+        "packages/engine/package.json, tsconfig.json, vitest.config.ts, src/index.ts (empty export)",
+        "site/package.json, astro.config.mjs, tsconfig.json, src/pages/index.astro (placeholder, handed to P0-A5 in stage 0.3), src/styles/base.css, src/env.d.ts",
+        "playwright.config.ts, vitest.workspace.ts",
+        "decisions/P0-A1.md"
+      ],
+      "deliverables": [
+        "git repository with .gitignore covering node_modules, dist, .astro, site/src/generated, reports/* except reports/gate-*.md, playwright-report, test-results, coverage, .DS_Store, *.zip, SPEC-draft.pdf, .claude/settings.local.json (the owner's personal Claude Code settings for this project; never committed)",
+        "root package.json: private, workspaces [packages/*, site], engines node >=22.12, exact pins, scripts test/build/build:release/preview/e2e/size/lab/report/verify/typecheck/check (bodies may be stubs that exit 2 with 'not yet implemented: <owner>' where another agent owns the body)",
+        "registry check: `npm view <pkg>@<version> version` for every pin of SPEC 7.1; a table of results in decisions/P0-A1.md; a differing version only when the pinned one does not exist, with the nearest existing version and the reason",
+        "packages/engine skeleton: package.json with name @two-games/engine, type module, no dependencies, devDependencies typescript/vitest/fast-check; tsconfig strict; vitest config; src/index.ts",
+        "site skeleton: astro.config.mjs with integrations mdx and svelte, output static, site and base from SITE_URL/BASE_PATH, else from GITHUB_REPOSITORY, else http://localhost and /; a placeholder index page; base stylesheet with the CSS custom property names of CONTRACTS section 8 (values from SPEC 6.3; light and dark)",
+        "CLAUDE.md: Appendix H verbatim plus one closing paragraph pointing at build-plan/ for the multi-agent rules",
+        "DECISIONS.md with a header explaining that entries come from decisions/*.md via MERGE and GATE",
+        "LICENSE (MIT) and LICENSE-content (CC BY-SA 4.0) per D4 default, SPDX identifiers in both package.json files",
+        ".github/workflows: ci.yml (on pull_request and push to main: npm ci, npm run check, npm run build, upload site/dist as artifact), deploy.yml (on tag v* and workflow_dispatch; job runs only if vars.DEPLOY_PAGES == 'true'; release build; official Astro Pages action), links.yml (weekly; external link check that opens an issue on failure and never fails a build)",
+        "playwright.config.ts: webServer runs astro preview on the built site; project chromium (webkit added in phase 3); baseURL honours BASE_PATH; testDir site/tests/e2e",
+        "vitest.workspace.ts covering packages/engine and site/tests/unit",
+        "first commit 'P0-A1: scaffold' on main; `npm ci`, `npm run typecheck`, `npm run build` succeed on the placeholder"
+      ],
+      "acceptance": [
+        "node --version >= 22.12 recorded in the report",
+        "every pinned version resolves on the registry (table in the fragment)",
+        "npm ci succeeds from a clean clone; npm run build produces site/dist with the placeholder page; RELEASE=1 npm run build succeeds",
+        "astro.config.mjs yields base '/repo/' when GITHUB_REPOSITORY=owner/repo and '/' otherwise (unit test in site/tests/unit/config.test.ts)",
+        "CLAUDE.md contains every rule of Appendix H (diff against SPEC.md Appendix H block is empty apart from the added paragraph)",
+        "deploy.yml has the DEPLOY_PAGES condition; ci.yml uses astro build, never astro dev"
+      ],
+      "traps": [
+        "Do not run `npm install` anywhere after the lockfile exists; this agent is the one that creates the lockfile.",
+        "Astro 7 integrations and config keys may differ from Astro 5; read node_modules/astro/dist/types and the upgrade guide text in the package before writing astro.config.mjs.",
+        "TypeScript must be 6.0.x: 7.x is a native binary outside the peer ranges of @astrojs/svelte, svelte-check, @astrojs/check (SPEC 7.2 item 4).",
+        "Do not add ESLint or Prettier; they are dependencies not named by the specification. Record that choice.",
+        "Do not create the KaTeX or markdown-remark dependencies; P0-A3 decides them."
+      ]
+    },
+    "P0-A2": {
+      "slug": "engine-core",
+      "title": "Engine core: arithmetic, boards, the two moves, errors, caps, golden harness",
+      "size": "S",
+      "isolation": "worktree",
+      "summary": "The phase-0 engine of SPEC 5: the Arith interface with SafeInt and Big, the Board type with labels, cartan() for every finite family at any rank, boardFromName for finite names, fromAdjacency/adjacency, boardKind, toLabels/toPositions, mutate and fire, every error class of E-10, the caps module, and the golden-test harness implementing the seven comparison rules of 5.7 with a coverage registry; the phase-0 golden tests for all 32 types; property test 1; unit tests for labels on an affine-labelled board and for SafeInt overflow.",
+      "spec": [
+        "2.1",
+        "2.2",
+        "2.3",
+        "2.4",
+        "2.8",
+        "5.1 (E-1 to E-11)",
+        "5.2",
+        "5.3 (phase 0 rows)",
+        "5.4 (mutate, fire)",
+        "5.6",
+        "5.7 (comparison rules, phase 0 row, property 1)",
+        "Appendix A.1 (test vectors)",
+        "Appendix G"
+      ],
+      "oracle": [
+        "cartan (l.32)",
+        "adjacency (l.86)",
+        "mutate (l.138)",
+        "fire (l.145)",
+        "board_kind (l.1012)",
+        "board_from_name (l.1786, finite branch)"
+      ],
+      "golden": [
+        "types[*].cartan",
+        "types[*].adjacency",
+        "conventions (read, not compared)",
+        "classification_tests[*].cartan (boardKind only)",
+        "one_way_counterexample.cartan (boardKind only)"
+      ],
+      "contracts": [
+        "2.1",
+        "2.2",
+        "2.3",
+        "2.4 (phase 0)",
+        "2.5",
+        "3",
+        "9"
+      ],
+      "dependsOn": [
+        "P0-A1"
+      ],
+      "owns": [
+        "packages/engine/src/arith.ts, errors.ts, caps.ts, board.ts, moves.ts, index.ts",
+        "packages/engine/test/golden/_harness.ts, p0-types-cartan.test.ts, p0-board-kind.test.ts",
+        "packages/engine/test/properties/p1-involution.test.ts",
+        "packages/engine/test/unit/labels.test.ts, overflow.test.ts",
+        "packages/engine/vitest.config.ts (coverage reporter for covers())",
+        "decisions/P0-A2.md"
+      ],
+      "deliverables": [
+        "arith.ts: Arith<T>, SafeInt (every add/sub/mul result checked with Number.isSafeInteger; throws EngineOverflow), Big; show() as decimal text; toBig()",
+        "errors.ts: EngineError base; NotABoard, NeedsTwoWayRoads, NeedsConnectedBoard, NotFiniteType, NotAffine, NotAdmissible, EngineOverflow",
+        "caps.ts: the constants of CONTRACTS 2.3",
+        "board.ts: Board<T>; cartan(name) for A(n>=1), B(n>=2), C(n>=2), D(n>=4), E6/E7/E8, F4, G2 in Bourbaki numbering (SPEC 2.8) with the reference matrices of 2.8 reproduced; boardFromName for finite names (SafeInt, labels 1..n, name set); fromAdjacency (C = 2I - A^T) and adjacency; boardKind; toLabels/toPositions; cartanNumbers",
+        "moves.ts: mutate (only entry i changes) and fire (negate a_i, neighbours a_j -= C[j][i] a_i), generic over Arith",
+        "_harness.ts: everything in CONTRACTS section 3 including GOLDEN_KEYS_BY_PHASE from the table of SPEC 5.7 and covers() writing test/golden/coverage.json",
+        "p0 golden tests: for all 32 types, cartan(name) equals types[T].cartan, adjacency equals types[T].adjacency, boardKind is 'gcm'; boardKind on every classification_tests cartan equals its components' kind where the board is connected (one-way for the one-way road, gcm otherwise); one_way_counterexample.cartan is 'one-way'; a hand-written not-a-board matrix is 'not-a-board'",
+        "property 1 with fast-check: mutate twice and fire twice are the identity on random vectors in [-9,9] on random types",
+        "labels.test.ts: a board constructed by hand with labels [0,1,2,3] (as an affine board will have) round-trips toLabels/toPositions and mutate on position 0 changes the entry the reader calls node 0 (guards E-7 against a stray +1)",
+        "overflow.test.ts: on the bigint_test board with SafeInt, replaying bigint_test.mutation_nodes throws EngineOverflow at the move after first_move_after_which_an_entry_exceeds_2_to_53 (determine the exact index semantics from verify.py and state them in a comment); with Big it reaches population_end"
+      ],
+      "acceptance": [
+        "GOLDEN_KEYS_BY_PHASE[0] keys all appear in coverage.json after the suite runs",
+        "all phase-0 golden tests pass for the 32 types (G0)",
+        "property 1 passes (G0)",
+        "labels and overflow unit tests pass",
+        "packages/engine has no runtime dependency (package.json dependencies is {}) and src imports nothing outside src",
+        "tsc --noEmit passes with strict"
+      ],
+      "traps": [
+        "C = 2I - A^T, not 2I - A: adjacency A[i][j] is roads from i to j; C[i][j] = -A[j][i]. Test with B2 where the matrix is asymmetric.",
+        "B_n has C[n-1][n] = -2? No: SPEC 2.8 says for B_n, C_{n,n-1} = -2 (1-based), that is C[n-1][n-2] = -2 in positions. For C_n, C_{n-1,n} = -2. For F4, C_{32} = -2. For G2, C_{12} = -3. Check every one against golden types[*].cartan.",
+        "SafeInt.mul must check the product, not only sums; 2^53 arithmetic: Number.isSafeInteger(2**53) is false.",
+        "fire changes neighbours by -C[j][i] * a_i, the column i of C; mutate uses row i. Do not transpose by habit.",
+        "The harness loads reference/golden_data.json by a path relative to the test file so it works from any worktree."
+      ]
+    },
+    "P0-A3": {
+      "slug": "math-spike",
+      "title": "Mathematics rendering spike, KaTeX self-hosting, renderTex, names.mjs skeleton",
+      "size": "S",
+      "isolation": "worktree",
+      "summary": "Carry out the spike of SPEC 7.2 item 3: render one .mdx page with inline and display mathematics by route (a) (remark-math and rehype-katex under the unified() processor of @astrojs/markdown-remark 7.3.2) and by route (b) (a build-time call of katex.renderToString); record what worked in decisions/P0-A3.md; wire the chosen route; provide site/src/lib/katex.ts with renderTex(src, display) using the same installed KaTeX; copy that package's CSS and fonts into site/public/katex at build time; write the skeleton of scripts/names.mjs.",
+      "spec": [
+        "7.2 items 1, 2, 3, 6",
+        "7.3 (the <Tex> paragraph; the sources page paragraph; names.mjs)",
+        "7.5 A-12",
+        "7.6 (no typesetting library to the client)",
+        "7.1 (Prose and Mathematics rows)"
+      ],
+      "oracle": [],
+      "golden": [],
+      "contracts": [
+        "1",
+        "4 (katex.ts)",
+        "7"
+      ],
+      "dependsOn": [
+        "P0-A1"
+      ],
+      "owns": [
+        "site/src/lib/katex.ts",
+        "scripts/katex-assets.mjs (copies node_modules/katex/dist/katex.min.css and fonts to site/public/katex/)",
+        "scripts/names.mjs (skeleton: typesets the 32 type names and writes site/src/generated/names.json)",
+        "site/astro.config.mjs: the markdown section only (protocol: edit only the markdown/processor key)",
+        "site/package.json: the dependencies this spike decides (katex, and if route (a): @astrojs/markdown-remark, remark-math, rehype-katex)",
+        "site/tests/unit/katex.test.ts",
+        "decisions/P0-A3.md"
+      ],
+      "deliverables": [
+        "Spike A: a temporary .mdx page with $...$ and $$...$$ under processor: unified({remarkPlugins:[remarkMath], rehypePlugins:[rehypeKatex]}); build; inspect output for KaTeX markup and MathML; record versions actually resolved (katex via rehype-katex is ^0.16); confirm .mdx files pass through the processor (SPEC 7.2 item 1, [S2])",
+        "Spike B: a temporary .astro page calling katex.renderToString in frontmatter; build; inspect",
+        "Decision per the rule of 7.2 item 3: if both work, lessons use (a); <Tex>, names.mjs and sources.astro import the SAME installed katex that rehype-katex resolves; otherwise (b) with katex 0.19.x. Record both results and the installed katex version in decisions/P0-A3.md",
+        "katex.ts: renderTex(src, display) with output 'htmlAndMathml', throwOnError true, trust false; exports KATEX_VERSION read from the installed package.json",
+        "katex-assets.mjs: copies CSS and fonts from the installed package into site/public/katex/<version>/ and writes the stylesheet link path; the base layout links it (coordinate with P0-A1's base layout by writing the link tag into src/layouts/Base.astro if it exists, else into index.astro's head; state which)",
+        "names.mjs skeleton writing site/src/generated/names.json with the KaTeX markup of the 32 type names (A_1 ... G_2); the full catalogue arrives in phase 6",
+        "remove the spike pages after recording results, or keep exactly one as site/src/pages/dev/math-check.mdx marked released:false",
+        "katex.test.ts: renderTex('\\\\alpha_1', false) contains <math and a katex span; the version in the stylesheet path equals KATEX_VERSION; a formula with an error throws"
+      ],
+      "acceptance": [
+        "decisions/P0-A3.md records both routes with evidence and the choice (G0: 'the rendering route is recorded in DECISIONS.md')",
+        "a built page shows the formula with JavaScript disabled, with MathML present (G0)",
+        "no KaTeX JavaScript is referenced by any built page (grep site/dist for katex .js)",
+        "the stylesheet and fonts in site/public/katex come from the same version as renderTex (test)"
+      ],
+      "traps": [
+        "KaTeX 0.18 prefixed CSS class names; a stylesheet from one version with HTML from another breaks silently (SPEC 7.2 item 2). Never mix.",
+        "Astro 7's default Markdown processor runs no remark or rehype plugins; the `processor` option of astro.config.mjs is where unified() goes (SPEC 7.2 item 1).",
+        "Backslashes in an MDX attribute must reach KaTeX unchanged (SPEC 7.3 <Tex> paragraph); test a src with \\\\frac.",
+        "Do not install three.js, a layout library or satteri-katex."
+      ]
+    },
+    "P0-A4": {
+      "slug": "content-components",
+      "title": "Content components G, Tex, Unverified, Cite; golden path resolver; unverified.json",
+      "size": "S",
+      "isolation": "worktree",
+      "summary": "The four content components of SPEC 7.3 that make the content rules checkable by the build: <G> prints a golden value and fails the build on a bad path; <Tex> substitutes {{path}} and typesets with renderTex; <Unverified> marks or replaces a sentence by build mode; <Cite> links a SOURCES.md key and fails on an unknown one; lib/golden.ts implements the path grammar; content/unverified.json is seeded with E1 to E17 open.",
+      "spec": [
+        "7.3 (the four components, in full)",
+        "7.7 (Content row)",
+        "Appendix E (all 17 items)",
+        "Appendix G (the path shapes used in examples)",
+        "8.4 (numbers through <G>)",
+        "9.3"
+      ],
+      "sources": [
+        "11.0 (the key format and labels)"
+      ],
+      "oracle": [],
+      "golden": [
+        "(read access to every key for the resolver tests; no comparison)"
+      ],
+      "contracts": [
+        "4 (golden.ts, katex.ts)",
+        "7"
+      ],
+      "dependsOn": [
+        "P0-A1",
+        "P0-A3"
+      ],
+      "owns": [
+        "site/src/lib/golden.ts",
+        "site/src/components/content/G.astro, Unverified.astro, Cite.astro, index.ts",
+        "site/src/components/math/Tex.astro",
+        "site/src/content/unverified.json",
+        "site/src/lib/sources.ts (SOURCES.md key parser; used by Cite now and by sources.astro in phase 1)",
+        "site/src/lib/unverifiedRegistry.ts (collects <Unverified> usages during a build for the release report)",
+        "site/tests/unit/golden.test.ts, sources.test.ts, content-components.test.ts",
+        "decisions/P0-A4.md"
+      ],
+      "deliverables": [
+        "golden.ts: resolveGoldenPath implementing: dot steps; key; key[index]; key[field=value;field=value] selection compared as text (lists of integers joined by commas); must resolve to exactly one value or throw GoldenPathError naming the path and the count; formatGoldenValue: integers with U+2212 minus and U+202F grouping in threes from five digits; lists in round brackets separated by commas; strings as they stand; as=word (labels separated by thin spaces U+2009), as=count, as=plain",
+        "G.astro: props k, as; renders the formatted value; a bad path throws at build time",
+        "Tex.astro: props src, display; replaces every {{path}} with the golden value (digits grouped with \\\\, inside formulas), then renderTex",
+        "Unverified.astro: props item (E1..E17 or later), fallback; reads content/unverified.json; preview build (RELEASE unset): renders children with a visible mark linking to /open-items#E4; release build: closed item → children unmarked; open item → fallback text, or nothing; registers usage {item, page} for the release report; never fails the build",
+        "Cite.astro: prop k; renders [k] linked to <base>/sources#k with the entry's first line as title; unknown key throws at build time",
+        "sources.ts: parses SOURCES.md for key definitions and their entry text; exports keys(), entry(k)",
+        "unverified.json: 17 items {id, status:'open', statement, whereToCheck, gate} transcribed from Appendix E with the gate of 9.1 that names each (6 → G2; 2, 3 → G3; 7, 9 → G4; the rest → G6)",
+        "tests: resolver on types.E8.weyl_order, satake[dynkin_type=E6;real_form=e6(-14)].dim_k, folding[type=D4;order=3].folds_to, wythoff[type=F4;rings=1,0,0,0].f_vector, positive_roots[0], a path matching two records (throws), an unknown key (throws); formatting of 696729600 and of -1 and of a list; Cite on W20 and on an unknown key; Unverified in both modes (set RELEASE in the test); a build-level check: a fixture page with a bad <G> path makes astro build fail (run as a script in CI or as a Vitest test spawning the build on a tiny fixture project)"
+      ],
+      "acceptance": [
+        "every path shape of SPEC 7.3 resolves in tests; the two failure cases throw with the described message",
+        "<Unverified> behaves as 7.3 in preview and release builds (tests for both)",
+        "<Cite k='Don08'/> links to the sources anchor; an unknown key fails the build (test)",
+        "unverified.json has exactly E1..E17, all open, each with the gate that names it",
+        "numbers printed by <G> use a true minus sign and narrow no-break spaces (test on -1 and 696729600)"
+      ],
+      "traps": [
+        "Selection values are compared as text; a field holding a list of integers is compared as its entries joined by commas with no spaces ('1,0,0,0').",
+        "A release build must never fail because of an open item (SPEC 7.3). It prints a report instead.",
+        "Only the owner sets an item to closed; the seed is all open.",
+        "The sources page (phase 1) renders SOURCES.md as Markdown, not MDX; your parser must not depend on MDX."
+      ]
+    },
+    "P0-A5": {
+      "slug": "board-seed",
+      "title": "Board component family, keyboard and announcement model, the index page with one A2 board, the phase-0 about and credits pages",
+      "size": "M",
+      "isolation": "worktree",
+      "summary": "The first interactive island: Board.svelte with real button nodes over an SVG, roads, values with the three-way sign encoding of 6.3, the roving tabindex and arrow-key model of A-1, the name templates of A-3, the live region and templates of A-4 in lib/a11y.ts, History.svelte with undo/redo/reset and the u/r shortcuts, the hooks of 4.0; the index page rendered at build time with the board on A2 (populations view, free play, start (1,0)), a caption and one formula, hydrated with client:idle; Playwright keyboard script, axe scan and a no-JavaScript check; the two phase-0 size limits. Also the phase-0 versions of the about and credits pages (SPEC 7.3 places both in phase 0), as plain Astro pages with no tool, which are also the 'page with no tool' measured against the 15 kB limit at G0.",
+      "spec": [
+        "7.3 (pages paragraph: about and credits in phase 0, extended at each release)",
+        "4.0 (every rule; especially History, Keyboard, Signs, Test hooks, Small screens)",
+        "4 T1 (shape only; the full tool is phase 1)",
+        "6.1 (the row layout and the size rule)",
+        "6.2 (dynkin style for a single line)",
+        "6.3 (values, colours, typefaces)",
+        "7.4 (life without JavaScript)",
+        "7.5 A-1 to A-12 in full",
+        "7.6 (first two limits; client:idle)",
+        "8.1 P1, P2, P9, P10, P11",
+        "8.3",
+        "7.9 (what credits must list)"
+      ],
+      "oracle": [],
+      "golden": [],
+      "contracts": [
+        "4 (a11y.ts, katex.ts)",
+        "5.1",
+        "8"
+      ],
+      "dependsOn": [
+        "P0-A1",
+        "P0-A2",
+        "P0-A3"
+      ],
+      "owns": [
+        "site/src/components/board/Board.svelte, Node.svelte, Roads.svelte, History.svelte, types.ts",
+        "site/src/lib/a11y.ts",
+        "site/src/pages/index.astro (content; handed over from P0-A1)",
+        "site/src/pages/about.astro, credits.astro (phase-0 versions; P1-A4 converts them to content pages and extends them)",
+        "site/src/layouts/Base.astro (if P0-A1 did not create it; else edit only to add the skip link and the live-region conventions)",
+        "site/tests/e2e/board-keyboard.spec.ts, a11y.spec.ts, nojs-phase0.spec.ts",
+        "site/tests/unit/a11y.test.ts, signs.test.ts",
+        "decisions/P0-A5.md"
+      ],
+      "deliverables": [
+        "Board.svelte per CONTRACTS 5.1: SVG drawing plus a <div role=group aria-label> of <button> elements positioned over the nodes; one button in the tab order (roving tabindex); arrow keys per A-1 for row layouts (45-degree rule with ties to the smaller label; fall back to next/previous label, stopping at the ends); Home/End; Enter/Space acts; data-node/data-board/data-value/data-can-act on every button; hit area min(44,u); sign by numeral (true minus, tabular figures), fill and colour per 6.3; focus ring visible (A-2); 'may act here' shown by a second ring and cursor, never colour alone",
+        "Node.svelte, Roads.svelte (single line for (1,1); the full styles arrive with P1-A3; design the API so P1-A3 can replace the internals without changing Board's props)",
+        "History.svelte: undo, redo, reset buttons after the board in the tab order; strip of past positions (slider above 50); u and r shortcuts only while focus is inside the board; undo recomputes from start and moves (no legality test)",
+        "a11y.ts: speak(), nodeName(), announceTemplates with the exact strings of SPEC 7.5 A-3 and A-4 (including 'minus', the changed-nodes-only rule above four nodes, and the coalescing within half a second), createAnnouncer()",
+        "index.astro: title, two sentences, the A2 board (populations, free, start (1,0)) rendered at build time with its caption, one formula via the chosen route, hydrated client:idle; controls rendered disabled until hydration; a <noscript> line; the box size reserved in HTML to avoid layout shift",
+        "board-keyboard.spec.ts: Tab reaches exactly one node; Right/Left move between the two nodes and stop at the ends; Home/End; Enter mutates and the live region reads 'Mutated city 1. Populations now 1, 0. Move 1.' (compute the exact expected string from the engine); u undoes only when focus is inside the board; the focus ring is visible (computed style); buttons carry the four hooks with correct values",
+        "a11y.spec.ts: axe on the index page with no serious or critical violations",
+        "nojs-phase0.spec.ts: with JavaScript disabled the page shows the board SVG with values, the caption, the formula's MathML, and disabled controls",
+        "size: the index page's fetched JavaScript at 360x800 is at most 60 kB gzip, and a page with no tool (about, if present; else a test page) at most 15 kB (run scripts/size.mjs if P0-A6 has merged; else measure by hand and report the numbers)",
+        "about.astro and credits.astro: plain pages with no island; about states the purpose of 1.1 in a paragraph and the working title (D1 default); credits lists the dependencies with their licences from the three package.json files, the two site licences (D4 default), and the credit sentence for Wildberger's story and terminology (7.9); both link to each other and to the index with import.meta.env.BASE_URL"
+      ],
+      "acceptance": [
+        "the keyboard script passes (G0)",
+        "the page shows mathematics and the board with JavaScript disabled (G0)",
+        "axe: no serious or critical violations (7.7)",
+        "the first two size limits hold (G0)",
+        "every button has data-node, data-board, data-value, data-can-act (4.0)",
+        "the live region exists, empty, before the first move, and each move produces exactly the template string (A-4)",
+        "the about page fetches at most 15 kB of JavaScript gzip at 360x800 (the first limit of 7.6; G0)"
+      ],
+      "traps": [
+        "Svelte 5 runes only; onclick not on:click; snippets not slots.",
+        "A disabled control must be rendered disabled in the server HTML and enabled by the island on hydration, not the other way round (7.4).",
+        "The hit area is a square of side min(44,u) centred on the node; the drawn circle may be smaller (A-7).",
+        "'minus' is spoken, '-' is written with U+2212 on screen (6.3).",
+        "No motion starts by itself; respect prefers-reduced-motion (A-9).",
+        "The live region is per tool, polite, and present before the first move (A-4)."
+      ]
+    },
+    "P0-A6": {
+      "slug": "scripts-and-ci",
+      "title": "size.mjs, verify.mjs, numbers-in-prose.mjs, lab stub, npm command bodies, BASE_PATH test",
+      "size": "S",
+      "isolation": "worktree",
+      "summary": "The repository's measurement and verification scripts of SPEC 7.6, 5.7 and 7.7, the bodies of the npm commands, the prebuild hook that runs names.mjs and katex-assets.mjs, and the browser test that builds with BASE_PATH=/sub/path/ to catch links typed with a leading slash.",
+      "spec": [
+        "5.7 (Regenerating the golden data)",
+        "7.2 item 10",
+        "7.3 (the four scripts)",
+        "7.6 (Measured by npm run size; lab timings)",
+        "7.7 (table and commands)",
+        "7.8"
+      ],
+      "oracle": [],
+      "golden": [
+        "(verify.mjs compares the regenerated file with the committed one; no key comparison)"
+      ],
+      "contracts": [
+        "1"
+      ],
+      "dependsOn": [
+        "P0-A1"
+      ],
+      "owns": [
+        "scripts/size.mjs, verify.mjs, numbers-in-prose.mjs, lab.mjs, report.mjs",
+        "package.json (root): the script bodies only",
+        ".github/workflows/ci.yml (protocol: add the e2e, size and verify steps once their bodies exist; never remove a step)",
+        ".gitignore, playwright.config.ts and the root Vitest configuration (ownership passes from P0-A1 after stage 0.1; protocol: additive)",
+        "site/tests/e2e/basepath.spec.ts and the e2e:basepath command",
+        "site/tests/unit/size-classify.test.ts (route → limit classification)",
+        "decisions/P0-A6.md"
+      ],
+      "deliverables": [
+        "size.mjs: starts astro preview on site/dist (or takes a URL), opens every route of the built site at 360x800 in Chromium, waits for network idle without touching the page, collects every script URL fetched, gzips the corresponding files from site/dist at level 9, sums per route, classifies the route (no tool: 15 kB; the index page with one board: 60 kB; /tools/*: 90 kB; /modules/*: 120 kB; classification by data-tool count in the HTML and by path), prints the table, exits non-zero on excess",
+        "verify.mjs: runs `python3 reference/verify.py <tmp>`; fails unless exit 0; byte-compares with reference/golden_data.json; on difference also compares as parsed JSON and prints whether they are equal as parsed; prints the oracle's summary line; never writes into reference/",
+        "numbers-in-prose.mjs: scans site/src/content/modules/*.mdx for digit sequences in prose outside <G>, <Tex>, code spans, frontmatter and component props; writes reports/numbers-in-prose.md listing file, line and the number; exits 0 (it is a report for a person)",
+        "lab.mjs: in phase 0 prints 'lab timings arrive in phase 3 (P3-A7)' and exits 2; CI does not call it until phase 3",
+        "report.mjs: runs numbers-in-prose.mjs and copies the open-items report of a release build into reports/",
+        "npm scripts: test (vitest run across the workspace), build (prebuild: node scripts/katex-assets.mjs && node scripts/names.mjs; then astro build), build:release (RELEASE=1), preview, e2e (playwright test), e2e:basepath (BASE_PATH=/sub/path/ build to a separate outDir, then the basepath spec), size, lab, report, verify, typecheck (tsc for engine; astro check and svelte-check for site), check (typecheck + test)",
+        "basepath.spec.ts: against the BASE_PATH build, every internal href and asset URL on the index page starts with /sub/path/ and resolves (200)",
+        "size-classify.test.ts: the route classifier maps example paths to the right limits",
+        "ci.yml extended with the steps npm run e2e (after npx playwright install --with-deps chromium), npm run size and npm run verify (python3 is on the CI image), in that order after the build step"
+      ],
+      "acceptance": [
+        "npm run size prints the table and fails on an artificial excess (test by a fixture or by a temporary limit override flag used only in the test)",
+        "npm run verify passes on this machine with the system Python and reports 6649 checks, byte-for-byte identical",
+        "npm run e2e:basepath passes on the placeholder or index page",
+        "every command of SPEC 7.7 exists in root package.json"
+      ],
+      "traps": [
+        "Playwright must not touch the page before collecting scripts: the budget is 'before the reader's first interaction'.",
+        "gzip level 9 of the files in site/dist, not the transfer size the browser reports.",
+        "verify.mjs must run from the repository root in CI and in a worktree; use paths relative to the script.",
+        "Do not write into reference/."
+      ]
+    }
+  }
+}

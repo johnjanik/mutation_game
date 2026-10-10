@@ -1,0 +1,1311 @@
+{
+ "P0-A1": [
+  {
+   "kind": "fidelity",
+   "what": "The file contradicts itself on the contents of packages/engine/src/index.ts. The deliverables table says \"`export {};` and nothing else\", 5.5 says \"`export {};` and a one-line comment that P0-A2 fills it\", and the acceptance line says \"`src/index.ts` is `export {};`\". A scaffold test written literally from section 6 would fail against the file that 5.5 asks for. CONTRACTS 2.1 says only \"re-exports the public API; nothing else\". The file should pick one form and test that form.",
+   "where": "Section 4 (deliverables table, src/index.ts row), 5.5 second bullet, section 6 engine line"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The phrase \"never fails a build\" is put in quotation marks and attributed to `SPEC.md` 7.7 Links row and 7.8. That wording comes from the roster deliverable. SPEC 7.7 says \"external links checked weekly by `links.yml`, where a failure opens an issue and does not fail a build\", and 7.8 says only \"`links.yml` runs weekly (section 7.7)\".",
+   "where": "5.10, links.yml bullet"
+  },
+  {
+   "kind": "fidelity",
+   "what": "5.11 sets `use.baseURL` to `http://localhost:4321` + `process.env.BASE_PATH ?? '/'`. With `??`, an empty BASE_PATH is kept as an empty string. That contradicts the rule in 5.6 and CONTRACTS 1 that \"an empty string counts as unset\", and it would produce a baseURL without the trailing slash that the base rule requires.",
+   "where": "5.11"
+  },
+  {
+   "kind": "invented",
+   "what": "Several requirements are stated as binding but are not marked (plan), and neither SPEC nor the roster names them: pinning every GitHub action by its current major version tag; the engine package scripts `{\"test\": \"vitest run\", \"typecheck\": \"tsc --noEmit\"}`; the engine Vitest project name `engine` with `include: ['test/**/*.test.ts']` and \"nothing else\"; and `\"noEmit\": true` in the engine tsconfig.",
+   "where": "5.5, 5.10 opening paragraph, 5.4 third bullet"
+  },
+  {
+   "kind": "coverage",
+   "what": "G0 item \"a preview build and a release build both succeed\" (SPEC 9.1, roster acceptance 3) has no automated check that actually runs. ci.yml runs only `npm run build`. deploy.yml is the only workflow that makes a release build, and it is skipped until the owner sets DEPLOY_PAGES, so the RELEASE=1 build is proven only by local commands. The fix is either a `RELEASE=1 npm run build` step in ci.yml or a named test.",
+   "where": "Section 6, third line; 5.10 ci.yml bullet"
+  },
+  {
+   "kind": "template",
+   "what": "The last acceptance line (first commit subject `P0-A1: scaffold` on `main`) has no automated test. The template allows that only when SPEC says the check is manual. The file gives a reason and points to MERGE checking it, but this is still a departure from the template rule and should be named as one.",
+   "where": "Section 6, last line"
+  }
+ ],
+ "P0-A2": [
+  {
+   "kind": "coverage",
+   "what": "Three phase-0 deliverables have binding requirements in section 5 but no line in the section 6 acceptance checklist and no named test. (1) caps.ts must hold 'exactly the numbers of CONTRACTS.md 2.3' (20 constants, e.g. edgesAtRest 70000, countGamesGroup 60000). (2) errors.ts: all seven E-10 classes must extend EngineError and set this.name so that the phase-1 worker can re-throw 'as the same class'; NotAffine must carry data.class and NotAdmissible must carry data: Admissibility. Today only NotABoard and EngineOverflow are exercised. (3) index.ts must re-export every name of 5.7, which P0-A5 imports in stage 0.3, and this is checked only by the publicApi report field and tsc. A typo in a CAPS value, a missing this.name, or a missing re-export would pass every acceptance line. Add a unit test for each, for example in harness.test.ts or a caps/errors test, and map it in section 6.",
+   "where": "Section 6 (Acceptance), against sections 4, 5.3, 5.4, 5.7"
+  },
+  {
+   "kind": "style",
+   "what": "The rule 3 quotation starts \"The same number of rings, ...\" but SPEC 5.7 rule 3 reads \"the same number of rings, the same sizes in the same order (innermost first), radii equal to within $10^{-5}$.\" Only the capital letter differs, a normal adjustment at the start of a quoted fragment. Several other quotations (2.1 'into', 2.2, 2.3 'leaves', E-7 'Everything outside the engine uses labels') drop SPEC's bold markup. The wording is otherwise character for character.",
+   "where": "Section 5.8, Rule 3; sections 5.1 and 5.6 quotations"
+  }
+ ],
+ "P0-A3": [
+  {
+   "kind": "invented",
+   "what": "The plan-added names test asserts `texOfName('A4~')` throws. That assertion is in a file P0-A3 owns (`site/tests/unit/katex.test.ts`). The roster for phase 6 has P6-A2 extend `scripts/names.mjs` to 'every real form name of 6.5, every Cartan label, every type', and section 5.5 of the instruction itself says affine names such as `C2~` arrive with P6-A2. Once P6-A2 extends `texOfName`, the test will fail, and P6-A2 does not own the test (COMMON 4.2: no editing other agents' tests). The rejected spelling should be one that no catalogue extension will accept, for example `Z9` or `A0`, or the test should be scoped to the phase-0 behaviour some other way.",
+   "where": "6. Acceptance (names.mjs line); 5.5"
+  },
+  {
+   "kind": "invented",
+   "what": "'Leave `strict` at its default and record that choice' is a requirement that appears in neither SPEC.md nor the roster, and it is not marked (plan). It also sits uneasily beside 'renderTex catches nothing, prints nothing': KaTeX's default strict mode reports some inputs as warnings on the console at build time. Either mark the rule (plan) and say what to do about the warnings, or set strict explicitly.",
+   "where": "5.3 Rules, first bullet"
+  },
+  {
+   "kind": "invented",
+   "what": "Two factual claims given as settled are neither sourced nor marked (plan) or 'confirm': that KaTeX emits `display=\"block\"` on the `<math` element 'in every version', and that P0-A6's size.mjs classes `/dev/math-check/` as a 15 kB route. The P0-A6 roster classifies routes only 'by data-tool count in the HTML and by path' and never names dev pages. The second claim is marked (plan) in 5.7; the first is unmarked in section 9.",
+   "where": "9. Traps (class names trap); 5.7"
+  }
+ ],
+ "P0-A4": [
+  {
+   "kind": "coverage",
+   "what": "The release report is written and printed only 'after every registration' (5.8). A release build in which no page uses <Unverified> therefore writes no reports/open-items-report.json or .md and prints nothing. That is the state of the site through all of phase 0 and until the first lesson that wraps a sentence. SPEC 7.3 says 'A release build ... prints a report of the open items and the pages that use them', 7.7 says 'a release build prints the report of open <Unverified> items', and G3/G6 require a release build that 'prints its two reports' / whose 'report of open items is attached'. P0-A6's report.mjs exits 1 when no release report exists. The instruction needs a report that is written once per build regardless of usage (for example from an Astro integration hook such as astro:build:done, or an explicit write at the end of the build), listing all seventeen items with empty page lists.",
+   "where": "5.8 (unverifiedRegistry.ts, report paragraph); 6 (release report line)"
+  },
+  {
+   "kind": "coverage",
+   "what": "The registry rewrites reports/open-items-report.json in preview mode as well, with mode 'preview'. Any later `npm run build`, such as the CI build or a merge check, overwrites the release report that the owner must read at each release (7.3; 9.1 G6). P0-A6's report.mjs refuses a preview-mode file. The instruction should say either that a preview build writes no report, or that it writes the report to a separate path.",
+   "where": "5.8 (report paragraph)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "There is an ownership conflict that the file does not acknowledge. Section 7 assigns site/src/lib/sources.ts and site/src/lib/unverifiedRegistry.ts to P0-A4, following the roster. README section 6 lists only `site/src/components/content/*, site/src/lib/golden.ts, site/src/content/unverified.json` for P0-A4, and CONTRACTS 4 heads site/src/lib/ as 'owner P1-A2 unless stated', with only golden.ts and katex.ts stated. site/tests/fixtures/content/ is also absent from README 6. The file should note the discrepancy and ask MERGE to amend README 6 and CONTRACTS 4.",
+   "where": "7 (Files); 4 (Deliverables)"
+  },
+  {
+   "kind": "invented",
+   "what": "The tests of 5.12 type golden values into test source as expected results: 696729600, 46, [24, 96, 96, 24], 120, 6, 8, 'G2', ['A1~','A2^(2)']. COMMON 4.4 forbids 'a golden value typed into source'. The resolver tests should compare against direct access to the imported golden JSON, for example golden.types.E8.weyl_order or a filter on golden.satake. Alternatively the file should state explicitly that this is a (plan) exception for resolver tests, record it, and justify it.",
+   "where": "5.12 (golden.test.ts); 2 item 15"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The file cites 'never run two builds at once (COMMON 4.5)' and, in the traps, 'Run your fixture builds serially ... (COMMON 4.5)'. COMMON 4.5 only forbids a second Playwright run and requires killing astro preview. Serial Astro builds are a reasonable plan rule, but they are attributed to COMMON 4.5 and not marked (plan).",
+   "where": "5.12 (fixture builds); 9 (Traps, 8 GB machine bullet)"
+  }
+ ],
+ "P0-A5": [
+  {
+   "kind": "coverage",
+   "what": "Section 5.8 requires the history strip from SPEC 4.0 History: \"A visible strip of past positions can be scrubbed; acting from an earlier position discards the moves after it ... A strip of more than 50 positions is shown as a slider with a counter\". The roster deliverable also names it: \"strip of past positions (slider above 50)\". Section 6 has no acceptance line or test for any of this. No test scrubs the strip with a past-position button, none checks that acting from an earlier cursor truncates the moves (moves.slice(0, cursor) plus the new label, with data-moves updated), and none checks that a history longer than 50 positions renders as an input type=range with a visible counter. The only History test covers u, r and Reset. A builder could leave out the strip and the slider and still pass every acceptance line.",
+   "where": "6. Acceptance (against 5.8 and the roster History deliverable)"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 5.10 and the roster deliverable \"hydrated client:idle\" (SPEC 7.6: \"the first tool of a page hydrates when the browser is idle (`client:idle`)\") have no acceptance line. Nothing checks the directive, for example a grep of index.astro or a check of the astro-island element's client attribute in dist/index.html. client:load would pass every listed test.",
+   "where": "6. Acceptance (against 5.10, 5.11)"
+  },
+  {
+   "kind": "invented",
+   "what": "\"Labels are drawn beside each node in `--text` (6.1)\" credits the colour to SPEC 6.1. SPEC 6.1 says only that \"Node labels are always visible beside the nodes\". 6.3 fixes the colour of numerals, not of labels. The colour choice is the plan's and should be marked (plan).",
+   "where": "5.4"
+  },
+  {
+   "kind": "style",
+   "what": "The Home and End acceptance line names a test but gives no expected targets, while every other keyboard line does. It should state, for example: End from city 1 focuses city 2, and Home from city 2 focuses city 1.",
+   "where": "6. Acceptance, A-1 Home and End"
+  }
+ ],
+ "P1-A1": [
+  {
+   "kind": "invented",
+   "what": "The transposeBoard naming rule contradicts the plan's naming rule. 5.4 requires that the transpose of B2 be named \"C2\" and lists \"`B2` gives `C2`\" as an example that p1-boards.test.ts pins. COMMON.md section 2 says \"B_2 and C_2 are one board: computed names say `B2`\". P0-A2's instruction (its section 5.5, fromAdjacency) states that a name derived from a matrix is a computed name and gives the C2 matrix [[2, -2], [-1, 2]] the name undefined, never \"C2\". The same paragraph of 5.4 also tells the agent to reuse P0-A2's private exact-match helper unchanged. That helper returns undefined for the C2 matrix, so the instruction contradicts itself as well. The C2-to-B2 direction and the claim that transposing twice gives back the name are affected the same way. The B3/C3 naming may stand, but the rank-2 case has to follow COMMON.md (undefined, or deferred to identify in phase 2), and the test must not pin \"C2\".",
+   "where": "5.4 transposeBoard; 5.12 p1-boards.test.ts"
+  },
+  {
+   "kind": "invented",
+   "what": "A golden value is typed into a test. The p1-search.test.ts bullet says \"`positiveRoots` on B3 equals the list of section 2 item 23\". That list is types.B3.positive_roots copied out of golden_data.json and appears nowhere in SPEC.md. COMMON.md 4.4 forbids \"a golden value typed into source\", and the file's own 5.10 says \"never type a golden value into a test\". The check is also redundant, because p1-types-roots.test.ts already compares positiveRoots(B3) with the golden key. It should be removed, or replaced with the SPEC A.1 lists for A2, B2 and G2, which are specification test vectors.",
+   "where": "5.12 p1-search.test.ts"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 3 places EngineOverflow in errors.ts and lists only Arith, SafeInt, Big, Vec and Matrix under arith.ts. CONTRACTS.md 2.1 lists `EngineOverflow` in the row for `src/arith.ts` (\"`Arith<T>`, `SafeInt`, `Big`, `EngineOverflow`\"), and its errors.ts row says \"all error classes of E-10\". The file does not name the import location the contract gives, and it does not tell the agent to accept either location.",
+   "where": "3. Inputs you depend on"
+  }
+ ],
+ "P0-A6": [
+  {
+   "kind": "fidelity",
+   "what": "Line attribution is wrong. Item 5 says the 7.3 last paragraph (line 1823) holds that names.mjs \"runs at the start of every build\". In SPEC.md that phrase is in the paragraph \"The four scripts\" at line 1808. Line 1823 holds only \"The file is produced by the build and is not committed\". The quote is correct but the line is not.",
+   "where": "Section 2, item 5"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The oracle timing is attributed to README.md 0 item 2 with \"about 134 seconds\", but README.md 0 item 2 says \"all 6649 checks pass in 133 seconds\". The 134.6s figure comes from the file's own confirmation run (5.2), not from README. The number should be 133 when cited to README, or the citation should be dropped.",
+   "where": "Section 3, the python3 input bullet"
+  }
+ ],
+ "P1-A6": [
+  {
+   "kind": "invented",
+   "what": "The orbit-mode total rule adds a third case, 'if it stopped at the layers bound, no total', as a plain requirement with no (plan) mark. SPEC 4 T2 Interactions says only: 'In `orbit` mode the total is known when the enumeration completes within the garden's bound; otherwise the counter says \"more than 2000\"'. The reading is sensible, because saying 'more than 2000' after 40 layers with fewer than 2000 positions would be false. But it departs from the literal SPEC text, so it needs the (plan) mark and a line in the decisions fragment. The plan test 'the counter's total' has no case for it either, for example an orbit on a custom board that stops at 40 layers.",
+   "where": "5.4, bullet on data-out=\"total\" (orbit case); 5.15 'the counter's total'"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 2 lists the 4.0 rule 'Starts meaningful' as binding, but section 5 never names or restates it: 'A tool loads in a state that already shows something worth reading, and the surrounding prose states the result it demonstrates. Nothing the argument needs is available only after a click.' Its substance is only partly present, in the caption sentence of 5.14 (8.1 P1) and the P2 remark on the positive-roots preset. Nothing says how the `default` preset (A3, grown 0, three seeds) meets the rule, and no acceptance line in section 6 names it.",
+   "where": "5.1 presets table / 5.14; section 6"
+  }
+ ],
+ "P1-A2": [
+  {
+   "kind": "fidelity",
+   "what": "The Rule 11 acceptance line says \"the five allowed pairs pass\", but the T1 table of SPEC 4 allows seven view and mode pairs: populations with free or raising (2), numbers with free or legal (2), and linked with free, legal or raising (3). Only p+l and n+r are forbidden. The test as worded would leave two allowed pairs untested, or the agent would have to guess which five are meant. Section 5.3 of the file lists the table correctly, so the acceptance line contradicts the file's own requirement.",
+   "where": "6. Acceptance, Rule 11 line"
+  },
+  {
+   "kind": "invented",
+   "what": "Section 5.3 makes the proposed long-list design the default behaviour: for more than 2000 moves, decodeState returns the parsed state with notice null and an extra replayCheck field. The binding contract is the other reading. CONTRACTS 4 says \"on any failure the result is { state: defaults, notice }\", and COMMON 4.4 forbids changing a CONTRACTS interface and says a deviation is reported for MERGE to decide. Shipping the deviation as the default before MERGE decides contradicts that rule. The 6. Acceptance line also says it is \"not a G1 item until MERGE accepts it\", so under the default build rule 6 on long lists has no G1-gated test. The contract reading should be the default, with the proposal behind the switch, or the instruction should say plainly which reading is active at G1.",
+   "where": "5.3 Rule details (E-9 rule 2 bullet); 6. Acceptance (rule 6 on long move lists)"
+  },
+  {
+   "kind": "coverage",
+   "what": "Neither the history.ts API nor the tests cover the catalogue-entry half of SPEC 7.4 (\"pushState is used only when the reader loads an example or a catalogue entry\") or the roster deliverable \"pushState on example or catalogue load\". The API defines only exampleLoaded and does not say that catalogue entries go through it. The acceptance line reads \"pushState only on an example load\".",
+   "where": "5.6 History API; 6. Acceptance history.test.ts line"
+  },
+  {
+   "kind": "coverage",
+   "what": "No acceptance test checks the second half of the SPEC 7.4 disabled rule: \"Controls are rendered with the disabled attribute, which the island removes when it hydrates\" (4.0: \"disabled until the island has hydrated\"). Only the server render (disabled) is tested. No line checks that the controls, the Copy link and Download data buttons and the table buttons become enabled once data-hydrated=\"true\" is set.",
+   "where": "6. Acceptance (ToolFrame lines)"
+  },
+  {
+   "kind": "coverage",
+   "what": "The rule 6 linked case is underspecified: \"a linked case with `c=p`\" gives no board, mode, start or moves, and no expected result. Every other rule 6 case names its exact configuration.",
+   "where": "6. Acceptance, Rule 6 line"
+  },
+  {
+   "kind": "coverage",
+   "what": "Three requirements have no acceptance line or named test. (1) Section 5.2 says integers above 2^53 in start are written as their full decimal digits, but no encode test with a non-safe start entry is listed; the 2^53 test exists only for export. (2) Section 5.3 says decoding never mutates defaults, with no test. (3) Section 5.6 says nothing is written on load or hydration, with no test.",
+   "where": "5.2, 5.3, 5.6 versus 6. Acceptance"
+  }
+ ],
+ "P1-A5": [
+  {
+   "kind": "fidelity",
+   "what": "The file says the SPEC 4 T1 \"Acceptance\" list has five bullets, the first split in two, giving seven lines. SPEC.md lines 1080 to 1086 actually have six bullets: (1) the A2 case plus the B2 and G2 case, (2) longest_word on every type, (3) linked a = Cp on 100 random populations, (4) A2 fractions 2/3 and 1/3, (5) undo in all three modes, (6) the screen-reader announcement. The arithmetic does not add up either, since five bullets with one split gives six lines, not seven. The seven acceptance lines listed are correct; only the count is wrong.",
+   "where": "Section 2 item 1; section 6 intro line (\"five bullets; the first is split into two lines here, so seven lines\"); section 6 roster acceptance line (\"the five SPEC bullets, split into the seven lines above\")"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 5.14 quotes every A-4 template, and section 5.14 says section 6 maps A-1 to A-12 each to a test. Several A-4 templates still have no test line in section 6: the populations-view sentence \"Mutated city 2. Populations now 1, 1, 0. Move 1.\"; \"Undid move 4. Numbers now ...\"; the line for boards with more than four nodes (\"Fired node 4. Node 3 now 3, node 4 now minus 2, node 5 now 1. Move 7.\"); the half-second coalescing rule (\"only the last state is announced, with the number of moves made\"); and the announced \"Game over after N moves.\" sentence. The game-over test reads only data-out=gameOver, not the live region.",
+   "where": "Section 6 (A-4 lines cover only the fired, linked, refusal and played-to-end templates)"
+  },
+  {
+   "kind": "coverage",
+   "what": "The SPEC 4 T1 \"Coordinates of the start\" fallbacks and the view and mode table refusals appear in section 5.2 and 5.3. In section 5.16 they appear only as unnamed model tests, and section 6 has no line or named test for them. The missing checks are: the populations view with coords numbers falls back to linked when C^{-1}a is not integral; a singular board with a numbers start offers only the numbers view; a view and mode pair outside the table is refused (by the codec with the notice for a link, and by a build-time throw for props).",
+   "where": "Section 6 (no acceptance line); section 5.16 \"Model tests (plan)\" lists them without test names"
+  },
+  {
+   "kind": "coverage",
+   "what": "Several 4.0 \"History\" sentences are quoted in section 5.9 but mapped to no test in section 6: \"redo puts it back\", \"reset empties the list\", and \"acting from an earlier position discards the moves after it\". The section 6 lines cover undo, the scrub strip and the slider above 50 positions, but not these three behaviours.",
+   "where": "Section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 5.14 requires the A-1 arrow model on polygon layouts and custom boards: the arrows follow the labels and wrap round. Section 6's keyboard test (\"keyboard-only play on A3 and E8\") covers only row layouts. No line checks wrap-round on a custom board, for example the triangle laid out on a circle, which phase 1 can reach by link.",
+   "where": "Section 6, keyboard script line"
+  }
+ ],
+ "P1-A3": [
+  {
+   "kind": "fidelity",
+   "what": "Section 5.2 says the full set of twisted data names is 'the twisted names of golden affine_names' and then lists ten names only (A2^(2), A4^(2), A6^(2), A5^(2), A7^(2), D3^(2), D4^(2), D5^(2), E6^(2), D4^(3)). Golden affine_names actually holds many more twisted names: A8^(2), A10^(2), A12^(2), A14^(2), A16^(2), A9^(2), A11^(2), A13^(2), A15^(2) and D6^(2) to D9^(2). The ten names are the records of twisted_affine, not the full set. An agent who reads the list as complete could hard-code ten names and fail on boards of up to nine nodes. SPEC 4 T4 presets include 'the affine boards of the golden data', so those boards will be drawn.",
+   "where": "5.2, Twisted boards bullet"
+  },
+  {
+   "kind": "coverage",
+   "what": "No acceptance line checks the general twisted-name parse beyond the ten twisted_affine records. Add a test such as 'twisted names of affine_names parse to the right layout' that iterates the twisted entries of golden affine_names and builds them as plain objects: A_{2n}^(2) on a row from node 0, A_{2n-1}^(2) laid out as B~_n, D_{n+1}^(2) as C~_n. Without it the extra names of the fidelity item above are untested.",
+   "where": "6. Acceptance (twisted boards line)"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 5.4 does not restate A-7's mechanism 'by a transparent hit area when the drawn node is smaller', and does not say that the hit square from toPixels is that transparent area (drawn by Board.svelte, P0-A5 and P1-A5). The requests to P1-A5 should carry it with the switch to toPixels.",
+   "where": "5.4 and 10 (requests)"
+  },
+  {
+   "kind": "coverage",
+   "what": "The 6.3 bullet 'The Populations view and the Numbers view have distinct, fixed accent colours and icons used consistently in prose, figures and formulas (principle P8) [D]' is never quoted or referenced. The 8.3 accent text is covered, but P8's consistency requirement and 8.3's 'different from them' (accents differ from the sign colours) are not tested. One assertion in contrast.test.ts would do: ACCENTS are not among LIGHT and DARK sign values.",
+   "where": "5.6 and 6 (contrast.test.ts)"
+  }
+ ],
+ "P1-A7": [
+  {
+   "kind": "coverage",
+   "what": "SPEC 4.0 Predict ('Tools placed in the guided part of a module accept a prediction configuration ... The board is frozen until the reader has answered or pressed \"show me\". Without JavaScript the question is followed by a <details> element') binds T9, which M1 places in its guided part (beat 3, and the P1-A9 roster asks for predictions). Section 5.9 only accepts the prop and defers the wiring when Predict.svelte is absent. Section 6 has no acceptance line for it, not even a conditional one such as 'if Predict.svelte is on main: board, step and play to the end are frozen until answered; a <details> fallback without JavaScript', and section 5.12 has no matching test.",
+   "where": "5.9 (Predict bullet), 5.12, 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 4.0 Long numbers requires the exact digits 'in the table view, in the tooltip and in every export'. The test 'a start beyond SafeInt reloads with Big and long values are shortened' checks the table and the export but not the tooltip, and section 5.3 names no tooltip element or hook that would carry the exact digits.",
+   "where": "5.3, 5.12 (e2e SafeInt test), 6 (Long numbers line)"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.5 A-10 begins 'Every figure has a text alternative'. Section 5.9 restates only the 'show as table' half of A-10 and gives no requirement or test for the figure's text alternative (for example the board's accessible group name or an SVG title).",
+   "where": "5.9 (A-10), 6"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The reference to reference/verify.py 'lines 503 to 509' for Kostant's game on affine boards is off by one. The loop runs from line 504 (never = True) to 509 and its check, 'Kostant's game does not end within 300 moves, from any city', is on line 510. Line 503 is the tail of the previous check. The correct range is 504 to 510.",
+   "where": "2 (Reference, verify.py bullet)"
+  }
+ ],
+ "P2-A6": [
+  {
+   "kind": "invented",
+   "what": "The file tells the agent to add an `options?: ExportOptions` parameter to `exportSVG` (third) and `exportPNG` (fourth), and to report it afterwards under `deviations`. COMMON 4.4 lists 'Changing ... an interface in CONTRACTS.md' as forbidden and says that a necessary deviation goes in the report for MERGE to decide. That conflicts with building the change. A route that keeps to CONTRACTS 4 exists: ToolFrame (or an exported helper) can strip the label elements from a clone before it calls the unchanged `exportSVG(svg, footer)`. Either prescribe that route, or say explicitly that the extra parameter is built only when MERGE approves it.",
+   "where": "5.2 (Signature paragraph), 5.5, 4 Deliverables row for export.ts, 10 deviations"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Internal inconsistency. Step 3 of 5.2 builds a new pixel-unit root, and steps 4 to 8 say they work on that root. Step 9 then says to serialise with `new XMLSerializer().serializeToString(clone)`, which is the old clone and not the new root, so the footer, the exact-digits note and the background would be lost. Step 9 should name the new root.",
+   "where": "5.2 step 9"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 5.6 states the SPEC 4.0 'Small screens' and 7.5 A-7 and A-11 requirements for the new controls (targets of 44 pixels where the layout allows and never under 24; the control row wraps at 320 CSS pixels and never scrolls sideways). No line of section 6 maps them to a test, and no test in 5.8 checks the export buttons and the fieldset at a width of 320. The template requires an automated test for every acceptance condition taken from 7.5.",
+   "where": "5.6 Keyboard and screen reader bullet; 6 Acceptance"
+  }
+ ],
+ "P2-A3": [
+  {
+   "kind": "fidelity",
+   "what": "The file says a dense 12-node board with many 4-road pairs can make the link exceed 512 characters. It then requires a unit test on 'a dense twelve-node board with roads -4 in most entries, whose c: form exceeds 512 characters'. Under the caps of 5.6 (entries from -4 to 2, coordinates 0 to 11) the longest decoded value is 'c:' (2) + 12 rows of 34 characters with 11 semicolons (419) + '@' + 12 pairs like '11,11' with 11 semicolons (72), which is 493 characters. That is always under the 512 limit of SPEC 6.6 Validation. The test cannot be built unless the limit is measured on the percent-encoded parameter (',' to %2C, ';' to %3B), and the file never says which length counts.",
+   "where": "5.1 (512-character bullet); 6 (512-character acceptance line); 9 (g-length trap)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The small-screen acceptance line says 'a twelve-node test board gives 25'. No classification_tests board has 12 nodes; the largest is E10, with 10. Test boards also carry no xy, so they are laid out on a circle, and SPEC 6.1 gives polygon layouts 44, never 25. The A-7 figure of 25 applies to a twelve-node custom board spanning 12 grid columns: u = floor((320-16)/12) = 25. Section 5.2 states this correctly.",
+   "where": "6 (4.0 Small screens, A-7, A-11 line)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 5.5 says the smallest non-finite sub-board is 'Shown whenever any bidirected component is not finite; hidden on finite boards and on one-way boards'. SPEC 5.6 and the oracle (smallest_nonfinite_subboard returns None when board_kind of the whole matrix is not 'gcm') make it null for any board with a one-way road anywhere. On a board where an indefinite bidirected component sits beside a one-way component, the engine returns null, so the rule as written cannot be met. The same holds for spectralRadius, and the file does not address that mixed case.",
+   "where": "5.5 (Smallest non-finite sub-board bullet)"
+  },
+  {
+   "kind": "invented",
+   "what": "COMMON 4.4 forbids 'a golden value typed into source'. The file has some values read from the golden file at test time (triangle new_per_layer, twisted marks and comarks, symmetrizer lists). Other golden values are written as literals in the tests it specifies, and the file gives no instruction to read them from golden_data.json: 74311 and 1271 (layer_growth_examples stop_at_*), 243 (root_populations_found), 2.2361 (classification_tests spectral_radius_4_decimals), and the stop sentences with 10 and 17 complete layers. The file should require these to come from resolveGoldenPath, or else note why they are exempt.",
+   "where": "6 (star-with-five-arms lines, triangle line, Download data line)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 5.4 quotes SPEC 7.3 as \"the tools that show names (T13, T14, the board pickers) look up\". SPEC 7.3 reads 'the tools that show names (T13, T14, the board pickers) look them up there', so the quoted string does not occur in the specification.",
+   "where": "5.4 (names.json bullet)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The style trap cites '(COMMON 4.4, 8.4)' and the Svelte trap cites '(COMMON 3, 7.2 item 5)'. COMMON.md has no sections 8.4 or 7.2; these are SPEC 8.4 (writing rules) and SPEC 7.2 (recent changes). The citations point at the wrong document.",
+   "where": "9 (Svelte 5 runes trap; em-dash trap)"
+  }
+ ],
+ "P2-A2": [
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.6 'Main-thread work' says 'No engine call on the main thread may become a long task (50 ms) on that phone.' The file runs `isRootPopulation` on the main thread with the full 20000-step cap (5.5 and 5.7: 'The test runs on the main thread; its cap is what bounds it'). It never mentions the 50 ms long-task rule and asks for no check that a capped descent stays under it. A capped descent can mean 20000 steps, each computing the numbers on up to 12 nodes in Big arithmetic. Section 5 or section 9 should cite the 7.6 rule and say what the builder does if the capped root test exceeds 50 ms, for example measure it once and report it as a request or deviation, without raising or lowering the cap.",
+   "where": "5.5 (the cap bullet), 5.7, 5.10, 9"
+  }
+ ],
+ "P2-A5": [
+  {
+   "kind": "coverage",
+   "what": "SPEC 4.0 Configuration applies to T16 but no requirement says which component properties the sandbox itself accepts. It should list the common props of CONTRACTS 5.2 (`id`, `board`, `coords`, `start`, `moves`, `linkTo`, `preset`, `caption`), how page-author props combine with the URL, and the 4.0 sentence \"Property names beyond these are the builder's choice and are listed in the tool's test file\". 5.4 only covers the props T16 passes to T1, and 5.9 only says \"apply it over the props\".",
+   "where": "5.2 / 5.4"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 9.2 (definition of done for a tool) requires that \"A-1 to A-12 hold\". 5.11 names only A-1, A-3, A-4, A-7, A-8, A-10 and A-11. It leaves out A-2 (visible focus ring), A-5 (sign conveyed by shape and not colour alone), A-6 (contrast), A-9 (no motion that starts by itself, reduced motion) and A-12 (MathML). A-12 bears directly on this tool because the verdict renders \"$B_2=C_2$\" as inline math.",
+   "where": "5.11"
+  },
+  {
+   "kind": "invented",
+   "what": "The acceptance line and the unit test require the first entry beyond 2^53 to come after move 39 \"in both sequences\". The golden key `first_move_after_which_an_entry_exceeds_2_to_53` is computed in verify.py (lines 1420 to 1424) only along the mutation sequence, and SPEC 4 T16 says \"the move recorded there\". The firing-sequence half is true of the data (checked: move 39 there as well), but it is a requirement that neither the spec nor the golden file records, and the file does not mark it (plan).",
+   "where": "5.14 (unit test 3) and section 6, second line"
+  },
+  {
+   "kind": "fidelity",
+   "what": "File ownership is narrower than README section 6. The README row for `site/src/styles/*` allows \"additive edits by the tool and page owners for their own component styles only\". Section 7 says \"You may edit with the stated protocol: nothing\" and puts everything else under \"must not touch\". It does not mention this additive-styles allowance or rule it out on purpose.",
+   "where": "7"
+  },
+  {
+   "kind": "style",
+   "what": "The digit-count wording contradicts itself. 5.6 fixes the count as `84 digits` (marked plan). The same section's last bullet, 5.14 (\"the digit count in P1-A5's wording\") and the decisions list (\"as P1-A5 set them\") all defer to P1-A5's wording. The agent cannot tell which one wins.",
+   "where": "5.6 / 5.14 / 10"
+  },
+  {
+   "kind": "coverage",
+   "what": "The roster deliverable for T16.spec.ts is one flow: \"load the bigint_test board by JSON import, play the 200 moves via a link, read the exact end in the table view\". The file splits it into two tests, a JSON import with no play and a link that carries the board itself through `g=c:`. That is a reasonable reading, but the file does not say it is a reinterpretation, and it does not record it as a plan choice for the report.",
+   "where": "5.14 e2e / 10"
+  }
+ ],
+ "P2-A4": [
+  {
+   "kind": "invented",
+   "what": "The positive-level acceptance line allows the sweep to use a cap lower than 20000 (keeping 20000 only on six boards) if the file runs longer than 120 seconds. This contradicts COMMON 4.5 (\"Keep caps as the specification sets them\") and COMMON's rule that changing a cap of SPEC 5.6 is a deviation for MERGE to decide. SPEC 4 T15 defines the result as \"still running after 20000 moves\", so a test at a lower cap does not prove that criterion on the other boards. The file records the choice and asks for it under deviations, but it still authorises it in advance.",
+   "where": "Section 6, the line for the test 'positive level: 10 random starts on every board are still running after 20000 moves'"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Passages presented as verbatim quotes of SPEC 4.0 change the inner double quotes to single quotes. Long numbers: the spec has (\"1.2345... x 10^83\", with the number of digits) and the file has ('1.2345... x 10^83', ...). Step and play to the end: the spec has \"step\", \"play to the end\" and \"play on\", and the file uses single quotes. The quotes are not character for character.",
+   "where": "Section 5.3 (Step and play on; Long numbers); Section 6 (Long numbers line)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The roster deliverable asks for \"the 'computed, with this argument' wording as fallback\", and Appendix E item 6 says the site \"keeps the wording 'computed, with this argument'\". The fallback template in 5.7 and the e2e assertion ('Computed, not yet from a source:' and 'The argument beside it:') never contain the phrase \"computed, with this argument\". A literal check by RT-08 against the roster or Appendix E wording would fail. The template is marked (plan) but is not tied to that phrase.",
+   "where": "Section 5.7, the fallback wording sub-bullet; Section 6, the e2e line 'on a non-simply-laced board the fate sentence is wrapped as E6'"
+  },
+  {
+   "kind": "fidelity",
+   "what": "SPEC 2.12 sources the fate table for \"simply laced affine boards\", and the roster says to wrap \"the non-simply-laced boards\". The file swaps this for the predicate \"simple graph in the sense of 2.1\". The two differ only on A1~, which has a symmetric matrix with entry -2 and which the file wraps. The swap is marked (plan) in 5.7, but it is missing from the list of decisions the fragment must record in section 10. A reviewer comparing against 2.12 or the roster would see a reading that nobody decided.",
+   "where": "Section 5.7, the Provenance bullets; Section 10, the fragment list"
+  }
+ ],
+ "P2-A7": [
+  {
+   "kind": "coverage",
+   "what": "The 4.0 rule \"Small screens\" is not carried for the controls this task adds. 4.0 says: \"Every tool is usable at a width of 320 CSS pixels. Targets are 44 pixels where the layout allows and never below 24\". Section 5.7 asks only that \"panels reflow at 320 pixels\" (A-11). It sets no target size for the new `openLab` \"add the city\" control or for the relabelled `playToEnd`/\"play on\" control, and no acceptance line checks them.",
+   "where": "5.7 / 5.8"
+  },
+  {
+   "kind": "coverage",
+   "what": "The 4.0 rule \"Predict\" is not addressed. 4.0 says: \"The board is frozen until the reader has answered or pressed \"show me\"\". Neither T1 nor T9 states that the new \"play on\" control and the `openLab` link respect a frozen prediction state, though section 5.8 claims to cover \"The other rules of 4.0, as they touch your additions\". The 4.0 rule \"Signs\" is also not mentioned for the signed values the new form-value and level panels show. A-5 \"every panel is text\" is cited, but the 4.0 Signs sentence is not.",
+   "where": "5.8"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Read-first item 6 gives SPEC 5.5 \"Fates\" as line 1468. In SPEC.md, line 1468 is the \"Heaps\" bullet and \"Fates\" is at line 1470.",
+   "where": "2 item 6"
+  }
+ ],
+ "P3-A7": [
+  {
+   "kind": "invented",
+   "what": "The file contradicts itself, and COMMON.md 4.1 ('Do not run `npm install`'), about npm install. Section 5.2 step 3 tells the agent to run `npm init -y` and `npm install --save-exact @lhci/cli@<version>` in a `mktemp -d` scratch directory during the trial. The trap in section 9 says 'the workflow prompt forbids it, and the one exception is the single command of 5.10 on Branch A'. Name the scratch-directory install of the trial as a second, explicitly allowed exception: it happens outside the repository and never touches the lockfile. Otherwise rule out installing the trial that way.",
+   "where": "5.2 step 3 against 9 (trap on `npm install`)"
+  },
+  {
+   "kind": "invented",
+   "what": "The commands in 5.2 steps 3 and 7 (mktemp -d, npm init -y, npm install, then deleting the scratch directory) only work if run from inside the scratch directory. The file does not say how to do that without a cd chain. COMMON.md 4.6 requires `npm --prefix <dir>` (or the tool's own directory flag) and forbids `cd X && ...`. Without that pointer the agent will probably write a cd chain, and the workflow stalls waiting for approval.",
+   "where": "5.2 steps 3 and 7"
+  }
+ ],
+ "P3-A1": [
+  {
+   "kind": "fidelity",
+   "what": "Reading item 8 says of the SPEC 5.6 function table that \"your functions are in the last row ... except `bipartition`, which is in the row that works on every board\". That implies `exponentsFromFired` is in the last row (throws NeedsTwoWayRoads / NotFiniteType). It is not: SPEC 5.6 lists only `weylOrder, weylDimension, orbitSize, ..., wavePlay, countCompleteGames, legalLayers, ..., separatingRoots` in the last row. `exponentsFromFired` takes no board and appears in no row. Section 5.2 states this correctly (\"`exponentsFromFired` takes no board and has no guard\"), but the reading list contradicts it.",
+   "where": "Section 2, item 8"
+  }
+ ],
+ "P3-A3": [
+  {
+   "kind": "invented",
+   "what": "The Predict acceptance line tells the agent to build 'a test fixture page that places T5 with a prediction'. Section 7 forbids touching site/src/pages/* and site/src/content/*, and the roster's 'owns' list (and README section 6) gives P3-A3 no fixture page or fixture directory. The instruction therefore requires a file the agent may not create. It needs to name an owned location (for example under site/tests/) or a mechanism inside the owned files.",
+   "where": "6. Acceptance (Predict line) vs 7. Files"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 4.0 Configuration says 'each phrase is a value of the tool's preset property' and 'every preset is also a state object and a link'. The M5 figure rows 6 to 8 (tally on A3 then E8, wave on A3 with 4 rounds and E8 with 30 rounds, dimension on A2 giving 8) must work through properties alone. Section 5.1 defines the five presets and the board-override rule (preset=\"wave\" board=\"E8\"), but no section 6 line tests that the tally, wave and dimension presets render as specified, or that the override gives E8 30 rounds. Only the compared preset has a test; the dimension test goes through a link and step presses, not the preset.",
+   "where": "5.1 / 6. Acceptance"
+  },
+  {
+   "kind": "coverage",
+   "what": "9.2 requires that 'A-1 to A-12 hold' and that the tool obeys every rule of 4.0, yet some of these have no test line in section 6. Missing: the A-3 node name template ('Node 3, value 2, can be fired' / 'Node 5, value 0, cannot be fired'); A-5, where colour classes and tally bars carry text and shape, not colour alone (5.6 requires the classes to be 'shown by shape and label as well as colour'); and the 4.0 Signs rule (numeral, fill and colour, never colour alone). The only sign check is the true minus sign in endA/endB.",
+   "where": "6. Acceptance"
+  },
+  {
+   "kind": "fidelity",
+   "what": "In 5.9 the sentence 'No tool may need the worker for its default state.' is quoted as 7.6. That wording is E-9's (SPEC 5.1). 7.6 itself reads 'No tool may need it for its default state'.",
+   "where": "5.9"
+  },
+  {
+   "kind": "fidelity",
+   "what": "In 5.4 the bound of N moves for every T5 game, including custom starts, is attributed to 'F3 bounds any start on a finite board'. F3 says only that any two legal plays end at the same position after the same number of moves. It gives no bound in terms of N (F4 gives exactly N only for all-positive starts). The bound needs a correct citation or a (plan) mark.",
+   "where": "5.4"
+  },
+  {
+   "kind": "coverage",
+   "what": "The plan cap of at most 6 digits per lambda entry (5.8) is enforced only on the input. Nothing says what a link does when d has an entry over 6 digits. The codec's 40-digit limit in 6.6 covers s only, and 5.2 handles only a negative d. A rule (default lambda plus notice, as for a negative entry) and a test are missing.",
+   "where": "5.2 / 5.8"
+  },
+  {
+   "kind": "coverage",
+   "what": "Two requirements in section 5 have no test or check in section 6: the 7.4 history rule (replaceState half a second after a burst, pushState only on loading an example), and 'Hydrated markup equals the server markup' in 5.9.",
+   "where": "5.2, 5.9 / 6. Acceptance"
+  }
+ ],
+ "P3-A4": [
+  {
+   "kind": "fidelity",
+   "what": "The sentence quoted as 7.6, \"No tool may need the worker for its default state.\", is not what 7.6 says. SPEC 7.6 (line 1862) reads \"No tool may need it for its default state, so it never counts toward these limits.\" The quoted wording comes from E-9 (line 1272), where it is bold: \"**No tool may need the worker for its default state** (section 7.6)\". The fix is to attribute the quote to E-9 or to quote 7.6 exactly.",
+   "where": "Section 5.9, third bullet"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The reduced-motion sentence is quoted as 4.0 \"Motion respects the reduced-motion setting\". That sentence closes the 4.0 bullet 'Step and play to the end', which section 2 item 2 of the same file says does not apply to T6. The binding source for T6 is A-9 alone, and the citation should say so instead of taking the sentence from a rule the file declares inapplicable.",
+   "where": "Section 5.9, fourth bullet"
+  },
+  {
+   "kind": "style",
+   "what": "Section 5.4 says to take colours from \"the tokens of `P0`'s stylesheet\". Section 3 of the file and README section 6 (line 254) both say the custom properties live in `site/src/styles/tokens.css`, owned by `P1-A3`, which superseded `P0-A1`'s base.css tokens. The owner should be named consistently.",
+   "where": "Section 5.4, second bullet"
+  },
+  {
+   "kind": "coverage",
+   "what": "The SPEC 4 T6 first sentence asks for the two mirrors, the simple roots drawn as the mirror normals, and the chambers. Section 5.7 requires them, but no checklist line in section 6 names a test that asserts the mirrors and the chambers are drawn. The SVG-export e2e test checks only that the mirrors and the point exist, and nothing tests the chambers or the marked dominant chamber. This is not an acceptance bullet, but the 9.2 'obeys every rule' line would be easier to verify with one.",
+   "where": "Section 6 (behaviour checklist) and 5.13"
+  }
+ ],
+ "P3-A5": [
+  {
+   "kind": "invented",
+   "what": "Section 5.8 says 'Keep every existing T1 test green', and the last line of section 6 says to run `site/tests/unit/tools/T01.test.ts` and `site/tests/e2e/T01.spec.ts`. Both files belong to another agent (P1-A5). COMMON 4.3 says: 'Run only your own test files and the engine suite (`npm test -w packages/engine`, and your `site/tests/unit` and `site/tests/e2e` files). Do not run the whole browser suite ... unless your instruction says so.' Running another agent's tests may be the right call for an additive edit of T01GameBoard.svelte, but the file never says it is an exception to COMMON 4.3 and does not mark it (plan). It contradicts COMMON as written.",
+   "where": "5.8 first bullet; 6 Acceptance, last line"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 3 lists `site/tests/unit/tools/T01.test.ts` sources as 'From `P0-A5` and `P1-A5`: ... `site/src/lib/a11y.ts` (`speak`, `nodeName`, `announceTemplates`, `createAnnouncer`)'. README section 6 says `site/src/lib/a11y.ts` is owned by 'P0-A5; P1-A2 extends', and CONTRACTS 4 says 'a11y.ts (SPEC 7.5; owner P0-A5, extended by P1-A2)'. The phase-1 roster gives the a11y extensions (coalescing counts, playedToEnd) to P1-A2, not P1-A5. The file names the wrong contributing agent.",
+   "where": "3. Inputs you depend on, fifth bullet"
+  }
+ ],
+ "P4-A2": [
+  {
+   "kind": "invented",
+   "what": "The file cites `P0-A5`'s `dev/shell-check.astro` as the precedent for a dev page. That page appears nowhere else in build-plan/: neither the P0-A5 roster entry nor P0-A5-board-seed.md mentions it. The real precedent in the plan is `P0-A3`'s `site/src/pages/dev/math-check.mdx` (phase-0 roster deliverable 7, P0-A3-math-spike.md; P0-A6's classifyRoute test also uses `/dev/math-check/`). The `MERGE` reasoning for this deviation rests on a file that does not exist.",
+   "where": "Section 5.10 first bullet; section 7, plan additions outside README 6 (DrawTimeProbe.svelte and dev/draw-time.astro)"
+  },
+  {
+   "kind": "invented",
+   "what": "Section 5.3 says rank 3 is 'the wireframe with `xyz:1,2,3` as its only view'. The same section's `parseProjection` grammar accepts `coxeter` for every n>=2 and any distinct triple `xyz:a,b,c` in 1..n, so on rank 3 it also accepts `coxeter`, `xyz:2,1,3` and the like. SPEC 4 T10 ('rank 3 as a wireframe that can be turned') and SPEC 6.6 do not limit rank 3 to one view. The restriction is unmarked (no '(plan)') and contradicts the parser rule next to it, so the agent cannot know whether `coxeter` on A3 or B3 must parse or return null.",
+   "where": "Section 5.3, bullets 'Views' and 'The `j` value'"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The ownership of `scripts/presets.mjs` is not reconciled with README 6. README 6 row '`scripts/`' gives that directory to `P0-A6` (with `P0-A3` for names.mjs, `P3-A7` for the lab script and `P6-A2` extending names.mjs) and does not name `P4-A2`. Only the roster's owns list gives `scripts/presets.mjs (plan)` to P4-A2. The file flags the analogous README 6 mismatch for `draw/` (canvasScene.ts, svgScene.ts) and for `site/src/pages/*`, but says nothing about `scripts/`: no `requests` entry to `MERGE` and no note.",
+   "where": "Section 7 'You own'; section 10 requests to MERGE"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The README section 4 phase-4 table lists 'the drawing-time test' under `P4-A3`'s task (T10 geometry-studio). The roster gives `site/tests/e2e/draw-time.spec.ts` and the G4 drawing-time item to `P4-A2`. The file follows the roster but does not mention the conflict or ask `MERGE` or `P4-A3` to confirm who owns the test. Both agents could build the test, or each could assume the other has it.",
+   "where": "Section 5.10 and section 10 requests"
+  },
+  {
+   "kind": "invented",
+   "what": "The colour mapping is stated as a requirement without a '(plan)' mark: canvas `segment` from `--road`, `point` from `--text`, `page` from `--page`, and the SVG default `fill=\"var(--text)\"` for points. CONTRACTS 8 lists the token names but does not assign points to `--text`, and SPEC 6.3 has no road or point mapping for T10. It is recorded as a decision in the fragment list but is presented in 5.6 and 5.7 as fixed.",
+   "where": "Sections 5.6 (colours bullet) and 5.7 (`options.colours`)"
+  }
+ ],
+ "P4-A1": [
+  {
+   "kind": "invented",
+   "what": "Property 11 test requires `numRuns` at least 500 ('fc.assert with an explicit seed and numRuns at least 500 recorded in the file (CONTRACTS.md 3)'). CONTRACTS.md 3 only requires a fixed seed recorded in the file. No SPEC.md, COMMON.md, README or roster text sets a run count. The requirement is attributed to CONTRACTS.md 3 and not marked (plan).",
+   "where": "5.14, test/properties/p11-folding.test.ts paragraph"
+  },
+  {
+   "kind": "fidelity",
+   "what": "5.7 says 'Invariants to test on all 32 types (as verify.py lines 1186 to 1191)', and 5.14 repeats 'E^T E = B within 1e-9 (all 32)'. verify.py section 13 skips rank 1 ('if n < 2: continue'), so the oracle checks only the 31 types of rank 2 to 8. Extending the E^T E = B and eigenvalue checks to A1 is a plan addition, but it is attributed to verify.py and not marked (plan).",
+   "where": "5.7 euclideanBasis invariants; 5.14 p4-coxeter-plane paragraph; section 6 line 'E^T E = B within 1e-9 on all 32 types'"
+  },
+  {
+   "kind": "coverage",
+   "what": "Roster trap 5 reads 'Face counts are bigint: 1_42 has 17280 vertices and 3628800 3-faces; |W(E8)| / |W_K| products exceed 2^31.' Section 9 trap 7 keeps the bigint point and the numbers but drops the 'exceed 2^31' clause and says the opposite: every count fits a safe integer. The replacement is mathematically right, since |W(E8)| = 696729600 is below 2^31, but the file never says it departs from the roster text and does not raise the roster error as an openQuestion, so the orchestrator cannot see the correction.",
+   "where": "9, trap 7"
+  }
+ ],
+ "P4-A5": [
+  {
+   "kind": "invented",
+   "what": "Beat 1 tells the agent to put T2 beside T1 with preset `follow` and `linkTo`, \"counting the populations found (8)\". This contradicts the plan file of the T2 owner. build-plan/agents/P1-A6-t02-orbit-garden.md (M6 row 1 bullet and the unit test `the M6 configuration shows 8 on B2`) says M6 \"needs `roots` mode grown in `explore`, not `follow`\". The reason it gives: from (1,0) on B2, mutation reaches only the 4 positions of its orbit, the long roots \u00b1(1,0) and \u00b1(1,2), so `found` could never read 8. The plan's configuration is `grows: 'roots'`, `growth: 'explore'`, `grown: 2`, `board: 'B2'`, with `linkTo` naming the T1. As written, the figure cannot show 8 root populations of two kinds (SPEC 3 M6 beat 1, table row 1: \"T2 beside it (8 populations)\").",
+   "where": "5.2 (Figure bullet); 3 (P1-A6 input names only preset `follow`); 6 (Beat 1 acceptance line)"
+  },
+  {
+   "kind": "coverage",
+   "what": "Test 9 asks for a garden counter that reads 8 \"after the reader (the test) has visited all eight populations\" from T1 at p=(1,0) in follow mode. By mutation the test can visit only 4 populations from that start, so the test cannot pass as specified. It should instead read T2's `data-out=\"found\"` (named in P1-A6) as 8 under the roots/explore configuration with `grown: 2`.",
+   "where": "5.15 test 9"
+  },
+  {
+   "kind": "invented",
+   "what": "The file says that T1 has no round counter and must not be edited, and that the round counter is realised through script captions (5.3, trap \"T1 has a move counter and no round counter\", 7 requests). That contradicts build-plan/agents/P1-A5-t01-game-board.md. P1-A5 adds an optional T1 prop `rounds` for exactly this figure (SPEC 3 M6 row 2), rendering `Round k` in `data-out=\"roundCounter\"`, with an acceptance test `T01.test.ts > round counter on B2` and a handoff \"including `rounds` for M6\". The lesson file should configure `rounds: 2` on both beat-2 figures, and test 7 should read `roundCounter` (4 on B2 after 8 moves, 6 on G2 after 12). It should not file a request for a feature that already exists in the plan.",
+   "where": "5.3 (Round counter bullet); 9 (trap on round counter); 5.15 test 7; 7; 10 requests"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The Lie theory paragraph says the Weyl group of construction (a) is \"the subgroup of $W$ fixed by $\\sigma$\". SPEC 2.13 reads \"its Weyl group is the subgroup of $W$ commuting with $\\sigma$\". The two are equivalent under conjugation, but the instruction should quote the spec's wording.",
+   "where": "5.11"
+  }
+ ],
+ "P4-A6": [
+  {
+   "kind": "coverage",
+   "what": "The roster deliverable says \"beat 8 as a released:false placeholder\" and the summary says \"a released-gated placeholder\". Section 5.4 quotes that wording but never turns it into a concrete requirement. It allows a plain visible paragraph with one or two preview sentences, and it says to use an unreleased-figure prop only \"if `Beat` has\" one. Nothing requires the beat 8 slot or its figure to carry `released: false`, and no test in 5.14 checks that gating. Test 7 checks only that no golden or T11 link is rendered.",
+   "where": "5.4 Beat 8: the placeholder; 5.14 test 7"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 5.1 presents LO7 as an exact quote (\"the text of LO7 in 1.3 is ...\") but ends it with \"picture of E8\". SPEC 1.3 reads \"explain the Coxeter-plane picture of $E_8$\". The plain-text E8 rule applies to the YAML title, not to a quotation of the spec, so the quote does not match character for character.",
+   "where": "5.1 Frontmatter and page skeleton, `outcomes` bullet"
+  }
+ ],
+ "P4-A4": [
+  {
+   "kind": "fidelity",
+   "what": "Section 5.13 says phase 7's golden foldings are on A4, D6 and E8, \"two of which T11 does not offer today\". This is wrong. T11 offers A4 and D6 (SPEC T11 boards A2 to A8, D4 to D8), so E8 is the only one it does not offer (SPEC 1.5 and 2.17: A4 to H2, D6 to H3, E8 to H4).",
+   "where": "5.13 The golden slot"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The axe request asks \"P1-A2 or MERGE\" to add /tools/fold to the route list of a11y.spec.ts. README section 6 makes P0-A5 the owner of a11y.spec.ts (nojs.spec.ts belongs to P1-A2 and basepath.spec.ts to P0-A6), and the phase-0 roster agrees, so the request goes to the wrong agent.",
+   "where": "6 Acceptance (axe line); 10 Report (requests)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 7 sets \"may edit with the stated protocol: nothing else\" and then cites README section 6's \"additive edits by the tool and page owners for their own component styles only\". That README permission covers site/src/styles/*, which the file never grants. The ownership statement therefore does not match README section 6: it should either grant additive style edits under site/src/styles/* or say explicitly that the plan narrows that permission.",
+   "where": "7 Files"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 3 says Board.svelte and History.svelte are by P0-A5 \"extended by P1-A5 and P1-A3\". README section 6 lists site/src/components/board/* as P0-A5, extended by P1-A5 (P2-A3 adds BoardEditor). P1-A3 owns components/draw/* (layouts, roads, palette), not the board components.",
+   "where": "3 Inputs you depend on"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 5.2 says that on every offered board but D4 the default symmetry \"is the golden row's symmetry\". A2, A6, A8, D7 and D8 have no row in golden key `folding` (nine rows: A3, A5, A7, D4 twice, D5, D6, E6, A4), so the claim is false for five of the thirteen offered boards.",
+   "where": "5.2 Symmetries and the symmetry picker"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The acceptance line attributes the quoted phrase \"one case for each kind of board the tool offers\" to 4.0. The phrase is in SPEC 7.7 (Components row), not in 4.0. The parenthesis names 7.7, but the line label is misattributed.",
+   "where": "6 Acceptance (one case per kind of board)"
+  }
+ ],
+ "P5-A2": [
+  {
+   "kind": "fidelity",
+   "what": "The sentence 'On a minuscule orbit every edge joins adjacent layers and its lower end has mu_k=1, which is the entry of F_k' gets the direction wrong. Checked against the oracle: the end with mu_k=1 is the higher weight. It is the end nearer omega_i (smaller depth, e.g. (1,0) at layer 0 on A2) and the source column of F_k. R_k mu, with mu_k=-1, is the lower weight and the deeper layer, and with layer 0 drawn at the top it is also the lower end on screen. It should read: the end nearer omega_i (smaller depth) has mu_k=1, and the edge is the entry of F_k from that end to R_k mu.",
+   "where": "5.3, second bullet"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 5.9 restates 4.0 Long numbers: exact digits 'in the table view, in the tooltip and in every export'. The acceptance test 'a typed start of more than 12 digits ...' checks the hooks and the table view but not the tooltip or the Download data JSON. The JSON should hold the exact decimal string under the 6.6 data-export rule.",
+   "where": "6, Long numbers line"
+  },
+  {
+   "kind": "coverage",
+   "what": "The plan's drawing bound (5.3: above 300 positions, layer counts and a sentence saying the full graph is not drawn) is a stated limit under 4.0 and 9.2 ('stated limits'), but no test guards it. A test on a non-minuscule orbit between 301 and 2000 positions, such as E7 node 2 (576) or E7 node 6 (756), would close it.",
+   "where": "6"
+  },
+  {
+   "kind": "coverage",
+   "what": "9.2 requires A-1 to A-12 to hold. 5.6 and 5.11 make A-12 (relations as MathML through LinearForm or RelationFormula, kept outside any .katex element) a requirement, but section 6 has no test that the relation formula is a <math> element with <msub>. A-2 (visible focus ring) and A-8 (no drag) also have no named test. The axe scan does not prove these.",
+   "where": "6"
+  }
+ ],
+ "P5-A3": [
+  {
+   "kind": "coverage",
+   "what": "The credit bullet of SPEC 8.4 is only partly carried over. Section 5.10 covers Wildberger's construction, [Gre13], [W03c], [vE] and \"attributed to Kostant\", but leaves out the rest of that bullet: \"the numbers game is Mozes', with Proctor's earlier use of the same process and Eriksson's development acknowledged\". Both pages discuss the numbers game: the chip-firing comparison of 5.12 item 2, smaller points 4 to 6 of Appendix D, and the Lie theory paragraph. The 'writing rules of 8.4' acceptance line and test 15(a) check credit lines only for Wildberger, Gre13 and Kostant.",
+   "where": "5.10 (credit bullet); 6 (writing rules line); 5.14 test 15(a)"
+  },
+  {
+   "kind": "coverage",
+   "what": "The page is required to give every statement its provenance (5.12: \"every statement with its provenance\"; SPEC 8.4 and 9.2). Appendix D main correction 1, \"the graph does not change\", carries its own source in SPEC: \"[W20] sections 2 and 5: 'a mutation at A changes only the population of A'\". The file never names [W20] as the provenance for that confusion. W20 is also missing from the keys in section 3 that must resolve through <Cite> and from the sources of the not-quiver page (5.12 item 7).",
+   "where": "5.12 item 6 and item 7; 3 (SOURCES keys)"
+  }
+ ],
+ "P6-A4": [
+  {
+   "kind": "fidelity",
+   "what": "The definition-of-done line quotes 9.2's 'Checked by the owner at the gate, and so no condition for merging' as if it covered the whole tool definition of done. In SPEC 9.2 that sentence covers only the clause that follows it: 'principles P1, P2, P9 and P10 of section 8.1 can be pointed to in it'. The automated parts of the definition of done (acceptance, A-1 to A-12, the 4.0 rules, the size budget, the table view) are conditions the agent must meet. The line also never mentions principles P1, P2, P9 and P10, which are the owner's actual check.",
+   "where": "Section 6, the 'Definition of done for a tool (9.2 ...)' line"
+  },
+  {
+   "kind": "coverage",
+   "what": "The G6 automatic part in SPEC 9.1 and the roster gateItems both require 'sizes and lab timings of section 7.6 on every page'. The file covers the 15 kB size sum but never mentions the lab timings (LCP at most 2.5 s, TBT at most 200 ms, CLS at most 0.1) for the Atlas pages. The E8 page is the case to watch, since it carries large tables and data URIs. It should at least say that GATE runs these and that the agent reports the E8 page weight with that in mind.",
+   "where": "Section 6 (size line) and section 5.11"
+  },
+  {
+   "kind": "coverage",
+   "what": "Item 13's fallback link, 'T1 in legal mode from all ones', names no view. 6.6 Validation rejects 'a view and a mode that the table of T1 does not allow together', and the T1 table allows legal only in the numbers and linked views. Item 11 states the view explicitly (v=n&m=l&c=n&s=...). Item 13 should do the same (v=n or v=l, with c=n and s=1,...,1), or the link can open T1's default with a notice.",
+   "where": "Section 5.2 item 13"
+  },
+  {
+   "kind": "template",
+   "what": "The title line reads 'Tool T14 Atlas, one static page per board'. The roster title is 'Tool T14 Atlas: one static page per board'. The template asks for '# {ID}: {title}' with the roster title, and the punctuation differs.",
+   "where": "Header line 1"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 1 presents 'acceptance of T13 and T14 as automated tests' as a quote of what 'gate G6 requires'. That string comes from the phase-6 roster gateItems, not from SPEC 9.1, whose G6 row reads 'all golden tests of phases 0 to 6; full accessibility scan; sizes and lab timings of section 7.6 on every page; a release build succeeds ...'. The source should be named as the roster (plan).",
+   "where": "Section 1, last sentence"
+  }
+ ],
+ "P6-A6": [
+  {
+   "kind": "fidelity",
+   "what": "The file tells the agent to 'cite no page of [W-MS] for the Mars story, since SOURCES gives none'. SPEC 1.7 says the story of Martians and anti-Martians on Mars, and of Venus for the dual game, is retold with credit '([W20] section 2; [W-MS] pp. 1 and 30)'. So SPEC does give [W-MS] p. 1 for the Mars story. The instruction contradicts the specification and would remove a citation that SPEC itself gives.",
+   "where": "5.9 item 1"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The file calls 'the 5-cycle is the affine board \\tilde A_4' 'the plan's gloss, not SPEC's words'. SPEC 2.12 (line 419) states it: 'The 5-cycle is the affine board $\\tilde A_4$ [V] ... and its numbers game is the 1986 Olympiad problem'. SOURCES [IMO86] 'Role on the site' says the same. The statement is mislabelled as plan when it is a [V] statement of the specification, which should be cited.",
+   "where": "5.2 item 2"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Appendix D item 1 says the operation the note describes 'is modelled on Fomin-Zelevinsky quiver mutation, a different construction with the same name'. The file instead says 'Reversing arrows and toggling edges between neighbours is Fomin-Zelevinsky quiver mutation', which drops 'modelled on' and turns it into a stronger claim than the specification makes.",
+   "where": "5.7 item 1 (board-fixed)"
+  },
+  {
+   "kind": "invented",
+   "what": "The acceptance line on third-party assets that are not packages (videos, images, borrowed figure layouts listed on /credits with title, author, source and licence; no video re-hosted; SPEC 7.9 bullets 2 and 4) is set as 'Manual check, reported as not-automated'. COMMON 5.2 and the template allow not-automated only where SPEC.md itself says the check is manual. SPEC 7.9 does not, and the plan's own grep method could be an automated test in pages-6.spec.ts.",
+   "where": "6. Acceptance, third-party assets line"
+  }
+ ],
+ "P6-A7": [
+  {
+   "kind": "coverage",
+   "what": "The restatement of 8.4 leaves out part of the credit rule. 8.4 says: \"Credit accurately: the mutation game is Wildberger's; the numbers game is Mozes', with Proctor's earlier use of the same process and Eriksson's development acknowledged; Kostant's game is 'attributed to Kostant'.\" The file credits only Wildberger (the mutation game and the Mars story, D5). Beat 2 has the reader play the numbers game on the black sub-board to get the word of w_X (2.15 stage 2, F4), so the numbers-game credit (Mozes, Proctor, Eriksson) applies to this lesson and should be stated.",
+   "where": "5.14 Writing rules and principles (first bullet, 'accurate credit')"
+  },
+  {
+   "kind": "coverage",
+   "what": "Under 9.2 the owner checks that 'principles P3 to P8 can be pointed to'. 5.14 covers P1, P2, P5, P6, P8, P9 and P11, and 5.2 covers P3. Nothing covers P4 ('One new mechanic at a time') or P7 ('Show a worked play-through, then fade the support. Each new game is first shown as a stepped example with commentary, then as a half-finished game to complete, then free.'). M9 brings in two new games: playing theta in three stages, and the restricted game with its composite moves. The file never asks for a stepped worked example followed by faded support, and never says how to keep to one new mechanic per beat.",
+   "where": "5.14 (principles bullet); 6 owner line"
+  },
+  {
+   "kind": "invented",
+   "what": "Test 4 also bans U+2013 in prose ('no U+2014 (and no U+2013 in prose)'). SPEC 8.4, D14 and COMMON 4.4 forbid only em-dashes. The en-dash ban is a plan addition, but here it is not marked (plan). P5-A3 marks the same rule as a plan addition.",
+   "where": "5.17 test 4"
+  },
+  {
+   "kind": "fidelity",
+   "what": "T13 says that clicking a restricted node 'plays the composite word on the big board, in steps, and the shadow reflects'. 5.7 and test 13 assume one click raises data-moves by 32 straight away and that the shadow is reflected then. Because play is 'in steps', the test should first step or play the 32 moves through (or wait for the play to finish) and only then compare data-moves and the shadow. As written, the test can fail against a correct T13 that advances one move per step.",
+   "where": "5.7 'What a click does'; 5.17 test 13"
+  }
+ ],
+ "P6-A8": [
+  {
+   "kind": "invented",
+   "what": "Several acceptance lines are written as not automated, with the result recorded in plan report fields (writingRules, provenance): the 8.4 writing rules (site's words, conventions stated, no stock contrasts, no copied sentence) and 'every statement has a provenance'. COMMON.md 5.2 and the template's section 6 allow 'not-automated' only where SPEC.md itself says a check is manual. SPEC 9.2 lists provenance and 'it follows the writing rules of section 8.4' as part of done, not under 'Checked by the owner at the gate' (that part is only P3 to P8 and reading aloud). The typed-numbers line is fine, because 7.7 says numbers-in-prose is 'for a person to review'. The file does not say this conflicts with COMMON 5.2 and does not tell the agent to list it as a deviation. It should either give an automated proxy for each item or tell the agent to record the manual checks under `deviations` so MERGE can decide.",
+   "where": "6. Acceptance (writing-rules sub-bullets; provenance line)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The convention bullet says 'The numbers-game literature that fires negative (2.9: the Olympiad, Mozes, Eriksson, Gashi, Schedler and Speyer) has $a=-x$.' The 2.9 table gives $a=-x$ only for the Olympiad, Mozes and Eriksson. For Gashi, Schedler and Speyer it gives $a=-v$, $C=c^{\\mathsf T}$, and it leaves out Benkart, Klivans and Reiner ($a=-u$, $C=c^{\\mathsf T}$), who also fire negative. Eriksson's matrix relation $C_{ts}=-k_{st}$ and Mozes' [U] matrix convention are dropped as well. A glossary entry that states conventions (8.4) needs the transpose and the variable of each source as 2.9 gives them.",
+   "where": "5.6 Glossary completion, 'Conventions in entries'"
+  },
+  {
+   "kind": "style",
+   "what": "The fallback figure ('the Cartan matrix of $B_3$ in both conventions, built with the same KaTeX call as `<Tex>`') does not say that the matrix entries must come from the golden path (`types.B3.cartan` through `<Tex src=\"... {{path}} ...\"/>`). As worded, it allows a hand-typed matrix, which 8.4 and COMMON 4.4 forbid.",
+   "where": "5.2 item 2"
+  },
+  {
+   "kind": "style",
+   "what": "'The glossary stays a page with no tool (7.6: 15 kB for a page with no tool)' is stated as the SPEC's rule. In 7.6 that row names only `about`. Applying it to the glossary is a plan reading, and 5.8 marks it so for M10, but 5.6 does not.",
+   "where": "5.6 last bullet"
+  }
+ ],
+ "P6-A3": [
+  {
+   "kind": "fidelity",
+   "what": "The default preset's state fields are written with string labels, `{ board: 'A3', black: ['2'], tau: ['3', '2', '1'] }`. CONTRACTS 4 (state.ts) types `ToolState` as `black?: number[]; tau?: number[];`, so a preset that is 'also a state object' (SPEC 4.0) should read `black: [2], tau: [3, 2, 1]`. Building the registry from the strings as given would break type-checking against `ToolState` or force a cast.",
+   "where": "Section 5.3 (table row `default`) and section 5.13 (registry entry)"
+  },
+  {
+   "kind": "invented",
+   "what": "The file tells the agent to report the shadow picture, `shadow-coordinates` and the values on the restricted board's nodes as `blocked` in `acceptance` if the engine helper for shadow coordinates is missing. COMMON 5.2 allows only `pass | fail | not-automated` as an acceptance status, and `blocked` is a report-level `status`. Section 3 handles the missing `exportLaTeX` case correctly (`fail` with a request), so 5.8 should do the same.",
+   "where": "Section 5.8 (last bullet before E7/E8) and section 10 deviations list"
+  }
+ ],
+ "MERGE": [
+  {
+   "kind": "invented",
+   "what": "5.13 says a fix branch that edits a test \"is acceptable only where a finding says the test was wrong\". This contradicts RT-FIX.md 7, which lets a fixer edit existing tests of any area in the direction of strength when a finding says a test is weak, and add its adopted regression test to a tool's test file (the `describe('regressions')` block). It also contradicts RT-FIX 4, where every `fixed` finding adds a permanent test. Read literally, MERGE would treat normal reproducer adoption as an out-of-bounds test edit. The rule should be: test edits only in the direction of strength or as adopted regressions, never weakening (RT-FIX 5.5, COMMON 4.4).",
+   "where": "5.13 A red-team fix round"
+  },
+  {
+   "kind": "coverage",
+   "what": "5.13 defines a fix branch's ownership as \"the set of files its confirmed findings concern, as its report lists\". The red-team round prompt (workflows/redteam-phase.js mergePrompt) passes only agent, branch, worktree, filesChanged, decisionsFragment and deviations. It carries no findings, no cluster area and no handoff, so MERGE cannot apply the 5.1 'files outside ownership' check to a fix branch. The file needs to say what MERGE uses instead: the cluster name in `fix/P{k}-<cluster>` as the area, plus the deviations RT-FIX 10 requires for files outside it.",
+   "where": "5.13; 5.1 (files outside ownership)"
+  },
+  {
+   "kind": "coverage",
+   "what": "The lockfile protocol says `npm install` runs \"exactly once\" and is \"the only npm install you ever run\". Branches merge one at a time, though, so in a stage where two or more branches each change dependencies (stage 0.2: P0-A3 site/package.json for KaTeX, P0-A6 root scripts and dependencies, P0-A2 fast-check), the lockfile can conflict on a second merge after it was already regenerated. 5.4 gives no procedure for that case (abort and route, defer regeneration to the end, or allow one regeneration per conflicting merge). 5.7 handles only the request case ('if that regeneration already ran in this run, route the request').",
+   "where": "5.4 The lockfile protocol; 9 Traps (The lockfile)"
+  },
+  {
+   "kind": "coverage",
+   "what": "5.7 carries out a dependency request 'in root package.json only' but never says to regenerate the lockfile for it. The 'Carry it out by adding the exact pin ... and applying steps 2 to 4 of 5.4' sentence reads as covering only the pin-correction case. A dependency added without regeneration makes check 1 (`npm ci`) fail on an out-of-sync lockfile.",
+   "where": "5.7 Requests, first bullet"
+  },
+  {
+   "kind": "coverage",
+   "what": "Two parts of the file disagree on what `blocked` means. In 5.3, a conflict needing a design decision on a branch the stage cannot stand without ends with `status: blocked` after `merge --abort`, and nothing says to reset `main` to the start commit. Section 10 defines `blocked` as 'when main was reset to the start commit', and the build-phase prompt says blocked means 'main at the last green commit'. 5.3 never says whether the earlier merges of the run stay on `main`, are folded and checked, or are reset away.",
+   "where": "5.3 Conflicts (design-decision bullet) against 10 Report (status definitions)"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 2 item 8 cites P0-A4 5.7 for 'the treatment of an unknown item id (shown as open)'. That rule is in P0-A4 5.8 (unverifiedRegistry.ts and Unverified.astro, line 172); 5.7 gives only the shape and the seed. 5.6 later cites 5.8 correctly.",
+   "where": "2. Read first, item 8"
+  },
+  {
+   "kind": "template",
+   "what": "TEMPLATE-build-agent.md 6 asks each acceptance line to name its gate. MERGE says once, in a preamble, that every line belongs to 'every merge' and leaves the gate off each line. Some lines also cite an authority that does not hold the rule: 'Lockfile regenerated by the protocol' cites README 6, which says nothing about regeneration (the protocol is plan, from 5.4); 'Merged worktrees removed, branches kept' cites no authority. The lockfile line is also unconditional, although it applies only when a lockfile conflict occurred.",
+   "where": "6. Acceptance"
+  }
+ ],
+ "GATE": [
+  {
+   "kind": "fidelity",
+   "what": "The file says twice that P0-A4's registry 'rewrites the two files in every build' and that the release build 'writes reports/open-items-report.json (mode release)'. P0-A4 5.8 says something narrower: the registry rewrites the two files 'after every registration' of an <Unverified> usage. A build with no <Unverified> on any page writes no report at all. That is plausible for the G0 site (index, about, credits). In that case the G0 release build leaves nothing for `npm run report` to read, and the file's expected exits and its proof paths for the report rest on a wrong premise.",
+   "where": "5.5 step 9; 9. Traps ('A preview build after the release build overwrites the open-items report')"
+  },
+  {
+   "kind": "coverage",
+   "what": "No step or trap covers a contamination path. P0-A4's content-components.test.ts runs inside `npm test` (step 2) and builds a fixture with RELEASE=1. Its registry walks up to the repository root and writes reports/open-items-report.json with mode release, listing E4 and E99 (P0-A4 test spec). This happens after 5.1 has moved stale reports away. If no later site build registers an item, `npm run report` exits 0 on a fixture report. This can happen at G0, and at G1, G2, G4 or G5 whenever the preview build registers nothing. 5.5 step 10 instead says the expected exit at those gates is 1. The file needs a check that the open-items JSON comes from the site build of this run (pages are site routes, generatedAt is after the build started), or the move of 5.1 must be repeated after `npm test`.",
+   "where": "5.1 (stale-report move); 5.5 steps 2, 9, 10; 5.6 Release build; 9. Traps ('A stale report passes for a fresh one')"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Wrong README citation. The Objective sends a failing gate to 'the orchestrator and the red team ... (README 3.5, 5.3)'. README 3.5 is the Model policy. The rule about what happens on failure is README 3.6 ('What happens when an agent fails'), with 3.1 and 5.3.",
+   "where": "1. Objective"
+  },
+  {
+   "kind": "fidelity",
+   "what": "5.5 contradicts 5.6 and 8. 5.5 says the gate commands are 'exactly the commands of SPEC.md 7.7' and that 'One command of the plan joins them: npm run e2e:basepath'. It also says any other command is a diagnostic run that can never be cited as proof. 5.6 (Benchmark), 5.6 index G3 item (6), and 8 step 8 then accept a separate benchmark command wired by P3-A2 (a script in packages/engine/package.json or one named in its fragment) as the proof of the G3 roster item. 5.5 must name the benchmark command as a second plan exception, or it forbids the proof that 5.6 requires.",
+   "where": "5.5 first paragraph; 5.6 The benchmark; 8 step 8"
+  },
+  {
+   "kind": "coverage",
+   "what": "The no-JavaScript proof states a failure only for an unvisited lesson ('a lesson of a phase at or below k that the run did not visit fails the item'). The roster items go further. G1 says 'the run without JavaScript passes on M0, M1, the tool routes and the pages'. G2 says 'on every route', and G3 to G5 restate it. No failure condition is given for a tool route or page that the no-JS run did not visit. The Axe and Sizes paragraphs each have an explicit 'a route not scanned/visited fails the item' rule; this one has none.",
+   "where": "5.6 The run without JavaScript"
+  },
+  {
+   "kind": "invented",
+   "what": "Several names are stated as binding without a (plan) mark and appear in no plan or spec file: the archive file names `reports/release-{v}-pages.tar.gz` and `reports/release-{v}-root.tar.gz`, and the log naming `reports/gate-G{k}/NN-<command>.log` with its last line `exit=<status>`. SPEC 7.8 and README 7 say only 'two archives' 'left as archives in reports/'. The file marks other additions (plan) consistently (the previous/ directory, supporting rows) but not these.",
+   "where": "4. Deliverables; 5.7; 7. Files"
+  },
+  {
+   "kind": "template",
+   "what": "The template asks that each Acceptance line be 'followed by the automated test that proves it (file and test name) and the gate it belongs to'. Most of GATE's acceptance lines give a 'Proof:' location but do not name the gate. Only the release and archive lines name G3 and G6.",
+   "where": "6. Acceptance"
+  }
+ ],
+ "P7-overview": [
+  {
+   "kind": "fidelity",
+   "what": "Section 1 step 6 names `RT-05` attack 35 as its phase 7 attack. In red-team/RT-05-a11y-and-layout.md, attack 35 is \"No motion by itself; reduced motion is instant (phases 0 to 7)\". The phase 7 attacks are 46 (\"Phase 7 boards (phase 7)\") and 45 (\"Embedded tools (phase 6 and 7)\"). The other attack numbers cited were checked and match: RT-01 43, RT-02 38, RT-03 35, RT-06 32, RT-08 38, RT-09 34, RT-11 34, and RT-10 11 and 18.",
+   "where": "Section 1, step 6"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The file treats every per-item gate as a 1.x release gate (section 3, \"The 1.x release of each item\"). It then sets `ownerPart` to \"none\" for P7-A2 to P7-A5 and to Appendix E item 9 alone for P7-A1. SPEC 9.4 is headed \"Playtest script (owner's part of gate G3, and each later release)\". SPEC 7.5 A-13 says \"Each release is checked by hand with one screen reader on desktop and one on a phone\". The file even cites 9.4 in section 9 to exclude RT-13. Each per-item ownerPart should list the 9.4 playtest and the A-13 screen-reader check, or the file should state and justify why a 1.x release is exempt, marked (plan) or left for the owner to decide.",
+   "where": "Section 1 step 5; section 2 table (Owner's part column); section 3 Gate per item; section 10 item 11"
+  },
+  {
+   "kind": "coverage",
+   "what": "Per-item red-team runs are proposed (section 9: lenses run after each item's gate). RED-TEAM-COMMON.md fixes the branch `redteam/P{k}-RT-{nn}`, so the run for every phase 7 item would reuse `redteam/P7-RT-01` and the other lens branches. The scratch and report paths follow the same pattern. The file does not say how branches, reports and fixer worktrees are kept apart between items, for example a per-item suffix as an amendment. This is also missing from the decisions checklist of section 10.",
+   "where": "Section 9; section 10"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 3 (Lessons) says a new [U] item is \"numbered by `MERGE` from `E18` on (Appendix E item 17)\". agents/MERGE.md assigns \"the next free number: one more than the largest `E<n>` in the file and in any reservation recorded in `DECISIONS.md`\". By phase 7, earlier phases will already have used E18 and later numbers, so the rule should be stated as the next free number.",
+   "where": "Section 3, Lessons"
+  },
+  {
+   "kind": "style",
+   "what": "The P7-A1 deliverables table names `T11FoldingBench.svelte`, `t11/`, `registry/T11.ts`, `T11.test.ts`, `T11.spec.ts`, `m7-geometry.mdx` and `M7.spec.ts` without their repository paths. README 6 gives these as `site/src/components/tools/`, `site/src/tools/registry/`, `site/tests/unit/tools/`, `site/tests/e2e/` and `site/src/content/modules/`. The P7-A2 and P7-A3 deliverables do the same, while the P7-A4 and P7-A5 briefs give full paths.",
+   "where": "Section 4.4, section 5.4, section 6.4"
+  }
+ ],
+ "RT-VERIFY": [
+  {
+   "kind": "template",
+   "what": "The 'What a mode may touch' table is malformed. The '(plan) This table is the plan's reading of RED-TEAM-COMMON.md 1 and 6 ...' paragraph (line 52) is inserted between table rows, so the last row '| Commits, branches, `main` | none, never | none, never |' (line 53) is cut off from its header. It renders as stray paragraph text and not as a table row, so the table as rendered drops the rule that neither mode commits or touches main. The (plan) note belongs after the whole table.",
+   "where": "Section 3, 'What a mode may touch' table, lines 46 to 53"
+  },
+  {
+   "kind": "invented",
+   "what": "Section 5.4 bullet 2 says a finding resting on a [V] sentence or a section-2 definition 'is refuted only by R1 to R3, R5 or R6', which excludes R4. This contradicts SPEC.md 0.2 item 2 ('When a mathematical statement in this document and the oracle seem to disagree, the oracle wins'), RED-TEAM-COMMON.md 2 (such a case is a note, not a finding), and the file's own R4 row and 5.4 bullet 1 ('The oracle wins both ways'). A [V] sentence that the oracle contradicts must still be refutable by R4 with an oracle citation. The trailing clause 'which would be R4 and must cite the oracle' makes the rule self-contradictory.",
+   "where": "Section 5.4, second bullet"
+  },
+  {
+   "kind": "invented",
+   "what": "Section 4.2 defines the applied set P more broadly than RED-TEAM-COMMON.md 6 ('apply only the reproducer from the finding's branch') without marking it (plan). P also takes in every path that `reproduction` names and that is absent at the gate commit, and every redteam/ file that a file in P imports or reads by literal path. The same section restricts reproducer locations to packages/engine/test/**, site/tests/unit/** and site/tests/e2e/**, which RED-TEAM-COMMON.md 1 does not list ('beside the existing tests'). The file marks its other readings of the charter (plan) carefully (4.3 steps 3 and 5, the 4.4 rows, 4.6, 7), but these rules are stated as charter rules.",
+   "where": "Section 4.2, the definition of P and the allowed-locations paragraph"
+  },
+  {
+   "kind": "fidelity",
+   "what": "The second 9.2 example has reason 'needs undocumented step (npm run build before the script); ...', but the 4.4 table and 9.1 field table prescribe the form 'needs undocumented step: <what>' with a colon. The worked example does not follow the file's own log-line format, which the harness prints after 'not reproduced: '.",
+   "where": "Section 9.2, 'Reproduce mode, dropped for an undocumented step' example"
+  }
+ ],
+ "RT-04": [
+  {
+   "kind": "coverage",
+   "what": "The file never mentions the long-list replay design that the P1-A2 instruction (section 5.3, line 129) sets out for MERGE. Under it, decodeState returns notice null and replayCheck: true for any list of more than 2000 moves, and the tool runs firstForbiddenMove in the worker. No attack builds a link of more than 2000 moves whose forbidden move comes after move 2000 (for example 2500 legal-mode moves with move 2400 forbidden) and checks that the browser still shows the defaults and the notice. That is SPEC 6.6, 'a move that the mode in force forbids at that point of the play', combined with E-9 rule 2. Because the deviation is not mentioned, the unit form of method A (good()/bad()) would also report the planned notice-null result as a finding, or pass a long forbidden link without anyone noticing. Method F names legalNodes, raisingNodes, fire and mutate but leaves out firstForbiddenMove, the function the plan actually names.",
+   "where": "Section 4 (attacks 3, 10, 28); section 5 methods A and F; section 2 build reports"
+  },
+  {
+   "kind": "coverage",
+   "what": "No attack covers SPEC 6.6 'Instances': 'Every tool placed on a page has an instance id, set by the page author (id=\"b2\") and unique on the page. A page holds one state object per instance.' There is no check that two instances with the same id are refused, which P1-A2 implements as registerInstance throwing 'duplicate instance id <id>'. There is also no check of what a prefixed link does when two instances would share a prefix.",
+   "where": "Section 4 (attack 25 covers prefixes only); section 7 coverage"
+  },
+  {
+   "kind": "coverage",
+   "what": "No attack covers the SPEC 7.4 'Single source of truth' sentence: 'While a tool runs it keeps the list of positions of the current play in memory and extends it by one position per move, so a move costs one engine call however long the play is.' After a 20000-move link loads, nothing checks that the next move does not replay the whole word. Attack 28 checks only that the tool eventually answers. Section 6 does not hand this item to another lens either.",
+   "where": "Section 4 (attack 28 or 32); section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "No attack covers the SPEC 7.4 'Tools on one page' bullet: 'Two tools share state only when the page says so with a linkTo property'. On a lesson page where a T2 follows a T1 (linkTo), nothing checks that a link setting b1.w makes the follower show the same play. Nothing checks that a link aimed at the follower's own prefix is handled consistently. Nothing checks that instances without linkTo stay independent when one of them is changed by a link.",
+   "where": "Section 4 (attack 25); section 7 coverage"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 5 gives the A2~ case (s=1,1,1; w=1.2.3 must give the notice because label 3 is not a label) and then says 'Same with g=B3~'. B3~ has four nodes, labelled 0, 1, 2, 3 (oracle board_from_name('B3~')). Read literally, w=1.2.3 is valid on B3~ and s=1,1,1 has the wrong length, so the stated expectation is wrong for that board. The analogous out-of-range label (4) and the start length (4) should be stated for each named board.",
+   "where": "Section 4, attack 5"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 2 quotes the T1 table as ('`raising` (only cities whose number $a_i$ is negative)'). The SPEC text is '`raising` (only cities whose number $a_i$ is negative: Kostant's game)'. The words ': Kostant's game' are dropped with no ellipsis.",
+   "where": "Section 4, attack 2"
+  },
+  {
+   "kind": "invented",
+   "what": "Attack 26 lists z=1.0 and z=01 among values that 'are unknown or do not parse and give the notice', then says to report z=01 as a note if it is accepted. SPEC 6.6 does not settle whether z=1.0 or z=01 spells schema 1, which is the same category the file itself treats as a note for +1, 01 and -0 (section 6). Stating z=1.0 as a required notice is therefore unsupported, and the attack contradicts itself on z=01.",
+   "where": "Section 4, attack 26; section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "The P1-A2 acceptance has a plan rule that 'd with a non-safe entry fails rule 1 (plan)' (lambda as safe integers only). Attack 29 tests d only for length and dominance. It never sends a d entry beyond 2^53 and never says to judge the result against the P1-A2 fragment.",
+   "where": "Section 4, attack 29"
+  }
+ ],
+ "RT-06": [
+  {
+   "kind": "coverage",
+   "what": "SPEC 9.1 phase 7 lists 'Vogan diagrams side by side' (plan: P7-A4, a T13 sidebar per agents/P7-overview.md), and that new view must also render without JavaScript and must not fetch the worker on load. Neither the phase 7 row of the scope table nor attack 32 names it. Both list only the T11 golden tab, the T12 one-zero-weight preset, the T13 generalized toggle and web components. 'Further languages' from the same 9.1 row is also left out without a reason.",
+   "where": "Section 3 (phase 7 row) and section 4 attack 32"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 7 has no required coverage line for several attacks, so an empty result in those areas would go unreported: attack 5 (the M1 triangle grown to 40 layers: 243 vertices and 'stopped after 40 layers' in the server HTML), attack 8 (the visibility scan of hidden prose, page by page), attack 15 (no tool moves by itself on load), attack 19 (Unverified marks and fallbacks in preview against release), attack 24 (long numbers with exact digits in the HTML), attacks 27 and 28 (tool-route defaults including the pentagon convention, and presets reproduced by links), attack 31 (navigation without scripts) and attack 32 (phase 7). TEMPLATE section 7 requires coverage entries that show what was examined even when nothing was found.",
+   "where": "Section 7 coverage list"
+  },
+  {
+   "kind": "template",
+   "what": "TEMPLATE section 2 asks for 'The oracle functions and golden keys it uses as reference'. Section 2 lists golden keys only. Attack 29 and Methods 5.7 use the oracle to apply a long word on the bigint_test board but never name the function (lie_games.mutate / lie_games.fire, applied move by move). The oracle functions are not listed in Read first.",
+   "where": "Section 2 (golden keys paragraph) and Methods 5.7"
+  },
+  {
+   "kind": "invented",
+   "what": "Attack 22 makes it a failure for the live region to be 'a different element after hydration (not replaced on hydration, which some screen readers stop following)'. SPEC 7.5 A-4 and CONTRACTS 5.1 require only one polite live region per tool that 'exists, empty, before the first move'. Neither says the element must survive hydration unreplaced. This is an extra requirement presented as a finding and it is not marked (plan) or note.",
+   "where": "Section 4 attack 22"
+  },
+  {
+   "kind": "invented",
+   "what": "Attack 21 states the phase-0 index details as requirements with no (plan) mark: two node buttons with data-value 1 and 0, the populations view, start (1,0), and the KaTeX MathML part 'visually hidden'. The board configuration comes from the roster (P0-A5 deliverables), not from SPEC. SPEC 9.1 G0 says only 'one page with one board on A2' and 'shows mathematics and the board with JavaScript disabled'.",
+   "where": "Section 4 attack 21"
+  }
+ ],
+ "RT-01": [
+  {
+   "kind": "fidelity",
+   "what": "Attack 20 writes `minusculeMatrices(E7, 7, 50)` is `null`. CONTRACTS 2.4 says every function takes positions, and E7 has positions 0 to 6, so node 7 (label) is position 6. As written, the call passes an out-of-range position, and the engine could throw instead of returning `null`. It should read `minusculeMatrices(boardFromName('E7'), 6, 50)`, since the orbit of omega_7 has 56 positions, which is more than 50 (SPEC 5.4 `minusculeMatrices`: `null` when the orbit has more than `cap` positions). The same attack's \"`D4` node 2\" should also be stated as position 1 for the engine call.",
+   "where": "Section 4, attack 20"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 37 is internally inconsistent about the tolerance for `spectralRadius`. The method says \"within $10^{-9}$ of `spectral_radius(C)`\" but the finding says \"a radius differing by more than $10^{-6}$\". One tolerance has to be chosen. Both sides run the same power iteration of SPEC 5.5, which stops at $10^{-13}$.",
+   "where": "Section 4, attack 37"
+  },
+  {
+   "kind": "coverage",
+   "what": "Attack 41 compares `wordTo(graph, k)` with the oracle's `word_to(graph, v)`, and attack 1 compares `parent` and `node` \"through wordTo\". The bridge of section 5 cannot run this. `orbit_graph` and `orbit_graph_capped` return dicts keyed by tuples, which `enc` sends as `{\"$entries\": ...}`, but `dec` does not rebuild such a dict, and vectors arrive as lists, which cannot be dict keys. So `o.call('word_to', graph, v)` fails with a TypeError or KeyError. The file needs either a `HELPERS` entry (for example one that runs `orbit_graph` or `orbit_graph_capped` and returns `word_to` for each item) or an instruction to rebuild the word on the Node side from the `$entries` parent links.",
+   "where": "Section 5 (bridge, HELPERS) and section 4, attacks 1 and 41"
+  },
+  {
+   "kind": "coverage",
+   "what": "Two rows of the fates table in SPEC 2.12 are not compared with the oracle on random affine boards: level < 0 (\"every legal play ends, after the same number of moves, at the same position\") and level > 0 (never ends, numbers grow; the engine reports 'cap'). Attack 36 draws only level-zero starts on affine boards (the numbers Cp of a root population) and random starts on indefinite boards. Attack 31 covers only the pentagon. The finding \"'ended' on a start of positive level\" is listed, but no step generates such starts. The file should add random starts of negative and positive level on every board of `affineCandidates(m)`, with `playFate` and `play` compared with `play_fate`, including two scripted orders for the negative-level case (SPEC 5.5 \"Fates\").",
+   "where": "Section 4, attack 36"
+  },
+  {
+   "kind": "coverage",
+   "what": "The golden key `e8` (SPEC 5.7, phase 3 row: `toPopulation` and `formValue`; Appendix G `e8.fundamental_weights_in_root_coordinates`) is missing from the golden keys listed in section 2, and no attack goes beyond it. For example, no attack checks `toPopulation` of the fundamental weights of E8 and of relabelled E8, F4 and G2 (det C = 1, integer populations, SPEC 2.4(c)) against `weight_to_root_coords`. This is minor, because attack 35 covers `toPopulation` on random boards.",
+   "where": "Section 2 (golden keys) and section 4, attack 35"
+  }
+ ],
+ "RT-05": [
+  {
+   "kind": "fidelity",
+   "what": "Attacks 20 and 33 cite the rule that a named finite-type board is reloaded with Big arithmetic \"with no message\" as SPEC 6.6 \"Coordinates of the start\". That paragraph is in SPEC 4, T1 (\"**Coordinates of the start.**\", SPEC.md line 1071), not in 6.6. Only the 40-digit limit comes from 6.6 Validation. The citation should read SPEC 4 T1 \"Coordinates of the start\".",
+   "where": "Section 4, attacks 20 and 33"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 6.2 says the `roads` style is \"Used in M1, M4 and M6 where the counts in each direction are the subject\". Section 2 item 3 quotes this sentence, but no attack checks that the board instances in M1, M4 and M6 use the `roads` style. Attack 31 tests only the one-way board, the dynkin defaults and the thick lines. Section 6 does not hand the check to RT-09 either, even though RT-09 attack 8 covers part of M6.",
+   "where": "Section 4, attack 31; Section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "A-1 says \"Home and End go to the first and last label\" on every layout. Home and End are tested only on polygon and custom layouts (attacks 13 and 14). No attack drives Home and End on the row-with-branches layouts (D_n, E_6 to E_8, the affine rows), where a geometric \"leftmost or rightmost\" implementation could pick a different node than the first or last label. The coverage line also names only polygon and custom layouts.",
+   "where": "Section 4, attacks 11 and 13; Section 7 coverage"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 4.0 Long numbers requires the exact digits \"in the table view, in the tooltip and in every export\". Attack 20 checks the nodes and the table view only. The tooltip case is neither attacked nor handed to another lens in section 6 (RT-10 lists the rule).",
+   "where": "Section 4, attack 20; Section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "The phase-0 scope row leaves out three of P0-A5's own files: `Roads.svelte`, `sign.ts` (the sign encoding of 6.3) and `site/tests/unit/signs.test.ts`. The road and sign attacks (29, 30, 31) target exactly these files, and the phase-0 sign encoding is in scope from phase 0.",
+   "where": "Section 3, phase 0 row"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 16 gives \"undo then redo to the same state\" as its example of the same text set twice in a row. That example produces two different texts (\"Undid move N. ...\" and then \"Fired node ... Move N.\"), so it cannot show the failure. The expectation \"the region must change, for example cleared and set\" is also stated without a (plan) mark. It is a reading of A-4 \"Each move is announced\", not SPEC text.",
+   "where": "Section 4, attack 16"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 42 says \"Load `?x=2.3.4.5&t=1.2.3.4.5.6` on $E_6$ and $D_4$ with black nodes 3 and 4\". The `t` list has six entries, so on D_4 it fails 6.6 Validation (\"a list (`s`, `d`, `r`, `t`, `y`) whose length is not the number of nodes\"). The sentence should give a separate D_4 link (x=3.4 with a 4-entry `t`) so that a link the codec rejects is not used.",
+   "where": "Section 4, attack 42"
+  }
+ ],
+ "RT-07": [
+  {
+   "kind": "fidelity",
+   "what": "The lens's own CLS measurement adds up every layout shift (Methods 5.9: `w.__lab.cls += e.value`; attack 19: 'summing the shifts that follow'). The plan defines the metric differently. P3-A7 5.6 says CLS is 'the largest window's sum' over session windows (a gap of 1000 ms opens a new window; a window closes at 5000 ms), and the standard Cumulative Layout Shift that SPEC 7.6 names works the same way. Because the lens's number is a plain total, it can exceed 0.1 on a page whose real CLS is within the limit. A CLS finding from attacks 19 or 20 would then be refuted, citing P3-A7. TBT also differs: Methods 5.9 adds (duration - 50) for every long task that starts after FCP, but P3-A7 counts only the blocking part after FCP and includes tasks that straddle FCP.",
+   "where": "Section 4 attacks 19 and 20; section 5.9"
+  },
+  {
+   "kind": "invented",
+   "what": "Attack 34 gives 'an embed route above 90000 bytes' as a failure under 'SPEC 7.6 table'. The 7.6 table has no row for `/embed/<tool>`. The 90 kB limit for embed routes is P0-A6's classifier rule, which P0-A6 5.1 marks as plan ('classified the same way (plan)'). The attack should mark that limit (plan) and cite P0-A6 and DECISIONS.md, as attack 17 does for its plan cases.",
+   "where": "Section 4 attack 34"
+  },
+  {
+   "kind": "coverage",
+   "what": "The required `coverage` list in section 7 has no entry for several live attacks, so a round could leave them out without anyone noticing. Missing: attack 25 (one engine call per move, SPEC 7.4); attack 31 (the T2 drawing boundary at 300 and 301 positions, SPEC 4 T2 'Size'); attack 32 (T8 edges at 192 against 384 and 1152 elements, and the 1152 offer limit, SPEC 4 T8 'Size' and 5.6); attack 17 (labels and limits from classifyRoute for every route); attack 30 (code needed only after an interaction that is loaded eagerly); attack 24 (the number of classify calls per board load, SPEC 5.6 last sentence).",
+   "where": "Section 7, coverage list"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.6 begins 'A lesson page is readable with JavaScript disabled'. No attack covers this sentence, and section 6 does not assign it to another lens. Section 6 names RT-06 only for the SVG snapshots and no-JavaScript rendering of T8 and T10. A non-finding line should hand the general no-JavaScript reading of lessons to RT-06.",
+   "where": "Section 6"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 2 item 5 says CONTRACTS 5.3 'adds' the messages 'still running after 20000 moves', 'too large to test here' and 'more than 2000'. These strings come from SPEC itself: 5.6 and T9 for the first, 5.5 and 5.6 for the second, T2 'Interactions' for the third. CONTRACTS 5.3 only collects them. Attack 24 also gives the relabellings limit of 10000 as 'SPEC 5.5 \"Matching two boards\"', but the number is set in E-6 ('default 10000'). 5.5 only refers to 'the limit of E-6'.",
+   "where": "Section 2 item 5; section 4 attack 24"
+  }
+ ],
+ "RT-12": [
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.3 (the <Tex> bullet): \"The phase 0 spike confirms that backslashes in the attribute reach KaTeX unchanged from an `.mdx` file.\" No attack checks this. It is a toolchain behaviour of Astro 7's MDX attribute handling. A fixture `.mdx` using `<Tex src=\"\\frac{a}{b}\"/>` (and a `\\,` case) should be built, and the attack should confirm the rendered KaTeX contains a fraction and not literal or doubled backslashes. Attacks 9, 25 and 37 come close but never test this.",
+   "where": "Section 4 (attacks 9 and 25); section 7 coverage list"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.2 item 3: \"The spike renders one `.mdx` page with inline and display mathematics by each route and records the result in `DECISIONS.md`.\" Attack 25 checks that a route entry exists and that the configuration matches it. It does not check that the record shows both routes tried with both inline and display mathematics, or that display mathematics actually renders in display style (the `display` attribute of <Tex>, SPEC 7.3) in the built page. It also does not check that `<Tex>` exists under route (b) as well as (a) (\"The component `<Tex>` is built in either case\"), and no coverage item lists any of this.",
+   "where": "Section 4 attack 25; section 7 coverage list"
+  },
+  {
+   "kind": "invented",
+   "what": "Section 2 item 8 attributes to SOURCES 11.8 the rule that the documents it lists \"are the references for API behaviour; the installed packages under `node_modules/` are the final word on what the repository runs\". SOURCES 11.8 says only \"Versions were read from the package registries on 9 October 2026 [S]\" and then lists the documents. The node_modules sentence is the lens's own (or COMMON's) rule and is not marked (plan).",
+   "where": "Section 2 item 8"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 30 quotes CONTRACTS 1 `reports/` as \"`.gitignore`'d except gate-*.md\". CONTRACTS 1 reads \"(plan; .gitignore'd except gate-*.md)\" with no code formatting, and section 2 item 9 of the same file quotes it correctly. The difference is cosmetic but is not character for character.",
+   "where": "Section 4 attack 30"
+  }
+ ],
+ "RT-08": [
+  {
+   "kind": "invented",
+   "what": "Attack 33(b) requires the T13 restricted board, and the atlas pages for B2 and C2, to print \"$B_2=C_2$\" and never `C2` alone. SPEC 6.4 \"Names in rank 2\" (line 1660) says the opposite. `restricted_type_display` writes `C2` for su(2,2), sp(4,R), sp(2,2) and so*(8), \"The site prints the display field\", and `restricted_board` is `C2` for those four records. A T13 or atlas page that follows SPEC 6.4 would therefore be reported as a major finding. The attack should exempt the display fields of 6.4 and cite that passage. The atlas pages for the named types are reached by name, not recognised from their shape, so D19 does not clearly put them in scope either.",
+   "where": "Section 4, attack 33"
+  },
+  {
+   "kind": "invented",
+   "what": "Two attacks grade breaches of SPEC 8.4 as minor. Attack 30 makes \"a term used before it is defined with no glossary link\" minor, although 8.4 bullet 1 says \"Define every term on first use and link later uses to a glossary entry\". Attack 40 makes stock contrasts and filler words minor, although 8.4 says \"no stock rhetorical contrasts or fashionable filler words\". Both contradict RED-TEAM-COMMON 4, which grades \"a prose rule of 8.4 broken\" as major. They also contradict this file's own preamble to section 4: \"a prose rule of 8.4 broken ... is major\".",
+   "where": "Section 4, attacks 30 and 40, and the severity preamble"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 5 contradicts itself on severity. It reads \"a claim that the Satake game connection is new (blocker even inside `<Unverified>` without a fallback, ...; report as major in that case)\", so one sentence calls the same case both a blocker and a major. Appendix E item 8 says \"The site should make no claim of novelty until a search has been done\", so the attack needs a single grade, with that passage as the standard.",
+   "where": "Section 4, attack 5"
+  },
+  {
+   "kind": "coverage",
+   "what": "Attack 9 lists T2 on \"the star with four arms\" but gives no expected string. SPEC 4.0 says that on the star with four arms \"the bound on layers is the one that acts\", so the expected message is exactly `stopped after 40 layers`. Every other state in this attack has its exact string, and this one should too.",
+   "where": "Section 4, attack 9"
+  },
+  {
+   "kind": "coverage",
+   "what": "The phase 2 row of the scope table puts the T15 \"fate sentences\" in scope, but no attack checks them. SPEC 4 T15 \"Three fates\" fixes the wording: \"ended after $k$ moves\"; \"returned to an earlier position after $k$ moves\"; or \"still running after 20000 moves\", \"shown with the level and the sentence of section 2.12 that applies\". Attack 9 checks only the third. The first two, and the sentence of 2.12 shown beside each fate, have no attack.",
+   "where": "Section 3 phase 2 row; section 4, attack 9"
+  },
+  {
+   "kind": "coverage",
+   "what": "Attack 1 lists the known open claims item by item, but its list for E4 and E10 misses some of the items Appendix E names. Missing from E4: the definition of symmetrizable; the fact that matrices of finite and affine type are symmetrizable; the statement that real roots are positive or negative, with the lowering lemma; marks and comarks; and \"the names of the twisted affine diagrams and which is the transpose of which\". Attack 1 also turns \"marks, comarks and the word level\" into \"the origin of the word level\". Missing from E10: \"the item of [Ste59] behind F14\".",
+   "where": "Section 4, attack 1"
+  },
+  {
+   "kind": "coverage",
+   "what": "Attack 21 records the beats but does not check the rule of SPEC 8.2 item 3: \"Beats: a short paragraph, then a small tool or figure beside or below it. One idea per beat.\" No attack checks that each beat has its tool or figure.",
+   "where": "Section 4, attack 21"
+  },
+  {
+   "kind": "coverage",
+   "what": "Attack 38 checks only the sandbox link and links to unreleased pages. It does not check that the Atlas link is present from phase 6, as SPEC 8.2 item 7 requires (\"the Atlas page\"). It does not check that the next-module link is present once the next module is released. It does not check that the sandbox link comes last, as SPEC 8.1 P6 (\"The sandbox link closes each module\") and 4 T16 (\"It is the last link of every module from M2 on\") require.",
+   "where": "Section 4, attack 38"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.9 and COMMON 4.4 forbid copying a \"figure or table layout\", not only a sentence. 7.9 also says \"Videos are linked or embedded with the platform's own player and never re-hosted\", and Appendix F says to avoid \"copying the images\" of Stembridge's Coxeter plane pictures. Attack 36 checks sentences only, and attack 28 checks licences only. No attack checks copied figures or table layouts, or re-hosted videos.",
+   "where": "Section 4, attacks 28 and 36"
+  },
+  {
+   "kind": "coverage",
+   "what": "The minor sub-cases of Appendix D correction 3 are only partly covered. Attack 2 looks for \"the games coincide\" or \"are the same\". It does not look for the sentence that correction 3 names, \"The mutation game on $C$ is the numbers game on $C^{\\mathsf T}$\", stated as a claim that the two games have the same positions and moves.",
+   "where": "Section 4, attack 2"
+  }
+ ],
+ "RT-10": [
+  {
+   "kind": "fidelity",
+   "what": "The phase-1 property tests are listed as 2, 3, 4, 6, 8. The current roster has phase-1 gateItems \"property tests 1, 2, 3, 4, 6, 7 (first half), 8 pass\", and P1-A1's deliverable is \"7 first half (every root has one sign; the isRootPopulation half waits for phase 2)\" (rosters/phase-1.json; README 4, P1-A1 \"property tests 1 to 4, 6, 7, 8\"). The lens treats property 7 as due only at phase 2, so at G1 it never checks that the first half exists, has a seed and fails under mutation.",
+   "where": "Section 3 row 1 and attack 37 (list of properties due by phase); section 5.6 has no matching check"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 37 says properties are due \"by the phase of the functions they use (7.7: 'as far as their functions exist')\". It then says property 4 \"uses only phase-0 functions\" but is not due at G0. That breaks the lens's own stated rule and SPEC 7.7 (\"required for every merge\", \"as far as their functions exist\"). The deferral follows the roster, which assigns property 4 to P1-A1, but it is not marked (plan) and the roster is not cited as the reason.",
+   "where": "Section 4, attack 37"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 2 cites \"(plan, GATE 5.1)\" for the rule that `npm run report` exits non-zero when the open-items report is missing. The rule is in GATE 5.5 step 10 and P0-A6 5.5. It is also stronger than the lens states: the command \"exits 1 unless that file has mode release and reports/open-items-report.md is beside it\". As written, the attack does not check the mode-release condition or the Markdown companion file.",
+   "where": "Section 4, attack 2"
+  },
+  {
+   "kind": "coverage",
+   "what": "Attack 40 checks the stated behaviours outside the acceptance bullets for the phase-1 tools only. No attack does the same for the SPEC 4 entries of phases 2 to 6, so these stated behaviours are never checked: T4 \"whether the board is balanced and the weights d_i\"; T4 \"on a board with a one-way road the editor draws every road as its own arrow (roads style) and the counter still runs\"; T4 \"On a board that classify calls finite the count is complete and immediate\"; T4 presets (\"every finite type, the affine boards of the golden data, the test boards of classification_tests\"); T15 frozen population (\"every city is happy\"), marks and comarks side by side, the pentagon \"in the Olympiad's own form ... with a switch to the site's convention and a level meter\" and its default start from 2.12 (the D8 exception); T16 \"Import and export of boards as JSON\" and \"No verdicts beyond those of T4\"; T8 hover or focus showing position, wordTo and separatingRoots; T10 make uniform, the polytope/move-graph switch and the projection modes; T12 \"the move matrix beside its signed version\"; T13 shadows (\"for real rank 1 and 2 a picture, otherwise a table\") and the restricted board's composite-word steps; T14 \"roots (up to 120 positive ones listed)\" and the note on Wildberger's names. These are SPEC 4 behaviours that the 9.2 definition of done and this lens's mission (\"walks the phase's checklist item by item\") cover.",
+   "where": "Section 4 (attacks 31 to 36 cover only acceptance bullets and a few named items)"
+  },
+  {
+   "kind": "coverage",
+   "what": "T2's size rule from SPEC 4 T2 and the 5.6 caps table is never checked as behaviour: \"Up to 300 positions every vertex and edge is drawn; above that, vertices are dots without labels, and only the edges at the focused vertex and along the current play are drawn\". Section 2 item 3 quotes the cap, and attack 17 only greps the literal 300.",
+   "where": "Section 4, attacks 17 and 40"
+  },
+  {
+   "kind": "coverage",
+   "what": "Section 2 item 10 claims all of CONTRACTS, but no attack checks the contracted exports of CONTRACTS 3 (the `_harness.ts` API: golden, TYPE_NAMES, boardOf, covers, GOLDEN_KEYS_BY_PHASE, labels, wordLabels, intEq, ringsEq, ratText, matchRecord, sortedPositiveRoots) or the site-library signatures of CONTRACTS 4 (renderTex, resolveBoard, positionsOf, encodeState, engineCall, speak, nodeName, announceTemplates, createAnnouncer, exportJSON, exportSVG, exportPNG, exportLaTeX, resolveGoldenPath, formatGoldenValue, highlight). The section 5.2 inventory and the signature file cover only the engine. Section 6 does not assign these exports to another lens either.",
+   "where": "Section 4 (attack 3 is engine only); section 5.2"
+  },
+  {
+   "kind": "coverage",
+   "what": "Several SPEC 7.3 and 7.7 requirements in the lens's read list have no attack. 7.7 row Links: \"internal links checked by the build\". 7.3: \"the tools that show names (T13, T14, the board pickers) look them up there\" (names.json). 7.3: \"Components contain no mathematics beyond calling the engine\". CONTRACTS 1 path aliases (plan) are also unchecked. None of these appears in section 6 as another lens's territory.",
+   "where": "Section 4, attacks 2, 20 and 24; section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "The phase-7 row and attack 11 name only golden boards, one zero weight and the T13 toggle. SPEC 9.1 phase 7 also lists \"Vogan diagrams side by side; web components; further languages\", and 7.4 says \"Web components are a phase 7 option\". The lens gives no checklist item for those extensions when they ship.",
+   "where": "Section 3, phase 7 row"
+  },
+  {
+   "kind": "style",
+   "what": "Attack 24 repeats its standard and failure sentences: \"7.7 row Content 'the build fails on an unknown <Cite> key or an unresolved <G> or <Tex> path'\" appears twice, with two separate \"Failure:\" clauses, after the sources-page paragraph.",
+   "where": "Section 4, attack 24"
+  }
+ ],
+ "RT-02": [
+  {
+   "kind": "template",
+   "what": "The template's section 4 says to order attacks from the most likely to find a blocker to the least. Attacks 39 to 43 are appended out of order, with a note saying where each belongs (39 beside 2, 40 beside 6, 41 beside 22, 42 beside 18, 43 beside 19). The ordering rule is not followed.",
+   "where": "Section 4, the note before attack 39 and attacks 39 to 43"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 6.6 link key `d` ('one integer per node in label order, separated by commas', the T5 dimension calculator `lambda`) has no attack and no coverage entry. Attack 40 covers only `r`, `j`, `k` and `q`. On B3 a reversed or drawn-order `d` exchanges dimension 7 (d=1,0,0) with 8 (d=0,0,1) (oracle weyl_dimension), so the confusion is visible from phase 3.",
+   "where": "Section 4 (attack 40 or a new attack); section 7 coverage list"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC E-7 names exports as label territory ('the golden file, state objects, URLs, exports, the screen, announcements'), and section 3 puts 'SVG and PNG export' (P2-A6) in phase-2 scope. No attack checks that an exported SVG or PNG of an affine board shows label 0 on node 0, and no coverage entry exists. Only JSON export (attack 11) and LaTeX (attack 30) are attacked.",
+   "where": "Section 3 phase 2 row versus section 4; section 7"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 2.1's direction convention for Wildberger's edge notation ('an edge of type (m,n) from x_i to x_j for m=A_ij roads from x_i to x_j and n=A_ji back') has no attack. A lesson or Atlas page that reads (m,n) the other way reverses every multiple edge. Attack 29 covers only the 2.10 name and numbering rows.",
+   "where": "Section 2 item 2 and section 4"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 2.5 'Long and short' (d_i/d_j = A_ij/A_ji; short roots have (beta,beta)=2) feeds T1's 'long and short nodes' panel, which arrives in phase 2 (T1 'Shows'). No attack checks that this panel marks node 3 of B3, node 1 of G2 and nodes 3 and 4 of F4 as short. Attack 36 checks only the symmetrizer values and the form panel on B2+G2.",
+   "where": "Section 4 (attack 36 or a new attack)"
+  },
+  {
+   "kind": "coverage",
+   "what": "Appendix D is listed in the passages but only items 1 to 3 are targeted. Item 6 is a convention ('populations in the root lattice, numbers in the weight lattice'; the note had them reversed) and item 4 says there is no sign condition on a mutation. Neither is attacked, and section 6 does not assign them to another lens.",
+   "where": "Section 2 item 18, attack 35, section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "Ordering conventions of CONTRACTS 2.4 are not attacked: `components` ('positions, each sorted, components in order of least position') and `legalNodes`/`raisingNodes` ('positions, increasing'). The E-7 label rules for the `pentagon` and `square` presets ('in order round the cycle') and for custom boards ('in order of creation') are also not checked, apart from the pentagon in attack 31.",
+   "where": "Section 4 (attack 33 or 41)"
+  },
+  {
+   "kind": "coverage",
+   "what": "The section 2 reports list omits agents whose work several attacks target: P2-A7 (T2 verdict beside the stop message and the T9 affine board name of attacks 9 and 21; it also extends state.ts), P5-A3 (the not-quiver-mutation page, Appendix D item 1 of attack 35), P6-A6 (the common-confusions page, which words Appendix D, attack 35), and the lesson agents (M0, M1 and others named in attacks 29 and 35).",
+   "where": "Section 2, the 'Reports:' paragraph"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 5 cites 'RED-TEAM-COMMON 7.1' for the rule that every reproducer holds its expected value as a literal so the fixer can adopt it without Python. RED-TEAM-COMMON has no subsection 7.1. Item 1 of its section 7 only says to move the reproducer into the permanent suite, and says nothing about literals or Python. The rule should be marked (plan) or cited correctly.",
+   "where": "Section 5, 'Layout on the lens branch'"
+  }
+ ],
+ "RT-09": [
+  {
+   "kind": "fidelity",
+   "what": "Wrong cross-reference to RT-08. The text says \"RT-08 attack 25 checks the same rule from the wording side\", but in build-plan/red-team/RT-08-content-rules.md attack 25 is \"Em-dashes anywhere the reader can see them\". The attack about stating the convention when another author is quoted (SPEC 8.4) is RT-08 attack 31.",
+   "where": "Section 4, attack 22, closing (plan) parenthesis"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Wrong cross-reference to RT-08. The text says \"The careful wording of a failed condition 3 is RT-08 attack 26\", but RT-08 attack 26 is \"A theorem-like statement without provenance\". The failed-condition-3 wording (SPEC 2.15, 'What a failed condition 3 means') is RT-08 attack 7.",
+   "where": "Section 4, attack 27, last sentence"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Wrong cross-reference to RT-08. The text says \"Leaks of the wrapped sentence and grammar breaks are RT-08 attack 2\", but RT-08 attack 2 is \"A statement of Appendix F, Appendix D or SOURCES 11.9 repeated\". Release-build leaks and mangling of an open item (SPEC 7.3) are RT-08 attack 3.",
+   "where": "Section 4, attack 30, closing parenthesis"
+  },
+  {
+   "kind": "fidelity",
+   "what": "check.py reports false mismatches whenever the oracle returns an integer-valued Fraction. norm() turns Fraction(2,1) into the string \"2\" but leaves an integer expect value as 2, so the JSON comparison fails. I extracted the script and ran it on {fn: bil, board: A3, args: [[1,1,0],[1,1,0]], expect: 2}; it printed \"MISMATCH bil: page says 2, oracle gives 2\". The same applies to gram, symmetrizer and weight_to_root_coords. Several attacks need these calls: attack 6 (form values of M2 beat 1 and M3 beat 2), attack 35 (populations) and attack 13 (symmetrizer). The docstring never says that rational or form values must be written as strings. The sentence \"this script was run on samples of each kind\" is not true for bil.",
+   "where": "Section 5.3, check.py (norm and the comparison) and the paragraph after it"
+  },
+  {
+   "kind": "coverage",
+   "what": "Several SPEC 2.13 claims have no attack: the symmetric-play statement (\"symmetric play of the mutation game on the big board is the mutation game on the folded board ... with the same numbers\"), \"its Weyl group is the subgroup of W commuting with sigma\", \"the Cartan matrix of the averaged simple roots is the transpose of the folded Cartan matrix\", and \"SageMath's 'folded Cartan types' follow (b)\". Attack 24 checks only the table rows, the general pattern and the two readings of (b), yet T11 and M6 beat 5 are exactly where the symmetric-play statement is made.",
+   "where": "Section 4, attack 24"
+  },
+  {
+   "kind": "coverage",
+   "what": "Several SPEC 2.14 claims have no attack: the Coxeter element \"rotates this plane by exactly 2pi/h\", \"no root projects to the origin\", the remark that the factor Lambda^{1/2} matters, the vertex count |W|/|W_U|, and the face-count formula |W|/(|W_K| |W_K'|) when a page states it (M7 beat 3: \"Counting faces from the board alone, with the rule of section 2.14\"). Attack 25 checks ring counts, coincident points, polytope names and f-vectors, but not a printed rule or formula, and attack 2's formula probes cover only move rules and the form.",
+   "where": "Section 4, attack 25"
+  },
+  {
+   "kind": "coverage",
+   "what": "Some SPEC 2.15 claims that M9 beat 8 and T13 make in words have no explicit attack. First, the list in 'What the diagram does not show': tau non-trivial with no arrow for so(p,2n-p) with p <= n-2 and n-p odd, and for the compact forms of A_n (n>=2), D_n (n odd) and E6; tau moving black nodes for su(p,q) with q-p>=3 and for e6(-14). Second, the restricted-game facts: reduced length l(w_{X u O}) - l(w_X); the restricted board B_r for BC_r (A_1 for r=1); the composite move commuting with theta. Attack 27 compares only the data fields, and attack 9 only the beat configurations.",
+   "where": "Section 4, attacks 9 and 27"
+  },
+  {
+   "kind": "coverage",
+   "what": "M3 beat 7 is missing. It is \"A short note on why the same list of graphs appears across mathematics, with links ([HHSV77])\", a static figure in the M3 table. Attack 6 lists M3 beats 1 to 6 only, so the claims this note makes are never assigned. Section 7 asks for coverage of every figure-table row in scope, so the row is expected but never named.",
+   "where": "Section 4, attack 6"
+  }
+ ],
+ "RT-11": [
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.7 Content row names two reports: the open <Unverified> items report and the list from `scripts/numbers-in-prose.mjs` of every number in lesson prose not written with <G>. SPEC 9.1 G3 makes 'a release build succeeds and prints its two reports (section 7.7)' an automatic gate item. Attack 26 checks only the open-items report (with mutant M50). No attack checks that `numbers-in-prose.mjs` or `npm run report` can fail to report: for example, a mutant that makes the script list nothing, or a fixture lesson with a bare number that must appear in the output. Section 2 item 5 quotes the Content row but leaves out the numbers-in-prose clause, and section 6 does not exclude it either.",
+   "where": "Section 2 item 5; Section 4 attack 26; Section 7 coverage entry 'Release report'"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.7 Links row ('internal links checked by the build; external links checked weekly by `links.yml`') is a check that the gate trusts, and no attack asks whether the build's internal-link check can fail. A useful test would be a scratch page with a broken internal link: the build must fail or the check must report it. Section 6 does not list the row as out of scope either (P0-A6 5.13 leaves its ownership open, which could be the stated reason for excluding it).",
+   "where": "Section 4 (no attack); Section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 7.7 commands ('`npm run e2e` (Playwright against `astro preview` ...)') and SPEC 9.3 ('For automated checks use `astro build` and `astro preview`, not `astro dev`') mean that browser tests must run against the built site. Methods 5.3 greps `webServer` and `reuseExistingServer` in `playwright.config.ts`, but no attack states the requirement or what counts as a finding. Examples: a `webServer` command running `astro dev`, or `reuseExistingServer` true in CI, so that the tests hit a stale or dev server. Section 6 hands only 'toolchain versions' to RT-12, so this item is neither attacked nor excluded.",
+   "where": "Section 4 attacks 4 and 8; Section 5.3; Section 6"
+  },
+  {
+   "kind": "coverage",
+   "what": "Property tests 5, 9, 10 and 12 of SPEC 5.7 are covered only by the generic sentence of attack 12 ('the identity asserted is the one of 5.7, both halves where there are two'). Property 10 has two halves ('`level` is unchanged by `fire`, and `mutate` fixes the marks') and property 12 has two ('`heap` is unchanged ... and `commutationClassSize` is the same for both words'). Attack 12 lists the two-half properties as only 1 and 7, so the second halves of 10 and 12 are not named as things to check. Property 9 also has two clauses ('theta(theta(p)) = p' and 'theta permutes the roots'), and attack 12 names only 'every catalogue record of the board'.",
+   "where": "Section 4 attack 12"
+  }
+ ],
+ "RT-03": [
+  {
+   "kind": "coverage",
+   "what": "E-9 rule 1 names `legalLayers`, `minusculeMatrices` and 'the vertices and edges of a polytope' as enumerations that go to the worker unless they are known to yield at most 2000 items. T10 says 'After the reader changes the rings or the board, an enumeration of more than 2000 vertices or edges runs in the worker (E-9)'. No attack checks the routing of these. Attack 21 tests `whereToRun` only for orbit-type searches, plays and counts of games. Attack 28 counts the drawn edges and vertices of T10 but never reads the worker log. Attack 33 never checks where `minusculeMatrices` runs. Section 6 claims this territory ('Whether a cap computation goes to the worker after a reader's action is yours'), so the omission is a real gap.",
+   "where": "Section 4, attacks 21, 28 and 33"
+  },
+  {
+   "kind": "coverage",
+   "what": "E-9 rule 3 covers 'the counts of games and of heaps on a board whose group has more than 2000 elements', and E-4 makes `commutationClassSize` a `bigint`. Attacks 21 and 24 cover only `countCompleteGames`. No attack tests the worker routing of `commutationClassSize` (heap counts) on a group of more than 2000 elements, or that it returns `bigint`.",
+   "where": "Section 4, attacks 21 and 24"
+  },
+  {
+   "kind": "coverage",
+   "what": "SPEC 5.5 'Fates' ends with 'On a finite-type board the result is always `ended`'. Attack 19 tests fates only on A2 at small caps and on the pentagon. No attack checks that `playFate` on a finite board, for example E8 from all ones or a start that reaches the cap region, never reports `looped` or `cap`.",
+   "where": "Section 4, attack 19"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 5 writes `orbitGraph(units, 'mutation', 243, 40)` 'on the triangle', which leaves out the board argument. CONTRACTS 2.4 has `orbitGraph<T>(board, seeds, game, cap, maxDepth?, legalOnly?)`, and attacks 4 and 6 use that correct form. A reproducer copied from attack 5 would pass `units` as the board.",
+   "where": "Section 4, attack 5"
+  },
+  {
+   "kind": "fidelity",
+   "what": "`boardOf(...)` appears 7 times (attacks 2, 3, 5, 18, 19, 24) as if it were an engine function. CONTRACTS 2.4 has no `boardOf`; the contracted constructor is `boardFromName`. The file never defines `boardOf` as a local helper, and the method A template imports `boardFromName`, not `boardOf`.",
+   "where": "Section 4, attacks 2, 3, 5, 18, 19, 24"
+  },
+  {
+   "kind": "template",
+   "what": "TEMPLATE section 4 says to 'Order from the most likely to find a blocker to the least.' The order breaks this: attack 31, whose failure is minor or major, comes before attacks 35 and 37, whose failures are blockers. The late attacks 36 and 37 look appended rather than placed by severity.",
+   "where": "Section 4, ordering of attacks 31 to 37"
+  }
+ ],
+ "RT-13": [
+  {
+   "kind": "coverage",
+   "what": "Attack 35 has no task for LO2 ('explain why the two games are the same reflection in two coordinate systems, and convert a position of one into a position of the other with the Cartan matrix'), although SPEC 3 assigns LO2 to M0 ('Outcomes LO1, LO2 in miniature') and M4 '(LO1, LO2, start of LO5)'. The section 3 phase-3 row even promises 'attack 35 for LO1, LO2 and LO5 (M4, M5)', so the scope table and the attack disagree. Attacks 2 and 26 test conversion of single populations but not the LO2 explanation ('same reflection in two coordinate systems', SPEC 1.4 statement 2, 2.4(d)).",
+   "where": "Section 4, attack 35 (task list); Section 3, phase 3 row"
+  },
+  {
+   "kind": "coverage",
+   "what": "Attack 35 tests only part of several outcomes. LO7: there is no task to 'build the vertices and edges of a root polytope or a Wythoff polytope from an orbit, change to Euclidean coordinates, and explain the Coxeter-plane picture of $E_8$'; only face counting on B3 is tested. LO9: no task to 'compute its involution' (M9 beat 2, theta played on A3 with black nodes 1, 3). LO8: no task for 'explain how a reflection splits into raising and lowering steps' (M8 beats 1, 2). LO6: no folding task beyond naming B2 (D4 to G2 and E6 to F4 of M6 beat 5 are not used).",
+   "where": "Section 4, attack 35, bullets LO6 to LO9"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 6 places the P8 naming rule ('Node $i$ is always called \"node $i$\" or \"city $i$\", never both in one sentence') at `RT-08` attack 23. In RT-08-content-rules.md, attack 23 is 'Lesson length outside 800 to 1800 words'; the node/city rule is RT-08 attack 39.",
+   "where": "Section 6, bullet on RT-08's territory"
+  },
+  {
+   "kind": "fidelity",
+   "what": "SPEC 7.4 is misquoted. The spec reads '\"Copy link\" always encodes the current state' with quotation marks around Copy link. The file writes (\"Copy link always encodes the current state\") without the inner quotation marks, in Read first item 13 and again in attack 30.",
+   "where": "Section 2 item 13; Section 4 attack 30"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Section 3 defers 'the 121-position history of attack 36 on $E_8$ where T1 offers $E_8$' to phase 3, but attack 36 says it applies in phases 1 to 6. T1 is a phase-1 tool whose picker offers the 32 named types (SPEC 4.0 Board pickers), and its G1 acceptance plays `longest_word` in legal mode on every golden type, E8 included. Nothing in SPEC 9.1 or section 4 delays E8 legal play to phase 3, so the scope table and the attack contradict each other.",
+   "where": "Section 3, phase 3 row; Section 4, attack 36"
+  },
+  {
+   "kind": "fidelity",
+   "what": "Attack 24 is limited to phases 2 to 6. Its picker half (D19: 'the name of the board the reader chose in pickers') can be checked from phase 1, because the T1 and T9 pickers offer B2 and C2 among the 32 named types (SPEC 4.0, 2.8). Only the T4 shape-recognition half needs phase 2.",
+   "where": "Section 4, attack 24; Section 3, phase 1 and 2 rows"
+  },
+  {
+   "kind": "fidelity",
+   "what": "SPEC 1.2 says the primary reader leaves with 'Outcomes LO1 to LO8 below, and the ability to read a Dynkin or Satake diagram'. The file tests LO9 for the primary reader (attack 35, scope phase 6) and says only that LO10 is excluded. It neither quotes 1.2's 'LO1 to LO8' nor marks the LO9 extension as (plan).",
+   "where": "Section 2 item 1; Section 4 attack 35"
+  },
+  {
+   "kind": "coverage",
+   "what": "Attack 14 (P4, one view in M1 to M3) exempts only T9's moods and the M3 beat 5 caption. It does not exempt SPEC 3 M2 beat 4, which replaces the static figure with 'T6 on $A_2$ once that tool exists (phase 3)'. T6 shows a point's population and numbers together (T6 acceptance: 'the displayed population and numbers satisfy $a=Cp$'). From phase 3 the agent could therefore report a P4 violation that SPEC 3 itself prescribes.",
+   "where": "Section 4, attack 14, 'Not a finding' clause"
+  }
+ ]
+}

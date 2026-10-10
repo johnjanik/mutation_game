@@ -1,0 +1,816 @@
+{
+ "P3-A7": {
+  "id": "P3-A7",
+  "complete": false,
+  "score": 4.5,
+  "gaps": [
+   {
+    "kind": "invented",
+    "what": "The file contradicts itself, and COMMON.md 4.1 ('Do not run `npm install`'), about npm install. Section 5.2 step 3 tells the agent to run `npm init -y` and `npm install --save-exact @lhci/cli@<version>` in a `mktemp -d` scratch directory during the trial. The trap in section 9 says 'the workflow prompt forbids it, and the one exception is the single command of 5.10 on Branch A'. Name the scratch-directory install of the trial as a second, explicitly allowed exception: it happens outside the repository and never touches the lockfile. Otherwise rule out installing the trial that way.",
+    "where": "5.2 step 3 against 9 (trap on `npm install`)"
+   },
+   {
+    "kind": "invented",
+    "what": "The commands in 5.2 steps 3 and 7 (mktemp -d, npm init -y, npm install, then deleting the scratch directory) only work if run from inside the scratch directory. The file does not say how to do that without a cd chain. COMMON.md 4.6 requires `npm --prefix <dir>` (or the tool's own directory flag) and forbids `cd X && ...`. Without that pointer the agent will probably write a cd chain, and the workflow stalls waiting for approval.",
+    "where": "5.2 steps 3 and 7"
+   }
+  ],
+  "strengths": [
+   "Every template heading is present and in order, with the header line filled in (Phase 3, stage 3.1, Size S, worktree branch agent/P3-A7).",
+   "The SPEC 7.6 'Lab timings' bullet is quoted character for character. So are the INP bullet, the client:idle/client:visible sentence, the 7.7 Performance row and Commands paragraph, the 9.1 G3/G4/G6 items, the 7.1 Performance checks row, the 9.3 dependency rule and the Appendix E item 17 sentence. All the cited line numbers (1855-1871, 1868, 1869, 1872-1887, 1977-1995, 2002-2013, 1769-1772, 2375, SOURCES 327) match.",
+   "Both roster deliverables, both acceptance items and both traps are covered. The traps are quoted verbatim in section 9, and section 7 reproduces the roster's 'owns' list exactly.",
+   "The thresholds (2500 ms, 200 ms, 0.1), the profile (360x800, 4x CPU via Emulation.setCPUThrottlingRate rate 4), 'at most' including equality, and the G3/G4/G6 route forms all match the spec and GATE.md 5.6/5.7. Lesson slugs match the rosters, and ports 4321/4323/4324 do not collide.",
+   "The file is consistent with the plan: P0-A6's stub message, its test names and its ci.yml order (check before the Playwright install); siteAndBase and OUT_DIR from CONTRACTS 1; README 6 ownership of root package.json, the lockfile and scripts/; GATE's 5.4 version record for the lab dependency.",
+   "Plan concretions are marked (plan) consistently and listed again under deviations. Lighthouse CI details remembered by the plan are marked [U], and the INP check is correctly left not-automated as the owner's part.",
+   "The tests are concrete and correct: the TBT example (40, 50, 80, 250 -> 0, 0, 30, 200 = 230), the CLS session-window rules, and the canary numbers (a 600 ms loop gives about 550 ms TBT).",
+   "No em-dashes and no vague 'etc.' lines."
+  ]
+ },
+ "P3-A1": {
+  "id": "P3-A1",
+  "complete": false,
+  "score": 4.5,
+  "gaps": [
+   {
+    "kind": "fidelity",
+    "what": "Reading item 8 says of the SPEC 5.6 function table that \"your functions are in the last row ... except `bipartition`, which is in the row that works on every board\". That implies `exponentsFromFired` is in the last row (throws NeedsTwoWayRoads / NotFiniteType). It is not: SPEC 5.6 lists only `weylOrder, weylDimension, orbitSize, ..., wavePlay, countCompleteGames, legalLayers, ..., separatingRoots` in the last row. `exponentsFromFired` takes no board and appears in no row. Section 5.2 states this correctly (\"`exponentsFromFired` takes no board and has no guard\"), but the reading list contradicts it.",
+    "where": "Section 2, item 8"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present, with the template's headings, in order. The header line is filled in (Phase 3, stage 3.1, Size M, branch agent/P3-A1) and the title matches the roster.",
+   "All nine functions of CONTRACTS 2.1 and 2.4 appear with their exact contract signatures, oracle names and line numbers (checked against lie_games.py), golden key, cap (CAPS.countGamesGroup 60000, CAPS.legalLayersDefault 100000) and the SPEC 5.6 guard row.",
+   "Every roster golden key is mapped to one test file and an acceptance line in section 6, including e8 without h4_projection and the second coxeter_number comparison (wave rounds, rank >= 2, not registered with covers()).",
+   "Values were checked against golden_data.json and the oracle and all match: exponents, weyl_order, bipartite_colouring (D5, E8), fundamental_orbit_sizes (E8 eight values), n_reduced_words_w0 (D6, E6, B6/C6), the 9 absent types, the 30 weyl_dimension records, the e8 rows and 56, and the E8 weight_inner norms 4, 8, 14, 30, 20, 12, 6, 2. The B2 separatingRoots cases, A2 legalLayers from [1,0], orbitSize of D4 [0,1,0,0] = 24, the A1 wave (1 and 2 rounds) and the A3 wave non-termination from (2,-4,-3) also match.",
+   "The Appendix A.2 game, tally and wave and the three A.3 dimension examples are reproduced exactly. The quotes from F5, F7, F8, F9, 5.4, 5.5 \"Counting games\", E-4, E-9 and 2.1 match SPEC.md.",
+   "The file finds and corrects the roster's wrong E6 trap (|W(E6)| = 51840 <= 60000, so E6 is counted). It flags the README section 4 table's swap of bipartition and allCompleteGames between P3-A1 and P3-A2, and follows the roster and CONTRACTS.",
+   "Plan-level additions are consistently marked (plan): the wave bound at 10001 rounds, RangeError for a bad lambda, |W| > cap checked up front, the order of the bipartition classes and the private |W_J| helper. Each is routed to the decisions fragment and openQuestions.",
+   "Section 7 reproduces the roster's owns exactly. Section 9 contains all three roster traps (the third quoted and corrected) plus 15 specific further traps. There are no em-dashes and no vague lines."
+  ]
+ },
+ "P3-A2": {
+  "id": "P3-A2",
+  "complete": true,
+  "score": 5,
+  "gaps": [
+   {
+    "kind": "style",
+    "what": "The heaps golden test caps allCompleteGames with CAPS.legalLayersDefault (100000). The number is right and matches the oracle's default limit=100_000, but that constant is legalLayers' default cap, so the cap is semantically mislabelled. CAPS.workerPositions (100000), or the literal oracle limit with a comment, would state the intent. Nothing in SPEC or CONTRACTS ties this enumeration to legalLayersDefault.",
+    "where": "5.10"
+   },
+   {
+    "kind": "style",
+    "what": "The must-not-touch list ends its enumeration of earlier-phase engine files with '...' ('guards.ts', ...). 'Everything else' already covers this, so nothing is missing, but the line uses an elision where the plan's file table (CONTRACTS 2.1) is fully specific.",
+    "where": "7"
+   },
+   {
+    "kind": "style",
+    "what": "The A2~ non-ending test (acceptance line for p3b-complete-games.test.ts > plays that do not end) does not say that boardFromName('A2~') is a Board<bigint>, so the all-ones start must be bigint. Trap 11 states this only for the pentagon. This is a usability gap, not a spec deviation.",
+    "where": "5.5 / 6"
+   }
+  ],
+  "strengths": [
+   "All ten template headings are present in order, and the header line is filled in (Phase 3, stage 3.1, Size M, worktree on agent/P3-A2).",
+   "All six roster functions appear with their CONTRACTS 2.4 signatures quoted verbatim, oracle names and line ranges checked against lie_games.py (1150, 1161, 1165, 1397, 1414, 1669), and SPEC 5.6 behaviour on one-way and non-finite boards (choleskyBasis throws NeedsTwoWayRoads and NotFiniteType; the functions of words work). Cap semantics follow E-6 and E-10, and the plan additions (exact cap items, the 20000-move bound, the explicit stack) are marked (plan).",
+   "Both golden keys, heaps and pentagon_example.complete_games, are spelled exactly, assigned to one file each and mapped to tests in section 6. Every golden value quoted matches golden_data.json: the A2, A3, B2, B3, G2 and D4 counts and games_per_heap lists (D4 has 182 entries, 1 to 216), the three minuscule records (6/10/5, 10/16/12, 16/27/78), and the full pentagon_example record.",
+   "The verify.py line citations (217 to 221, 590 to 597, 1225 to 1233, 1546 to 1563, 1589 to 1591), the nine Cholesky angle cases and the A3 heap and heapKey examples all match the oracle exactly.",
+   "The SPEC quotations match character for character: 2.4(b) dual diagram, F6, the 2.14 triangular-basis paragraph, 5.5 Heaps, property 12, the 7.6 benchmark sentence, the T7 and T8 acceptance, and the Appendix A.1 B2 symbolic sentence. The G3 phrases are sourced from the roster and GATE.md.",
+   "Section 7 reproduces the roster's owns list exactly. All three roster traps appear in section 9 (reversed board, the A5 cap of 292864, Cholesky to 1e-9), along with non-obvious oracle traps: joined in either direction, bigint zeros, 32-bit bit masks, recording the symbolic form before the move, and the F4/G2 transpose obtained by reversing node order (checked against the stored matrices).",
+   "The benchmark specification matches bench_orbit.mjs and CONTRACTS 3: RING12 with the 1-7 chord, unit seeds, mutation game, cap 2000, maxDepth 40, Big arithmetic, median ts[reps >> 1] of seven runs, at most 25 ms. It also handles the wiring problem that the agent owns neither vitest.config.ts nor package.json, consistent with GATE.md.",
+   "bipartition is correctly assigned to P3-A1, following CONTRACTS 2.1 and the phase-3 roster. The README section 4 roster row still lists bipartition under P3-A2; that inconsistency is in README, not in this file.",
+   "No em-dashes are present."
+  ]
+ },
+ "P3-A3": {
+  "id": "P3-A3",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "invented",
+    "what": "The Predict acceptance line tells the agent to build 'a test fixture page that places T5 with a prediction'. Section 7 forbids touching site/src/pages/* and site/src/content/*, and the roster's 'owns' list (and README section 6) gives P3-A3 no fixture page or fixture directory. The instruction therefore requires a file the agent may not create. It needs to name an owned location (for example under site/tests/) or a mechanism inside the owned files.",
+    "where": "6. Acceptance (Predict line) vs 7. Files"
+   },
+   {
+    "kind": "coverage",
+    "what": "SPEC 4.0 Configuration says 'each phrase is a value of the tool's preset property' and 'every preset is also a state object and a link'. The M5 figure rows 6 to 8 (tally on A3 then E8, wave on A3 with 4 rounds and E8 with 30 rounds, dimension on A2 giving 8) must work through properties alone. Section 5.1 defines the five presets and the board-override rule (preset=\"wave\" board=\"E8\"), but no section 6 line tests that the tally, wave and dimension presets render as specified, or that the override gives E8 30 rounds. Only the compared preset has a test; the dimension test goes through a link and step presses, not the preset.",
+    "where": "5.1 / 6. Acceptance"
+   },
+   {
+    "kind": "coverage",
+    "what": "9.2 requires that 'A-1 to A-12 hold' and that the tool obeys every rule of 4.0, yet some of these have no test line in section 6. Missing: the A-3 node name template ('Node 3, value 2, can be fired' / 'Node 5, value 0, cannot be fired'); A-5, where colour classes and tally bars carry text and shape, not colour alone (5.6 requires the classes to be 'shown by shape and label as well as colour'); and the 4.0 Signs rule (numeral, fill and colour, never colour alone). The only sign check is the true minus sign in endA/endB.",
+    "where": "6. Acceptance"
+   },
+   {
+    "kind": "fidelity",
+    "what": "In 5.9 the sentence 'No tool may need the worker for its default state.' is quoted as 7.6. That wording is E-9's (SPEC 5.1). 7.6 itself reads 'No tool may need it for its default state'.",
+    "where": "5.9"
+   },
+   {
+    "kind": "fidelity",
+    "what": "In 5.4 the bound of N moves for every T5 game, including custom starts, is attributed to 'F3 bounds any start on a finite board'. F3 says only that any two legal plays end at the same position after the same number of moves. It gives no bound in terms of N (F4 gives exactly N only for all-positive starts). The bound needs a correct citation or a (plan) mark.",
+    "where": "5.4"
+   },
+   {
+    "kind": "coverage",
+    "what": "The plan cap of at most 6 digits per lambda entry (5.8) is enforced only on the input. Nothing says what a link does when d has an entry over 6 digits. The codec's 40-digit limit in 6.6 covers s only, and 5.2 handles only a negative d. A rule (default lambda plus notice, as for a negative entry) and a test are missing.",
+    "where": "5.2 / 5.8"
+   },
+   {
+    "kind": "coverage",
+    "what": "Two requirements in section 5 have no test or check in section 6: the 7.4 history rule (replaceState half a second after a burst, pushState only on loading an example), and 'Hydrated markup equals the server markup' in 5.9.",
+    "where": "5.2, 5.9 / 6. Acceptance"
+   }
+  ],
+  "strengths": [
+   "The header line and all ten template sections are present, filled and in the template's order.",
+   "Section 7 copies the roster 'owns' list exactly, and section 9 quotes all three roster traps word for word.",
+   "All six T5 features and every clause of the SPEC 4 T5 acceptance paragraph map to named Vitest and Playwright tests, and so do all roster deliverables and acceptance items (A3 tally 24, A3 wave 4 rounds, A2 dimension 8, E8 696729600, E8 on the main thread with no long task).",
+   "Every oracle number I checked with the oracle is correct: the G2 tapes for game A and game B, the custom start (2,-1,3) on A3, omega_1 on A3 ending at (0,0,-1) after 3 moves, E8 from omega_1 (78 moves, values 1 and 2), the B3 tally reading to 1, 3, 5, the E8 bipartite colouring, the E8 products D (107 digits, 1.2389...) and M (110 digits, 4.8010...) with quotient 3875, the A1 wave counts of 1 and 2, and verify.py lines 204, 206, 207 and 340.",
+   "Quotations of 4.0, 6.6, 7.4, 7.5 (A-2, A-3, A-4, A-7, A-9, A-12), F6 to F10, A.2, A.3, M4 beat 2, M5 beat 6 and the figure rows match SPEC.md character for character. Signatures match CONTRACTS 2.2, 2.3, 2.4 and 4.",
+   "Plan choices are consistently marked (plan) with an instruction to record them; there are no em-dashes and no vague 'etc.' lines."
+  ]
+ },
+ "P3-A4": {
+  "id": "P3-A4",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "fidelity",
+    "what": "The sentence quoted as 7.6, \"No tool may need the worker for its default state.\", is not what 7.6 says. SPEC 7.6 (line 1862) reads \"No tool may need it for its default state, so it never counts toward these limits.\" The quoted wording comes from E-9 (line 1272), where it is bold: \"**No tool may need the worker for its default state** (section 7.6)\". The fix is to attribute the quote to E-9 or to quote 7.6 exactly.",
+    "where": "Section 5.9, third bullet"
+   },
+   {
+    "kind": "fidelity",
+    "what": "The reduced-motion sentence is quoted as 4.0 \"Motion respects the reduced-motion setting\". That sentence closes the 4.0 bullet 'Step and play to the end', which section 2 item 2 of the same file says does not apply to T6. The binding source for T6 is A-9 alone, and the citation should say so instead of taking the sentence from a rule the file declares inapplicable.",
+    "where": "Section 5.9, fourth bullet"
+   },
+   {
+    "kind": "style",
+    "what": "Section 5.4 says to take colours from \"the tokens of `P0`'s stylesheet\". Section 3 of the file and README section 6 (line 254) both say the custom properties live in `site/src/styles/tokens.css`, owned by `P1-A3`, which superseded `P0-A1`'s base.css tokens. The owner should be named consistently.",
+    "where": "Section 5.4, second bullet"
+   },
+   {
+    "kind": "coverage",
+    "what": "The SPEC 4 T6 first sentence asks for the two mirrors, the simple roots drawn as the mirror normals, and the chambers. Section 5.7 requires them, but no checklist line in section 6 names a test that asserts the mirrors and the chambers are drawn. The SVG-export e2e test checks only that the mirrors and the point exist, and nothing tests the chambers or the marked dominant chamber. This is not an acceptance bullet, but the 9.2 'obeys every rule' line would be easier to verify with one.",
+    "where": "Section 6 (behaviour checklist) and 5.13"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings, in order, and the header line is filled in correctly ('Phase 3, stage 3.2. Size M. Runs in: a worktree on branch `agent/P3-A4`').",
+   "All three SPEC 4 T6 acceptance clauses are quoted character for character and each maps to a named Vitest test. Both roster acceptance items and all three roster e2e deliverables (M4 figure, keyboard placement, reduced motion) are mapped to tests.",
+   "Every T6 behaviour sentence is quoted verbatim in section 5, including the Coordinates bullet, the readouts, firing, placement and overlays. The applicable 4.0 rules (Starts meaningful, no-JS, One state, History, Configuration, Predict, Signs, Share and export, Board pickers, Long numbers, Small screens, Test hooks) are quoted correctly, and the file argues why Step, Stated limits and Growth do not act.",
+   "The bridge sentence of 2.4(a), the 2.4(d) formula, the 2.14 passages, D19, the M2 and M4 beat 4 rows and the A-3/A-4 templates all match SPEC exactly.",
+   "The numbers are correct. The golden cartan, symmetrizer, positive_roots, n_roots and long_to_short_ratio values match golden_data.json. The Cholesky U matrices, the populations (2/3,1/3; 3/2,2; 2,3/2; 5,3), the firing results, the angles (m=3,4,4,6), the orbit sizes, the oracle line numbers and the verify.py lines 1225-1233 and 1584 are all verified.",
+   "Section 7 reproduces the roster's 'owns' exactly, and section 9 contains both roster traps verbatim, plus the column-versus-row trap of U, the B=DC trap, the screen-flip trap and the skew-snapping trap.",
+   "Signatures match CONTRACTS 2.4 (choleskyBasis: number[][], toPopulation: Rational[] | null, orbit, roots, CAPS.mainThreadItems). Ownership matches README section 6: Frac.svelte is P1-A5's, LinearForm.svelte is P3-A5's and MatrixView.svelte is phase 5's.",
+   "Plan additions are consistently marked (plan), and both the A-12 deviation and the 6.3/8.3 accent reading are flagged for the orchestrator.",
+   "No em-dashes, no 'etc.' and no 'and so on' appear anywhere in the file."
+  ]
+ },
+ "P3-A8": {
+  "id": "P3-A8",
+  "complete": true,
+  "score": 5,
+  "gaps": [
+   {
+    "kind": "style",
+    "what": "Test 4 and the house-style line ban U+2013 (en-dash) in prose as 'house style'. SPEC 8.4 bans only em-dashes. The same rule appears in the sibling lesson files P1-A8 and P2-A9, so it is a plan convention, but this file does not mark it (plan).",
+    "where": "5.15 test 4"
+   },
+   {
+    "kind": "style",
+    "what": "There is a small internal tension in the wrapping rule. 5.10 says '[S2] statements are cited, not wrapped', but it also tells the agent to wrap Mozes' sign convention and the pentagon-generalisation claim, and SOURCES 11.2 labels both [S2]. Section 9 says the same: 'Its sign convention (fires negative) is [S2] from later authors'. Wrapping is correct, because SPEC 9.5 and Appendix E item 2 make claims about Mozes' text rest on open item E2. One sentence would remove the ambiguity: claims about what [Moz90] itself contains are wrapped even when [S2].",
+    "where": "5.10, 9 (first trap)"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings and in order. The header line names phase 3, stage 3.3, size M and the worktree branch agent/P3-A8.",
+   "All seven beats are quoted verbatim from SPEC 3 M4. Every figure-table row is turned into concrete props, and each row has its expected result checked against verify.py section 19 and Appendix A: three moves on A2; six moves ending at (-1,-1,-1); (1,1,0) to (1,1,-1); 2/3 and 1/3 with an orbit of three; pentagon start -1,2,-3,4,-1 ending after 14 moves; the fate table.",
+   "Each golden value quoted matches reference/golden_data.json. This covers types.A2 and types.A3 (including minus_w0 [3,2,1] and n_reduced_words_w0 16), the pentagon_example fields (1230 complete games, the word, the fired numbers, end [0,0,0,0,-1], level -1), affine.A4 marks and comarks, and det C = 1 for E8, F4 and G2.",
+   "The exact strings match SPEC character for character: the bridge sentence of 2.4(a), the A-4 announcement 'Fired node 2. Numbers now 2, minus 1. Move 1.', the 2.12 fate table rows and status sentence, the T15 fate reports, the 4.0 Predict rule, and the 8.2 anatomy items.",
+   "The whole 9.2 definition of done is mapped to tests in section 6, with the owner's part marked not-automated at G3. All three roster acceptance items are present (9.2 done, nojs/axe/size on the page, the bridge sentence).",
+   "Section 7 reproduces the roster's owns list exactly, consistent with README section 6. All three roster traps are in section 9, plus well-founded extra traps: the F4 end is not always minus the start, F3 tapes agree as multisets, row 5 must use the linked view, pentagon labels against node-0-first in affine.A4, the 20000 cap is not a proof.",
+   "The open items are handled correctly. E2 (Mozes' paper) and E6 (fate table beyond simply laced boards) get fallbacks. E11 (do not name the proposer), E4 (do not cite Kac for the Tits cone) and E17 (next free number E18) are named.",
+   "The file has no em-dashes, and the plan choices it adds are marked (plan): the instance map, prediction options, challenge checks and the sandbox board."
+  ]
+ },
+ "P3-A6": {
+  "id": "P3-A6",
+  "complete": true,
+  "score": 5,
+  "gaps": [],
+  "strengths": [
+   "All ten template sections are present, in order, with the template's headings. The header line is filled in (Phase 3, stage 3.2 as in the roster stages, Size L, worktree on agent/P3-A6).",
+   "All four SPEC 4 T8 acceptance bullets are quoted verbatim in section 6, each mapped to a named Vitest test and a Playwright test. The two roster acceptance items and the three roster T08.spec.ts deliverables are mapped too, including an honest deviation path for the linked-T1 e2e test when no page places both tools.",
+   "Every behaviour sentence of SPEC 4 T8 (path, hover or focus with wordTo and separatingRoots, Counter, Heap view, Size) is quoted verbatim in section 5. Every 4.0 rule is addressed, including the reasoned non-applicability of 'Growth off the finite types has two bounds'.",
+   "Every number checks out. Golden values match reference/golden_data.json: A3 length_distribution [1,3,5,6,5,3,1]; F4 has 25 layers with a maximum of 94; the weyl_order and n_reduced_words_w0 of all fourteen boards; heaps.A3. The widest layers of SPEC 4 T8 match the golden maxima. The edge counts |W|n/2 (36, 384, 2304) are correct. The A3 example after the play 1,3,2 is correct: position (2,-3,2), BFS word 1,3,2, roots (0,1,0), (0,1,1), (1,1,0) in positiveRoots order.",
+   "Every quoted string matches SPEC.md character for character: the A-3 and A-4 templates, A-11, the 7.4 sentences on running without JavaScript and on tools sharing a page, the 5.5 truncation sentence, the 5.6 cap rows, the 5.4 move-graph paragraph, F4, F5, F12 and the M5 beats and figure rows. Signatures match CONTRACTS 2.2, 2.3, 2.4 and 4, and the T8 preset ids match CONTRACTS 6.",
+   "The SPEC line numbers (T8 1152-1161, 4.0 1040-1057, 5.4 1356-1402, 5.5 lines 1458/1468/1469, 5.6 1474-1512, 7.4, 7.5, 9.1 G3 at line 1988) and the oracle line numbers (legal_layers 1381, orbit_graph 1328, word_to 1373, separating_roots 1390, coroot_coords 201, heap 1150, heap_key 1161, commutation_class_size 1397, all_complete_games 1165, count_reduced_words_w0 323) are all accurate.",
+   "Section 7 reproduces the roster's owns exactly. The site/src/styles protocol is quoted from README section 6. Section 9 contains the three roster traps verbatim plus well-founded extras: the strict 192 threshold on D4, the cap equal to F4's order, coroot pairing on B/C/F/G, heap 'joined' in either direction from the oracle, bigint handling, and no tautological path count.",
+   "Plan-level choices are consistently marked (plan). Two genuine inconsistencies are surfaced for MERGE instead of being resolved silently: M5 beat 3 includes A4 while figure row 3 does not, and boardChoices strains the 4.0 preset rule.",
+   "No em-dashes, and no vague 'etc.' or 'and so on' lines."
+  ]
+ },
+ "P3-A5": {
+  "id": "P3-A5",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "invented",
+    "what": "Section 5.8 says 'Keep every existing T1 test green', and the last line of section 6 says to run `site/tests/unit/tools/T01.test.ts` and `site/tests/e2e/T01.spec.ts`. Both files belong to another agent (P1-A5). COMMON 4.3 says: 'Run only your own test files and the engine suite (`npm test -w packages/engine`, and your `site/tests/unit` and `site/tests/e2e` files). Do not run the whole browser suite ... unless your instruction says so.' Running another agent's tests may be the right call for an additive edit of T01GameBoard.svelte, but the file never says it is an exception to COMMON 4.3 and does not mark it (plan). It contradicts COMMON as written.",
+    "where": "5.8 first bullet; 6 Acceptance, last line"
+   },
+   {
+    "kind": "fidelity",
+    "what": "Section 3 lists `site/tests/unit/tools/T01.test.ts` sources as 'From `P0-A5` and `P1-A5`: ... `site/src/lib/a11y.ts` (`speak`, `nodeName`, `announceTemplates`, `createAnnouncer`)'. README section 6 says `site/src/lib/a11y.ts` is owned by 'P0-A5; P1-A2 extends', and CONTRACTS 4 says 'a11y.ts (SPEC 7.5; owner P0-A5, extended by P1-A2)'. The phase-1 roster gives the a11y extensions (coalescing counts, playedToEnd) to P1-A2, not P1-A5. The file names the wrong contributing agent.",
+    "where": "3. Inputs you depend on, fifth bullet"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present, with the template's headings and in order. The header line is filled in: Phase 3, stage 3.2, Size S, worktree on agent/P3-A5.",
+   "Section 7 reproduces the roster's 'owns' list exactly, including the combined test-file entry and the qualifier on T01GameBoard.svelte. Both roster traps appear in section 9: reversed board with B2 (2,1) against (1,2), and WebKit and Firefox for the MathML check only.",
+   "Every clause of SPEC 4 T7 is restated in 5.1. Both acceptance clauses are mapped to named Vitest and Playwright tests. Every 4.0 rule is addressed or explained as not applicable (growth and layers). The 9.2 definition of done is mapped item by item.",
+   "Exact strings match SPEC character for character: the A-3 and A-4 templates, the T1 'Shows' sentence, the 7.3 [U] text, the 7.4 History API passage, the 4.0 History and Board pickers sentences, the M5 beat 5 and M6 figure row 4 wording, and the A.1 B2 numbers (-1,3), (2,-3), (-2,1), (-1,-1).",
+   "Mathematical claims were checked against the oracle and golden data. The A3 forms along 1,2,1,3,2,1 are x1, x1+x2, x2, x1+x2+x3, x2+x3, x3. F4 and G2 transposed equal their golden roots reversed in node order. B3 against C3 holds. The one-sign property of right-board entries holds on all 32 types. The quoted golden vectors and the verify.py line numbers (219 to 221, 1591) are correct, as are the oracle line numbers (bipartition 258, symbolic_play 1414).",
+   "The signatures of symbolicPlay, bipartition, applyWord, play, positiveRoots and transposeBoard match CONTRACTS 2.4. The URL state, decodeState and encodeState usage matches CONTRACTS 4 and 5.2. The T7 preset 'default' matches CONTRACTS 6.",
+   "Departures from the roster or SPEC are marked (plan) or reported as deviations. Examples: mathml.spec.ts launches the browsers itself instead of adding Playwright projects, the right board's data-board and data-value are raised as an open question, and links with non-positive starts or c=p are refused. Phase assignments agree with SPEC 5.3, 5.4 and 9.1.",
+   "No em-dashes."
+  ]
+ },
+ "P3-A9": {
+  "id": "P3-A9",
+  "complete": true,
+  "score": 5,
+  "gaps": [
+   {
+    "kind": "style",
+    "what": "Test 11 says '`groupOrder` 24', typing a golden value into the test description. Section 5.15's own rule and COMMON 4.4 say expected values are read from reference/golden_data.json and never typed. It should read 'groupOrder equals types.A3.weyl_order', in the same form test 1 uses.",
+    "where": "5.15 test 11"
+   },
+   {
+    "kind": "style",
+    "what": "Section 3 lists T5's presets as `tally`, `wave`, `dimension` 'and `default`, `compared`'. CONTRACTS 6 lists only `compared`, `tally`, `wave`, `dimension` for T5. SPEC 4.0 implies a `default` state ('`default` is the state described in this section'), so nothing is contradicted, but the preset id `default` for T5 should be marked (plan) or attributed to 4.0 rather than presented as a registered preset.",
+    "where": "3. Inputs you depend on (P3-A3 bullet)"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings and in order. The header line is filled correctly: Phase 3, stage 3.3 (roster stage list), Size M, worktree on agent/P3-A9.",
+   "Every beat of SPEC 3 M5 is quoted verbatim, and every figure-table row is quoted with its exact configuration and expected result: 24 positions, the counts 2/16/768/42/2316, 16 games making 8 heaps, 4 and 30 rounds, dimension 8. Each is mapped to an instance id with props and to a named e2e test.",
+   "Each golden value listed in item 17 was checked against reference/golden_data.json on disk and matches: A3 weyl_order 24, length_distribution, positive_roots, fired_tally; n_reduced_words_w0 for A2/A3/A4/B3/D4; E8 exponents, weyl_order 696729600, coxeter_number 30, fired_tally.1 = 8 and .29 = 1; heaps.A3; weyl_dimension has 30 records, with A2 (1,1) = 8, A2 (3,0) = 10 and E8 omega1 = 3875. E8 correctly has no n_reduced_words_w0.",
+   "The oracle examples were confirmed by running lie_games.py. Moves 1,3,2 give (2,-3,2) with separating roots (0,1,0), (0,1,1), (1,1,0). The symbolic forms along 1,2,1,3,2,1 are as stated. commutation_class_size is 2 for 1,3,2 and 4 for 1,3,2,1,3,2, and heap_key is equal for 1,3,2 and 3,1,2. The wave gives 4/4 rounds on A3, 30/30 on E8 and 1/2 on A1. The E8 bipartition is [0,1,1,0,1,0,1,0]. Weyl dimensions are 8 for (1,1) and 10 for both (3,0) and (0,3). The oracle line numbers and the verify.py lines 1585-1588 are exact.",
+   "Quotations of F4 to F9 and F12, 2.6, 8.2, 8.4, 9.2, 4.0, 7.3 (G path grammar and output), Appendix E items 3 and 16, the Appendix C heap row, and the SOURCES 11.2 and 11.5 entries match SPEC.md and SOURCES.md character for character. The bridge sentence of 2.4(a) is quoted correctly.",
+   "The 9.2 definition of done is fully present in section 6, including the owner's P3 to P8 check, the read-aloud and D17. The roster acceptance items are present: nojs, axe and size on /modules/m5-weyl, and E8's 696729600 and exponents through <G>.",
+   "Section 7 reproduces the roster 'owns' list exactly and agrees with README section 6. All three roster traps appear in section 9, together with well-grounded extra traps: coroot heights in B2/B3, F6's 'of the reversed board', A4 missing from the counter, E8 having no reduced-word count, U+202F grouping, and the order of separatingRoots.",
+   "The [U] handling is precise. E3 is named for the BB05 theorem number and wording, and E16 for the Stanley and square-shape attributions, each with a fallback that stays true. [S2] is correctly cited rather than wrapped. Additions beyond the specification are consistently marked (plan). No em-dashes are present."
+  ]
+ },
+ "P4-A2": {
+  "id": "P4-A2",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "invented",
+    "what": "The file cites `P0-A5`'s `dev/shell-check.astro` as the precedent for a dev page. That page appears nowhere else in build-plan/: neither the P0-A5 roster entry nor P0-A5-board-seed.md mentions it. The real precedent in the plan is `P0-A3`'s `site/src/pages/dev/math-check.mdx` (phase-0 roster deliverable 7, P0-A3-math-spike.md; P0-A6's classifyRoute test also uses `/dev/math-check/`). The `MERGE` reasoning for this deviation rests on a file that does not exist.",
+    "where": "Section 5.10 first bullet; section 7, plan additions outside README 6 (DrawTimeProbe.svelte and dev/draw-time.astro)"
+   },
+   {
+    "kind": "invented",
+    "what": "Section 5.3 says rank 3 is 'the wireframe with `xyz:1,2,3` as its only view'. The same section's `parseProjection` grammar accepts `coxeter` for every n>=2 and any distinct triple `xyz:a,b,c` in 1..n, so on rank 3 it also accepts `coxeter`, `xyz:2,1,3` and the like. SPEC 4 T10 ('rank 3 as a wireframe that can be turned') and SPEC 6.6 do not limit rank 3 to one view. The restriction is unmarked (no '(plan)') and contradicts the parser rule next to it, so the agent cannot know whether `coxeter` on A3 or B3 must parse or return null.",
+    "where": "Section 5.3, bullets 'Views' and 'The `j` value'"
+   },
+   {
+    "kind": "fidelity",
+    "what": "The ownership of `scripts/presets.mjs` is not reconciled with README 6. README 6 row '`scripts/`' gives that directory to `P0-A6` (with `P0-A3` for names.mjs, `P3-A7` for the lab script and `P6-A2` extending names.mjs) and does not name `P4-A2`. Only the roster's owns list gives `scripts/presets.mjs (plan)` to P4-A2. The file flags the analogous README 6 mismatch for `draw/` (canvasScene.ts, svgScene.ts) and for `site/src/pages/*`, but says nothing about `scripts/`: no `requests` entry to `MERGE` and no note.",
+    "where": "Section 7 'You own'; section 10 requests to MERGE"
+   },
+   {
+    "kind": "fidelity",
+    "what": "The README section 4 phase-4 table lists 'the drawing-time test' under `P4-A3`'s task (T10 geometry-studio). The roster gives `site/tests/e2e/draw-time.spec.ts` and the G4 drawing-time item to `P4-A2`. The file follows the roster but does not mention the conflict or ask `MERGE` or `P4-A3` to confirm who owns the test. Both agents could build the test, or each could assume the other has it.",
+    "where": "Section 5.10 and section 10 requests"
+   },
+   {
+    "kind": "invented",
+    "what": "The colour mapping is stated as a requirement without a '(plan)' mark: canvas `segment` from `--road`, `point` from `--text`, `page` from `--page`, and the SVG default `fill=\"var(--text)\"` for points. CONTRACTS 8 lists the token names but does not assign points to `--text`, and SPEC 6.3 has no road or point mapping for T10. It is recorded as a decision in the fragment list but is presented in 5.6 and 5.7 as fixed.",
+    "where": "Sections 5.6 (colours bullet) and 5.7 (`options.colours`)"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings, in order. The header line is filled in correctly (Phase 4, stage 4.1, Size M, worktree on branch agent/P4-A2).",
+   "Section 7 reproduces the roster's four owns strings exactly. Section 9 contains all three roster traps, worded close to the roster.",
+   "Every roster deliverable is covered: rotations, composition, projections, the three turning angles, the depth cue, the canvas caps, the SVG output, the pipeline and draw-time.spec. All three roster acceptance items and all three roster golden keys (types.E8.coxeter_plane, wythoff for the M7 records, e8.neighbours_at_inner_product_1) map to named tests in section 6.",
+   "SPEC quotations checked character for character and correct: the T10 Projection, Limits and Presets bullets, the 7.6 drawing sentence, the 7.1 Drawing row, the 7.4 snapshot sentence, the 6.6 `j` row, the 5.6 caps rows, the 2.14 Coxeter plane and coincident-points sentences, and A-9 and A-10.",
+   "Golden values checked against reference/golden_data.json and correct: the E8 rings and radii, D4 12 and A3 8 distinct points, the coincident-points list, the six wythoff f_vectors, 13 records with edge_length_squared, 56 neighbours, and numbers_of_highest_root for A2, A3, D4 and E8. The oracle line numbers and the verify.py ranges (EDGE_CAP = 70000) are also correct.",
+   "CONTRACTS 2.4 signatures for euclideanBasis, wythoffEdges, wythoffFVector and toPopulation, and the CAPS values, match exactly. The oracle's rounding rules for rings versus distinct points (+0.0 applies to the distinct count only) are explained precisely.",
+   "The file declares its deviations openly: no default configuration computed, no prebuild hook, and three files outside README 6, each with its reason and routed to MERGE. The size estimates are plausible: an oracle-based check gives about 6.0 kB gzipped for E8 adjacency lists and about 7.7 kB for the whole file, well under 30 kB.",
+   "No em-dashes, and no vague 'etc.' or 'and so on'."
+  ]
+ },
+ "P4-A1": {
+  "id": "P4-A1",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "invented",
+    "what": "Property 11 test requires `numRuns` at least 500 ('fc.assert with an explicit seed and numRuns at least 500 recorded in the file (CONTRACTS.md 3)'). CONTRACTS.md 3 only requires a fixed seed recorded in the file. No SPEC.md, COMMON.md, README or roster text sets a run count. The requirement is attributed to CONTRACTS.md 3 and not marked (plan).",
+    "where": "5.14, test/properties/p11-folding.test.ts paragraph"
+   },
+   {
+    "kind": "fidelity",
+    "what": "5.7 says 'Invariants to test on all 32 types (as verify.py lines 1186 to 1191)', and 5.14 repeats 'E^T E = B within 1e-9 (all 32)'. verify.py section 13 skips rank 1 ('if n < 2: continue'), so the oracle checks only the 31 types of rank 2 to 8. Extending the E^T E = B and eigenvalue checks to A1 is a plan addition, but it is attributed to verify.py and not marked (plan).",
+    "where": "5.7 euclideanBasis invariants; 5.14 p4-coxeter-plane paragraph; section 6 line 'E^T E = B within 1e-9 on all 32 types'"
+   },
+   {
+    "kind": "coverage",
+    "what": "Roster trap 5 reads 'Face counts are bigint: 1_42 has 17280 vertices and 3628800 3-faces; |W(E8)| / |W_K| products exceed 2^31.' Section 9 trap 7 keeps the bigint point and the numbers but drops the 'exceed 2^31' clause and says the opposite: every count fits a safe integer. The replacement is mathematically right, since |W(E8)| = 696729600 is below 2^31, but the file never says it departs from the roster text and does not raise the roster error as an openQuestion, so the orchestrator cannot see the correction.",
+    "where": "9, trap 7"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings, in order. The header line is filled in and matches the roster: phase 4, stage 4.1, size L, worktree on agent/P4-A1.",
+   "Every roster function appears with its CONTRACTS.md 2.4 phase 4 signature verbatim, its oracle name and line range, its guard per SPEC 5.6, and its cap. Each function that 5.6 does not name (averagedSimpleCartan, applyWordFloat, symEig, classifyRestricted) is marked (plan) and listed for the decisions fragment.",
+   "All five golden keys of GOLDEN_KEYS_BY_PHASE[4] appear in section 6 mapped to named tests, with covers() calls in distinct files, which satisfies the one-file-per-key rule of CONTRACTS 3.",
+   "Golden facts were checked against golden_data.json and the oracle and all match: the nine folding rows (folded_cartan, orbits, Bourbaki orders, the averaged classes and form_values, the A4 reason text); the 26 wythoff records with 13 edge_length_squared and the single unenumerated E8 1_42 record; the ring sizes, the h_points list and the coincident list; and h4_projection.",
+   "Oracle-derived examples were rerun and match: coxeter_word A3 [0,2,1], D4 [0,2,3,1], E8 [0,3,5,7,1,2,4,6]; the D4 automorphisms in lexicographic order; the symmetry group sizes; 17 face types on E8 1_42 with largest count 2419200; negative zeros 2/3/4 on A4/A6/A8 and none on A2; averaged_simple_cartan of the A4 flip [[2,-1],[-2,2]]; identity on A3 averaging to A3 with one class of 12.",
+   "Exact SPEC quotes from 2.13(a)/(b), 2.14 (the face-count formula and the Lambda^{1/2} sentence), 2.17, E-6, 5.2, 5.5 and 5.7 match character for character.",
+   "classify_restricted is restated step for step in the oracle's order, including the order of the G2, B2 and F4 tests.",
+   "Section 7 reproduces the roster's owns list exactly. The bipartition file clash between CONTRACTS 2.1 and README section 6 is noticed and given a safe protocol.",
+   "No em-dashes; no vague 'and so on' or 'etc.'."
+  ]
+ },
+ "P4-A5": {
+  "id": "P4-A5",
+  "complete": false,
+  "score": 3,
+  "gaps": [
+   {
+    "kind": "invented",
+    "what": "Beat 1 tells the agent to put T2 beside T1 with preset `follow` and `linkTo`, \"counting the populations found (8)\". This contradicts the plan file of the T2 owner. build-plan/agents/P1-A6-t02-orbit-garden.md (M6 row 1 bullet and the unit test `the M6 configuration shows 8 on B2`) says M6 \"needs `roots` mode grown in `explore`, not `follow`\". The reason it gives: from (1,0) on B2, mutation reaches only the 4 positions of its orbit, the long roots \u00b1(1,0) and \u00b1(1,2), so `found` could never read 8. The plan's configuration is `grows: 'roots'`, `growth: 'explore'`, `grown: 2`, `board: 'B2'`, with `linkTo` naming the T1. As written, the figure cannot show 8 root populations of two kinds (SPEC 3 M6 beat 1, table row 1: \"T2 beside it (8 populations)\").",
+    "where": "5.2 (Figure bullet); 3 (P1-A6 input names only preset `follow`); 6 (Beat 1 acceptance line)"
+   },
+   {
+    "kind": "coverage",
+    "what": "Test 9 asks for a garden counter that reads 8 \"after the reader (the test) has visited all eight populations\" from T1 at p=(1,0) in follow mode. By mutation the test can visit only 4 populations from that start, so the test cannot pass as specified. It should instead read T2's `data-out=\"found\"` (named in P1-A6) as 8 under the roots/explore configuration with `grown: 2`.",
+    "where": "5.15 test 9"
+   },
+   {
+    "kind": "invented",
+    "what": "The file says that T1 has no round counter and must not be edited, and that the round counter is realised through script captions (5.3, trap \"T1 has a move counter and no round counter\", 7 requests). That contradicts build-plan/agents/P1-A5-t01-game-board.md. P1-A5 adds an optional T1 prop `rounds` for exactly this figure (SPEC 3 M6 row 2), rendering `Round k` in `data-out=\"roundCounter\"`, with an acceptance test `T01.test.ts > round counter on B2` and a handoff \"including `rounds` for M6\". The lesson file should configure `rounds: 2` on both beat-2 figures, and test 7 should read `roundCounter` (4 on B2 after 8 moves, 6 on G2 after 12). It should not file a request for a feature that already exists in the plan.",
+    "where": "5.3 (Round counter bullet); 9 (trap on round counter); 5.15 test 7; 7; 10 requests"
+   },
+   {
+    "kind": "fidelity",
+    "what": "The Lie theory paragraph says the Weyl group of construction (a) is \"the subgroup of $W$ fixed by $\\sigma$\". SPEC 2.13 reads \"its Weyl group is the subgroup of $W$ commuting with $\\sigma$\". The two are equivalent under conjugation, but the instruction should quote the spec's wording.",
+    "where": "5.11"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings, in order. The header line is filled in (Phase 4, stage 4.3, Size M, branch agent/P4-A5).",
+   "Every beat and figure-table row of SPEC 3 M6 is covered with a concrete configuration. The beat-2 orbit sequences for B2 from (2,1) and G2 from (1,2) are correct when recomputed by hand, as is the warning that p=(1,0) returns after 5 moves.",
+   "Every golden path and value matches reference/golden_data.json: B2 symmetrizer [2,1], positive_roots, highest_root_of_reversed_board [2,1], the folding rows with symmetry 3,2,4,1 for the D4 rotation, the E6 orbit-order trap, the A4 row (`folds_to` null, `BC2`), and the `wildberger_lists.names` strings.",
+   "Both 2.10 tables are reproduced row by row and agree with SPEC, including the qualifier 'joined to vertex 2 or 3' and the E6 diagram row [S].",
+   "All seven Appendix F statements are copied exactly, with the four this page could touch singled out. The 2.4(a) bridge sentence and the 8.4 credit sentence match SPEC.",
+   "The T3 builder weights (4, 2, road 4) agree with the T3 formula and with P2-A2. The 'heights of coroots' wording follows SOURCES 11.5 with the B2 example.",
+   "The 9.2 definition of done is mapped in section 6, owner items are marked not-automated at G6, E16 is named with a fallback, and section 7 reproduces the roster's owns list exactly.",
+   "There are no em-dashes and no vague 'etc.' lines. The P3 conflict with the B2 start is resolved and recorded as a deviation."
+  ]
+ },
+ "P4-A3": {
+  "id": "P4-A3",
+  "complete": true,
+  "score": 5,
+  "gaps": [],
+  "strengths": [
+   "Template: all ten sections are present, in order, with the template's headings. The header line is filled in correctly as 'Phase 4, stage 4.2. Size L. Runs in: a worktree on branch `agent/P4-A3`.', and the MERGE and GATE parenthetical is correctly dropped.",
+   "Coverage of SPEC 4 T10: each of the four acceptance clauses has its own named unit test in section 6. The clauses are: f_vector for all 26 records; vertices and edges where edges_enumerated, over 25 records; vertices only with the message for 1_42; and coxeter_plane rings and distinct_points over the 31 types that have the key. The A2 (1,1) hexagon test with four shared edges is also there. Every T10 bullet (Input, Output, Projection, Switch, Make uniform, Showpiece, Limits, Presets, Without JavaScript) is restated, with a quotation, in its own subsection of section 5.",
+   "Every applicable 4.0 rule is in section 5 (starts meaningful, without JavaScript, configuration and presets, predict, keyboard, signs, share and export, stated limits, board pickers, long numbers, small screens, test hooks, history). The rules that do not apply (step and play to the end, growth off the finite types) are named and the reason is given.",
+   "Fidelity: I checked every quoted SPEC sentence character for character and all of them match. They come from 2.14, 4 T10, 5.6 caps rows, 6.6, 7.4, 7.5 A-5, A-8, A-9 and A-12, 7.6, E-9, 5.4, 7.3, 2.5 and Appendix E items 7 and 9.",
+   "Golden facts checked against reference/golden_data.json all match: 26 wythoff records, 13 with edge_length_squared, 25 with edges_enumerated true; coxeter_plane absent only on A1; the E8 fundamental_orbit_sizes; the coincident-points list; the short-root types; 56 neighbours; the distinct counts for D4, A3, B3, D5; the largest f-vector entry 3628800. I also recomputed the A2 polytope-only and move-only edge pairs by hand and they are correct.",
+   "Every oracle line number checks out (symmetrizer 106, fire 145, dynkin_labels 210, weyl_order 296, induced_components 720, sub_matrix 734, wythoff_face_types 739, wythoff_f_vector 757, wythoff_edges 764, orbit_graph 1328, orbit_graph_capped 1352, word_to 1373, orbit_size 1425, sym_eig 1604, euclidean_basis 1634, coxeter_plane_points 1647, coxeter_plane_rings 1653, highest_root 1688, highest_short_root 1693), and so do the verify.py details (EDGE_CAP = 70000, f[:n], edges_enumerated).",
+   "The engine signatures (euclideanBasis, coxeterPlanePoints, coxeterPlaneRings, applyWordFloat, wythoffFaceTypes, wythoffFVector, wythoffEdges, FaceType, CAPS, CallHint, whereToRun, engineCall, decodeState, encodeState) match CONTRACTS.md. The preset ids match CONTRACTS 6.",
+   "The roster's contradiction is caught and resolved against the golden file: 2_41 has 69120 edges with edges_enumerated true, so the message is tested on 1_42 instead.",
+   "Section 7 reproduces the roster's owns exactly. Section 9 carries the roster's three traps verbatim plus many specific ones: y = E C^-1 a, the n versus n+1 length of f_vector, rounding of -0, the move graph over every node, edge labels on every edge, and A-12 MathML for the polytope names.",
+   "Plan choices are marked (plan) throughout and routed to the fragment, deviations or openQuestions. These include the rank-3 Coxeter view, validation of the j coordinates, the 'Draw the orbit' button for link loads above 2000 items (in line with the button pattern of E-9) and the default state.",
+   "No golden numbers are typed into tests: each expected value is tied to its golden key. No em-dashes, no 'etc.' and no 'and so on' anywhere."
+  ]
+ },
+ "P4-A6": {
+  "id": "P4-A6",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "coverage",
+    "what": "The roster deliverable says \"beat 8 as a released:false placeholder\" and the summary says \"a released-gated placeholder\". Section 5.4 quotes that wording but never turns it into a concrete requirement. It allows a plain visible paragraph with one or two preview sentences, and it says to use an unreleased-figure prop only \"if `Beat` has\" one. Nothing requires the beat 8 slot or its figure to carry `released: false`, and no test in 5.14 checks that gating. Test 7 checks only that no golden or T11 link is rendered.",
+    "where": "5.4 Beat 8: the placeholder; 5.14 test 7"
+   },
+   {
+    "kind": "fidelity",
+    "what": "Section 5.1 presents LO7 as an exact quote (\"the text of LO7 in 1.3 is ...\") but ends it with \"picture of E8\". SPEC 1.3 reads \"explain the Coxeter-plane picture of $E_8$\". The plain-text E8 rule applies to the YAML title, not to a quotation of the spec, so the quote does not match character for character.",
+    "where": "5.1 Frontmatter and page skeleton, `outcomes` bullet"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings, in order. The header line matches the roster's title, phase 4, stage 4.3 and size M.",
+   "Section 7 reproduces the roster's \"owns\" list exactly. The must-not-touch list agrees with README section 6 and the phase-4 owns lists (P4-A2 projector, canvasScene, svgScene and presets; P4-A3 T10; P1-A4 lesson components).",
+   "Every beat 1 to 8 of SPEC 3 M7 and every row of the figure table appear in 5.3 with a board, rings, view, CONTRACTS 6 preset id and expected result. All of these were checked against golden_data.json: the 17 Wythoff records, the f_vectors (12,24,14), (24,96,96,24), (4,6,4), (24,48,26) and (24,36,14), the E8 Coxeter plane with 8 rings of 30 and 240 distinct points, D4 with rings of 18 and 6 and 12 distinct points, 56 neighbours, symmetrizer (2,2,1), and hull checks 48.",
+   "Every 9.2 lesson criterion is mapped to a named M7.spec.ts test and a gate, including the roster's nojs, axe, size and lab-timings items and the E8 SVG snapshot. The owner-only checks are marked not-automated.",
+   "The E7 and E9 wrapping is precise and matches 2.14, Appendix E items 7 and 9, and the roster. The required E7 attribution wrap sits in the Seen box. The four face counts from memory are never called published. 'Rectified 4_21' carries a fallback that stays true. The 2.17 attribution of Lusztig, Shcherbak, Moody and Patera is kept out or wrapped without a fallback.",
+   "Golden key spellings follow the 7.3 grammar, and the file correctly warns that ring sizes need chained brackets the grammar does not allow. Typed numbers without a golden value (6 and 4 edges, 17520, form values, 4 and 2) are listed with their reasons.",
+   "The engine signatures for wythoffFVector and coxeterPlaneRings and the Prediction type match CONTRACTS 2.4 and 5.2. The 6.6 link syntax (r with dots, j=coxeter, bare keys on the tool route), the T10 limits of 70000, 8000 and 20000, and the 7.6 budgets are all correct.",
+   "The traps cover all three roster traps plus well-founded additions: B3 long and short nodes, Bourbaki E8 numbering, the 2_41 edge cap, and the 69120 edges against 483840. The file has no em-dashes and no vague filler.",
+   "The verify.py line references (1112 to 1117, 1190 to 1225, section 15 at line 1290) and the claim that section 19 has no M7 line were checked and are correct."
+  ]
+ },
+ "P4-A4": {
+  "id": "P4-A4",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "fidelity",
+    "what": "Section 5.13 says phase 7's golden foldings are on A4, D6 and E8, \"two of which T11 does not offer today\". This is wrong. T11 offers A4 and D6 (SPEC T11 boards A2 to A8, D4 to D8), so E8 is the only one it does not offer (SPEC 1.5 and 2.17: A4 to H2, D6 to H3, E8 to H4).",
+    "where": "5.13 The golden slot"
+   },
+   {
+    "kind": "fidelity",
+    "what": "The axe request asks \"P1-A2 or MERGE\" to add /tools/fold to the route list of a11y.spec.ts. README section 6 makes P0-A5 the owner of a11y.spec.ts (nojs.spec.ts belongs to P1-A2 and basepath.spec.ts to P0-A6), and the phase-0 roster agrees, so the request goes to the wrong agent.",
+    "where": "6 Acceptance (axe line); 10 Report (requests)"
+   },
+   {
+    "kind": "fidelity",
+    "what": "Section 7 sets \"may edit with the stated protocol: nothing else\" and then cites README section 6's \"additive edits by the tool and page owners for their own component styles only\". That README permission covers site/src/styles/*, which the file never grants. The ownership statement therefore does not match README section 6: it should either grant additive style edits under site/src/styles/* or say explicitly that the plan narrows that permission.",
+    "where": "7 Files"
+   },
+   {
+    "kind": "fidelity",
+    "what": "Section 3 says Board.svelte and History.svelte are by P0-A5 \"extended by P1-A5 and P1-A3\". README section 6 lists site/src/components/board/* as P0-A5, extended by P1-A5 (P2-A3 adds BoardEditor). P1-A3 owns components/draw/* (layouts, roads, palette), not the board components.",
+    "where": "3 Inputs you depend on"
+   },
+   {
+    "kind": "fidelity",
+    "what": "Section 5.2 says that on every offered board but D4 the default symmetry \"is the golden row's symmetry\". A2, A6, A8, D7 and D8 have no row in golden key `folding` (nine rows: A3, A5, A7, D4 twice, D5, D6, E6, A4), so the claim is false for five of the thirteen offered boards.",
+    "where": "5.2 Symmetries and the symmetry picker"
+   },
+   {
+    "kind": "fidelity",
+    "what": "The acceptance line attributes the quoted phrase \"one case for each kind of board the tool offers\" to 4.0. The phrase is in SPEC 7.7 (Components row), not in 4.0. The parenthesis names 7.7, but the line label is misattributed.",
+    "where": "6 Acceptance (one case per kind of board)"
+   }
+  ],
+  "strengths": [
+   "All ten template headings are present in order, the header line is filled in (phase 4, stage 4.2, size M, worktree branch agent/P4-A4), and the file contains no em-dash and no \"etc.\".",
+   "Every clause of the SPEC 4 T11 acceptance paragraph (200 random symmetric plays in both games, folds_to, averaged_roots_type for all 9 rows, the A4 flip message) maps to a named Vitest or Playwright test. The roster's four named examples (A3 to B2, D4 rotation to G2, E6 to F4, A5 average B3 and C3) are e2e tests.",
+   "Every behaviour sentence of T11 and every rule of 4.0 is restated in section 5 with exact quotes. The quotes checked against SPEC (4.0 History, 6.6 tab outside the link, the 2.4(a) bridge sentence, 8.3 accents, E-9 item 2, A-7) are character-exact.",
+   "Values checked against golden_data.json and the oracle are correct: orbits, folded_orbits_in_bourbaki_order (folded.labels [2,1] for the D4 rotation), the five D4 symmetries in lexicographic order, the C3 orbit orders of the three swaps, the averaged names including BC1 to BC4 and B4 to B7, the A4 class table, and the worked plays (-1,3,-1)/(-1,3) and (-1,4,-1,-1).",
+   "The oracle line numbers (automorphisms 388, relabellings 347, tau_orbits 393, fold 405, finite_candidates 428, identify_labelled 444, classify_restricted 542, averaged_roots_type 1437, averaged_simple_cartan 1720) and the CONTRACTS signatures for symmetries, fold, averagedRootsType, averagedSimpleCartan, FoldResult and CallHint match.",
+   "Section 7 reproduces the roster's owns list exactly, and section 9 contains both roster traps (dual constructions; D4 rotation of order 3 with exchanged nodes) plus many well-founded extra traps.",
+   "Plan choices are consistently marked (plan) and routed to deviations or openQuestions, including the 4.0 versus 6.6 conflict over the average preset and the harness-import difference with P4-A2."
+  ]
+ },
+ "P5-A2": {
+  "id": "P5-A2",
+  "complete": false,
+  "score": 4.5,
+  "gaps": [
+   {
+    "kind": "fidelity",
+    "what": "The sentence 'On a minuscule orbit every edge joins adjacent layers and its lower end has mu_k=1, which is the entry of F_k' gets the direction wrong. Checked against the oracle: the end with mu_k=1 is the higher weight. It is the end nearer omega_i (smaller depth, e.g. (1,0) at layer 0 on A2) and the source column of F_k. R_k mu, with mu_k=-1, is the lower weight and the deeper layer, and with layer 0 drawn at the top it is also the lower end on screen. It should read: the end nearer omega_i (smaller depth) has mu_k=1, and the edge is the entry of F_k from that end to R_k mu.",
+    "where": "5.3, second bullet"
+   },
+   {
+    "kind": "coverage",
+    "what": "Section 5.9 restates 4.0 Long numbers: exact digits 'in the table view, in the tooltip and in every export'. The acceptance test 'a typed start of more than 12 digits ...' checks the hooks and the table view but not the tooltip or the Download data JSON. The JSON should hold the exact decimal string under the 6.6 data-export rule.",
+    "where": "6, Long numbers line"
+   },
+   {
+    "kind": "coverage",
+    "what": "The plan's drawing bound (5.3: above 300 positions, layer counts and a sentence saying the full graph is not drawn) is a stated limit under 4.0 and 9.2 ('stated limits'), but no test guards it. A test on a non-minuscule orbit between 301 and 2000 positions, such as E7 node 2 (576) or E7 node 6 (756), would close it.",
+    "where": "6"
+   },
+   {
+    "kind": "coverage",
+    "what": "9.2 requires A-1 to A-12 to hold. 5.6 and 5.11 make A-12 (relations as MathML through LinearForm or RelationFormula, kept outside any .katex element) a requirement, but section 6 has no test that the relation formula is a <math> element with <msub>. A-2 (visible focus ring) and A-8 (no drag) also have no named test. The axe scan does not prove these.",
+    "where": "6"
+   }
+  ],
+  "strengths": [
+   "The header line and all ten template sections are present with the template's headings, in order.",
+   "Section 7 reproduces the roster's 'owns' list exactly, and the protected files match README section 6 (MatrixView.svelte is P5-A2's, LinearForm.svelte is P3-A5's, site/src/lib is P1-A2's).",
+   "All three SPEC 4 T12 acceptance bullets and all four roster e2e named examples map to named unit and e2e tests. 9.2 is covered: link, undo, redo, reset, export, hooks, no-JS, axe, size, show as table.",
+   "Every quoted SPEC passage checked matches character for character: T12 paragraph and bullets, 2.18 recipe and signed-move sentence, 4.0 History, Board pickers, Test hooks and Small screens, A-7, the 6.6 k/q values and validation phrases, the 6.3 palette sentence, 5.4 move-graph sentence, the E-9 phrases and 7.6.",
+   "Numbers re-run against the oracle all agree: the golden types, nodes and dimensions of the 18 records and the first line. A2 E/F/H, move, signed move and square diag(-1,1,-1). A1 matrices. Basis starts for A3 node 2, E6 node 1 and D4 node 2. The ten failing ef pairs of D4 omega_2. Relation counts 20/88/280. Orbits over 2000 (E7 3,4,5; E8 1-7, 2160 to 483840). Largest minuscule orbit 256 (B8 node 8), B8/C8 1792. First fired number above 1 for D4 2, G2 2, G2 1, F4 2, E8 1 and 8. The A2 strings and the orbit of (2,0). A failing relation on all 69 non-minuscule nodes with orbit at most 600. E7 56 at about 4 ms in Python.",
+   "Signatures match CONTRACTS 2.4 phase 5, 2.2 (SparseMatrix, RelationCheck), 2.3 caps, 4 (decodeState, CallHint, whereToRun, announceTemplates, exportJSON) and the 6 T12 preset ids, with one-zero-weight kept for phase 7.",
+   "Two conflicts are resolved openly in favour of SPEC and listed under deviations: the roster's 'worker or build time' wording against E-9 rule 1, and the roster's minusculeMatrices trap against T12's 'explanation alone'.",
+   "Both roster traps are in section 9, along with well-grounded extra traps: basis order, row as image, firing versus mutation, positions versus labels, B2/C2 transposes.",
+   "No em-dashes and no vague 'etc.' lines. Every plan choice is marked (plan) and set to be recorded in the fragment."
+  ]
+ },
+ "P5-A1": {
+  "id": "P5-A1",
+  "complete": true,
+  "score": 5,
+  "gaps": [],
+  "strengths": [
+   "All ten template headings are present, with the template's wording and in its order. The header line gives the phase, stage 5.1, size M and the branch agent/P5-A1.",
+   "All four phase 5 functions of SPEC 5.4 are covered, and so are the sparse helpers. Each appears with its CONTRACTS 2.4 signature, its oracle name and line range (checked against lie_games.py: sp_mul 811, sp_add 822, sp_comm 829, sp_scale 833, chevalley_serre_ok 837, minuscule_matrices 856, string_through 1744, signed_moves 1751), its guard from the last row of the second 5.6 table, and the repOrbit cap of 2000 that returns null.",
+   "The golden key minuscule_representations is covered in section 6. It has the covers() call, 18 records matched by type and node, 17 records with weights, E7 7 null, and a check that missingByPhase['5'] is empty. All three roster deliverable and acceptance items are mapped to tests, including 'dimension equals the orbit size' and the E7 56 built in under two seconds.",
+   "I re-ran every hand value through the oracle and all of them agree. D4 node 2 has 24 basis vectors, the first is (2,-1,0,0), and 8 contain a 2. It gives 88 records with exactly 10 'ef' failures at the listed pairs, and S differs from E+F+P0 there. The A1 and A2 matrices, signed move and commutators match. All six string examples match, as do the first and last basis vectors of A2 2, B2 2 and E7 7, the golden examples for A2, B2 and C2, the fundamental orbit sizes of D4, E7 and E8, and the record counts 6n^2-2n of 20, 88 and 280.",
+   "The quotations from SPEC 2.18, the T12 entry and its acceptance, M8 beat 3 and its figure table, the 6.6 key q, the 5.6 table rows, E-5 and Appendix G match character for character. The RelationCheck and SparseMatrix types match SPEC 5.2 verbatim.",
+   "Section 7 reproduces the roster's owns list exactly. Ownership agrees with README section 6, and index.ts is append only as CONTRACTS 2.1 requires.",
+   "Section 9 opens with all three roster traps verbatim. It adds well-grounded traps on transposition: row as image, the C[i][j] index placement on B2, and column against row in stringThrough. It also covers string sorting, the Serre off-by-one, B2 against C2 naming, and bigint mixing.",
+   "Every addition the specification does not state is marked (plan), such as the spKey format, spEq ignoring zeros, the RangeError cases, record order and the unit test files. The decision to compute moves from fire, following the oracle over the roster's wording, is explained and tested.",
+   "The file contains no em-dashes and no vague lines."
+  ]
+ },
+ "P6-A5": {
+  "id": "P6-A5",
+  "complete": true,
+  "score": 5,
+  "gaps": [
+   {
+    "kind": "style",
+    "what": "After the worked example for e6(-14), the sentence ends with \"and so on\". The other two input/output pairs (e7(-5) giving \\dynkin E{o*oo*o*} and su(2,4) giving \\dynkin[involutions={15;24}] A{oo*oo}) are only implied. They could be written out as calls, as the first one is. Nothing is lost, because all three forms are printed just above.",
+    "where": "5.1, third bullet (line 67)"
+   },
+   {
+    "kind": "style",
+    "what": "TikzPointsData declares an optional labels field, but the stated output (one \\fill per point, one \\draw per edge) never says whether or how a point label is written. The escaping and full-digits rule for labels then has nothing to act on for tikz-points. The detail is plan-only, so this is not a fidelity gap, but the format is left underspecified.",
+    "where": "5.2, tikz-points bullet"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings in order. The header line is filled in (phase 6, stage 6.1, size S, branch agent/P6-A5).",
+   "Section 7 reproduces the roster's five owns entries character for character. Section 9 contains both roster traps verbatim, as traps 1 and 2, followed by 14 well-grounded additions.",
+   "The three forms of SPEC 6.7 are quoted byte for byte, including the comments, and they are correctly read as annotations rather than output. The golden inputs were checked against golden_data.json: e6(-14) is black [3,4,5], tau [6,2,5,4,3,1], arrows [[1,6]]; e7(-5) is black [2,5,7] with the identity; su(2,4) is black [3], tau [5,4,3,2,1], arrows [[1,5],[2,4]]. The other counts also check out: 167 records, 32 types, maximum rank 8, three records each under B2 and C2. su(4) gives A{***} and so(1,7) swaps the black nodes 3 and 4.",
+   "The white-nodes-only arrow rule is tied to the exact 2.15 sentences ('White nodes exchanged by $\\tau$ are joined by an arrow in the drawing', 'the drawing shows arrows between white nodes only', 'Printed tables and the CoReLG software record $\\tau$ only on white nodes'), and the e6(-14) {16;35} mistake is called out.",
+   "Every roster deliverable and both acceptance items are mapped to named tests. These include the sweep over all 167 satake records, the /embed/board A2 state test (firing 1, 2 from (1,1) gives (1,-2), consistent with T1 acceptance), and the one-test-per-route rule derived from site/dist so that T13 and T14 are picked up later.",
+   "SPEC quotations were checked against the text and match it exactly: 6.6, 7.4 Citing and Embedding, 4.0, 7.5 (A-7, A-9, A-11), 7.6, 7.7, 7.8 and 9.1 G6 'one exported LaTeX file of each kind compiled (section 6.7)'. The exportLaTeX signature matches CONTRACTS 4 exactly, and the ToolFrame button texts match CONTRACTS 5.1.",
+   "Plan additions are consistently marked (plan): the types, latexFile, citeText, the latexForExport prop, the TikZ formats and the embed page details. The additive prop is routed to deviations, and missing wiring in other agents' components goes to requests.",
+   "The owner's compile check is correctly treated as not-automated (SPEC 6.7 and 9.1). The nojs.spec.ts skip of /embed/* is accurately sourced to P1-A2 5.11 and closed by this agent's own test. The file contains no em-dashes."
+  ]
+ },
+ "P5-A3": {
+  "id": "P5-A3",
+  "complete": false,
+  "score": 4.5,
+  "gaps": [
+   {
+    "kind": "coverage",
+    "what": "The credit bullet of SPEC 8.4 is only partly carried over. Section 5.10 covers Wildberger's construction, [Gre13], [W03c], [vE] and \"attributed to Kostant\", but leaves out the rest of that bullet: \"the numbers game is Mozes', with Proctor's earlier use of the same process and Eriksson's development acknowledged\". Both pages discuss the numbers game: the chip-firing comparison of 5.12 item 2, smaller points 4 to 6 of Appendix D, and the Lie theory paragraph. The 'writing rules of 8.4' acceptance line and test 15(a) check credit lines only for Wildberger, Gre13 and Kostant.",
+    "where": "5.10 (credit bullet); 6 (writing rules line); 5.14 test 15(a)"
+   },
+   {
+    "kind": "coverage",
+    "what": "The page is required to give every statement its provenance (5.12: \"every statement with its provenance\"; SPEC 8.4 and 9.2). Appendix D main correction 1, \"the graph does not change\", carries its own source in SPEC: \"[W20] sections 2 and 5: 'a mutation at A changes only the population of A'\". The file never names [W20] as the provenance for that confusion. W20 is also missing from the keys in section 3 that must resolve through <Cite> and from the sources of the not-quiver page (5.12 item 7).",
+    "where": "5.12 item 6 and item 7; 3 (SOURCES keys)"
+   }
+  ],
+  "strengths": [
+   "The header line and all ten template sections are present, in order, with the template's headings.",
+   "Section 7 reproduces the roster's four owned files exactly, and the must-not-touch list matches README section 6.",
+   "Every M8 beat (1 to 8) and every figure-table row is turned into a concrete T12 instance (preset, board, node, relation), and each has the expected result stated. I checked the oracle-derived matrices for A2 node 1 against minuscule_matrices and signed_moves (basis order, row and column orientation, [E1,F1]=H1, the square diag(-1,1,-1)) and they are correct.",
+   "Every golden path in 5.8 resolves to the stated value in reference/golden_data.json: the A2 node 2 weight order (1,-1),(0,1),(-1,0); D4 fundamental_orbit_sizes[1]=24; types.E8.cartan count 8; the satake e8(8) dim_g 248 and rank 8; types.D4.minuscule_nodes (1,3,4); orbit_plus_zero_representations[type=G2;highest_weight=1,0]. The expected outputs of the printing script in 2.16 also match the file.",
+   "The quoted strings match SPEC character for character: the Chevalley-Serre relations, the minuscule recipe, the list of 18 representations, the bridge sentence of 2.4(a), the cells of the 2.16 comparison table, the Appendix D correction 2 qualifier, the Appendix F statements and corrections with their labels, LO8 and the module question.",
+   "The [U] handling is precise. E10 covers the Hum72 section numbers and the Green journal data. E13 covers anything about Kostant's game beyond \"attributed to Kostant\". The orthogonal-group correction of Appendix F is excluded as [U].",
+   "All SPEC 9.2 definition-of-done items, plus the roster's nojs, axe, size and D16 acceptance items, are mapped to named tests and gates. The owner's G6 part is marked not-automated, which agrees with 9.1 (G5 owner part \"none\").",
+   "Signatures match CONTRACTS 2.4, 4, 5.2, 6 and 7. Plan additions are marked (plan) throughout. The file has no em-dashes, no en-dashes and no vague filler."
+  ]
+ },
+ "P6-A4": {
+  "id": "P6-A4",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "fidelity",
+    "what": "The definition-of-done line quotes 9.2's 'Checked by the owner at the gate, and so no condition for merging' as if it covered the whole tool definition of done. In SPEC 9.2 that sentence covers only the clause that follows it: 'principles P1, P2, P9 and P10 of section 8.1 can be pointed to in it'. The automated parts of the definition of done (acceptance, A-1 to A-12, the 4.0 rules, the size budget, the table view) are conditions the agent must meet. The line also never mentions principles P1, P2, P9 and P10, which are the owner's actual check.",
+    "where": "Section 6, the 'Definition of done for a tool (9.2 ...)' line"
+   },
+   {
+    "kind": "coverage",
+    "what": "The G6 automatic part in SPEC 9.1 and the roster gateItems both require 'sizes and lab timings of section 7.6 on every page'. The file covers the 15 kB size sum but never mentions the lab timings (LCP at most 2.5 s, TBT at most 200 ms, CLS at most 0.1) for the Atlas pages. The E8 page is the case to watch, since it carries large tables and data URIs. It should at least say that GATE runs these and that the agent reports the E8 page weight with that in mind.",
+    "where": "Section 6 (size line) and section 5.11"
+   },
+   {
+    "kind": "coverage",
+    "what": "Item 13's fallback link, 'T1 in legal mode from all ones', names no view. 6.6 Validation rejects 'a view and a mode that the table of T1 does not allow together', and the T1 table allows legal only in the numbers and linked views. Item 11 states the view explicitly (v=n&m=l&c=n&s=...). Item 13 should do the same (v=n or v=l, with c=n and s=1,...,1), or the link can open T1's default with a notice.",
+    "where": "Section 5.2 item 13"
+   },
+   {
+    "kind": "template",
+    "what": "The title line reads 'Tool T14 Atlas, one static page per board'. The roster title is 'Tool T14 Atlas: one static page per board'. The template asks for '# {ID}: {title}' with the roster title, and the punctuation differs.",
+    "where": "Header line 1"
+   },
+   {
+    "kind": "fidelity",
+    "what": "Section 1 presents 'acceptance of T13 and T14 as automated tests' as a quote of what 'gate G6 requires'. That string comes from the phase-6 roster gateItems, not from SPEC 9.1, whose G6 row reads 'all golden tests of phases 0 to 6; full accessibility scan; sizes and lab timings of section 7.6 on every page; a release build succeeds ...'. The source should be named as the roster (plan).",
+    "where": "Section 1, last sentence"
+   }
+  ],
+  "strengths": [
+   "Every golden value quoted for B3 (cartan, adjacency, symmetrizer, roots, highest roots and their numbers, exponents, h, |W|, det, minuscule nodes, -w0, orbit sizes, n_reduced_words_w0, coxeter_plane rings) matches reference/golden_data.json exactly. So do the affine records of B2, C2 and B3, the B3 and D4 satake pairs and the count of 167 records.",
+   "The absent-field lists (positive_roots on rank 5 to 8 for A to D, the short-root fields on simply laced types, n_reduced_words_w0 on the nine types with |W| > 60000, coxeter_plane on A1) and the five long counts (A7 14 digits, D6 13, B6, C6 and E6 16 each) are all correct.",
+   "Both clauses of the T14 acceptance paragraph and all three roster deliverable tests are mapped to named tests. Every T14 item has an engine call, a golden field and a 6.6-valid tool link, and the file is careful about options that a link cannot carry (T2 growth mode, T5 tab, T8 counter preset).",
+   "SPEC quotations are exact character for character: 2.9 rows, 2.10 translations and misprints, the 6.5 sp(2p,2q) note, the 6.6 validation clauses, the 4.0 long-number sentence, the 7.6 15 kB row, D19, the 9.5 risk row and the 6.7 \\dynkin example.",
+   "Section 7 reproduces the roster 'owns' list exactly. Section 9 contains both roster traps verbatim. Ownership is consistent with README section 6.",
+   "All sixteen rules of 4.0 are addressed one by one, with plan readings marked for a static sheet. The B2 affine numbering trap (constructor_name vs name) and the E4 wrap of Kac's numbering are handled correctly.",
+   "No em-dashes and no vague 'etc.' or 'and so on'. Line references for the SPEC sections are accurate."
+  ]
+ },
+ "P6-A6": {
+  "id": "P6-A6",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "fidelity",
+    "what": "The file tells the agent to 'cite no page of [W-MS] for the Mars story, since SOURCES gives none'. SPEC 1.7 says the story of Martians and anti-Martians on Mars, and of Venus for the dual game, is retold with credit '([W20] section 2; [W-MS] pp. 1 and 30)'. So SPEC does give [W-MS] p. 1 for the Mars story. The instruction contradicts the specification and would remove a citation that SPEC itself gives.",
+    "where": "5.9 item 1"
+   },
+   {
+    "kind": "fidelity",
+    "what": "The file calls 'the 5-cycle is the affine board \\tilde A_4' 'the plan's gloss, not SPEC's words'. SPEC 2.12 (line 419) states it: 'The 5-cycle is the affine board $\\tilde A_4$ [V] ... and its numbers game is the 1986 Olympiad problem'. SOURCES [IMO86] 'Role on the site' says the same. The statement is mislabelled as plan when it is a [V] statement of the specification, which should be cited.",
+    "where": "5.2 item 2"
+   },
+   {
+    "kind": "fidelity",
+    "what": "Appendix D item 1 says the operation the note describes 'is modelled on Fomin-Zelevinsky quiver mutation, a different construction with the same name'. The file instead says 'Reversing arrows and toggling edges between neighbours is Fomin-Zelevinsky quiver mutation', which drops 'modelled on' and turns it into a stronger claim than the specification makes.",
+    "where": "5.7 item 1 (board-fixed)"
+   },
+   {
+    "kind": "invented",
+    "what": "The acceptance line on third-party assets that are not packages (videos, images, borrowed figure layouts listed on /credits with title, author, source and licence; no video re-hosted; SPEC 7.9 bullets 2 and 4) is set as 'Manual check, reported as not-automated'. COMMON 5.2 and the template allow not-automated only where SPEC.md itself says the check is manual. SPEC 7.9 does not, and the plan's own grep method could be an automated test in pages-6.spec.ts.",
+    "where": "6. Acceptance, third-party assets line"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings, in order. The header line is filled in with phase 6, stage 6.1, size S and the worktree branch, and the model statement matches README 3.5.",
+   "Section 7 reproduces the roster's owns list exactly. Section 9 contains both roster traps, on the undated manuscript and on credit under 8.4, plus many accurate additional traps.",
+   "The verbatim quotations check out against SPEC.md character for character: M10, all five bullets of 7.9, the 8.4 credit clause and house style, the 7.2 closing rule, D16, the 2.3 sign sentence, the 2.4(a) bridge sentence, and Appendix E items 5, 11, 13 and 17.",
+   "The five Appendix F statements the site must not repeat are restated faithfully, with the E8 orthogonal-group remark correctly placed entirely under E17. The Weyl group order goes through <G k=\"types.E8.weyl_order\"/> outside the wrapper, and this golden path, wildberger_lists.names.B3 and one_way_counterexample all exist in golden_data.json.",
+   "The 7.1 pins listed for the footer match the specification (astro 7.3.8 through @axe-core/playwright 4.13.0), and the file insists that versions and licences are read at build time, not typed.",
+   "The timeline entries match SOURCES 11.1 to 11.4 and 11.9: the manuscript is cited as 'unpublished manuscript, undated (circulated c. 2001 to 2004)', DE08 is arXiv 0810.5371, GS11 has its correct title, Mozes is spelled Mozes, and Donnelly's M equals C transposed.",
+   "Every Appendix F row with a non-empty Borrow cell is enumerated with its exact Borrow text. The row with an empty cell (adn1995/numbers-game) is correctly left out, and the ADE Concurrent Game attribution follows Appendix F's wording.",
+   "Both roster acceptance items (every [U] item wrapped for RT-08; no reference to the note under D16) and every roster deliverable are mapped to named tests in pages-6.spec.ts.",
+   "The file contains no em-dashes and no vague 'etc.' lines."
+  ]
+ },
+ "P6-A1": {
+  "id": "P6-A1",
+  "complete": true,
+  "score": 5,
+  "gaps": [],
+  "strengths": [
+   "Template: all ten sections are present with the template's headings and in its order. The header line is filled in (Phase 6, stage 6.1, Size L, worktree on agent/P6-A1), and the model note agrees with README 3.5.",
+   "Signatures in 5.1 match CONTRACTS.md 2.4 phase 6 character for character. SatakeDiagram, Admissibility, Reason, SatakeComputed and RestrictedBoard are reproduced verbatim from CONTRACTS.md 2.2.",
+   "Every roster function (theta, shadow2, admissibility, satake, restrictedBoard, classifyRestricted) appears with its oracle name. Every oracle line number checks out: theta 464, sub_positive_roots 474, admissibility 489, admissible 526, shadow2 536, classify_restricted 542, satake 587, restricted_board 788, longest_word 235, the helpers, and satake_record 1811.",
+   "Error behaviour matches SPEC 5.6 and E-10/E-11. Each function throws NeedsTwoWayRoads on a one-way board and NotFiniteType off the finite types. satake and restrictedBoard throw NotAdmissible. A reached cap is never thrown.",
+   "All three roster golden keys (admissible_pairs, satake_examples, and the computed fields of satake) are mapped to named tests in section 6. The C2 exception is handled correctly: the four records su(2,2), sp(4,R), sp(2,2) and so*(8) store C2 and the reversed orbit list. This was checked against golden_data.json.",
+   "Numbers were checked against the golden file and the oracle, and all are correct: the 167 records and 135 of positive real rank; e6(-14) multiplicities 8, 6, 1 and orbits [[1,6],[2]] against [[2],[1,6]]; e6(-26) w_X_word of 12 letters, word lengths [8,8], A2, mult 8; the restricted Cartan [[2,-2],[-1,2]] and its transpose; su(4) tau [3,2,1] and so(2,8) tau [1,2,3,5,4]; D4 with 4 involutive symmetries and 11 pairs; all twelve satake_examples verdicts; the A5 black {1,2,4} fractions -3/2 and -1/2; and the 534 multi-fraction pairs, recomputed with the oracle.",
+   "The theta and shadow2 examples of A.5 (su(1,2), su*(4), su(1,3)) were recomputed from the definitions and are correct. dim_k 4, 10 and 9 match Appendix A.5 and B.",
+   "The roster wording 'restricted_board named by classifyRestricted' is correctly identified as departing from the oracle and from SPEC 6.4, and is resolved in favour of identify_labelled, with a trap and a fragment entry.",
+   "There is a guarded identify call (one component, m > 0), so a disconnected restricted Cartan matrix cannot throw NeedsConnectedBoard. This matches the oracle's guard.",
+   "The coverage deviation from CONTRACTS.md 3 (satake compared without covers()) is surfaced and routed to deviations and openQuestions under COMMON.md 4.4, and the quote from COMMON.md is exact. It is mirrored consistently in P6-A2's file.",
+   "Section 7 reproduces the roster's owns list exactly. Section 9 contains all five roster traps (items 1 to 5), verbatim or nearly so, plus 19 more that are specific and correct.",
+   "Plan additions are consistently marked (plan): RangeError on malformed input, the Reason nodes for each code, the multi-node value format, the NotAdmissible message, and the timing test without a threshold. SPEC 7.6 indeed sets no worker-call number.",
+   "No em-dashes, no 'etc.' or 'and so on'."
+  ]
+ },
+ "P6-A2": {
+  "id": "P6-A2",
+  "complete": true,
+  "score": 5,
+  "gaps": [
+   {
+    "kind": "style",
+    "what": "The acceptance line for the guards is labelled 'SPEC 5.6 and E-11', but part of what it checks comes from the plan, not the spec. That part is satakeCatalogue and satakeRecord throwing NotFiniteType on 'A2~' and NotABoard on 'Q7': the spec never says how a name-taking Satake function fails. Section 5.2 marks this behaviour (plan), but the acceptance line does not. The label should read 'SPEC 5.6 and E-11; plan for the name-taking functions'.",
+    "where": "section 6, line 'SPEC 5.6 and E-11: canonicalPair and matchCatalogue throw NeedsTwoWayRoads ...'"
+   },
+   {
+    "kind": "style",
+    "what": "Trap 17 says 'satakeRecord on E7 and E8 is the costly call (240 roots, theta on each)'. 240 is the root count of E8 only; E7 has 126 roots. The parenthesis should say 'up to 240 roots, on E8'.",
+    "where": "section 9, trap 17"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings and in order. The header line is filled in: Phase 6, stage 6.1b, Size M, worktree on agent/P6-A2.",
+   "Section 7 reproduces the roster's four 'owns' entries character for character. The names-catalogue unit test is added under COMMON 4.2 and marked (plan). Ownership agrees with README section 6: P6-A2 extends names.mjs; index.ts takes appended exports only.",
+   "The signatures and the SatakeCatalogueEntry and SatakeRecord interfaces match CONTRACTS.md 2.2 and 2.4 verbatim, and the oracle names follow SPEC 5.4.",
+   "Every parametric rule of SPEC 6.4 is restated correctly with 0-based positions, checked against satake_catalogue at l.1476 of the oracle. This includes black sets, tau (flipA, swapD, FLIP_E6 = [5,1,4,3,2,0]), displays, Cartan labels and family order. The B.1 exceptional rows (E6, E7, E8, F4, G2) match Appendix B: E III labels 3,4,5; E VI labels 2,5,7; F II labels 1,2,3.",
+   "The per-type record counts match 2.15 and the golden file. Checked against reference/golden_data.json: 167 records, 166 classes, D4 with 6 records for 5 forms, 167 distinct real_form spellings, 24 Cartan labels, 35 restricted_type values plus C2 (36 in all), and the 27 field names in the oracle's order.",
+   "The quotations match SPEC character for character: 6.4 'Names in rank 2', the 6.4 compact-form rule, the 5.5 class definition, the 6.5 display names, the 7.3 names.mjs sentence, the 2.13(b) quasi-split sentence and the 6.4 Coincidences sentence.",
+   "Worked values checked against the golden data and by running the oracle: the e6(-14), su(2,2) and su(4) records, the canonicalPair examples on D4 and A3, matchCatalogue giving ['so(2,6)','so*(8)'] for D4 black [2,3], [0,2] and [0,3], and [] on A2 black [0].",
+   "Every golden key in the roster appears in section 6 with its test file and gate: satake, admissible_counts, folding[*].quasi_split_real_form and satake_examples.real_forms. The coverage deviation from CONTRACTS 3 is stated openly and routed to deviations and openQuestions as COMMON 4.4 requires.",
+   "Section 9 contains all four roster traps, extended correctly; trap 4 adds FLIP_E6 for the E6 compact form, which the roster's 'identity otherwise' does not cover. Plan-specific choices (names.json section names, TeX source spellings, RangeError cases) are consistently marked (plan).",
+   "No em-dashes, and no 'etc.' or 'and so on' where the spec is specific."
+  ]
+ },
+ "P6-A7": {
+  "id": "P6-A7",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "coverage",
+    "what": "The restatement of 8.4 leaves out part of the credit rule. 8.4 says: \"Credit accurately: the mutation game is Wildberger's; the numbers game is Mozes', with Proctor's earlier use of the same process and Eriksson's development acknowledged; Kostant's game is 'attributed to Kostant'.\" The file credits only Wildberger (the mutation game and the Mars story, D5). Beat 2 has the reader play the numbers game on the black sub-board to get the word of w_X (2.15 stage 2, F4), so the numbers-game credit (Mozes, Proctor, Eriksson) applies to this lesson and should be stated.",
+    "where": "5.14 Writing rules and principles (first bullet, 'accurate credit')"
+   },
+   {
+    "kind": "coverage",
+    "what": "Under 9.2 the owner checks that 'principles P3 to P8 can be pointed to'. 5.14 covers P1, P2, P5, P6, P8, P9 and P11, and 5.2 covers P3. Nothing covers P4 ('One new mechanic at a time') or P7 ('Show a worked play-through, then fade the support. Each new game is first shown as a stepped example with commentary, then as a half-finished game to complete, then free.'). M9 brings in two new games: playing theta in three stages, and the restricted game with its composite moves. The file never asks for a stepped worked example followed by faded support, and never says how to keep to one new mechanic per beat.",
+    "where": "5.14 (principles bullet); 6 owner line"
+   },
+   {
+    "kind": "invented",
+    "what": "Test 4 also bans U+2013 in prose ('no U+2014 (and no U+2013 in prose)'). SPEC 8.4, D14 and COMMON 4.4 forbid only em-dashes. The en-dash ban is a plan addition, but here it is not marked (plan). P5-A3 marks the same rule as a plan addition.",
+    "where": "5.17 test 4"
+   },
+   {
+    "kind": "fidelity",
+    "what": "T13 says that clicking a restricted node 'plays the composite word on the big board, in steps, and the shadow reflects'. 5.7 and test 13 assume one click raises data-moves by 32 straight away and that the shadow is reflected then. Because play is 'in steps', the test should first step or play the 32 moves through (or wait for the play to finish) and only then compare data-moves and the shadow. As written, the test can fail against a correct T13 that advances one move per step.",
+    "where": "5.7 'What a click does'; 5.17 test 13"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present, with the template's headings in order and the header line filled in (phase 6, stage 6.3, size M, worktree branch agent/P6-A7).",
+   "Section 7 reproduces the roster's 'owns' list exactly, and section 9 contains all three roster traps word for word, plus many accurate further traps.",
+   "Each of the nine beats and each row of the M9 figure table appears with its exact configuration (black and tau props in label order, preset ids from CONTRACTS 6) and its expected result.",
+   "Golden values checked against golden_data.json are correct: su(1,3) is real rank 1, BC1, (4,1), dim_k 9, dim_p 6, character -3; e6(-26) has a 12-letter w_X word, reduced lengths [8,8], board A2, multiplicity 8, dim_k 52, orbits [[1],[6]]; su(1,5) has w_X [2,3,2,4,3,2], arrows [[1,5]], tau_moves_black_nodes true; so*(8) has C2 and [[4,0],[1,0]]; satake_examples rows and reasons; admissible_counts for A1 and D4; types.A3.positive_roots[1] is (0,1,0); types.D5.n_positive_roots is 20.",
+   "The careful wording of 2.15 on a failed condition 3 is broken into statements (a) to (e) that follow the spec, with the [U] sentence correctly limited to E15 and given a safe fallback. The ban on 'theta is not an involution' is enforced by a test on the built text.",
+   "Oracle line references (theta l.464, longest_word l.235, admissibility l.489, shadow2 l.536, satake l.587, restricted_board l.788, match_catalogue l.1592) and verify.py lines 1592 and 1177 are accurate. The restricted_reflection_word_lengths formula (played length minus twice the w_X length) matches the oracle.",
+   "The A.5 table for su(1,2), the bridge sentence of 2.4(a), the 2.15 sentence on the derived character formula, and the <G> grammar and selection pitfalls (the satake_examples selection needs tau) are reproduced exactly.",
+   "Every line of 9.2's definition of done for a lesson, and the roster acceptance (nojs, axe, size, the never-says-involution test), appears in section 6 with a named test and the gate G6. The E1, E8, E15 and E17 wrapping rules are worked out with correct Appendix E references."
+  ]
+ },
+ "P6-A8": {
+  "id": "P6-A8",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "invented",
+    "what": "Several acceptance lines are written as not automated, with the result recorded in plan report fields (writingRules, provenance): the 8.4 writing rules (site's words, conventions stated, no stock contrasts, no copied sentence) and 'every statement has a provenance'. COMMON.md 5.2 and the template's section 6 allow 'not-automated' only where SPEC.md itself says a check is manual. SPEC 9.2 lists provenance and 'it follows the writing rules of section 8.4' as part of done, not under 'Checked by the owner at the gate' (that part is only P3 to P8 and reading aloud). The typed-numbers line is fine, because 7.7 says numbers-in-prose is 'for a person to review'. The file does not say this conflicts with COMMON 5.2 and does not tell the agent to list it as a deviation. It should either give an automated proxy for each item or tell the agent to record the manual checks under `deviations` so MERGE can decide.",
+    "where": "6. Acceptance (writing-rules sub-bullets; provenance line)"
+   },
+   {
+    "kind": "fidelity",
+    "what": "The convention bullet says 'The numbers-game literature that fires negative (2.9: the Olympiad, Mozes, Eriksson, Gashi, Schedler and Speyer) has $a=-x$.' The 2.9 table gives $a=-x$ only for the Olympiad, Mozes and Eriksson. For Gashi, Schedler and Speyer it gives $a=-v$, $C=c^{\\mathsf T}$, and it leaves out Benkart, Klivans and Reiner ($a=-u$, $C=c^{\\mathsf T}$), who also fire negative. Eriksson's matrix relation $C_{ts}=-k_{st}$ and Mozes' [U] matrix convention are dropped as well. A glossary entry that states conventions (8.4) needs the transpose and the variable of each source as 2.9 gives them.",
+    "where": "5.6 Glossary completion, 'Conventions in entries'"
+   },
+   {
+    "kind": "style",
+    "what": "The fallback figure ('the Cartan matrix of $B_3$ in both conventions, built with the same KaTeX call as `<Tex>`') does not say that the matrix entries must come from the golden path (`types.B3.cartan` through `<Tex src=\"... {{path}} ...\"/>`). As worded, it allows a hand-typed matrix, which 8.4 and COMMON 4.4 forbid.",
+    "where": "5.2 item 2"
+   },
+   {
+    "kind": "style",
+    "what": "'The glossary stays a page with no tool (7.6: 15 kB for a page with no tool)' is stated as the SPEC's rule. In 7.6 that row names only `about`. Applying it to the glossary is a plan reading, and 5.8 marks it so for M10, but 5.6 does not.",
+    "where": "5.6 last bullet"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present in order with the template's headings; the header line is filled in (phase 6, stage 6.3, size S, worktree branch agent/P6-A8), matching the roster and README stage table.",
+   "Section 7 reproduces the roster's four owns entries exactly and handles the README section 6 ownership tension over glossary.mdx (P1-A4) explicitly, with an additive protocol.",
+   "Every page named in SPEC 3 M10 (Atlas, sandbox, history, sources, glossary, credits and licences, open problem, common confusions) has a hub item with its source passage; open-items is correctly excluded as preview-only (7.3).",
+   "The 9.2 lesson definition of done is mapped in full: anatomy, no JavaScript, provenance, <G>, no predictions or challenges for M10, writing rules, P3 to P8, read aloud, draft mark (D17).",
+   "Exact strings check out against SPEC.md: the 2.4(a) bridge sentence, the 2.4(e) gain/drop sentence, the 8.4 credit rule, 8.2 item 7, the 9.2 parenthesis, the 2.9 LO10 sentence, Appendix E item 8, the 7.6 size rows, the 7.3 fallback definition, and the T14 '(up to 120 positive ones listed)'.",
+   "[U] handling is precise: E2, E4 (Kac numbering, [S2] for E6 only), E5, E10, E11, E13, E14, E15, E17 are named with the statements they cover; [W-MS] is undated; no novelty claim (E8, Appendix F [U]).",
+   "The golden paths given are valid against golden_data.json (types.E8.n_positive_roots exists; satake is a list of 167, so as=\"count\" works).",
+   "The roster trap, the nojs/axe/size acceptance and both deliverables (link resolution, a terms-list test from first-use markup) are present, and the parallel M9 merge is handled without test.skip."
+  ]
+ },
+ "P6-A3": {
+  "id": "P6-A3",
+  "complete": false,
+  "score": 4,
+  "gaps": [
+   {
+    "kind": "fidelity",
+    "what": "The default preset's state fields are written with string labels, `{ board: 'A3', black: ['2'], tau: ['3', '2', '1'] }`. CONTRACTS 4 (state.ts) types `ToolState` as `black?: number[]; tau?: number[];`, so a preset that is 'also a state object' (SPEC 4.0) should read `black: [2], tau: [3, 2, 1]`. Building the registry from the strings as given would break type-checking against `ToolState` or force a cast.",
+    "where": "Section 5.3 (table row `default`) and section 5.13 (registry entry)"
+   },
+   {
+    "kind": "invented",
+    "what": "The file tells the agent to report the shadow picture, `shadow-coordinates` and the values on the restricted board's nodes as `blocked` in `acceptance` if the engine helper for shadow coordinates is missing. COMMON 5.2 allows only `pass | fail | not-automated` as an acceptance status, and `blocked` is a report-level `status`. Section 3 handles the missing `exportLaTeX` case correctly (`fail` with a request), so 5.8 should do the same.",
+    "where": "Section 5.8 (last bullet before E7/E8) and section 10 deviations list"
+   }
+  ],
+  "strengths": [
+   "All ten template sections are present with the template's headings, in order, and the header line is filled in correctly (Phase 6, stage 6.2, Size L, worktree on agent/P6-A3).",
+   "Every one of the five acceptance clauses of SPEC 4 T13 maps to a named Vitest test, plus an e2e test where useful. Every roster deliverable test is present: the A2 careful sentence, play-theta on (0,1,0), E6 restricted A2 with multiplicity 8, A5 su(1,5) with the toggle, the D4 catalogue of six with two being the same form, and the keyboard script.",
+   "All nine T13 feature bullets and every rule of 4.0 (starts meaningful, no-JS, history, step, configuration, predict, keyboard, signs, export, stated limits, growth, pickers, long numbers, small screens, test hooks) are restated and quoted verbatim.",
+   "Each M9 figure-table row (beats 1 to 8) is expressed as one of the eight CONTRACTS 6 presets with its exact configuration. The lights preset lists the 2.15 example rows in table order, with correct link states.",
+   "The numbers checked against SPEC and golden data all agree. Checked: A.5 theta stages, su(1,3) (BC1, (4,1), dim k 9, character -3), B3 so(2,5) and C3 sp(1,2) values, e6(-26) word lengths (12, 32, 8), e6(-14) orbit order against Bourbaki order with pairs [[8,1],[6,0]], the D4 involution images 1.2.4.3/3.2.1.4/4.2.3.1, the E6 flip 6.2.5.4.3.1, the 135 records of positive rank, the 3590 admissibility calls, the D4 catalogue order, and the admissible_pairs A3 sample.",
+   "Exact quotations of 2.15, 4.0, 6.3, 6.4, 6.6, 6.7, 7.4, 9.2, D19 and the 2.4(a) bridge sentence match SPEC.md character for character. The 6.7 LaTeX strings are exact.",
+   "The CONTRACTS 2.4 phase 6 signatures, the Reason codes and the harness helpers are cited correctly. Section 7 reproduces the roster's owns exactly, and the styles protocol matches README section 6.",
+   "Section 9 contains all four roster traps plus many oracle-derived traps: positions against labels, the C2 adjustment, composite words that are not reduced, orbit order against Bourbaki order, and the E-9 worker routing.",
+   "The careful condition-3 wording is handled faithfully: 'theta is not an involution' is forbidden, and the [U] Vogan/sl(3,R) sentence (E15) is excluded from the tool.",
+   "No em-dashes, and no vague 'etc.' where the spec is specific."
+  ]
+ }
+}

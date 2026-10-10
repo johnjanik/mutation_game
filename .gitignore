@@ -1,0 +1,17 @@
+# personal Claude Code settings for this checkout
+.claude/settings.local.json
+# not part of the specification package
+SPEC-draft.pdf
+*.zip
+.DS_Store
+# build outputs and dependencies (phase 0 onwards)
+node_modules/
+dist/
+.astro/
+site/src/generated/
+playwright-report/
+test-results/
+coverage/
+reports/*
+!reports/gate-*.md
+!reports/discrepancies/

@@ -1,0 +1,60 @@
+{
+  "phase": 7,
+  "title": "Extensions (after release 1.0)",
+  "gate": "per item",
+  "release": "1.x",
+  "note": "Briefed, not fully specified: the owner's reading of release 1.0 may change the order (D9 default: golden boards first). Each item gets a full instruction file when it is scheduled, drafted from this roster with the same template.",
+  "stages": [
+    { "name": "7.a", "agents": ["P7-A1"], "isolation": "worktree", "mergeAfter": true },
+    { "name": "7.b", "agents": ["P7-A2"], "isolation": "worktree", "mergeAfter": true },
+    { "name": "7.c", "agents": ["P7-A3", "P7-A4", "P7-A5"], "isolation": "worktree", "mergeAfter": true }
+  ],
+  "redTeam": { "lenses": ["RT-01", "RT-02", "RT-03", "RT-05", "RT-06", "RT-07", "RT-08", "RT-09", "RT-10", "RT-11"], "maxRounds": 2 },
+  "agents": {
+    "P7-A1": {
+      "slug": "golden-boards",
+      "title": "Golden boards H2, H3, H4 and the golden foldings; T11 golden tab; M7 beat 8",
+      "size": "M",
+      "spec": ["2.17 in full", "5.1 E-1, E-2 (ZPhi)", "5.4 (Golden boards paragraph)", "5.7 (phase 7 row: golden_boards, golden_folds)", "6.1 (H_n layout)", "4 T11 (golden foldings with values a + b phi)", "3 M7 beat 8"],
+      "oracle": ["class Phi (l.905)", "coxeter_H (l.966)", "golden_fold (l.986)", "GOLDEN_FOLDS", "golden_fold_search in verify.py (l.1361)"],
+      "golden": ["golden_boards", "golden_folds"],
+      "summary": "ZPhi {a, b} with the multiplication (ac+bd) + (ad+bc+bd) phi and the exact sign rule; the Arith instance; coxeterH(n); goldenFold(name, v); both games on H2, H3, H4 with the facts of 2.17 (10, 30, 120 roots; orders 10, 120, 14400; games of 5, 15, 60 moves); the T11 golden tab; M7 beat 8 released."
+    },
+    "P7-A2": {
+      "slug": "orbit-plus-zero",
+      "title": "Representations with one zero weight: engine, T12 preset, M8 beat 7",
+      "size": "S",
+      "spec": ["2.18 (One zero weight)", "5.4 (orbitPlusZeroMatrices)", "5.7 (orbit_plus_zero_representations)", "4 T12 (one zero weight)", "3 M8 beat 7"],
+      "oracle": ["orbit_plus_zero_matrices (l.880)"],
+      "golden": ["orbit_plus_zero_representations"],
+      "summary": "orbitPlusZeroMatrices for the vector representations of B_n, the 7 of G2, the adjoint of A1 with coefficient 2 on the two steps that leave the zero position; the T12 preset; M8 beat 7 released."
+    },
+    "P7-A3": {
+      "slug": "generalized-satake",
+      "title": "Generalized Satake diagrams as an advanced toggle in T13",
+      "size": "S",
+      "spec": ["2.15 (Generalized Satake diagrams)", "5.7 (generalized_satake_example)", "4 T13 (toggles, phase 7)"],
+      "oracle": ["shadow2 on G2 with one black node"],
+      "golden": ["generalized_satake_example"],
+      "summary": "Condition 3 replaced by the RV20 condition behind a toggle; the G2 examples whose shadows are not a root system; type recognition refuses them as 2.15 requires."
+    },
+    "P7-A4": {
+      "slug": "vogan-side-by-side",
+      "title": "Vogan diagrams beside Satake diagrams (T13 sidebar)",
+      "size": "M",
+      "spec": ["2.15 (Other encodings)", "3 M9 beat 9", "Appendix E item 15"],
+      "oracle": [],
+      "golden": [],
+      "summary": "A side-by-side view; no engine computation beyond what exists is specified, so the content is the standard picture with the statement that the same undecorated diagram means the split form as a Satake diagram and the compact form as a Vogan diagram [S2]; anything further is [U] and wrapped."
+    },
+    "P7-A5": {
+      "slug": "web-components",
+      "title": "Embeddable web components",
+      "size": "M",
+      "spec": ["7.4 (Embedding; web components as a phase 7 option)", "1.2 (tertiary audience)", "7.6 (budgets apply)"],
+      "oracle": [],
+      "golden": [],
+      "summary": "Custom elements wrapping the tools for embedding without an iframe, with the same state and link format."
+    }
+  }
+}
