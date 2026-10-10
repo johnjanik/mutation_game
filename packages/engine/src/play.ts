@@ -83,3 +83,44 @@ export function kostantPlay<T>(board: Board<T>, i: number, choose?: Choose<T>, c
   for (let j = 0; j < n; j++) start.push(j === i ? arith.one : arith.zero);
   return raisingPlay(board, start, choose, cap);
 }
+
+// =============================================================================================
+// Phase 2 (P2-A1): playFate, appended after P1-A1's code; nothing above this line is changed.
+// SPEC.md 2.12 (the fate table), 5.4, 5.5 "Fates", 5.6; port of the oracle's play_fate (lines 1309 to
+// 1325) in its order of tests: the end first, then the move, then the loop test, then the cap test. So
+// a repeat is 'looped' even on the cap-th move, and a cap-th move that ends the game reports 'cap'
+// (trap 6); this differs from play above and is the oracle's choice.
+// =============================================================================================
+
+/**
+ * Legal play with loop detection: 'ended' when no number is positive, 'looped' at the first position seen
+ * before (firstVisit is the move count at which it was first seen, 0 for the start), 'cap' when the play
+ * has made `cap` moves without either (default CAPS.playMoves). The lowest position unless `choose`
+ * picks one. Works on every kind of board. `cap` must be a positive integer (RangeError otherwise, plan).
+ */
+export function playFate<T>(board: Board<T>, a: Vec<T>, choose?: Choose<T>, cap: number = CAPS.playMoves): PlayResult<T> {
+  if (!Number.isInteger(cap) || cap < 1) throw new RangeError(`the cap ${String(cap)} is not a positive integer`);
+  if (a.length !== board.n) throw new RangeError(`the vector has ${a.length} entries, but the board has ${board.n} nodes`);
+  const show = board.arith.show;
+  const keyOf = (v: readonly T[]): string => v.map(show).join(',');
+  let current: T[] = [...a];
+  const seen = new Map<string, number>();
+  seen.set(keyOf(current), 0);
+  const word: number[] = [];
+  const fired: T[] = [];
+  for (;;) {
+    const allowed = legalNodes(board, current);
+    if (allowed.length === 0) return { status: 'ended', moves: word.length, word, fired, position: current };
+    const i = pick(choose, allowed, current);
+    fired.push(current[i]!);
+    word.push(i);
+    current = fire(board, current, i);
+    const key = keyOf(current);
+    const first = seen.get(key);
+    if (first !== undefined) {
+      return { status: 'looped', moves: word.length, word, fired, position: current, firstVisit: first };
+    }
+    seen.set(key, word.length);
+    if (word.length >= cap) return { status: 'cap', moves: word.length, word, fired, position: current };
+  }
+}
