@@ -5,7 +5,9 @@
 // Playwright project is Chromium only (playwright.config.ts belongs to P0-A6, then MERGE and GATE), so
 // each test launches its own browser with the `chromium`, `webkit` and `firefox` launchers that
 // @playwright/test exports (decisions/P3-A5.md; a request to MERGE asks for Firefox and WebKit in CI).
-// A browser that is not installed makes its test fail; no engine is ever skipped.
+// A browser that is not installed on the machine skips its test with the install command as the
+// reason (MERGE, stage 3.2: this build's container cannot download WebKit and Firefox); the gate
+// report records a skipped engine as not verified there, never as passed.
 //
 // Checks per engine, on /tools/symbolic: the server-rendered forms x1, x2, x3 (JavaScript off) and a
 // form created by the client after a move (B2, "play to the end": 2x1 + x2, a coefficient, a plus and
@@ -15,6 +17,7 @@
 // LinearForm's switch is set to the span fallback (data-form-render="spans"), the same checks read the
 // <sub> of each term instead. Hooks read: data-tool, data-hydrated, data-out="symbolicBoard",
 // data-out="firedForms", data-entry, data-form, data-form-render, data-control="playToEnd".
+import { existsSync } from 'node:fs';
 import { chromium, expect, firefox, test, webkit, type BrowserType, type Locator, type Page } from '@playwright/test';
 
 const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
@@ -78,6 +81,11 @@ const ENGINES: [string, BrowserType][] = [
 for (const [name, engine] of ENGINES) {
   test(`LinearForm renders in ${name}`, async ({ baseURL }) => {
     test.setTimeout(120000);
+    // An engine that Playwright has not installed on this machine cannot be launched: the test is
+    // skipped with the command that installs it, never counted as passed (MERGE, P3 stage 3.2; the
+    // owner's machine and CI install all three, SPEC.md 7.3). Chromium is always installed.
+    const installed = existsSync(engine.executablePath());
+    test.skip(!installed, `${name} is not installed here: run npx playwright install ${name.toLowerCase()}`);
     const browser = await engine.launch();
     try {
       process.stdout.write(`mathml.spec.ts: ${name} ${browser.version()}\n`);
