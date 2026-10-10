@@ -480,6 +480,22 @@
     tab = t;
   }
 
+  /** The arrow keys of a tab list (WAI-ARIA tabs, automatic activation): Left, Right, Home, End. */
+  function onTabKey(event: KeyboardEvent): void {
+    const order = TABS.map((t) => t.id);
+    const at = order.indexOf(tab);
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = (at + 1) % order.length;
+    else if (event.key === 'ArrowLeft') next = (at + order.length - 1) % order.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = order.length - 1;
+    if (next === null || frozen) return;
+    event.preventDefault();
+    selectTab(order[next]!);
+    const list = (event.currentTarget as HTMLElement).closest('[role="tablist"]');
+    (list?.querySelector(`[data-tab="${order[next]}"]`) as HTMLElement | null)?.focus();
+  }
+
   function exportData(): Record<string, unknown> {
     return exportPayload({
       game,
@@ -506,7 +522,7 @@
 {/snippet}
 
 {#snippet cells(values: readonly string[])}
-  {#each values as v, k (k)}<span class="cell">{display(v)}</span>{#if k < values.length - 1}<span class="sep">, </span>{/if}{/each}
+  {#each values as v, k (k)}<span class="cell">{display(v)}</span>{#if k < values.length - 1}<span class="sep">{', '}</span>{/if}{/each}
 {/snippet}
 
 {#snippet product(name: string, value: bigint, y: number)}
@@ -552,7 +568,8 @@
     </div>
     <p class="line" data-out="gameOver">{ended ? announceTemplates.gameOver(applied.length) : ''}</p>
     <p class="line" data-out="limit">{limit ?? ''}</p>
-    <div class="scrollbox tape-line">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div tabindex="0" role="group" aria-label="Tape" class="scrollbox tape-line">
       Tape: <span class="numeral" data-out="tape" data-count={fired.length}>{fired.length === 0 ? '' : listText(fired)}</span>{#if fired.length === 0}<span class="empty">no number fired yet</span>{/if}
     </div>
     <History
@@ -579,13 +596,15 @@
           data-tab={t.id}
           data-control="tab"
           disabled={!api.hydrated || frozen}
-          onclick={() => selectTab(t.id)}>{t.text}</button
+          onclick={() => selectTab(t.id)}
+          onkeydown={onTabKey}>{t.text}</button
         >
       {/each}
     </div>
     <div class="panel" role="tabpanel" id="{instanceId || 'numbers'}-panel" aria-labelledby="{instanceId || 'numbers'}-tab-{tab}" data-panel={tab}>
       {#if tab === 'tape'}
-        <div class="scrollbox">
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <div tabindex="0" role="group" aria-label="Tape table" class="scrollbox">
           <table class="values">
             <caption>The tape: the number on each node just before it fired</caption>
             <thead><tr><th scope="col">Move</th><th scope="col">Node</th><th scope="col">Number fired</th></tr></thead>
@@ -597,7 +616,8 @@
           </table>
         </div>
       {:else if tab === 'tally'}
-        <div class="scrollbox chart-box">
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <div tabindex="0" role="group" aria-label="Tally chart" class="scrollbox chart-box" data-scroll="tally">
           <svg class="chart" width={chartW} height={chartH} viewBox="0 0 {chartW} {chartH}" role="img" aria-label="Tally: {bars.map((b) => `${spokenValue(b.value)} fired ${b.count} ${b.count === 1 ? 'time' : 'times'}`).join('; ') || 'no number fired yet'}">
             <line x1="20" y1={baseY} x2={chartW - 20} y2={baseY} class="axis" />
             {#each bars as b, j (b.value)}
@@ -617,7 +637,8 @@
         </div>
         {#if reading !== null}
           <p class="line">Read sideways, the rows give the exponents <span class="numeral" data-out="exponents">{reading.exponents.join(', ')}</span>.</p>
-          <p class="line formula">
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <div class="scrollbox formula" tabindex="0" role="group" aria-label="Formula">
             <math>
               <mrow>
                 <munder><mo>∏</mo><mi>i</mi></munder>
@@ -628,7 +649,7 @@
                 <mn>{reading.product}</mn>
               </mrow>
             </math>
-          </p>
+          </div>
           <p class="line">
             Product <span class="numeral" data-out="exponentProduct">{reading.product}</span>; order of the group
             <span class="numeral" data-out="groupOrder">{order}</span>.
@@ -699,7 +720,8 @@
             <button type="button" class="control" data-control="resetB" disabled={!api.hydrated || frozen} onclick={() => resetB(api.announce)}>Reset B</button>
           </div>
         </div>
-        <div class="scrollbox">
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <div tabindex="0" role="group" aria-label="Sorted tapes" class="scrollbox">
           <p class="line sorted">Game A sorted: <span class="numeral cells" data-out="sortedA">{@render cells(comparison.sortedA)}</span></p>
           <p class="line sorted">Game B sorted: <span class="numeral cells" data-out="sortedB">{@render cells(comparison.sortedB)}</span></p>
         </div>
@@ -736,7 +758,8 @@
         {#if dim === null}
           <p class="line" data-out="dimensionNote">{DIMENSION_FAILED}</p>
         {:else}
-          <div class="scrollbox">
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <div tabindex="0" role="group" aria-label="Tapes of the dimension calculator" class="scrollbox">
             <p class="line">Word of the game from ρ: <span class="numeral">{dim.word.join(', ')}</span></p>
             <p class="line">From ρ the numbers fired are <span class="numeral" data-out="tapeRho">{listText(dim.tapeRho)}</span></p>
             <p class="line">
@@ -747,7 +770,8 @@
             {@render product('D, the product from ρ', dim.D, 16)}
             {@render product('M, the product from λ + ρ', dim.M, 58)}
           </svg>
-          <p class="line formula">
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <div class="scrollbox formula" tabindex="0" role="group" aria-label="Formula">
             <math>
               <mrow>
                 <mi mathvariant="normal">dim</mi><mo>&#x2061;</mo><mi>V</mi><mo>(</mo><mi>λ</mi><mo>)</mo>
@@ -760,7 +784,7 @@
                 <mn>{dim.dimension.toString()}</mn>
               </mrow>
             </math>
-          </p>
+          </div>
           <p class="line">Dimension: <span class="numeral" data-out="dimension">{dim.dimension.toString()}</span></p>
         {/if}
       {/if}
@@ -916,8 +940,13 @@
 <style>
   .t05 {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     min-width: 0;
+  }
+  /* The answer field of a prediction keeps the tool within 320 pixels (A-11). */
+  .t05 :global([data-prediction] input[type='text']) {
+    width: 8em;
   }
   .line {
     margin: 0;
@@ -968,6 +997,7 @@
     vector-effect: non-scaling-stroke;
   }
   .scrollbox {
+    position: relative;
     max-width: 100%;
     overflow-x: auto;
     min-width: 0;
