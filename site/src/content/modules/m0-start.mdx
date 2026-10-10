@@ -76,7 +76,7 @@ The numbers game is due to Mozes <Cite k="Moz90"/>. Proctor used the same proces
 
 Now both records share one figure: the Populations board above, the Numbers board below. They are tied together by the **translator** $a=Cp$. Here $C$ is the **Cartan matrix** of the board, <Tex src="C=2I-A^{\mathsf T}"/>, with twos on the diagonal and minus the road counts off it. On <Tex src="A_3"/> its rows are <G k="types.A3.cartan[0]"/>, <G k="types.A3.cartan[1]"/> and <G k="types.A3.cartan[2]"/>. One Martian in the middle city therefore has the numbers <G k="types.A3.cartan[1]"/>, and the Numbers board shows exactly these.
 
-What do these numbers say about the populations? The figure asks first. Answer its question, then read on.
+What do these numbers say about the populations? Answer the figure's question first, then read on.
 
 <p data-bridge-prose><strong>The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.</strong></p>
 
@@ -93,7 +93,7 @@ Wildberger states the same link with the opposite sign. His dual population reco
 
 <Beat n={5}>
 
-Everything else on this site grows out of these two moves. The site rests on seven statements, and each module develops one or two of them. Some statements use standard names that a later module explains: roots, weights, the Weyl group, a Lie algebra, a real form and a Satake diagram.
+The rest of the site grows out of these two moves. It rests on seven statements, and each module develops one or two of them. Some statements use standard names that a later module explains: roots, weights, the Weyl group, a Lie algebra, a real form and a Satake diagram.
 
 <figure slot="figure" class="statements">
 <ol aria-label="The seven statements of the site" data-statements>
@@ -127,7 +127,7 @@ A population $p$ stands for the element $\sum_i p_i\alpha_i$ of the root lattice
 
 ## Challenges
 
-Each challenge watches the board just below it and says when its goal is reached. Every board here is in free play, and Undo and Reset are always at hand.
+Each challenge watches the board just below it and says when its goal is reached.
 
 <Challenge client:visible for="b5" goal={`Starting from one Martian in city 2, reach the population ${thetaText} by mutations.`} explanation="Mutate city 1 and then city 3. Each of them receives the Martian of city 2 and keeps nothing of its own, so all three cities end with one Martian. This population is the highest root population of the board." check={{ kind: 'reach', board: 'populations', values: theta }} />
 
