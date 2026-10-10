@@ -234,7 +234,7 @@ describe('T7 state, links and Big', () => {
     expect(T07Entry.presets.default.caption).toBe(T7.T07_CAPTION);
     expect(T07Entry.boards).toEqual([...TYPE_NAMES].sort((a, b) => (a[0]! === b[0]! ? Number(a.slice(1)) - Number(b.slice(1)) : a < b ? -1 : 1)));
     expect(T7.T07_BOARDS).toEqual(T07Entry.boards);
-    expect(T7.T07_CAPTION).not.toMatch(/—/);
+    expect(T7.T07_CAPTION).not.toMatch(/\u2014/);
   });
 
   it('links: the state is read, and bad links give the default with the notice', () => {

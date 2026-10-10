@@ -408,7 +408,9 @@
     <p class="line" data-out="gameOver">{gameOverText}</p>
     <div class="fired">
       <p class="panel-title">Forms fired, in the order of the moves</p>
-      <div class="fired-box">
+      <!-- A scroll box is a keyboard stop so that its content can be scrolled without a pointer (axe scrollable-region-focusable). -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div class="fired-box" role="region" aria-label="Forms fired" tabindex="0">
         <ol data-out="firedForms">
           {#each sym.fired as f, k (k)}
             <li data-move={k + 1} data-form={labelText(symBoard, f)}>
@@ -421,7 +423,8 @@
         </ol>
       </div>
     </div>
-    <div class="roots">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div class="roots" role="region" aria-label="{ROOT_TABLE_HEADING}" tabindex="0">
       <table class="root-table" data-out="rootTable">
         <caption>{ROOT_TABLE_HEADING}</caption>
         <thead>
@@ -654,6 +657,8 @@
   }
   .control:focus-visible,
   .cell:focus-visible,
+  .fired-box:focus-visible,
+  .roots:focus-visible,
   select:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;

@@ -111,7 +111,8 @@
     {/each}
   </div>
 </div>
-<ul class="entries" aria-label="Entries of the symbolic board">
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<ul class="entries" aria-label="Entries of the symbolic board" tabindex="0">
   {#each byLabel as k (k)}
     <li data-entry={board.labels[k]} data-form={valueText(k)}>
       <span class="entry-label">Node {board.labels[k]}:</span>
@@ -175,6 +176,7 @@
     width: 44px;
     height: 44px;
   }
+  .entries:focus-visible,
   .hit:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
