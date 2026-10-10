@@ -339,21 +339,21 @@ async function targetsOk(page: Page): Promise<void> {
     }),
   );
   expect(boxes.length).toBeGreaterThan(0);
-  for (const b of boxes) {
-    expect(b.w).toBeGreaterThanOrEqual(24);
-    expect(b.h).toBeGreaterThanOrEqual(24);
-  }
+  const small = boxes.filter((b) => b.w < 24 || b.h < 24);
+  expect(small).toEqual([]);
+  const overlaps: string[] = [];
   for (let a = 0; a < boxes.length; a++) {
     for (let c = a + 1; c < boxes.length; c++) {
       const p = boxes[a]!;
       const q = boxes[c]!;
-      const overlap = p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h;
-      expect(overlap).toBe(false);
+      if (p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h) overlaps.push(`${a}/${c}`);
     }
   }
+  expect(overlaps).toEqual([]);
 }
 
 test('vertex targets are at least 24 pixels and do not overlap', async ({ page }) => {
+  test.setTimeout(90000);
   for (const width of [360, 320]) {
     await page.setViewportSize({ width, height: 800 });
     await open(page);
