@@ -22,6 +22,11 @@
 
 <div class="meter" role="group" aria-labelledby={labelId}>
   <p class="meter-label" id={labelId}>Form value <span class="pp">(<i>p</i>, <i>p</i>)</span></p>
+  <!-- MERGE, P2 stage 2.3 (request of P2-A8): a small dial, so that a linked meter with no board of its own is still a drawn figure (7.4). -->
+  <svg class="meter-dial" viewBox="0 0 120 28" width="120" height="28" role="img" aria-label={`Form value ${shown}`}>
+    <rect x="1" y="4" width="118" height="20" rx="4" fill="none" stroke="var(--road)" stroke-width="1.5" />
+    <text x="60" y="19" text-anchor="middle" font-size="13" fill="var(--text)" data-meter-text>{shown}</text>
+  </svg>
   <p class="meter-value" class:words={value === null || message !== null} data-out="formValue" data-value={value ?? ''} title={exact}>{shown}</p>
 </div>
 

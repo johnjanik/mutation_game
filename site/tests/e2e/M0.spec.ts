@@ -289,8 +289,8 @@ test('beat 5: seven statements, links only to released modules', async ({ page, 
   const base = new URL(page.url()).pathname.replace(/modules\/m0-start\/?$/, '');
   for (const href of hrefs) {
     expect(href.startsWith('/') ? href.startsWith(base) : true, `${href} respects the base ${base}`).toBe(true);
-    // Phase 1 releases M0 and M1 only.
-    expect(href, `${href} targets an unreleased module`).not.toMatch(/modules\/m([2-9]|10)-/);
+    // MERGE, P2 stage 2.3: M2 and M3 are released in phase 2; later modules are not yet.
+    expect(href, `${href} targets an unreleased module`).not.toMatch(/modules\/m([4-9]|10)-/);
     const res = await request.get(new URL(href, page.url()).toString());
     expect(res.status(), href).toBe(200);
   }
