@@ -32,6 +32,12 @@ const draft = data.draft !== false;
 ---
 
 <Base title={`${data.title}: Two Games on a Dynkin Diagram`} description={data.question}>
+  {/* P3-X1, lab timings (SPEC.md 7.6; decisions/P3-X1.md): the browser paints the page once the end of
+      beat 1 has been read (Beat.astro writes the marker #first-view-end there), not after every
+      piece of it. Without the hint it painted and laid out the first view again for each chunk of
+      HTML it parsed, and each such pass cost as much as the first. Browsers that do not know the
+      hint ignore it; if the marker never comes, the browser paints when the page has been read. */}
+  <link slot="head" rel="expect" href="#first-view-end" blocking="render" />
   <article class="lesson" data-module={data.module}>
     <h1 data-anatomy="title">{data.title}</h1>
     <p class="question" data-anatomy="question">{data.question}</p>
@@ -72,4 +78,8 @@ const draft = data.draft !== false;
       margin-inline: calc(50% - 50vw);
     }
   }
+  /* P3-X1: no content-visibility here on purpose. It was tried on the blocks below the first view
+     and dropped (decisions/P3-X1.md): the text of a skipped block is missing from innerText, which
+     the lesson tests read (and would silently weaken checks such as "no em-dash in the text"), and
+     the load-time gain was small and irregular in Chromium. */
 </style>
