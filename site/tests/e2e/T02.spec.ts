@@ -294,7 +294,7 @@ test('labels toggle', async ({ page }) => {
   expect((await texts()).every((t) => t === '')).toBe(true);
   const edgeLabels = await out(page, 'edge').evaluateAll((els) => els.map((e) => [e.getAttribute('data-label'), e.textContent ?? '']));
   expect(edgeLabels.length).toBeGreaterThan(0);
-  expect(edgeLabels.every(([label, text]) => label !== null && text.includes(label))).toBe(true);
+  expect(edgeLabels.every(([label, text]) => label !== null && text !== null && text.includes(label))).toBe(true);
   const boardLabels = await page.locator('[data-node][data-board]').count();
   expect(boardLabels).toBe(3);
   await control(page, 'vertexLabels').click();
