@@ -454,7 +454,7 @@ describe('T1 model', () => {
     expect(frac.ghosts().populations![0]).toBe(ratToString(toPopulation(boardFromName('A2') as Board<number>, fire(boardFromName('A2') as Board<number>, [1, 0], 0))![0]!));
   });
 
-  it('no colours panel before phase 3 (MERGE, P2 stage 2.2: form, level and lengths arrived with P2-A7)', () => {
+  it('the colours panel of phase 3 is drawn by its own mechanism, not by panelsToDraw (MERGE, P3 stage 3.2, P3-A5)', () => {
     expect(panelsToDraw(['form', 'level', 'colours', 'lengths'])).not.toContain('colours');
     expect(panelsToDraw(undefined)).toEqual([]);
   });
@@ -674,10 +674,11 @@ describe('T1 server render', () => {
     expect(roadStyles(render({ board: oneWay, view: 'numbers', coords: 'numbers', roadStyle: 'dynkin' }))).toEqual(['roads']);
   });
 
-  it('no colours panel before phase 3 (MERGE, P2 stage 2.2)', () => {
+  it('the colours panel renders in phase 3 through colourClasses (MERGE, P3 stage 3.2, request of P3-A5)', () => {
     const body = render({ board: 'A3', panels: ['form', 'level', 'colours', 'lengths'] });
-    expect(body).not.toMatch(/data-panel="colours"/);
+    expect(body).toMatch(/data-out="colourClasses"/);
     expect(out(body, 'notice')).toBeNull();
+    expect(render({ board: 'A3' })).not.toMatch(/data-out="colourClasses"/);
   });
 
   it('prediction freezes the board', () => {
