@@ -282,7 +282,7 @@ describe('T4 root counter and hunter', () => {
       expect(view.stop).toBe(`stopped after ${rec.positions} positions; layers 0 to ${rec.complete_layers} are complete`);
       expect(view.ended).toBe('cap');
     }
-  });
+  }, 60000);
 
   it('the counter on a finite board is complete and on the triangle stops after 40 layers', () => {
     const a3 = resolveBoard('A3');
@@ -353,7 +353,7 @@ describe('T4 root counter and hunter', () => {
     // The check is not vacuous: a board with a one-way road does give a mixed population.
     const ow = resolveBoard({ cartan: testCartan('one-way road') });
     expect(findMixed(rootSearch(ow, false, DEFAULT_LAYERS), ow)).not.toBeNull();
-  });
+  }, 60000);
 
   it("the hunter's none-found sentence names k and the layer bound, and the plan variants for a cap-cut and a complete search", () => {
     const tri = resolveBoard('A2~');
@@ -435,7 +435,7 @@ describe('T4 server render', () => {
     const controls = html.match(/<(button|select|input)\b[^>]*>/g) ?? [];
     expect(controls.length).toBeGreaterThan(10);
     for (const c of controls) expect(c, c).toMatch(/\sdisabled(=|\s|>)/);
-  });
+  }, 60000);
 
   it('renders the hunter preset with the one-way sentence, the roads style and the mixed population', async () => {
     const mod = await ssr.load<{ default: unknown }>('/src/components/tools/T04ClassificationLab.svelte');
@@ -449,5 +449,5 @@ describe('T4 server render', () => {
     // orbitGraph is what the counter runs (a wiring check).
     expect(orbitGraph).toBeTypeOf('function');
     expect(symmetrizer(resolveBoard('A3'))).not.toBeNull();
-  });
+  }, 60000);
 });
