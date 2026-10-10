@@ -9,18 +9,18 @@
   const sign = $derived(signOf(value));
   const signClass = $derived(sign > 0 ? 'sign-pos' : sign < 0 ? 'sign-neg' : 'sign-zero');
   const numeral = $derived(displayValue(value));
-  const r = $derived(0.3 * unit);
+  const r = $derived(0.25 * unit);
 </script>
 
 <g class="node {signClass}" class:can-act={canAct} data-kind={kind} data-state={stateText}>
   {#if canAct}
-    <circle class="ring" cx={x} cy={y} r={0.38 * unit} />
+    <circle class="ring" cx={x} cy={y} r={0.32 * unit} />
   {/if}
   <circle class="disc" data-disc={label} cx={x} cy={y} {r} />
-  <text class="numeral" data-numeral={label} {x} {y} font-size={numeral.length > 3 ? 0.18 * unit : 0.26 * unit}
+  <text class="numeral" data-numeral={label} {x} {y} font-size={numeral.length > 3 ? 0.15 * unit : 0.22 * unit}
     text-anchor="middle" dominant-baseline="central">{numeral}</text>
   {#if showLabel}
-    <text class="label" x={x + 0.42 * unit} y={y - 0.3 * unit} font-size={0.2 * unit}
+    <text class="label" data-label={label} x={x + 0.33 * unit} y={y - 0.3 * unit} font-size={0.2 * unit}
       text-anchor="start" dominant-baseline="central">{label}</text>
   {/if}
 </g>

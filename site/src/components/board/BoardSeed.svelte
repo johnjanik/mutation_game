@@ -159,6 +159,9 @@
       --u: min(64px, round(down, (100cqw - 16px) / var(--k), 1px));
     }
   }
+  .seed > :global(.history) {
+    padding-inline: 8px;
+  }
   .nojs {
     margin: 0;
     height: 24px;

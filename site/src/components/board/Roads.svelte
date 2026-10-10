@@ -10,7 +10,7 @@
   // A pair is joined when a road runs between them in either direction (2.1).
   const segments = $derived.by(() => {
     const A = adjacency(board);
-    const inset = 0.38 * unit; // stop at the outer ring of each node
+    const inset = 0.32 * unit; // stop at the outer ring of each node
     const out: { key: string; x1: number; y1: number; x2: number; y2: number }[] = [];
     for (let i = 0; i < board.n; i++) {
       for (let j = i + 1; j < board.n; j++) {
