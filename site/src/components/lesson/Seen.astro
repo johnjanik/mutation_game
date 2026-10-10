@@ -1,0 +1,50 @@
+---
+// "What we have seen" (P1-A4; SPEC.md 8.2 item 4): the general statement of a lesson in a framed
+// box, with its provenance. Each provenance value is either a key of SOURCES.md, rendered through
+// <Cite>, or a phrase that begins with the words "verified by computation" (any case, SPEC.md 8.4:
+// "Verified by computation for all boards of rank at most 8" is acceptable "and must not be dressed
+// up as a citation"), rendered as plain words. Anything else fails the build with a message.
+// Hooks: data-anatomy="seen"; data-provenance on each rendered provenance.
+import { Cite } from '@components/content';
+import { hasKey } from '@lib/sources';
+
+interface Props {
+  provenance: string | string[];
+}
+
+const { provenance } = Astro.props;
+const values = (Array.isArray(provenance) ? provenance : [provenance]).map((v) => (typeof v === 'string' ? v.trim() : v));
+if (values.length === 0) throw new Error('<Seen> needs a provenance: a key of SOURCES.md or a phrase beginning "verified by computation"');
+const COMPUTATION = /^verified by computation\b/i;
+const items = values.map((v) => {
+  if (typeof v !== 'string' || v === '') throw new Error('<Seen> has an empty provenance value');
+  if (hasKey(v)) return { kind: 'key' as const, value: v };
+  if (COMPUTATION.test(v)) return { kind: 'computation' as const, value: v };
+  throw new Error(`<Seen> provenance "${v}" is neither a key defined in SOURCES.md nor a phrase beginning "verified by computation"`);
+});
+---
+<section class="seen" data-anatomy="seen">
+  <h2>What we have seen</h2>
+  <slot />
+  <p class="provenance">
+    <span class="provenance-label">Provenance:</span>
+    {items.map((it, i) => (
+      <>{i > 0 ? '; ' : ' '}<span data-provenance={it.value}>{it.kind === 'key' ? <Cite k={it.value} /> : it.value}</span></>
+    ))}
+  </p>
+</section>
+
+<style>
+  .seen {
+    border: 2px solid var(--text);
+    border-radius: 4px;
+    padding: 4px 16px;
+    margin-block: 24px;
+  }
+  .seen h2 {
+    font-size: 1.125rem;
+  }
+  .provenance-label {
+    font-weight: 700;
+  }
+</style>

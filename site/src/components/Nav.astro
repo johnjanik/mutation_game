@@ -1,0 +1,110 @@
+---
+// The site navigation (P1-A4; SPEC.md 7.3, 7.5 A-1 and A-2, 7.6). A <nav> named "Site" with links to
+// the index, the module index, the glossary, the sources page, about and credits, each built from
+// import.meta.env.BASE_URL through linkIfReleased, so a target that is not released has no link.
+// The theme switch (CONTRACTS.md 8; orchestrator decision of stage 1.1): a Svelte island would ship
+// about 17 kB of runtime on a page with no other island, over the 15 kB no-tool budget of SPEC.md
+// 7.6, so the switch is a plain <button>, disabled in the server HTML, wired by the small bundled
+// script below. It keeps P1-A3's contract: localStorage key "theme" ("light" | "dark"), attribute
+// data-theme on <html>, absent for the system default.
+import { linkIfReleased, type Target } from '@lib/pages/released';
+
+const items: { target: Target; text: string }[] = [
+  { target: { kind: 'static', name: 'index' }, text: 'Home' },
+  { target: { kind: 'static', name: 'modules' }, text: 'Modules' },
+  { target: { kind: 'page', slug: 'glossary' }, text: 'Glossary' },
+  { target: { kind: 'static', name: 'sources' }, text: 'Sources' },
+  { target: { kind: 'page', slug: 'about' }, text: 'About' },
+  { target: { kind: 'page', slug: 'credits' }, text: 'Credits' },
+];
+const links = items.flatMap(({ target, text }) => {
+  const href = linkIfReleased(target);
+  return href === null ? [] : [{ href, text }];
+});
+const here = Astro.url.pathname;
+---
+<div class="site-bar">
+  <nav aria-label="Site" class="site-nav">
+    <ul>
+      {links.map((l) => <li><a href={l.href} aria-current={here === l.href ? 'page' : undefined}>{l.text}</a></li>)}
+    </ul>
+  </nav>
+  <button type="button" class="theme-switch" data-theme-switch aria-pressed="false" disabled>Dark theme</button>
+</div>
+
+<script>
+  // Theme switch: reads and stores the reader's choice under localStorage "theme" and applies it
+  // as data-theme on <html> (no attribute: the system setting decides). Every storage access is
+  // guarded, because storage can be unavailable (private windows, blocked site data).
+  const KEY = 'theme';
+  const html = document.documentElement;
+
+  function stored(): 'light' | 'dark' | null {
+    try {
+      const v = window.localStorage.getItem(KEY);
+      return v === 'light' || v === 'dark' ? v : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function apply(theme: 'light' | 'dark' | null): void {
+    if (theme === null) html.removeAttribute('data-theme');
+    else html.setAttribute('data-theme', theme);
+  }
+
+  function isDark(): boolean {
+    const t = html.getAttribute('data-theme');
+    if (t === 'dark' || t === 'light') return t === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  apply(stored());
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-theme-switch]')) {
+    button.setAttribute('aria-pressed', String(isDark()));
+    button.addEventListener('click', () => {
+      const next = isDark() ? 'light' : 'dark';
+      apply(next);
+      try {
+        window.localStorage.setItem(KEY, next);
+      } catch {
+        // The choice then lasts for this page only.
+      }
+      for (const b of document.querySelectorAll('[data-theme-switch]')) b.setAttribute('aria-pressed', String(next === 'dark'));
+    });
+    button.disabled = false;
+  }
+</script>
+
+<style>
+  .site-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 16px;
+  }
+  .theme-switch {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 12px;
+    font: inherit;
+    color: var(--text);
+    background: var(--page);
+    border: 1px solid var(--text);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .theme-switch[aria-pressed='true'] {
+    border-width: 3px;
+    padding: 6px 10px;
+  }
+  .theme-switch:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+  .theme-switch:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+</style>

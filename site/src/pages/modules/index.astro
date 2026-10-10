@@ -1,0 +1,49 @@
+---
+// The module index (P1-A4, plan; SPEC.md 7.3, 3): the released modules only, in increasing module
+// number, each with its title linked to its route and its question. A module with released: false
+// is built but never listed. With none released, one sentence says so. No island, no script.
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { joinBase, releasedModules, type ModuleRecord } from '@lib/pages/released';
+
+const entries = await getCollection('modules');
+const records: ModuleRecord[] = entries.map((e) => ({ slug: e.id, module: e.data.module, released: e.data.released, title: e.data.title, question: e.data.question }));
+const listed = releasedModules({ modules: records, pages: [], tools: [], atlas: false, release: false });
+---
+
+<Base title="Modules: Two Games on a Dynkin Diagram" description="The lessons of the site, in order.">
+  <h1>Modules</h1>
+  <p>
+    The lessons of this site, in reading order. Each one opens with a question, lets you play on a small board,
+    and closes with the general statement and a few challenges.
+  </p>
+  {listed.length === 0 ? (
+    <p data-out="noModules">No module is published yet. The first lessons are being written.</p>
+  ) : (
+    <ol class="modules" data-out="moduleList">
+      {listed.map((m) => (
+        <li data-module={m.module}>
+          <a href={joinBase(import.meta.env.BASE_URL, `modules/${m.slug}/`)}>{m.title}</a>
+          <p class="question">{m.question}</p>
+        </li>
+      ))}
+    </ol>
+  )}
+</Base>
+
+<style>
+  .modules {
+    padding-inline-start: 1.5em;
+  }
+  .modules li {
+    margin-block: 12px;
+  }
+  .modules a {
+    display: inline-block;
+    min-height: 24px;
+    font-weight: 700;
+  }
+  .question {
+    margin: 4px 0 0;
+  }
+</style>

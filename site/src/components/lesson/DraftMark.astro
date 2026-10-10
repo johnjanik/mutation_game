@@ -1,0 +1,18 @@
+---
+// The draft mark of decision D17 (P1-A4; SPEC.md 10, 9.2): a lesson drafted from the specification
+// stays marked until the owner has read and approved it. Conveyed in words and by a frame, never by
+// colour alone (A-5). Lesson.astro renders it after the question when the frontmatter has
+// draft: true. Hook: data-anatomy="draft".
+---
+<p class="draft" data-anatomy="draft">
+  <strong>Draft.</strong> This lesson is a draft. The site's owner has not yet read and approved it, so its
+  wording may still change.
+</p>
+
+<style>
+  .draft {
+    border: 2px dashed var(--text);
+    border-radius: 4px;
+    padding: 8px 12px;
+  }
+</style>

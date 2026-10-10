@@ -1,0 +1,68 @@
+---
+// The sources page (P1-A4; SPEC.md 7.3 "The sources page"). Built from SOURCES.md, read by static
+// import, and rendered as Markdown (not MDX, which rejects its angle-bracket links) with
+// createMarkdownProcessor from @astrojs/markdown-remark, a direct dependency of the site, with no
+// plugin: sections 11.1 to 11.6 only, status labels spelled out in words, an anchor id="<key>" on
+// every citation key (the target of <Cite>), and every $...$ formula typeset at build time by
+// renderTex, the KaTeX call <Tex> uses (lib/pages/sourcesMarkdown.ts). The KaTeX stylesheet comes
+// from Base.astro. No island, no script.
+import { createMarkdownProcessor } from '@astrojs/markdown-remark';
+import sourcesText from '../../../SOURCES.md?raw';
+import Base from '../layouts/Base.astro';
+import { entry, keys } from '@lib/sources';
+import { renderTex } from '@lib/katex';
+import { STATUS_WORDS, renderSources } from '@lib/pages/sourcesMarkdown';
+
+// The plain CommonMark and GFM renderer, without smart quotes, so that the file's text is printed as written.
+const processor = await createMarkdownProcessor({ syntaxHighlight: false, smartypants: false });
+const html = await renderSources(
+  sourcesText,
+  keys().map((k) => ({ key: k, section: entry(k).section })),
+  async (md) => (await processor.render(md)).code,
+  (tex) => renderTex(tex, false),
+);
+---
+
+<Base title="Sources: Two Games on a Dynkin Diagram" description="The papers, books, lectures and software this site rests on, with what was read of each.">
+  <article class="sources-page">
+    <h1>Sources</h1>
+    <p>
+      Every citation on this site, such as [W20], links to an entry on this page. Each entry gives the
+      publication, where a copy can be read, what was read of it while the site was planned, and what the site
+      uses it for. A status in round brackets says how far a statement has been checked:
+    </p>
+    <ul class="status-words">
+      <li><strong>{STATUS_WORDS.S}</strong>: the statement was read in the cited source itself;</li>
+      <li><strong>{STATUS_WORDS.S2}</strong>: it was reported by a reliable later source, and the original was not read;</li>
+      <li><strong>{STATUS_WORDS.V}</strong>: it was checked by the reference script of this project;</li>
+      <li><strong>{STATUS_WORDS.U}</strong>: it comes from memory or inference and still has to be checked.</li>
+    </ul>
+    <Fragment set:html={html} />
+  </article>
+</Base>
+
+<style>
+  .sources-page :global(.source-key) {
+    scroll-margin-top: 16px;
+  }
+  .sources-page :global(.source-key:target) {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .sources-page :global(a) {
+    overflow-wrap: anywhere;
+  }
+  .sources-page :global(h2) {
+    margin-top: 2em;
+  }
+  .sources-page :global(table) {
+    border-collapse: collapse;
+  }
+  /* KaTeX cannot break an inline formula inside one group; on narrow screens the formulas are set at
+     the size of the text so that the longest of the file still fits at 320 pixels (A-11). */
+  @media (max-width: 479.98px) {
+    .sources-page :global(.katex) {
+      font-size: 1em;
+    }
+  }
+</style>

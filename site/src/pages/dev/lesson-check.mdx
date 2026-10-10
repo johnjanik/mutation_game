@@ -1,0 +1,71 @@
+---
+layout: ../../layouts/Lesson.astro
+title: "Lesson check"
+module: 0
+question: "Does a lesson page show every part of the anatomy, in order?"
+phase: 1
+released: false
+draft: true
+outcomes: ["LO1"]
+sources: ["W20", "Don08"]
+---
+import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
+import { Cite } from '@components/content';
+
+{/* P1-A4: a development page (released: false, never linked) that exercises Lesson.astro and the
+    lesson components in the built site for pages.spec.ts. It is not a lesson and states no result.
+    The element marked data-tool="fixture" stands in for a tool root: static markup with the hooks
+    of SPEC.md 4.0, which the browser test changes to drive the Challenge. Real lessons are M0 and M1
+    (stage 1.3). */}
+
+<Beat n={1}>
+
+This first beat stands where a lesson puts its first figure, which already shows something. The paragraph is long enough to wrap over several lines, so that the browser test can measure how many characters fit on one line of the prose column at each width.
+
+<figure slot="figure">
+<svg viewBox="0 0 300 60" role="img" aria-label="Three nodes in a row joined by two roads">
+<line x1="50" y1="30" x2="250" y2="30" stroke="currentColor" stroke-width="2" />
+<circle cx="50" cy="30" r="12" fill="none" stroke="currentColor" stroke-width="2" />
+<circle cx="150" cy="30" r="12" fill="none" stroke="currentColor" stroke-width="2" />
+<circle cx="250" cy="30" r="12" fill="none" stroke="currentColor" stroke-width="2" />
+</svg>
+<figcaption>A static figure: three nodes in a row.</figcaption>
+</figure>
+
+</Beat>
+
+<Beat n={2}>
+
+The second beat holds a stand-in for a tool, so that the challenge below has something to watch.
+
+<div slot="figure" class="fixture-tool" data-tool="fixture" data-instance="b1" data-moves="0">
+<button type="button" data-node="1" data-board="populations" data-value="0" data-can-act="true">City 1, population 0</button>
+<button type="button" data-node="2" data-board="populations" data-value="1" data-can-act="true">City 2, population 1</button>
+<button type="button" data-node="3" data-board="populations" data-value="0" data-can-act="true">City 3, population 0</button>
+</div>
+
+</Beat>
+
+<Seen provenance={['W20', 'verified by computation for every board of rank at most 8']}>
+
+A general statement would stand here, in a framed box.
+
+</Seen>
+
+<LieTheory>
+
+The standard names would stand here, in one paragraph.
+
+</LieTheory>
+
+<Challenge client:visible for="b1" goal="Reach the population (1, 1, 0)." explanation="Mutate city 1 once." check={{ kind: 'reach', board: 'populations', values: [1, 1, 0] }} />
+
+<Challenge client:visible goal="Say in your own words why one city changes at a time." explanation="A mutation changes only the city that mutates." check={{ kind: 'explain' }} />
+
+<ModuleLinks module={0} board="A3" />
+
+<Sources keys={frontmatter.sources}>
+
+<Cite k="W20"/> section 2 for the story.
+
+</Sources>

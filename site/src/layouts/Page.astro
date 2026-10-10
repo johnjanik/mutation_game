@@ -1,0 +1,143 @@
+---
+// The layout of a page other than a lesson or a tool (P1-A4; SPEC.md 7.3). It composes Base.astro,
+// renders the one <h1> of the page from the frontmatter's title, then the content. When the
+// frontmatter says `generated: 'dependencies'` (the credits page) it renders, after the content,
+// the fonts notice and the table of dependencies generated at build time from the three
+// package.json files and the installed packages (SPEC.md 7.9), never typed. No script.
+import Base from './Base.astro';
+import { dependencyRows, katexFontNotice } from '@lib/pages/dependencies';
+
+interface Props {
+  title: string;
+  phase?: number;
+  released?: boolean;
+  description?: string;
+  generated?: 'dependencies';
+}
+
+const { title, description, generated } = Astro.props;
+const siteName = 'Two Games on a Dynkin Diagram';
+const rows = generated === 'dependencies' ? dependencyRows() : [];
+const unreadable = rows.filter((r) => r.licence === null).map((r) => r.name);
+const font = generated === 'dependencies' ? katexFontNotice() : null;
+const shippedCount = rows.filter((r) => r.shipped !== null).length;
+---
+
+<Base title={`${title}: ${siteName}`} description={description}>
+  <article class="page">
+    <h1>{title}</h1>
+    <slot />
+
+    {font && (
+      <section aria-labelledby="fonts">
+        <h2 id="fonts">Fonts</h2>
+        <p>
+          The only font files the site ships are KaTeX's own, copied from the installed katex package, version
+          {' '}{font.version}, by KaTeX's authors (source: {font.source}). The package carries one licence
+          notice, {font.licenceTitle} ("{font.copyright}"), in its LICENSE file{font.fontNotice === null
+            ? ', and no separate notice for the fonts'
+            : `, and a separate notice for the fonts in ${font.fontNotice}`}. Prose and numerals use the system
+          fonts of the reader's device.
+        </p>
+      </section>
+    )}
+
+    {generated === 'dependencies' && (
+      <section aria-labelledby="deps">
+        <h2 id="deps">Software</h2>
+        <p>
+          Every package named in the three package.json files of the repository (the root, the engine and the
+          site), with the version installed and the licence stated by the installed package. {shippedCount} of
+          them reach the reader's browser, as marked; the rest are used only to build and test the site.
+        </p>
+        <div class="table-wrap" tabindex="0" role="region" aria-label="Software used by this site">
+          <table data-out="creditsTable">
+            <thead>
+              <tr>
+                <th scope="col">Package</th>
+                <th scope="col">Version</th>
+                <th scope="col">Licence</th>
+                <th scope="col">Author and source</th>
+                <th scope="col">Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((d) => (
+                <tr data-package={d.name}>
+                  <th scope="row">{d.name}</th>
+                  <td>{d.version}</td>
+                  <td data-licence>{d.licence ?? 'licence not stated in the package'}</td>
+                  <td>
+                    {d.author ?? 'author not stated in the package'}
+                    {d.source && (<><br /><span class="source">{d.source}</span></>)}
+                  </td>
+                  <td>
+                    {d.shipped ? `shipped to the reader: ${d.shipped}` : 'build and tests only'}
+                    <br />
+                    <span class="where">{d.usedIn.join('; ')}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {unreadable.length > 0 && <p>No licence could be read from the installation for: {unreadable.join(', ')}.</p>}
+      </section>
+    )}
+  </article>
+</Base>
+
+<style>
+  .page :global(h2) {
+    margin-top: 2em;
+  }
+  .page :global(table) {
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .page :global(th),
+  .page :global(td) {
+    text-align: left;
+    vertical-align: top;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--sign-zero-outline);
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+  .table-wrap:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .source,
+  .where {
+    overflow-wrap: anywhere;
+  }
+  /* The glossary: one definition-list entry per term, reflowing at any width (A-11). */
+  .page :global(.glossary .entry) {
+    margin-block: 12px;
+    padding-block-end: 12px;
+    border-bottom: 1px solid var(--sign-zero-outline);
+  }
+  .page :global(.glossary dt) {
+    font-weight: 700;
+  }
+  .page :global(.glossary dfn) {
+    font-style: normal;
+  }
+  .page :global(.glossary dfn:target) {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .page :global(.glossary dd) {
+    margin-inline-start: 1em;
+    overflow-wrap: anywhere;
+  }
+  .page :global(.glossary .col) {
+    font-style: italic;
+  }
+  .page :global(.katex-display) {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+</style>
