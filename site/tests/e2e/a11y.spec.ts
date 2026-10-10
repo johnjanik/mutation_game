@@ -43,6 +43,10 @@ async function openRoute(page: Page, route: Route): Promise<void> {
 
 for (const route of ROUTES) {
   test(`${route.name} has no serious or critical axe violations`, async ({ page }) => {
+    // A lesson page holds thousands of elements (M5: about 8500) and its scan takes 20 to 25 s alone,
+    // more under parallel workers; the timeout is raised for every route (MERGE, P3 stage 3.3,
+    // request of P3-A9). It changes no assertion.
+    test.setTimeout(120_000);
     await openRoute(page, route);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
     const serious = results.violations
