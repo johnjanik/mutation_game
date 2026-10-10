@@ -166,7 +166,7 @@
   const atEnd = $derived((cur().stepPosition() === null));
 
   /** Exact digits in the tooltip for long values (4.0 Long numbers). */
-  const tooltip = (values: readonly string[]) => (k: number): string | null => (isLong(values[k]!.replace('/', '')) || values[k]!.split('/').some(isLong) ? values[k]! : null);
+  const tooltip = (values: readonly string[]) => (k: number): string | null => (values[k]!.split('/').some(isLong) ? values[k]! : null);
 
   const figureLabel = $derived.by(() => {
     const parts: string[] = [];
@@ -223,9 +223,10 @@
   // Actions
   // ------------------------------------------------------------------------------------------
 
-  function afterMove(announce: (t: string) => void, sentence: string): void {
+  function afterMove(announce: (t: string) => void, sentence: string, withGameOver = true): void {
     let text = sentence;
-    if (game.gameOver) text += ` ${gameOverSentence(game.cursor)}`;
+    // A single move that ends a legal game says so (A-4); a play to the end is one sentence (4.0).
+    if (withGameOver && game.gameOver) text += ` ${gameOverSentence(game.cursor)}`;
     if (goal) {
       const met = goalMet(goal, game.board, game.shown, game.coords);
       if (met && !goalWasMet) text += ` ${GOAL_MET_TEXT}`;
@@ -278,7 +279,7 @@
     }
     limit = limitText(outcome);
     touch();
-    afterMove(announce, playSentence(game.view, game.mode, game.labels, outcome.moves, outcome.status, game.shown));
+    afterMove(announce, playSentence(game.view, game.mode, game.labels, outcome.moves, outcome.status, game.shown), false);
   }
 
   function arrive(to: number, from: number, announce: (t: string) => void): void {
@@ -568,17 +569,18 @@
   .mode {
     font-style: italic;
   }
+  /* The accents mark the panels' borders and icons, never text or a node's fill (8.3). The border is
+     an inset shadow so that the board keeps the full width W of the size rule (6.1). */
   .panel {
-    border: 2px solid transparent;
     border-radius: 8px;
     padding: 4px 0;
     min-width: 0;
   }
   .panel.populations {
-    border-color: var(--accent-populations);
+    box-shadow: inset 0 0 0 2px var(--accent-populations);
   }
   .panel.numbers {
-    border-color: var(--accent-numbers);
+    box-shadow: inset 0 0 0 2px var(--accent-numbers);
   }
   .panel-title {
     display: flex;
