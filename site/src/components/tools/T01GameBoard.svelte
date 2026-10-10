@@ -1,3 +1,29 @@
+<script module lang="ts">
+  // Phase 3 (P3-A5): the colour-class panel of SPEC 4 T1 "Shows" ("the two colour classes ... colour
+  // classes in phase 3"), with its engine function bipartition (5.3). Panels by phase: form value, level
+  // and long and short nodes arrive in phase 2 (t01/phase2.ts); the colour classes in phase 3 (here).
+  import { bipartition, toLabels } from '@two-games/engine';
+  import type { AnyBoard as ColourBoard } from '@two-games/engine';
+
+  /** The two colour classes in labels (each increasing), the first holding the lowest position of each component; null on an odd cycle. */
+  export type ColourClasses = { kind: 'classes'; first: number[]; second: number[] } | { kind: 'none' };
+
+  export const NO_COLOUR_CLASSES = 'No two colour classes: the board has a cycle of odd length.';
+
+  export function colourClasses(board: ColourBoard): ColourClasses {
+    const parts = bipartition(board);
+    if (parts === null) return { kind: 'none' };
+    const sorted = (ps: readonly number[]): number[] => toLabels(board, ps).sort((a, b) => a - b);
+    return { kind: 'classes', first: sorted(parts[0]), second: sorted(parts[1]) };
+  }
+
+  /** "nodes 1, 3", "node 2", "no node" (plan wording). */
+  export function classText(labels: readonly number[]): string {
+    if (labels.length === 0) return 'no node';
+    return `${labels.length === 1 ? 'node' : 'nodes'} ${labels.join(', ')}`;
+  }
+</script>
+
 <script lang="ts">
   // T1, the Game Board (SPEC.md 4 T1, 4.0, 2.2 to 2.4, 6.6, 7.4, 7.5). The board on which the mutation
   // game, the numbers game, or both linked by a = Cp are played, in the views populations, numbers,
@@ -187,6 +213,8 @@
   });
   const levelShown = $derived(drawnPanels.includes('level') ? levelValue(anyBoard, cur().current.a) : null);
   const lengthsShown = $derived(drawnPanels.includes('lengths') ? lengthsReport(anyBoard) : null);
+  // Phase 3 (P3-A5): the colour classes, drawn only when the page lists 'colours' in `panels`.
+  const coloursShown = $derived(panels?.includes('colours') ? colourClasses(anyBoard) : null);
   const lit = $derived(highlightMatches($highlight, boardName, anyBoard, shown));
   const stepOffered = $derived(game.mode !== 'free');
   const atEnd = $derived((cur().stepPosition() === null));
@@ -511,6 +539,21 @@
         {/if}
       </div>
     {/each}
+    {#if coloursShown !== null}
+      <!-- Phase 3 (P3-A5): the colour classes by glyph, label and colour, never by node fill (6.3, A-5). -->
+      {#if coloursShown.kind === 'classes'}
+        <div class="panel extra" data-out="colourClasses" data-class-1={coloursShown.first.join(',')} data-class-2={coloursShown.second.join(',')}>
+          <p class="line">
+            <span class="class-mark first" aria-hidden="true">●</span> First class: {classText(coloursShown.first)};
+            <span class="class-mark second" aria-hidden="true">■</span> second class: {classText(coloursShown.second)}.
+          </p>
+        </div>
+      {:else}
+        <div class="panel extra" data-out="colourClasses" data-none="true">
+          <p class="line">{NO_COLOUR_CLASSES}</p>
+        </div>
+      {/if}
+    {/if}
     {#if game.mode === 'legal'}
       <p class="line" data-out="gameOver">{gameOverText}</p>
     {/if}
@@ -719,6 +762,13 @@
   }
   .numeral {
     font-variant-numeric: tabular-nums;
+  }
+  /* Phase 3 (P3-A5): the glyphs of the colour classes (a disc and a square), coloured by edge tokens. */
+  .class-mark.first {
+    color: var(--edge-3);
+  }
+  .class-mark.second {
+    color: var(--edge-4);
   }
   .setting {
     display: inline-flex;
