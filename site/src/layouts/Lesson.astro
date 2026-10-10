@@ -32,17 +32,24 @@ const draft = data.draft !== false;
 ---
 
 <Base title={`${data.title}: Two Games on a Dynkin Diagram`} description={data.question}>
-  {/* P3-X1, lab timings (SPEC.md 7.6; decisions/P3-X1.md): the browser paints the page once the end of
-      beat 1 has been read (Beat.astro writes the marker #first-view-end there), not after every
-      piece of it. Without the hint it painted and laid out the first view again for each chunk of
-      HTML it parsed, and each such pass cost as much as the first. Browsers that do not know the
-      hint ignore it; if the marker never comes, the browser paints when the page has been read. */}
-  <link slot="head" rel="expect" href="#first-view-end" blocking="render" />
+  {/* P3-X1, lab timings (SPEC.md 7.6; decisions/P3-X1.md): the browser paints the lesson once the
+      whole article has been read (the marker #lesson-parsed at its end), not after every chunk of
+      HTML it parses. Without the hint it painted and laid out the page again for each chunk, and
+      each pass cost as much as the first, so the main thread stayed blocked after the first paint
+      (Total Blocking Time 0.5 to 1.5 s at four times slowdown). With the marker at the end of
+      beat 1 (P3-X1's first form) the gain was small; at the end of the article (MERGE, P3 stage
+      3.3, on P3-X1's measurement) the blocking work moves before the first paint: Largest
+      Contentful Paint 1.1 to 1.8 s at four times slowdown on the build machine, within the 2.5 s of
+      7.6, and after it only the first tool's hydration task remains (240 to 300 ms there). The owner may move the marker back to beat 1 (Beat.astro) or drop the hint: it is one
+      attribute, and the trade is a later first paint against a page that answers at once.
+      Browsers that do not know the hint ignore it. */}
+  <link slot="head" rel="expect" href="#lesson-parsed" blocking="render" />
   <article class="lesson" data-module={data.module}>
     <h1 data-anatomy="title">{data.title}</h1>
     <p class="question" data-anatomy="question">{data.question}</p>
     {draft && <DraftMark />}
     <slot />
+    <div id="lesson-parsed" hidden></div>
   </article>
 </Base>
 

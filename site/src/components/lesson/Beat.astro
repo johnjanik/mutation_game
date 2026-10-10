@@ -23,6 +23,4 @@ const hasFigure = Astro.slots.has('figure');
 <section class="beat" data-anatomy="beat" data-beat={n} id={`beat-${n}`}>
   <slot />
   {hasFigure && <div class="figure" data-anatomy="figure"><slot name="figure" /></div>}
-  {/* P3-X1: the end of the first view, for the render hint of Lesson.astro (decisions/P3-X1.md). */}
-  {n === 1 && <div id="first-view-end" hidden></div>}
 </section>
