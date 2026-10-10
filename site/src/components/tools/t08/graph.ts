@@ -7,7 +7,9 @@
 // are keyed by arith.show of the entries joined by commas (5.5). Positions inside, labels outside (E-7):
 // everything returned for display is in label order, words in labels, through toLabels and toPositions.
 import {
+  Big,
   CAPS,
+  SafeInt,
   boardFromName,
   countCompleteGames,
   fire,
@@ -85,8 +87,10 @@ export interface WeylModel {
 
 /** The text key of a vector (5.5: "a hash set keyed by the entries joined as decimal text"). */
 export function keyOf(board: AnyBoard, v: readonly unknown[]): string {
-  const show = (board as Board<unknown>).arith.show;
-  return v.map((x) => show(x)).join(',');
+  const arith = (board as Board<unknown>).arith;
+  // SafeInt's and Big's show is the number's or the bigint's own decimal text, which join writes natively.
+  if (arith === (SafeInt as unknown) || arith === (Big as unknown)) return v.join(',');
+  return v.map((x) => arith.show(x)).join(',');
 }
 
 /** All ones in the board's arithmetic: rho, the start of every game T8 shows. */

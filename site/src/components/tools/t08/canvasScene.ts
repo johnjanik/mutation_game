@@ -23,6 +23,28 @@ export function readColours(el: Element): CanvasColours {
   return { text: v('--text'), page: v('--page'), focus: v('--focus-ring'), edge };
 }
 
+let spriteCache: { key: string; canvas: HTMLCanvasElement } | null = null;
+
+/** A dot of radius DOT_R in the given colour, at the given scale, on a small canvas (cached). */
+function dotSprite(ctx: CanvasRenderingContext2D, colour: string, scale: number): HTMLCanvasElement | null {
+  const key = `${colour}@${scale}`;
+  if (spriteCache?.key === key) return spriteCache.canvas;
+  const doc = ctx.canvas.ownerDocument;
+  if (!doc) return null;
+  const side = Math.ceil((2 * DOT_R + 2) * scale);
+  const c = doc.createElement('canvas');
+  c.width = side;
+  c.height = side;
+  const g = c.getContext('2d');
+  if (g === null) return null;
+  g.fillStyle = colour;
+  g.beginPath();
+  g.arc(side / 2, side / 2, DOT_R * scale, 0, 2 * Math.PI);
+  g.fill();
+  spriteCache = { key, canvas: c };
+  return c;
+}
+
 /** Draws the scene; `scale` is the device pixel ratio the canvas was sized with. */
 export function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, colours: CanvasColours, scale: number): void {
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -47,13 +69,18 @@ export function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, colours: 
     ctx.fillText(String(e.label), e.lx, e.ly);
   }
   ctx.fillStyle = colours.text;
-  ctx.beginPath();
+  // One dot is drawn once and stamped (drawImage is far cheaper than a thousand arcs in one path).
+  const sprite = dotSprite(ctx, colours.text, scale);
   for (const d of scene.dots) {
     if (d.onPath) continue;
-    ctx.moveTo(d.x + DOT_R, d.y);
-    ctx.arc(d.x, d.y, DOT_R, 0, 2 * Math.PI);
+    if (sprite === null) {
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, DOT_R, 0, 2 * Math.PI);
+      ctx.fill();
+    } else {
+      ctx.drawImage(sprite, d.x - DOT_R - 1, d.y - DOT_R - 1, 2 * DOT_R + 2, 2 * DOT_R + 2);
+    }
   }
-  ctx.fill();
   ctx.strokeStyle = colours.text;
   ctx.lineWidth = 2;
   for (const d of scene.dots) {

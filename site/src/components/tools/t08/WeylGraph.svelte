@@ -10,7 +10,7 @@
   import { tick } from 'svelte';
   import type { WeylModel } from './graph';
   import { VERTEX_KEYS, hitTest, nextVertex, type GraphLayout, type Scene, type VertexKey } from './layout';
-  import { drawScene, readColours } from './canvasScene';
+  import { drawScene, readColours, type CanvasColours } from './canvasScene';
 
   interface Props {
     model: WeylModel;
@@ -25,6 +25,8 @@
     onPath: ReadonlySet<number>;
     /** The vertex the game stands on now. */
     current: number | null;
+    /** The vertex another tool of the page highlights (7.4), or null. */
+    highlighted?: number | null;
     hydrated: boolean;
     disabled: boolean;
     /** Accessible name of the group of vertices. */
@@ -34,7 +36,7 @@
     onInspect: (k: number | null) => void;
   }
 
-  let { model, layout, scene, svg, positionText, vertexName, onPath, current, hydrated, disabled, name, onJump, onInspect }: Props = $props();
+  let { model, layout, scene, svg, positionText, vertexName, onPath, current, highlighted = null, hydrated, disabled, name, onJump, onInspect }: Props = $props();
 
   const canvasMode = $derived(model.edgeMode !== 'all');
   const BOX_MAX = 480;
@@ -105,19 +107,34 @@
     tabStop = null;
   });
 
-  // Draw once per scene, in one pass, after hydration (7.6: no long task; nothing at server render).
+  // The colour tokens, read again only when the theme changes (reading forces a style pass).
+  let colours: { key: string; value: CanvasColours } | null = null;
+  function coloursOf(el: Element): CanvasColours {
+    const root = document.documentElement;
+    const key = `${root.dataset.theme ?? ''}|${window.matchMedia('(prefers-color-scheme: dark)').matches}`;
+    if (colours === null || colours.key !== key) colours = { key, value: readColours(el) };
+    return colours.value;
+  }
+
+  // Draw once per scene, in one pass, in a task of its own after the DOM update, and only after
+  // hydration (7.6: no long task; nothing of this runs during the server render).
   $effect(() => {
     const s = scene;
     const c = canvas;
     if (!canvasMode || c === undefined) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2, 8192 / Math.max(s.width, s.height));
-    scale = dpr;
-    c.width = Math.round(s.width * dpr);
-    c.height = Math.round(s.height * dpr);
-    const ctx = c.getContext('2d');
-    if (ctx === null) return;
-    drawScene(ctx, s, readColours(c), dpr);
-    drawn = true;
+    const timer = setTimeout(() => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2, 8192 / Math.max(s.width, s.height));
+      const w = Math.round(s.width * dpr);
+      const h = Math.round(s.height * dpr);
+      if (c.width !== w) c.width = w;
+      if (c.height !== h) c.height = h;
+      const ctx = c.getContext('2d');
+      if (ctx === null) return;
+      drawScene(ctx, s, coloursOf(c), dpr);
+      scale = dpr;
+      drawn = true;
+    }, 0);
+    return () => clearTimeout(timer);
   });
 </script>
 
@@ -132,6 +149,8 @@
             bind:this={buttons[k]}
             class="vertex"
             class:current={k === current}
+            class:lit={k === highlighted}
+            data-highlighted={k === highlighted ? 'true' : undefined}
             style="left: {layout.cx[k]! - layout.hit / 2}px; top: {layout.cy[k]! - layout.hit / 2}px; width: {layout.hit}px; height: {layout.hit}px;"
             tabindex={k === stop ? 0 : -1}
             disabled={!hydrated || disabled}
@@ -250,6 +269,10 @@
   }
   .vertex.cursor {
     pointer-events: none;
+  }
+  .vertex.lit {
+    outline: 2px dashed var(--focus-ring);
+    outline-offset: -2px;
   }
   .vertex:focus-visible {
     outline: 3px solid var(--focus-ring);

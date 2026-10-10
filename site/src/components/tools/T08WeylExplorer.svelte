@@ -30,7 +30,7 @@
   import { T1Game } from './t01/model';
   import { gameOverSentence, moveSentence, playSentence, refusalSentence, spokenValue, undoSentence } from './t01/announce';
   import { countText, inLabelOrder, minus, offeredBoards, pathOf, vertexDetails, wordOfVertex } from './t08/graph';
-  import { boardView } from './t08/cache';
+  import { boardView, isPrepared, prepareBoard } from './t08/cache';
   import { buildScene } from './t08/layout';
   import { sceneToSvg } from './t08/svgScene';
   import { heapData } from './t08/heapView';
@@ -109,6 +109,8 @@
   /** The last state the linked Game Board published, and whether it is a game in the graph. */
   let followed = $state.raw<ToolState | null>(null);
   let linkOk = $state(true);
+  /** The board whose graph is being prepared after a pick or a link (a few short tasks), or null. */
+  let preparing = $state<string | null>(null);
 
   const touch = (): void => {
     version++;
@@ -140,12 +142,38 @@
   // Above 192 elements the edges at the focused vertex are drawn; at most 192 the scene ignores focus.
   const sceneFocus = $derived(model.edgeMode === 'all' ? null : inspect);
   const scene = $derived(buildScene(model, layout, path, sceneFocus));
-  const svg = $derived(sceneToSvg(scene, { snapshot: model.edgeMode !== 'all' }));
+  // At most 192 elements the SVG is the figure and follows every change at once. Above 192 it is the
+  // snapshot under the canvas (the server render, the edge hooks that mirror the canvas, and what SVG
+  // export takes); after hydration it is rewritten one task after the canvas is drawn, so that a pick
+  // or a hover never adds the parsing of a large SVG to the task that draws (7.6).
+  const inlineSvg = $derived(model.edgeMode === 'all' ? sceneToSvg(scene) : null);
+  let snapshotSvg = $state(untrack(() => (model.edgeMode === 'all' ? '' : sceneToSvg(scene, { snapshot: true }))));
+  $effect(() => {
+    if (model.edgeMode === 'all') return;
+    const s = scene;
+    const timer = setTimeout(() => {
+      snapshotSvg = sceneToSvg(s, { snapshot: true });
+    }, 0);
+    return () => clearTimeout(timer);
+  });
+  const svg = $derived(inlineSvg ?? snapshotSvg);
   const detailsAt = $derived(inspect ?? current ?? 0);
   const details = $derived(vertexDetails(model, detailsAt));
   const heap = $derived(heapData(model.board, applied));
   const groups = $derived(pickerGroups(OFFERED, config.choices));
   const panelOrder = $derived([panel, ...PANELS.filter((p) => p !== panel)]);
+  // The page's highlight (7.4), read as $highlight: a position on this board that another tool points
+  // at is marked on its vertex (entries arrive in label order).
+  const highlighted = $derived.by(() => {
+    const h = $highlight;
+    if (h === null || h.kind !== 'position' || h.board !== boardName || !Array.isArray(h.value) || h.value.length !== model.board.n) return null;
+    const order = [...model.board.labels].sort((a, b) => a - b);
+    const v: number[] = new Array(model.board.n);
+    toPositions(model.board, order).forEach((p, j) => {
+      v[p] = (h.value as number[])[j]!;
+    });
+    return model.index.get(v.join(',')) ?? null;
+  });
   const linkStatus = $derived(linkTo === undefined ? null : linkOk ? LINK_FOLLOWING : LINK_OUTSIDE);
 
   const positionTexts = new Map<string, string>();
@@ -181,7 +209,7 @@
     touch();
   }
 
-  function loadLink(decoded: ToolState, n: string | null): void {
+  async function loadLink(decoded: ToolState, n: string | null): Promise<void> {
     const admitted = n === null ? admitLink(decoded, OFFERED) : null;
     if (n !== null || admitted === null) {
       notice = n ?? LINK_NOTICE;
@@ -189,7 +217,14 @@
       return;
     }
     notice = null;
-    if (admitted.board !== boardName || admitted.moves.join('.') !== applied.join('.')) load(admitted.board, admitted.moves);
+    if (admitted.board === boardName && admitted.moves.join('.') === applied.join('.')) return;
+    if (!isPrepared(admitted.board)) {
+      preparing = admitted.board;
+      await prepareBoard(admitted.board);
+      if (preparing !== admitted.board) return;
+      preparing = null;
+    }
+    load(admitted.board, admitted.moves);
   }
 
   // Hydration: read the URL once with the instance prefix (6.6). Never a move by itself (4.0).
@@ -197,7 +232,7 @@
     untrack(() => {
       try {
         const { state: decoded, notice: n } = decodeState(window.location.search, 'weyl', defaults, { prefix: instanceId });
-        loadLink(decoded, n);
+        void loadLink(decoded, n);
       } catch {
         // decodeState never throws on a bad link; a failure here leaves the default state.
       }
@@ -309,11 +344,15 @@
     announce(`Loaded the play ${play.join(', ')}. Plays with this stack: ${h.count.toString()}.`);
   }
 
-  function pickBoard(name: string, announce: (t: string) => void): void {
+  /** A picker change (4.0): start and moves go back to the defaults; the graph is prepared in short tasks (7.6). */
+  async function pickBoard(name: string, announce: (t: string) => void): Promise<void> {
     if (!OFFERED.includes(name)) return;
     notice = null;
+    preparing = name;
+    const v = await prepareBoard(name);
+    if (preparing !== name) return; // another pick came meanwhile
+    preparing = null;
     load(name, []);
-    const v = boardView(name);
     announce(`Board ${name}: ${v.model.found} positions in ${v.model.layerSizes.length} layers.`);
   }
 
@@ -390,6 +429,9 @@
     {#if model.limit !== null}
       <p class="line" data-out="limit">{model.limit}</p>
     {/if}
+    {#if preparing !== null}
+      <p class="line" data-preparing={preparing}>Preparing the graph of {preparing}.</p>
+    {/if}
     <ol class="layers numeral" data-out="layerSizes" aria-label="Positions per layer">
       {#each model.layerSizes as count, layer (layer)}
         <li data-layer={layer} data-count={count}><span class="layer-name">layer {layer}:</span> {count}</li>
@@ -404,6 +446,7 @@
       {vertexName}
       {onPath}
       {current}
+      {highlighted}
       hydrated={api.hydrated}
       disabled={frozen}
       name="Positions of {boardName}, {layerSentence}"
@@ -593,7 +636,7 @@
   {figureLabel}
   boardName={boardName}
   derivedForExport={exportData}
-  onPopState={(s, n) => loadLink(s, n)}
+  onPopState={(s, n) => void loadLink(s, n)}
   {figure}
   {controls}
   {table}
