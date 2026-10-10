@@ -28,7 +28,12 @@ export function mutate<T>(board: Board<T>, p: Vec<T>, i: number): T[] {
   const { arith, cartan } = board;
   const row = cartan[i]!;
   let drop = arith.zero;
-  for (let j = 0; j < board.n; j++) drop = arith.add(drop, arith.mul(row[j]!, p[j]!));
+  // Zero Cartan entries are skipped (MERGE, stage 3.1, on P3-A2's measurement of the 7.6 benchmark):
+  // the search of 5.5 calls this on every position, and most entries of a board's row are zero.
+  for (let j = 0; j < board.n; j++) {
+    const c = row[j]!;
+    if (arith.sign(c) !== 0) drop = arith.add(drop, arith.mul(c, p[j]!));
+  }
   const q = [...p];
   q[i] = arith.sub(p[i]!, drop);
   return q;
@@ -43,7 +48,10 @@ export function fire<T>(board: Board<T>, a: Vec<T>, i: number): T[] {
   const { arith, cartan } = board;
   const ai = a[i]!;
   const b: T[] = [];
-  for (let j = 0; j < board.n; j++) b.push(arith.sub(a[j]!, arith.mul(cartan[j]![i]!, ai)));
+  for (let j = 0; j < board.n; j++) {
+    const c = cartan[j]![i]!;
+    b.push(arith.sign(c) === 0 ? a[j]! : arith.sub(a[j]!, arith.mul(c, ai)));
+  }
   return b;
 }
 
