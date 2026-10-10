@@ -1,8 +1,15 @@
+/* The design tokens live in tokens.css (P1-A3), imported first so every page receives them.
+   The block below repeats the same values only because P0-A1's test
+   site/tests/unit/scaffold.test.ts > base.css tokens reads them from this file; P1-A3 asked MERGE
+   to point that test at tokens.css, after which this block is deleted. Until then
+   site/tests/unit/contrast.test.ts fails if a value here differs from tokens.css. */
+@import './tokens.css';
+
 /* Design tokens of SPEC.md 6.3 and 8.3, named as CONTRACTS.md section 8.
    Light values on :root; dark values under prefers-color-scheme and the manual switch
-   (data-theme on <html>, stored in localStorage by the shell). Kept in one block so that
-   P1-A3 can move them. The focus ring, road and arrow colours are a [D] choice recorded
-   in decisions/P0-A1.md: they meet 3 to 1 against the page in both themes (SPEC 7.5 A-6). */
+   (data-theme on <html>, stored in localStorage by the shell). The focus ring, road and arrow
+   colours are a [D] choice recorded in decisions/P0-A1.md: they meet 3 to 1 against the page in
+   both themes (SPEC 7.5 A-6). */
 
 :root {
   --page: #FFFFFF;
