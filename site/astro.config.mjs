@@ -8,6 +8,7 @@ import svelte from '@astrojs/svelte';
 import { unified } from '@astrojs/markdown-remark';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import { openItemsReportIntegration } from './src/lib/unverifiedRegistry.ts';
 
 /** An environment value counts as set only when it is a non-empty string. */
 function given(value) {
@@ -58,6 +59,6 @@ export default defineConfig({
   base,
   outDir: outDirFrom(process.env),
   output: 'static',
-  integrations: [mdx(), svelte()],
+  integrations: [mdx(), svelte(), openItemsReportIntegration()],
   markdown: { processor: unified({ remarkPlugins: [remarkMath], rehypePlugins: [[rehypeKatex, { output: 'htmlAndMathml' }]] }) },
 });
