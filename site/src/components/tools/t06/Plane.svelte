@@ -82,7 +82,7 @@
   const dominantLabel = $derived.by(() => {
     const c = g.chambers.find((x) => x.dominant)!;
     const mid = (c.from + c.to) / 2;
-    const [x, y] = S([0.55 * g.R * Math.cos(mid), 0.55 * g.R * Math.sin(mid)]);
+    const [x, y] = S([0.85 * g.R * Math.cos(mid), 0.85 * g.R * Math.sin(mid)]);
     return { x: fmt(x), y: fmt(y) };
   });
   const point = $derived(S(r.y));
