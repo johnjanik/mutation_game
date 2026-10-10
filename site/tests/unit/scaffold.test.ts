@@ -85,13 +85,19 @@ describe('scaffold', () => {
     expect(Object.keys(pkg.devDependencies).sort()).toEqual(['fast-check', 'typescript', 'vitest']);
   });
 
-  it('engine index is export {} only', () => {
-    // Phase-0 scaffold check; P0-A2 replaces index.ts in stage 0.2 and MERGE drops this assertion then.
-    const src = read('packages/engine/src/index.ts').trim();
-    if (src !== 'export {};') {
-      expect(src).toMatch(/^export \{/);
-    } else {
-      expect(src).toBe('export {};');
+  it('engine index is re-exports only', () => {
+    // CONTRACTS 2.1: index.ts re-exports the public API and nothing else. P0-A1 shipped `export {};`;
+    // P0-A2 replaced it in stage 0.2 and MERGE updated this assertion: every statement is an export from a sibling module.
+    const src = read('packages/engine/src/index.ts');
+    const statements = src
+      .replace(/\/\/[^\n]*/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split(';')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    expect(statements.length).toBeGreaterThan(0);
+    for (const s of statements) {
+      expect(s, s).toMatch(/^export (type )?\{[\s\S]*\} from '\.\/[a-zA-Z]+'$/);
     }
   });
 
