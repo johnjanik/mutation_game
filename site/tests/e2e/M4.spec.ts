@@ -93,8 +93,6 @@ const out = (page: Page, id: string, name: string): Locator => tool(page, id).lo
 const control = (page: Page, id: string, name: string): Locator => tool(page, id).locator(`[data-control="${name}"]`);
 const node = (page: Page, id: string, board: 'populations' | 'numbers', label: number): Locator =>
   tool(page, id).locator(`button[data-board="${board}"][data-node="${label}"]`);
-/** A node of T15 or T5 game A, whatever its data-board. */
-const groupNode = (page: Page, id: string, label: number): Locator => tool(page, id).locator(`[data-board-group] button[data-node="${label}"]`).first();
 const live = (page: Page, id: string): Locator => tool(page, id).locator('[data-live]');
 const norm = (s: string | null): string => (s ?? '').replace(/\s+/g, ' ').trim();
 
