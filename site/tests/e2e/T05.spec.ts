@@ -14,6 +14,7 @@
 //            marks over the board), data-row (a row of the sideways reading on the tally chart)
 //   groups:  data-board-group (a board's group of node buttons), data-game-b (game B's part)
 //   tabs:    data-tab (each tab button, role="tab", aria-selected), data-panel (the tab panel)
+//   boxes:   data-scroll="tally" (the tally chart's own scroll box, A-11)
 //   table:   data-table-node, data-table-value, data-table-exact
 //   strip:   data-step (History.svelte), data-round (a round of the wave made so far)
 //   live:    [data-live] (ToolFrame's polite live region)
