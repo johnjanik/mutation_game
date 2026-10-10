@@ -163,6 +163,32 @@ describe('numbers-in-prose.mjs', () => {
   });
 });
 
+describe('root package.json', () => {
+  it('root package.json has every command of 7.7 and no stub', () => {
+    const scripts: Record<string, string> = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts;
+    const names = ['test', 'build', 'build:release', 'preview', 'e2e', 'size', 'lab', 'report', 'verify', 'typecheck', 'check', 'prebuild', 'e2e:basepath'];
+    for (const n of names) {
+      expect(scripts[n], n).toBeTypeOf('string');
+      expect(scripts[n].trim(), n).not.toBe('');
+    }
+    const devServer = ['astro', 'dev'].join(' ');
+    for (const [n, body] of Object.entries(scripts)) {
+      expect(body, n).not.toContain('not yet implemented');
+      expect(body, n).not.toContain(devServer);
+    }
+    expect(scripts.prebuild).toBe('node scripts/katex-assets.mjs && node scripts/names.mjs');
+    expect(scripts.build).toBe('npm run build -w site');
+    expect(scripts['build:release']).toBe('RELEASE=1 npm run build');
+    expect(scripts.size).toBe('node scripts/size.mjs');
+    expect(scripts.verify).toBe('node scripts/verify.mjs');
+    expect(scripts.lab).toBe('node scripts/lab.mjs');
+    expect(scripts.report).toBe('node scripts/report.mjs');
+    expect(scripts.e2e).toBe('playwright test');
+    expect(scripts['e2e:basepath']).toContain('BASE_PATH=/sub/path/ OUT_DIR=dist-basepath npm run build');
+    expect(scripts['e2e:basepath']).toContain('playwright test site/tests/e2e/basepath.spec.ts');
+  });
+});
+
 describe('lab.mjs', () => {
   it('lab stub exits 2 with the phase-3 message', () => {
     const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'lab.mjs')], { encoding: 'utf8' });

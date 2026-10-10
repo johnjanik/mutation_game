@@ -10,6 +10,8 @@ const { base } = siteAndBase(process.env);
 
 export default defineConfig({
   testDir: 'site/tests/e2e',
+  // basepath.spec.ts runs only through npm run e2e:basepath, against the BASE_PATH=/sub/path/ build.
+  testIgnore: process.env.BASE_PATH ? [] : ['**/basepath.spec.ts'],
   fullyParallel: false,
   retries: 0,
   reporter: process.env.CI ? 'github' : 'list',

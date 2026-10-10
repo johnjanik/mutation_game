@@ -16,3 +16,7 @@ reports/*
 !reports/gate-*.md
 !reports/discrepancies/
 __pycache__/
+# KaTeX stylesheet and fonts copied at build time by scripts/katex-assets.mjs (CONTRACTS.md 4)
+site/public/katex/
+# the BASE_PATH=/sub/path/ build of npm run e2e:basepath (OUT_DIR=dist-basepath)
+site/dist-basepath/
