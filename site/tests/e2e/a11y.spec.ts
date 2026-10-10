@@ -19,6 +19,7 @@ export const ROUTES: Route[] = [
   // MERGE, P1 stage 1.2 (requests of P1-A5 and P1-A6): the tool routes of phase 1.
   { name: 'game board tool', path: 'tools/board/', tool: true },
   { name: 'orbit garden tool', path: 'tools/garden/', tool: true },
+  { name: 'kostant tool', path: 'tools/kostant/', tool: true },
   { name: 'module M0', path: 'modules/m0-start/', tool: true },
 ];
 
