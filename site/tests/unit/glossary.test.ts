@@ -134,6 +134,6 @@ describe('glossary', () => {
   });
 
   it('writes no em-dash', () => {
-    expect(MDX).not.toContain('—');
+    expect(MDX).not.toContain(String.fromCharCode(0x2014));
   });
 });

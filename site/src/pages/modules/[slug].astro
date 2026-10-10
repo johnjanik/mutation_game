@@ -3,15 +3,15 @@
 // the base (P1-A8 expects /modules/m0-start/), rendered inside Lesson.astro with the frontmatter.
 // Every entry is built, released or not; only links to an unreleased module are dropped, and the
 // module index leaves it out (lib/pages/released.ts).
-import { getCollection, render } from 'astro:content';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
 import Lesson from '../../layouts/Lesson.astro';
 
 export async function getStaticPaths() {
   const modules = await getCollection('modules');
-  return modules.map((entry: { id: string }) => ({ params: { slug: entry.id }, props: { entry } }));
+  return modules.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
 }
 
-const { entry } = Astro.props;
+const { entry } = Astro.props as { entry: CollectionEntry<'modules'> };
 const { Content } = await render(entry);
 ---
 

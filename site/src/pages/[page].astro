@@ -3,7 +3,7 @@
 // rendered inside Page.astro. Every entry is built, released or not: a page with released: false
 // keeps its route (so its tests can run); only links to it are dropped (lib/pages/released.ts).
 // A slug that collides with a static route fails the build here.
-import { getCollection, render } from 'astro:content';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
 import Page from '../layouts/Page.astro';
 import { slugCollisions } from '@lib/pages/released';
 
@@ -11,14 +11,14 @@ export async function getStaticPaths() {
   const pages = await getCollection('pages');
   const modules = await getCollection('modules');
   const problems = slugCollisions(
-    pages.map((p: { id: string }) => p.id),
-    modules.map((m: { id: string }) => m.id),
+    pages.map((p) => p.id),
+    modules.map((m) => m.id),
   );
   if (problems.length > 0) throw new Error(`route collision: ${problems.join('; ')}`);
-  return pages.map((entry: { id: string }) => ({ params: { page: entry.id }, props: { entry } }));
+  return pages.map((entry) => ({ params: { page: entry.id }, props: { entry } }));
 }
 
-const { entry } = Astro.props;
+const { entry } = Astro.props as { entry: CollectionEntry<'pages'> };
 const { Content } = await render(entry);
 ---
 

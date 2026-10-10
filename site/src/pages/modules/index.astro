@@ -6,12 +6,7 @@ import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { joinBase, releasedModules, type ModuleRecord } from '@lib/pages/released';
 
-interface ModuleEntry {
-  id: string;
-  data: { title: string; module: number; question: string; released: boolean };
-}
-
-const entries = (await getCollection('modules')) as ModuleEntry[];
+const entries = await getCollection('modules');
 const records: ModuleRecord[] = entries.map((e) => ({ slug: e.id, module: e.data.module, released: e.data.released, title: e.data.title, question: e.data.question }));
 const listed = releasedModules({ modules: records, pages: [], tools: [], atlas: false, release: false });
 ---

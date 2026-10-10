@@ -58,4 +58,11 @@ const html = await renderSources(
   .sources-page :global(table) {
     border-collapse: collapse;
   }
+  /* KaTeX cannot break an inline formula inside one group; on narrow screens the formulas are set at
+     the size of the text so that the longest of the file still fits at 320 pixels (A-11). */
+  @media (max-width: 479.98px) {
+    .sources-page :global(.katex) {
+      font-size: 1em;
+    }
+  }
 </style>
