@@ -1,0 +1,172 @@
+---
+title: "The numbers game and the duality"
+module: 4
+question: "What does the same move look like from the other side?"
+phase: 3
+released: true
+draft: true
+outcomes: ["LO1", "LO2", "LO5"]
+sources: ["Moz90", "Eri95b", "Don08", "GSS12", "W-MS", "W03c", "IMO86", "Pro84"]
+---
+import T01GameBoard from '@components/tools/T01GameBoard.svelte';
+import T02OrbitGarden from '@components/tools/T02OrbitGarden.svelte';
+import T05NumbersGameLab from '@components/tools/T05NumbersGameLab.svelte';
+import T06Kaleidoscope from '@components/tools/T06Kaleidoscope.svelte';
+import T15Route from '@components/tools/t15/T15Route.astro';
+import { G, Tex, Cite, Unverified } from '@components/content';
+import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
+import { linkIfReleased } from '@lib/pages/released';
+import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
+
+export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
+export const fmt = (k, as) => formatGoldenValue(resolveGoldenPath(k), as);
+export const orbitSize = resolveGoldenPath('types.A2.fundamental_orbit_sizes[0]');
+export const pentagonEnds = resolveGoldenPath('pentagon_example.complete_games') > 0 && resolveGoldenPath('pentagon_example.moves') > 0;
+export const SEEN_F4 = 'verified by computation for every board of finite type of rank at most eight';
+export const SEEN_LINK = 'verified by computation on every board of finite type of rank at most eight';
+export const SEEN_LEVEL = 'verified by computation on every affine board the site offers';
+
+{/* P3-A8: lesson M4, drafted from SPEC.md 2.3, 2.4, 2.7, 2.9, 2.12 and 3 M4 in the words of the site
+    (D17: a draft until the owner approves it). Every number with a golden value goes through G,
+    Tex with a golden path, or resolveGoldenPath; every formula that holds a digit goes through Tex
+    and every locator of a source is a brace string, so scripts/numbers-in-prose.mjs finds nothing in
+    this file. Instance ids b1 to b12 in reading order; b1 is client:idle, every other island is
+    client:visible (T15 through T15Route with hydrate visible). No apostrophe in this comment: the
+    scanner reads one as the start of a string. */}
+
+<Beat n={1}>
+
+Module zero showed the board in a second record, the **Numbers** view. Here that record becomes a game. A **position** is a list of whole numbers, one on each node. To **fire** node $i$, the node sends its number down every road that leaves it, then changes sign:
+
+$$
+\begin{aligned} a_i &\longmapsto -a_i, \\ a_j &\longmapsto a_j - C_{ji}\, a_i \quad (j \ne i), \end{aligned}
+$$
+
+where $C$ is the Cartan matrix of module zero and $-C_{ji}$ counts the roads from node $i$ to node $j$. In **free play** any node may fire. In **legal play**, the game proper, a node may fire only when its number is positive, and the game ends when no number is positive. Every figure names the mode in force; this one is in legal play.
+
+On <Tex src="A_2"/> from <Tex src="(1,1)"/>, firing node <Tex src="1"/> gives <Tex src="(-1,2)"/>, then node <Tex src="2"/> gives <Tex src="(1,-2)"/>, then node <Tex src="1"/> gives <Tex src="(-1,-1)"/>. No number is positive: the game is over after <G k="types.A2.n_positive_roots"/> moves, firing the nodes <G k="types.A2.longest_word" as="word"/> and the numbers <G k="types.A2.fired_values"/>.
+
+The numbers game is Mozes' <Cite k="Moz90"/>, with Proctor's earlier use of the same process <Cite k="Pro84"/> and Eriksson's development of it <Cite k="Eri95b"/>. This site fires positive numbers, as Proctor, Donnelly and Wildberger do; Eriksson, the Olympiad problem of beat six, and Gashi, Schedler and Speyer fire negative ones. Negating every number translates one convention into the other, because each firing is linear.
+
+<T01GameBoard slot="figure" client:idle id="b1" board="A2" view="numbers" mode="legal" coords="numbers" start={[1, 1]} caption={`Legal play on A2 from (1, 1) fires the numbers ${fmt('types.A2.fired_values')} and is over after ${fmt('types.A2.n_positive_roots')} moves, at (−1, −1).`} />
+</Beat>
+
+<Beat n={2}>
+
+Now <Tex src="A_3"/> from <Tex src="(1,1,1)"/>, where any node can fire first. Answer the question on the board, then play to the end, reset, and play again in another order.
+
+Every order lasts <G k="types.A3.n_positive_roots"/> moves and ends at <Tex src="(-1,-1,-1)"/>. Two facts lie behind this. On these boards any two legal plays from one start end at the same position after the same number of moves, and fire the same numbers. Eriksson calls this strong convergence (<Cite k="Eri95b"/>, {'Definition 1.1'}); the theorem is attributed to Mozes and Eriksson. Donnelly proves it in this site's sign convention (<Cite k="Don08"/>, {'Theorem 2.1'}). Second, from a start with every number positive, every legal play has as many moves as there are positive root populations. It ends at the start with every sign changed and the entries permuted by a symmetry of the board, which on <Tex src="A_3"/> reverses the nodes, <G k="types.A3.minus_w0" as="word"/>. This is verified by computation on every board of finite type of rank at most eight.
+
+The Numbers Game Lab sets the lowest-node game, <G k="types.A3.longest_word" as="word"/>, beside the highest-node game, <Tex src="3,2,3,1,2,3"/>. Their tapes of fired numbers agree once sorted; the order of firing need not agree.
+
+<T01GameBoard slot="figure" client:visible id="b2" board="A3" view="numbers" mode="legal" coords="numbers" start={[1, 1, 1]} prediction={{ question: 'From (1, 1, 1) on A3 in legal play, what will a different order of moves change?', answer: { type: 'choice', options: ['Nothing: the same end after the same number of moves', 'The same end, after a different number of moves', 'A different end'], correct: 0 }, reveal: `Nothing. Every legal play from (1, 1, 1) lasts ${fmt('types.A3.n_positive_roots')} moves and ends at (−1, −1, −1), and the numbers fired agree once they are sorted.` }} caption={`On A3 from (1, 1, 1), every legal play lasts ${fmt('types.A3.n_positive_roots')} moves and ends at (−1, −1, −1), whatever the order.`} />
+<T05NumbersGameLab slot="figure" client:visible id="b3" preset="compared" caption={`Two games on A3 from (1, 1, 1), one at the lowest positive node and one at the highest: both last ${fmt('types.A3.n_positive_roots')} moves and end at (−1, −1, −1), and their tapes agree once sorted.`} />
+</Beat>
+
+<Beat n={3}>
+
+This board shows the population <Tex src="(1,1,0)"/> on the Populations board and, below it, its numbers, computed by the **translator** $a=Cp$, entry by entry <Tex src="a_i=2p_i-\sum_{j\ne i}A_{ji}\,p_j"/>. They are <Tex src="(1,1,-1)"/>.
+
+<p data-bridge-prose><strong>The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.</strong></p>
+
+A positive number marks a mutation that lowers, zero one that changes nothing, a negative number one that raises: a mutation at $i$ replaces $p_i$ by $p_i-a_i$. Make three moves on either board, which acts on both, and check after each that every number is still that drop.
+
+The moves themselves differ: a mutation changes one entry, a firing changes an entry and its neighbours. What holds is $CS_i=R_iC$ for the matrices $S_i$ and $R_i$ of the two moves, verified by computation on every board of finite type of rank at most eight. Wildberger's dual population is $q=-Cp$, the gain, where this site records the drop (<Cite k="W-MS"/>, {'Proposition 0.3, pp. 31-32'}); in his story it lives on Venus (<Cite k="W-MS"/>, {'p. 30'}).
+
+<T01GameBoard slot="figure" client:visible id="b4" board="A3" view="linked" mode="free" coords="populations" start={[1, 1, 0]} caption="The population (1, 1, 0) on A3 has the numbers (1, 1, −1): each number is the drop a mutation would cause, before and after every move." />
+</Beat>
+
+<Beat n={4}>
+
+Why is one matrix the translator? The **Kaleidoscope** draws <Tex src="A_2"/> in the plane: each node is a mirror through the origin, with its normal as an arrow. A point has two sets of coordinates. Its population lists its coefficients along the normals; its numbers are its scaled distances to the mirrors, <Tex src="a_i=\tfrac{2}{|\alpha_i|}\times\bigl(\text{signed distance to mirror } i\bigr)"/>. Firing node $i$ reflects the point in mirror $i$: one reflection, recorded two ways. The Cartan matrix holds the pairings of normals with mirrors, which is why it translates.
+
+From the numbers <Tex src="(1,1)"/>, whose population is <Tex src="(1,1)"/> too, fire node <Tex src="1"/>: the numbers become <Tex src="(-1,2)"/> and the population <Tex src="(0,1)"/>. Only the first coefficient changed, falling by the number fired.
+
+<T06Kaleidoscope slot="figure" client:visible id="b5" preset="default" caption="Firing a node reflects the point in its mirror; the numbers and the population stay linked by a = Cp. From (1, 1), firing node 1 gives the numbers (−1, 2) and the population (0, 1)." />
+</Beat>
+
+<Beat n={5}>
+
+Backwards, the population of a position is <Tex src="C^{-1}a"/>. On <Tex src="A_2"/> the position <Tex src="(1,0)"/> gives <Tex src="\bigl(\tfrac23,\tfrac13\bigr)"/>: two thirds of a Martian in city <Tex src="1"/> and one third in city <Tex src="2"/>. Not every position is a population.
+
+Both sets are infinite, so the comparison is by classes: the positions fall into $\det C$ classes, each a shifted copy of the populations, and the denominators of <Tex src="C^{-1}a"/> divide $\det C$. On <Tex src="A_2"/>, $\det C$ is <G k="types.A2.det_cartan"/>. On <Tex src="E_8"/>, <Tex src="F_4"/> and <Tex src="G_2"/>, where it is <G k="types.E8.det_cartan"/>, every position is a population, as verified by computation.
+
+The start <Tex src="(1,0)"/> is the **fundamental position** of node <Tex src="1"/>. Firing gives <Tex src="(-1,1)"/>, then <Tex src="(0,-1)"/>, and nothing else: the garden counts <G k="types.A2.fundamental_orbit_sizes[0]"/> positions, every number in them <Tex src="-1"/>, <Tex src="0"/> or <Tex src="1"/>. A node with such an orbit is **minuscule**; on <Tex src="A_2"/> both nodes are, <G k="types.A2.minuscule_nodes"/>.
+
+<T01GameBoard slot="figure" client:visible id="b6" board="A2" view="linked" mode="free" coords="numbers" start={[1, 0]} prediction={{ question: 'From the position (1, 0) on A2, firing any node in any order, how many different positions can you reach, the start included?', answer: { type: 'number', value: orbitSize }, reveal: `${fmt('types.A2.fundamental_orbit_sizes[0]')}: (1, 0), (−1, 1) and (0, −1). Every number in them is −1, 0 or 1, and firing from any of them leads back to these.` }} caption="The position (1, 0) on A2 is the population (2/3, 1/3): not a population of whole Martians." />
+<T02OrbitGarden slot="figure" client:visible id="b7" preset="follow" linkTo="b6" board="A2" coords="numbers" start={[1, 0]} grows="orbit" caption={`The garden follows the board above; the orbit of (1, 0) on A2 has ${fmt('types.A2.fundamental_orbit_sizes[0]')} positions, (1, 0), (−1, 1) and (0, −1).`} />
+</Beat>
+
+<Beat n={6}>
+
+The game has an ancestor: problem three of the International Mathematical Olympiad of {'1986'} <Cite k="IMO86"/>. Five whole numbers with a positive sum sit on the corners of a pentagon. While some number is negative, pick one, change its sign and add it to both neighbours. Must this stop?
+
+It is the numbers game on the cycle of five nodes with the opposite sign: the puzzle fires a negative number where this site fires a positive one, and negating every number translates between them. The figure starts in the Olympiad's form, with a switch to this site's. The problem prescribes no numbers; the site's example is <G k="pentagon_example.start_olympiad_convention"/> in the Olympiad's convention, <G k="pentagon_example.start"/> in this site's. Every order of play ends after <G k="pentagon_example.moves"/> moves: all <G k="pentagon_example.complete_games"/> complete games were enumerated by computation.
+
+<Unverified item="E2" fallback="Later authors, Donnelly among them, describe the game Mozes published in 1990 as a generalisation of this puzzle.">Mozes introduced his game in {'1990'} as a generalisation of this puzzle, firing negative numbers.</Unverified>
+
+<T15Route slot="figure" id="b8" hydrate="visible" preset="pentagon" prediction={{ question: 'Will the pentagon game stop, whatever order you fire in?', answer: { type: 'choice', options: ['Yes', 'No'], correct: pentagonEnds ? 0 : 1 }, reveal: `Yes. From this start every order of play ends after ${fmt('pentagon_example.moves')} moves, at the same position.` }} caption={`The Olympiad's pentagon from ${fmt('pentagon_example.start_olympiad_convention')} in its own convention: every order of play ends after ${fmt('pentagon_example.moves')} moves.`} />
+</Beat>
+
+<Beat n={7}>
+
+Why must it stop? The pentagon is a boundary board of module three, the affine board <Tex src="\tilde A_4"/>. Such a board carries **comarks**, positive weights $c$ with <Tex src="c^{\mathsf T}C=0"/>, and the **level** of a position, $\ell(a)=\sum_i c_i a_i$, is unchanged by every firing, as verified by computation. On the pentagon the comarks are <G k="affine.A4.comarks"/>, so the level is the sum of the numbers, <G k="pentagon_example.level"/> for the example; a positive sum in the Olympiad's convention is a negative level here. Its sign decides between three fates:
+
+<table data-fate-table>
+<caption>The fate of the numbers game on an affine board, with positive firing</caption>
+<thead><tr><th scope="col">Level</th><th scope="col">What happens</th></tr></thead>
+<tbody>
+<tr><td><Tex src="\ell(a)<0"/></td><td>every legal play ends, after the same number of moves, at the same position</td></tr>
+<tr><td><Tex src="\ell(a)=0,\ a\ne 0"/></td><td>the game never ends and visits only finitely many positions (it loops)</td></tr>
+<tr><td><Tex src="\ell(a)>0"/></td><td>the game never ends and the numbers grow without bound</td></tr>
+</tbody>
+</table>
+
+On affine boards with single roads this is a theorem of Gashi, Schedler and Speyer, credited there to Eriksson and stated with the signs reversed, because they fire negative numbers (<Cite k="GSS12"/>, {'Theorem 1.2'}). <Unverified item="E6" fallback="On boards with multiple roads the same table was computed on every affine board the site offers, and the Affine Playground gives an argument for it beside it.">The same table holds on the affine boards with multiple roads, which arrive in module six.</Unverified>
+
+Play detects two fates exactly: a game that has ended, and a position that has come back. That a game of positive level never ends cannot be seen by playing; the playground stops at {'20000'} moves, a limit of the search and not a proof. In the figure, raise node <Tex src="5"/> from <Tex src="1"/> to <Tex src="2"/>: the level becomes zero, and play on comes back to a position already visited.
+
+<T15Route slot="figure" id="b9" hydrate="visible" preset="three-fates" caption="On the pentagon the level is the sum of the numbers and never changes: negative, the game ends; zero, it loops; positive, it runs on." />
+</Beat>
+
+<Seen provenance={['W03c', 'Eri95b', 'Don08', 'GSS12', SEEN_F4, SEEN_LINK, SEEN_LEVEL]}>
+
+<ul data-seen-statements>
+<li data-seen-statement>A firing negates the fired number and adds it, once per road, to each neighbour; legal play fires only positive numbers. Both games were first published by Wildberger (<Cite k="W03c"/>, section two), who credits the numbers game to Mozes.</li>
+<li data-seen-statement>On a board of finite type, legal plays from one start end at one position, after one number of moves, firing the same numbers: strong convergence (<Cite k="Eri95b"/>, {'Definition 1.1'}), attributed to Mozes and Eriksson. Donnelly proves it (<Cite k="Don08"/>, {'Theorem 2.1'}).</li>
+<li data-seen-statement>From an all-positive start every legal play has as many moves as there are positive root populations and ends at the start negated and permuted: {SEEN_F4}.</li>
+<li data-seen-statement><strong>The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.</strong> Under $a=Cp$ the moves correspond, $CS_i=R_iC$: {SEEN_LINK}.</li>
+<li data-seen-statement>The positions fall into $\det C$ classes of translated populations; when $\det C$ is <G k="types.E8.det_cartan"/> every position is a population: {SEEN_LINK}.</li>
+<li data-seen-statement>On an affine board the level never changes, {SEEN_LEVEL}; on boards with single roads its sign decides the three fates (<Cite k="GSS12"/>, {'Theorem 1.2'}, signs reversed).</li>
+</ul>
+
+</Seen>
+
+<LieTheory>
+
+<Term a="position">Positions</Term> are weights $\lambda=\sum_i a_i\omega_i$ in fundamental-weight coordinates, and the <Term a="numbers">numbers</Term> are the Dynkin labels $a_i=\langle\lambda,\alpha_i^\vee\rangle$. To <Term a="fire">fire</Term> node $i$ is to apply $s_i\lambda=\lambda-a_i\alpha_i$, since $\alpha_i=\sum_j C_{ji}\,\omega_j$. <Term a="legal-play">Legal play</Term> descends from the dominant chamber towards the antidominant one; from $\rho$ it ends at <Tex src="w_0\rho=-\rho"/> after $N$ moves. <Term a="the-translator">The translator</Term> $a=Cp$ is $\lambda\mapsto(\langle\lambda,\alpha_i^\vee\rangle)_i$, the inclusion of the root lattice $Q$ in the weight lattice $P$; $P/Q$ has order $\det C$ and is the fundamental group of the adjoint group. A <Term a="fundamental-position">fundamental position</Term> is a fundamental weight. The <Term a="level">level</Term> is $\langle\lambda,K\rangle$, with the comarks as coefficients. Here $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$, as in Kac and SageMath; Bourbaki prints the transpose, Donnelly's $M$ is $C^{\mathsf T}$, and Gashi, Schedler and Speyer write $c=C^{\mathsf T}$ and fire negative numbers.
+
+</LieTheory>
+
+## Challenges
+
+<Challenge client:visible for="b10" goal="On A3 in legal play from (1, 1, 1), reach (3, −1, −1), a position the lowest-node game never passes." explanation="Begin at node 3: from (1, 1, 1) it gives (1, 2, −1). Then fire node 2, which gives (3, −2, 1), and node 3 again. Finish the game from there: it still ends at (−1, −1, −1) after the same number of moves." check={{ kind: 'reach', board: 'numbers', values: [3, -1, -1] }} />
+
+<T01GameBoard client:visible id="b10" board="A3" view="numbers" mode="legal" coords="numbers" start={[1, 1, 1]} caption="Legal play on A3 from (1, 1, 1): a game that begins at node 3 passes through (3, −1, −1)." />
+
+<Challenge client:visible for="b11" goal="On A2, move the point to the population (1, 0), one Martian in city 1. What are its numbers?" explanation="The numbers of a population are Cp, and the population (1, 0) picks out the first column of C: the numbers (2, −1). From (1, 1), firing node 2 gets there in one move; the placement buttons get there too." check={{ kind: 'reach', board: 'numbers', values: [2, -1] }} />
+
+<T06Kaleidoscope client:visible id="b11" preset="default" boardChoices={['A2']} caption="The point at the numbers (1, 1) on A2; the population (1, 0) sits at the numbers (2, −1)." />
+
+<Challenge client:visible for="b12" goal="On the pentagon, change the start so that the game loops, and press play on until a position comes back." explanation="A start of level zero that is not all zeros loops: the game visits finitely many positions and never ends. Make the numbers add up to zero, for example by raising node 5 from 1 to 2." check={{ kind: 'out', name: 'firstVisit' }} />
+
+<T15Route id="b12" hydrate="visible" preset="three-fates" caption={`The pentagon from ${fmt('pentagon_example.start')}, level ${fmt('pentagon_example.level')}: change a number to change the level and the fate.`} />
+
+<ModuleLinks module={4} board="A3" />
+
+<Sources keys={['Moz90', 'Eri95b', 'Don08', 'GSS12', 'W-MS', 'W03c', 'IMO86', 'Pro84']}>
+
+<Cite k="Moz90"/> was not read for this site; later authors report its content. <Cite k="W-MS"/> is an unpublished manuscript, undated {'(circulated c. 2001 to 2004)'}, cited at {'pp. 30-32'}.
+
+</Sources>
