@@ -236,7 +236,7 @@ describe('lesson fixtures', () => {
     expect(html).not.toContain('data-challenge-result');
     // MERGE, P1 stage 1.3: the fixture is module 0, so once M1 is released the links hold the next module;
     // the wrapper then carries data-count="1" and a link to it. Before M1 existed the count was 0.
-    expect(html).toMatch(/<(div|nav)[^>]*data-anatomy="links" data-count="[01]"/);
+    expect(html).toMatch(/<(div|nav)[^>]*data-anatomy="links" data-count="[0-2]"/); // sandbox and next module, once released (P2-A5)
     expect(html).toMatch(/data-source="W20"/);
     // The draft mark is in words, not colour alone.
     expect(html).toMatch(/data-anatomy="draft"[^>]*>\s*<strong[^>]*>Draft\.<\/strong>/);
