@@ -100,8 +100,8 @@ export function extendMatrix(C: number[][], short: boolean): { cartan: number[][
       a += thv[i]! * C[i]![j]!;
       c += C[j]![i]! * th[i]!;
     }
-    Ca[0]![j + 1] = -a;
-    Ca[j + 1]![0] = -c;
+    Ca[0]![j + 1] = a === 0 ? 0 : -a; // never -0 in an integer matrix
+    Ca[j + 1]![0] = c === 0 ? 0 : -c;
     for (let k = 0; k < n; k++) Ca[j + 1]![k + 1] = C[j]![k]!;
   }
   return { cartan: Ca, marks: [1, ...th], comarks: [1, ...thv] };
