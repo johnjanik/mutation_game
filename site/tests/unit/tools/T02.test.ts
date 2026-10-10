@@ -58,7 +58,11 @@ import { PICKER_TYPES, PRESETS, pickedState, pickerGroups, presetOf } from '../.
 import { drawGarden, nextVertex } from '../../../src/components/tools/t02/drawing';
 import registryEntry from '../../../src/tools/registry/T02';
 import { encodeBoard } from '../../../src/lib/urlCodec';
-import { ssrLoader, type SsrLoader } from '../_svelteSsr';
+import { createServer, type ViteDevServer } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 interface TypeRecord {
   n_roots: number;
@@ -172,11 +176,11 @@ describe('T2 plan tests', () => {
   it('the stop message follows SPEC 5.5', () => {
     const tri = resolveBoard({ cartan: growthOf('triangle').cartan }) as Board<unknown>;
     // The cap-9 case of verify.py line 975.
-    const g9 = orbitGraph(tri, unitSeeds(tri), 'mutation', 9, 40);
+    const g9 = orbitGraph(tri, unitSeeds(tri as AnyBoard), 'mutation', 9, 40);
     expect(g9.items.length).toBe(9);
     expect(stopMessage(g9, 40, 40, 9)).toBe('stopped after 9 positions; layers 0 to 1 are complete');
     // Layer 333 of 4.0: the triangle with layers 600 at a cap of 2000.
-    const g600 = orbitGraph(tri, unitSeeds(tri), 'mutation', CAPS.gardenPositions, 600);
+    const g600 = orbitGraph(tri, unitSeeds(tri as AnyBoard), 'mutation', CAPS.gardenPositions, 600);
     expect(stopMessage(g600, 600, 600, CAPS.gardenPositions)).toBe('stopped after 2000 positions; layers 0 to 332 are complete');
     // A complete search says nothing.
     const a3 = growFully(rootsSpec(named('A3')), undefined);
@@ -564,12 +568,45 @@ describe('T2 plan tests', () => {
   });
 });
 
+// The server render through Vite with the Svelte plugin, as P1-A2's _svelteSsr.ts does, plus the
+// path aliases of CONTRACTS 1 that Board.svelte imports by (tsconfigPaths does not reach .svelte files).
+const SITE = fileURLToPath(new URL('../../../', import.meta.url));
+const ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
+interface Loader {
+  render(component: unknown, props: Record<string, unknown>): string;
+  close(): Promise<void>;
+}
+async function gardenLoader(): Promise<{ loader: Loader; Garden: unknown }> {
+  const server: ViteDevServer = await createServer({
+    configFile: false,
+    root: SITE,
+    logLevel: 'silent',
+    cacheDir: join(tmpdir(), 'two-games-ssr-t02-cache'),
+    appType: 'custom',
+    server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
+    plugins: [svelte({ configFile: false })],
+    resolve: {
+      alias: {
+        '@engine': join(ROOT, 'packages/engine/src/index.ts'),
+        '@components': join(SITE, 'src/components'),
+        '@lib': join(SITE, 'src/lib'),
+      },
+    },
+  });
+  const sv = (await server.ssrLoadModule('svelte/server')) as { render: (c: unknown, o: { props: unknown }) => { body: string } };
+  const mod = (await server.ssrLoadModule('/src/components/tools/T02OrbitGarden.svelte')) as { default: unknown };
+  return {
+    loader: { render: (c, props) => sv.render(c, { props }).body, close: () => server.close() },
+    Garden: mod.default,
+  };
+}
+
 describe('T2 server render', () => {
-  let loader: SsrLoader;
+  let loader: Loader;
   let Garden: unknown;
   beforeAll(async () => {
-    loader = await ssrLoader();
-    Garden = (await loader.load<{ default: unknown }>('/src/components/tools/T02OrbitGarden.svelte')).default;
+    ({ loader, Garden } = await gardenLoader());
   }, 120000);
   afterAll(async () => {
     await loader?.close();

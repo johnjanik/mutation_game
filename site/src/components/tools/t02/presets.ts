@@ -47,8 +47,8 @@ const A3_ROOTS = rootCount('A3');
 const A2_ROOTS = rootCount('A2');
 const A3_POSITIVE = positiveRoots(boardFromName('A3') as Board<unknown>, CAPS.gardenPositions).length;
 const TRIANGLE_GROWTH = (() => {
-  const b = resolveBoard(TRIANGLE) as Board<unknown>;
-  const g = orbitGraph(b, unitSeeds(b), 'mutation', CAPS.gardenPositions, CAPS.layersOffFinite);
+  const tri = resolveBoard(TRIANGLE);
+  const g = orbitGraph(tri as Board<unknown>, unitSeeds(tri), 'mutation', CAPS.gardenPositions, CAPS.layersOffFinite);
   const perLayer = newPerLayer(g.depth);
   return { found: g.items.length, lastNew: perLayer[perLayer.length - 1]! };
 })();
