@@ -13,6 +13,7 @@ import Base from '../../layouts/Base.astro';
 import { toolRoutes, type ToolRoute } from '../../tools/index';
 // Static imports of the tools, in tool order. MERGE adds, for example:
 //   import T01GameBoard from '@components/tools/T01GameBoard.svelte';
+import T01GameBoard from '@components/tools/T01GameBoard.svelte';
 
 export function getStaticPaths(): ToolRoute[] {
   return toolRoutes();
@@ -21,7 +22,7 @@ export function getStaticPaths(): ToolRoute[] {
 const { entry, caption } = Astro.props as ToolRoute['props'];
 
 /** The tools that have their static line below (MERGE adds the id with the import). */
-const HYDRATED: ReadonlySet<string> = new Set<string>([]);
+const HYDRATED: ReadonlySet<string> = new Set<string>(['board']);
 
 let Unhydrated: ((props: Record<string, unknown>) => unknown) | null = null;
 if (!HYDRATED.has(entry.id)) {
@@ -37,6 +38,7 @@ const toolProps = { id: '', caption, preset: 'default' };
   <div class="tool-route" data-tool-route={entry.id}>
     {/* MERGE adds one line per tool, for example:
         {entry.id === 'board' && <T01GameBoard client:idle {...toolProps} />} */}
+    {entry.id === 'board' && <T01GameBoard client:idle {...toolProps} />}
     {Unhydrated && <Unhydrated {...toolProps} />}
   </div>
 </Base>

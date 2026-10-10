@@ -1,5 +1,6 @@
 // Shared types of the board family (CONTRACTS.md 5.1). Owner P0-A5; P1-A3 and P1-A5 extend.
 import type { AnyBoard } from '@engine';
+import type { NodeState } from '@lib/a11y';
 
 export type NodeKind = 'node' | 'city';
 export type Sign = -1 | 0 | 1;
@@ -35,6 +36,21 @@ export interface BoardProps {
   onAct: (position: number) => void;
   hintFor?: (position: number) => string | null;
   name: string;
+  // Optional additions by P1-A5 (phase 1, T1); CONTRACTS 5.1 props above are unchanged.
+  /** Grid coordinates of a custom board (SPEC 6.1; ignored for named layouts and when invalid). */
+  xy?: readonly (readonly [number, number])[];
+  /** The A-3 state of each node, overriding the one Board derives (T1 linked view, fractions). */
+  states?: readonly (NodeState | null)[];
+  /** Each value as spoken in the accessible name ("2 over 3"); default speak(value). */
+  spoken?: readonly string[];
+  /** Hint ghosts: the value each node would take, shown on hover or focus (aria-hidden). */
+  ghosts?: readonly (string | null)[];
+  /** Freezes the board (a prediction step): every node button is disabled. */
+  disabled?: boolean;
+  /** Marks the board (the page's highlight store matches its current values). */
+  highlighted?: boolean;
+  /** Called with the position hovered or focused, and null when it leaves (the highlight store). */
+  onFocusNode?: (position: number | null) => void;
 }
 
 export interface NodeProps {
@@ -47,6 +63,8 @@ export interface NodeProps {
   y: number;
   unit: number;
   showLabel?: boolean;
+  /** The hint ghost to draw beside the node, or null (P1-A5). */
+  ghost?: string | null;
 }
 
 export interface RoadsProps {
@@ -70,4 +88,6 @@ export interface HistoryProps {
   onRedo: () => void;
   onReset: () => void;
   onScrub: (cursor: number) => void;
+  /** Disables every control while a prediction is unanswered (P1-A5). */
+  frozen?: boolean;
 }

@@ -28,4 +28,6 @@ export interface ToolRegistryEntry {
   presets: { default: PresetFields } & Record<string, PresetFields>;
   outs: string[];
   component: () => Promise<unknown>;
+  /** Whether the tool is released (P1-A4's Challenge and pages; added by P1-A5 as MERGE asked). */
+  released?: boolean;
 }
