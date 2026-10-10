@@ -28,6 +28,14 @@ const PHASE_2_NAMES = [
   'playFate',
 ] as const;
 
+// Phase 3 (stage 3.1, MERGE on the requests of P3-A1 and P3-A2): the names of weyl.ts, heaps.ts and
+// geometry.ts, pinned here as the earlier phases are.
+const PHASE_3_NAMES = [
+  'bipartition', 'separatingRoots', 'wavePlay', 'exponentsFromFired', 'weylOrder', 'orbitSize', 'weylDimension',
+  'countCompleteGames', 'legalLayers', 'heap', 'heapKey', 'commutationClassSize', 'symbolicPlay', 'allCompleteGames',
+  'choleskyBasis',
+] as const;
+
 const PHASE_0_NAMES = [
   'SafeInt', 'Big', 'EngineError', 'NotABoard', 'NeedsTwoWayRoads', 'NeedsConnectedBoard', 'NotFiniteType',
   'NotAffine', 'NotAdmissible', 'EngineOverflow', 'CAPS', 'cartan', 'boardFromName', 'fromAdjacency',
@@ -43,7 +51,8 @@ describe('exports of src/index.ts', () => {
     for (const n of PHASE_1_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
     for (const n of PHASE_0_NAMES) expect(api).toHaveProperty(n);
     for (const n of PHASE_2_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
-    expect(Object.keys(api).sort()).toEqual([...PHASE_0_NAMES, ...PHASE_1_NAMES, ...PHASE_2_NAMES].sort());
+    for (const n of PHASE_3_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
+    expect(Object.keys(api).sort()).toEqual([...PHASE_0_NAMES, ...PHASE_1_NAMES, ...PHASE_2_NAMES, ...PHASE_3_NAMES].sort());
   });
 
   it('exports the four types (checked by tsc on this file)', () => {
