@@ -67,3 +67,16 @@ export { formValue, formIsInvariant, isRootPopulation, coroot } from './form';
 export type { InvarianceResult } from './form';
 export { requireGcm, requireConnected, requireFinite, requireAffine } from './guards';
 export { playFate } from './play';
+// phase 3 (P3-A1): weyl.ts
+export {
+  bipartition,
+  separatingRoots,
+  wavePlay,
+  exponentsFromFired,
+  weylOrder,
+  orbitSize,
+  weylDimension,
+  countCompleteGames,
+  legalLayers,
+} from './weyl';
+export type { WaveResult } from './weyl';
