@@ -1,20 +1,80 @@
 ---
-import '../styles/base.css';
-import { katexStylesheetHref } from '@lib/katex';
+// The phase-0 page (SPEC.md 9.1 row 0): one board on A2, rendered at build time and hydrated
+// when the browser is idle (7.6). The caption's results are computed here by the engine, never
+// typed; the formula is typeset here by renderTex (A-12), never in the browser.
+import Base from '../layouts/Base.astro';
+import BoardSeed from '@components/board/BoardSeed.svelte';
+import { displayValue } from '@components/board/sign';
+import { renderTex } from '@lib/katex';
+import { boardFromName, mutate, toPositions } from '@engine';
+import type { Board } from '@engine';
+
+const title = 'Two Games on a Dynkin Diagram';
+const boardName = 'A2';
+const start = [1, 0];
+
+const board = boardFromName(boardName) as Board<number>;
+const position = (label: number): number => toPositions(board, [label])[0]!;
+const shown = (p: readonly number[]): string => `(${p.map((v) => displayValue(board.arith.show(v))).join(', ')})`;
+const afterCity1 = mutate(board, start, position(1));
+const afterCity2 = mutate(board, start, position(2));
+
+const formula = renderTex('p_i \\longmapsto p_i - \\sum_{j} C_{ij}\\,p_j', true);
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Two Games on a Dynkin Diagram</title>
-    <link rel="stylesheet" href={katexStylesheetHref(import.meta.env.BASE_URL)} />
-  </head>
-  <body>
-    <main>
-      <h1>Two Games on a Dynkin Diagram</h1>
-      <p>This site is being built. It will teach two games played on a Dynkin diagram and the Lie theory they lead to.</p>
-    </main>
-  </body>
-</html>
+<Base title={title} description="Two games on a Dynkin diagram, and the Lie theory they lead to.">
+  <h1>{title}</h1>
+  <p>
+    This site teaches the intuition that connects two elementary games on a board to Lie theory.
+    Below is the board A<sub>2</sub>, two cities joined by one road each way, in the <span class="view-name"><svg class="city-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 15V8h4V4h3v4h2V2h4v13z" /></svg>Populations</span> view of N. J. Wildberger's mutation game. In his story the cities are on Mars: one Martian lives in city 1, and city 2 is empty.
+  </p>
+  <p>
+    Mutating a city changes only that city's population, by the rule below, where C is the board's
+    Cartan matrix. Press a city to mutate it; Undo, Redo and Reset step back and forth through the play.
+  </p>
+  <div class="formula">
+    <Fragment set:html={formula} />
+  </div>
+  <figure class="tool-figure">
+    <BoardSeed client:idle id="b1" boardName={boardName} start={start} name="Board A2, Populations view" />
+    <figcaption>
+      The board A<sub>2</sub> starting from {shown(start)}. Mutating city 1 gives {shown(afterCity1)}; the population of
+      city 2 does not move. Mutating city 2 instead gives {shown(afterCity2)}.
+    </figcaption>
+  </figure>
+</Base>
+
+<style>
+  .view-name {
+    white-space: nowrap;
+    border-bottom: 2px solid var(--accent-populations);
+  }
+  .city-icon {
+    width: 1em;
+    height: 1em;
+    margin-inline-end: 0.25em;
+    vertical-align: -0.125em;
+    fill: none;
+    stroke: var(--accent-populations);
+    stroke-width: 1.5;
+  }
+  .formula {
+    overflow-x: auto;
+  }
+  .tool-figure {
+    container-type: inline-size;
+    margin: 24px 0;
+  }
+  .tool-figure figcaption {
+    margin-top: 8px;
+  }
+  /* Below 400 pixels the board's box runs from edge to edge of the viewport (SPEC.md 6.1). */
+  @media (max-width: 399.98px) {
+    .tool-figure {
+      margin-inline: -16px;
+    }
+    .tool-figure figcaption {
+      padding-inline: 16px;
+    }
+  }
+</style>

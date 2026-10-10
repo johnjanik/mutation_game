@@ -1,0 +1,108 @@
+---
+// The page shell (created by P0-A5; P0-A1 created none). Live-region convention: this layout has
+// no page-level live region. Each tool renders its own polite region inside its root (SPEC.md 7.5
+// A-4), present and empty before the first move, so that tools on one page never share one.
+// The layout ships no <script>. Every href is built from import.meta.env.BASE_URL (7.2 item 10).
+// The footer with the pinned versions and the licence line (7.2, 7.9) is P6-A6's.
+import '../styles/base.css';
+import { katexStylesheetHref } from '@lib/katex';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const links = [
+  { href: base, text: 'Home' },
+  { href: `${base}about/`, text: 'About' },
+  { href: `${base}credits/`, text: 'Credits' },
+];
+const here = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="stylesheet" href={katexStylesheetHref(import.meta.env.BASE_URL)} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+    <header class="site-header">
+      <nav aria-label="Site">
+        <ul>
+          {links.map((l) => <li><a href={l.href} aria-current={here === l.href ? 'page' : undefined}>{l.text}</a></li>)}
+        </ul>
+      </nav>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <nav aria-label="Footer">
+        <ul>
+          {links.map((l) => <li><a href={l.href}>{l.text}</a></li>)}
+        </ul>
+      </nav>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  body {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .skip-link {
+    position: absolute;
+    left: 8px;
+    top: -100px;
+    padding: 8px 12px;
+    background: var(--page);
+    color: var(--text);
+    border: 2px solid var(--focus-ring);
+    z-index: 10;
+  }
+  .skip-link:focus {
+    top: 8px;
+  }
+  .site-header,
+  .site-footer,
+  main {
+    max-width: 42rem;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  .site-header ul,
+  .site-footer ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+  }
+  .site-header a,
+  .site-footer a {
+    display: inline-block;
+    min-height: 24px;
+    padding: 10px 0;
+  }
+  .site-footer {
+    margin-top: 32px;
+    border-top: 1px solid var(--sign-zero-outline);
+  }
+  a {
+    color: var(--text);
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+</style>
