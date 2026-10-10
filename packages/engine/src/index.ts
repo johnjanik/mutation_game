@@ -80,3 +80,7 @@ export {
   legalLayers,
 } from './weyl';
 export type { WaveResult } from './weyl';
+
+// phase 3 (P3-A2): heaps.ts, geometry.ts
+export { heap, heapKey, commutationClassSize, symbolicPlay, allCompleteGames } from './heaps';
+export { choleskyBasis } from './geometry';
