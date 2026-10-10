@@ -16,3 +16,5 @@ reports/*
 !reports/gate-*.md
 !reports/discrepancies/
 __pycache__/
+# worktrees the Claude Code harness creates for build agents
+.claude/worktrees/
