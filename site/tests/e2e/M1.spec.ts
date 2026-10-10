@@ -272,6 +272,20 @@ test('numbers-in-prose report for this file is empty', () => {
   // Both sections empty (the reading of decisions/P1-A8.md and P1-A9.md).
   expect(findings.filter((f) => f.kind === 'prose')).toEqual([]);
   expect(findings.filter((f) => f.kind === 'formula')).toEqual([]);
+  // The scan is not vacuous: a number added at the end of any prose line is found. (An apostrophe
+  // inside an MDX comment once hid the rest of a lesson from the scanner.)
+  const source = readFileSync(LESSON_PATH, 'utf8');
+  const lines = source.split('\n');
+  let probed = 0;
+  for (const [k, line] of lines.entries()) {
+    if (!/^[A-Z]/.test(line)) continue;
+    const copy = [...lines];
+    copy[k] = `${line} 987654`;
+    const seen = scanSource(copy.join('\n'), 'probe').some((f) => f.kind === 'prose' && f.number === '987654');
+    expect(seen, `a number on line ${k + 1} is seen by the scanner`).toBe(true);
+    probed++;
+  }
+  expect(probed).toBeGreaterThan(15);
 });
 
 test('the garden follows the board in beat 1', async ({ page }) => {
