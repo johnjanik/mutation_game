@@ -119,7 +119,7 @@ route                               LCP (<= 2.5 s)  TBT (<= 200 ms)  CLS (<= 0.1
 /modules/m2-form/                   1.346           276.2            0.0011        OVER (TBT)
 /modules/m3-classification/         1.459           332.1            0.0017        OVER (TBT)
 /modules/m4-numbers/                1.456           269.9            0.0387        OVER (TBT)
-/modules/m5-weyl/                   1.670           307.7            0.0007        OVER (TBT)
+/modules/m5-weyl/                   1.670           329.1            0.0007        OVER (TBT)
 canary (slow fixture, not a route)  3.643           554.1            0.3730        over on LCP, TBT, CLS (as it must be)
 lab: 7 routes measured, 6 over threshold, 0 missing or in error
 ```
