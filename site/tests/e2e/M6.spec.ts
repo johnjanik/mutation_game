@@ -14,7 +14,8 @@
 //   T2, registry site/src/tools/registry/T02.ts: found, total, stopMessage, layersGrown, vertex;
 //     data-control showTotal
 //   T3, registry site/src/tools/registry/T03.ts (T03_OUTS): testVerdict, meterNote; data-control weightField
-//     (data-weight, data-weight-index), test, picker (absent on b13, which follows b11); data-table-value
+//     (data-weight, data-weight-index), test, picker (absent on b13, which follows b11); data-table-value;
+//     data-board-name and data-part (the part a preset brings to the front comes first)
 //   T7, registry site/src/tools/registry/T07.ts (T07_OUTS): firedForms (li data-form), rootRow
 //     (data-root, data-used)
 //   T11, registry site/src/tools/registry/T11.ts (T11_OUTS): big-board, folded-board, folded-name
@@ -26,8 +27,13 @@
 //     data-met, data-challenge-result (text "Goal reached."); data-source; data-link;
 //     data-unverified and a.unverified-mark (P0-A4 Unverified)
 //   this lesson's own markup: #wildberger-names with data-table ("names", "misprints"), data-name-row,
-//     data-misprint, data-warning-line; data-figure="roots-compared" with data-row and data-differs;
-//     data-seen-statement
+//     data-misprint, data-warning-line; data-figure="roots-compared" with data-row and data-differs
+//     (each root of B2 in the row of its own coroot); data-seen-statement
+//
+// Golden values are read from reference/golden_data.json, never typed, except the literals that
+// build-plan/agents/P4-A5-lesson-m6.md 5.15 names (the names B2, G2, F4, B3, C3 of test 8 and the row
+// text and misprint tokens of test 6), which are pinned beside the value read so that a change of the
+// golden file shows here.
 //
 // No linked view of T1 is placed on this page, so the bridge sentence of 2.4(a) is not repeated; the
 // test "no linked view" checks that this stays true (instruction 5.15 item 13).
@@ -122,6 +128,23 @@ const E6F = fold('E6', [6, 2, 5, 4, 3, 1]);
 const MP = GOLDEN.wildberger_lists.misprints_in_paper_and_manuscript;
 const MM = GOLDEN.wildberger_lists.misprints_in_manuscript_only;
 
+/** The invariant form (p, p) = p^T D C p of SPEC 2.5, from the golden Cartan matrix and symmetrizer. */
+function formValue(name: string, p: readonly number[]): number {
+  const { cartan, symmetrizer } = T(name);
+  return p.reduce((s, pi, i) => s + pi * symmetrizer[i]! * p.reduce((t, pj, j) => t + cartan[i]![j]! * pj, 0), 0);
+}
+/** The coroot of a root in the simple coroots: coordinates b_i d_i / ((beta, beta) / 2) (SPEC 2.5, Coroots). */
+function corootOf(name: string, root: readonly number[]): number[] {
+  const half = formValue(name, root) / 2;
+  return root.map((b, i) => (b * T(name).symmetrizer[i]!) / half);
+}
+/** The coefficients of a linear form written in TeX as x_1, 2x_1+x_2 and so on, in label order. */
+function coefficients(tex: string, n: number): number[] {
+  const out: number[] = new Array(n).fill(0);
+  for (const m of tex.replace(/\s+/g, '').matchAll(/(\d*)x_(\d)/g)) out[Number(m[2]) - 1] = m[1] === '' ? 1 : Number(m[1]);
+  return out;
+}
+
 // ---------------------------------------------------------------------------------------------
 // The engine, for positions with no golden value
 // ---------------------------------------------------------------------------------------------
@@ -156,6 +179,21 @@ const node = (page: Page, id: string, board: 'populations' | 'numbers', label: n
   tool(page, id).locator(`button[data-board="${board}"][data-node="${label}"]`).first();
 const foldNode = (page: Page, id: string, which: 'big-board' | 'folded-board', label: number): Locator =>
   out(page, id, which).locator(`button[data-node="${label}"]`);
+const weightField = (page: Page, id: string, kind: 'city' | 'road', index: number): Locator =>
+  tool(page, id).locator(`[data-control="weightField"][data-weight="${kind}"][data-weight-index="${index}"]`);
+/** Types city and road weights into a T3 builder and presses Test. */
+async function testWeights(page: Page, id: string, city: readonly number[], road: readonly number[]): Promise<void> {
+  for (const [k, w] of city.entries()) await weightField(page, id, 'city', k).fill(String(w));
+  for (const [k, w] of road.entries()) await weightField(page, id, 'road', k).fill(String(w));
+  for (const [k, w] of city.entries()) await expect(weightField(page, id, 'city', k)).toHaveValue(String(w));
+  for (const [k, w] of road.entries()) await expect(weightField(page, id, 'road', k)).toHaveValue(String(w));
+  await control(page, id, 'test').click();
+}
+/** The weights that pass on a board of rank two by SPEC 4 T3: w_i = 2 d_i and w_12 = 2 d_1 A_21, from the golden file. */
+function passingWeights(name: string): { city: number[]; road: number[] } {
+  const d = T(name).symmetrizer;
+  return { city: d.map((x) => 2 * x), road: [2 * d[0]! * T(name).adjacency[1]![0]!] };
+}
 const norm = (s: string | null): string => (s ?? '').replace(/\s+/g, ' ').trim();
 /** <G> output: grouping spaces U+202F and true minus signs U+2212 normalised away. */
 const plain = (s: string | null): string => norm((s ?? '').replace(/\u202f/g, '').replace(/\u2212/g, '-'));
@@ -507,10 +545,19 @@ test('the first figure is B2 in roads style with (1,0)', async ({ page }) => {
   await expect(roads).toHaveAttribute('data-road-style', 'roads');
   const roadCount = T('B2').adjacency.flat().reduce((s, x) => s + x, 0);
   await expect(roads.locator('path')).toHaveCount(roadCount);
-  // The panels show the form value of the long root population (1, 0) and the long and short nodes.
-  await expect(out(page, 'b1', 'formValue')).toHaveAttribute('data-value', '4');
-  await expect(out(page, 'b1', 'lengths').locator('[data-label="1"]')).toHaveAttribute('data-length', 'long');
-  await expect(out(page, 'b1', 'lengths').locator('[data-label="2"]')).toHaveAttribute('data-length', 'short');
+  // The panels show the form value of the long root population (1, 0) and the long and short nodes,
+  // both from the golden Cartan matrix and symmetrizer.
+  await expect(out(page, 'b1', 'formValue')).toHaveAttribute('data-value', String(formValue('B2', [1, 0])));
+  const d = T('B2').symmetrizer;
+  const labels = [...boardFromName('B2').labels].sort((a, b) => a - b);
+  for (const [k, label] of labels.entries()) {
+    await expect(out(page, 'b1', 'lengths').locator(`[data-label="${label}"]`)).toHaveAttribute('data-length', d[k] === Math.max(...d) ? 'long' : 'short');
+  }
+  // SPEC 8.2 item 2: the first figure has a one-sentence caption.
+  const caption = norm(await out(page, 'b1', 'caption').textContent());
+  expect(sentences(caption), caption).toHaveLength(1);
+  expect(caption).toContain('B2');
+  expect(caption).toContain(tuple(T('B2').highest_root));
   // The garden beside it: roots, explore, two layers grown, 8 found on load and no stop message.
   await expect(out(page, 'b2', 'found')).toHaveText(String(T('B2').n_roots));
   await expect(out(page, 'b2', 'stopMessage')).toHaveCount(0);
@@ -529,6 +576,56 @@ test('the first figure is B2 in roads style with (1,0)', async ({ page }) => {
   expect(beat1).toContain("Wildberger's rule");
 });
 
+test('beat 3: the builder on B2 passes for city weights in the ratio of the symmetrizer', async ({ page }) => {
+  // SPEC 3 M6 row 3: the T3 builder on B2, passing exactly for city weights in the ratio 2:1.
+  await page.goto(ROUTE);
+  await hydrate(page, 'b5');
+  await expect(tool(page, 'b5').locator('[data-board-name]')).toHaveAttribute('data-board-name', 'B2');
+  await expect(control(page, 'b5', 'picker')).toHaveValue('B2');
+  await expect(tool(page, 'b5').locator('[data-part]').first(), 'the builder preset brings the builder to the front').toHaveAttribute('data-part', 'builder');
+  await expect(tool(page, 'b5').locator('button[data-board="populations"][data-node]')).toHaveCount(T('B2').cartan.length);
+  // The starting weights are equal, as on A2, and fail.
+  const start = await tool(page, 'b5').locator('[data-control="weightField"]').evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
+  expect(new Set(start).size, `equal starting weights ${start.join(', ')}`).toBe(1);
+  await control(page, 'b5', 'test').click();
+  await expect(out(page, 'b5', 'testVerdict')).toHaveAttribute('data-invariant', 'false');
+  // w_i = 2 d_i and w_12 = 2 d_1 A_21 (SPEC 4 T3) from the golden symmetrizer pass, and so do half of them.
+  const { city, road } = passingWeights('B2');
+  await testWeights(page, 'b5', city, road);
+  await expect(out(page, 'b5', 'testVerdict')).toHaveAttribute('data-invariant', 'true');
+  await expect(out(page, 'b5', 'testVerdict')).toHaveText('Passes: every mutation preserves this form.');
+  await testWeights(page, 'b5', city.map((w) => w / 2), road.map((w) => w / 2));
+  await expect(out(page, 'b5', 'testVerdict')).toHaveAttribute('data-invariant', 'true');
+  // The city weights exchanged (the ratio the other way) fail.
+  await testWeights(page, 'b5', [...city].reverse(), road);
+  await expect(out(page, 'b5', 'testVerdict')).toHaveAttribute('data-invariant', 'false');
+  // The prose names the passing weights and the starting ones.
+  const beat3 = norm(await proseText(page, '[data-beat="3"]'));
+  expect(beat3).toContain([...city, ...road].join(','));
+  expect(beat3).toContain(start.join(','));
+});
+
+test('balanced boards: a form with positive city weights, and the one-way remark is the site\'s', async ({ page }) => {
+  // SPEC 2.5: the invariant form has positive weights d_i; Wildberger's cycle condition counts a lone
+  // one-way road as balanced, which is this site's remark, not a statement of [W20] Corollary 8.5.
+  await page.goto(ROUTE);
+  const seen = sentences(await proseText(page, '[data-anatomy="seen"]')).filter((s) => s.includes('no mutation changes'));
+  expect(seen, 'one Seen statement on invariant forms').toHaveLength(1);
+  expect(seen[0]).toContain('a form with positive city weights that no mutation changes exactly when it is balanced');
+  expect(seen[0]).toContain('[W20]');
+  const beat3 = sentences(await proseText(page, '[data-beat="3"]'));
+  const forms = beat3.filter((s) => s.includes('no mutation changes'));
+  expect(forms).toHaveLength(1);
+  expect(forms[0]).toContain('a form with positive city weights that no mutation changes exactly when it is balanced');
+  const oneWay = beat3.filter((s) => /one-way/.test(s));
+  expect(oneWay, 'one sentence on the one-way road').toHaveLength(1);
+  expect(oneWay[0], 'the one-way remark carries no citation').not.toMatch(/\[W20\]|Corollary/);
+  expect(oneWay[0]).toMatch(/not balanced here/);
+  const corollary = beat3.filter((s) => s.includes('Corollary 8.5'));
+  expect(corollary).toHaveLength(1);
+  expect(corollary[0], 'Corollary 8.5 is not cited for the one-way road').not.toMatch(/one-way/);
+});
+
 test('beat 4: the symbolic game on B2 fires the roots of the reversed board', async ({ page }) => {
   await page.goto(ROUTE);
   await hydrate(page, 'b6');
@@ -539,19 +636,70 @@ test('beat 4: the symbolic game on B2 fires the roots of the reversed board', as
   expect(rows.map((r) => r[0]).sort()).toEqual(T('C2').positive_roots.map((r) => r.join(',')).sort());
   for (const [, used] of rows) expect(used).toBe('true');
   expect(rows.map((r) => r[0]).sort()).not.toEqual(T('B2').positive_roots.map((r) => r.join(',')).sort());
-  // The static table: row 4 differs, the other rows agree.
+  // The static table pairs each positive root of B2 with its own coroot (SPEC 2.5, Coroots): the form
+  // fired and the same coefficients as a root of C2. The coroots are the forms T7 fires.
   const table = page.locator('[data-figure="roots-compared"] tbody tr');
-  for (let k = 0; k < 4; k++) {
-    const tds = await table.nth(k).locator('td').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/\u202f/g, '')));
-    expect(tds[0], `row ${k}`).toContain(tuple(T('B2').positive_roots[k]!));
-    expect(tds[2], `row ${k}`).toContain(tuple(T('C2').positive_roots[k]!));
-    expect(await table.nth(k).getAttribute('data-differs'), `row ${k}`).toBe(T('B2').positive_roots[k]!.join() === T('C2').positive_roots[k]!.join() ? null : 'true');
+  await expect(table).toHaveCount(T('B2').n_positive_roots);
+  const coroots: string[] = [];
+  for (const [k, root] of T('B2').positive_roots.entries()) {
+    const coroot = corootOf('B2', root);
+    coroots.push(coroot.join(','));
+    const tds = await table.nth(k).locator('td').evaluateAll((els) =>
+      els.map((e) => ({ text: (e.textContent ?? '').replace(/\u202f/g, ''), tex: e.querySelector('annotation')?.textContent ?? '' })),
+    );
+    expect(tds[0]!.text, `row ${k}: the root`).toContain(tuple(root));
+    expect(coefficients(tds[1]!.tex, root.length), `row ${k}: the form fired is the coroot of ${tuple(root)}`).toEqual(coroot);
+    expect(tds[2]!.text, `row ${k}: the coroot as a root of C2`).toContain(tuple(coroot));
+    expect(await table.nth(k).getAttribute('data-differs'), `row ${k}`).toBe(root.join() === coroot.join() ? null : 'true');
   }
+  expect([...coroots].sort()).toEqual(T('C2').positive_roots.map((r) => r.join(',')).sort());
+  expect([...coroots].sort()).toEqual([...forms].sort());
   const beat4 = plain(await proseText(page, '[data-beat="4"]'));
   expect(beat4).toContain('heights of coroots');
   expect(beat4).toContain(`whose highest root is ${tuple(T('B2').highest_root_of_reversed_board)} where B_2 has ${tuple(T('B2').highest_root)}`);
   expect(beat4).toContain('B_2=C_2');
   expect(beat4).toMatch(/Mozes.*Proctor's earlier use of the same process.*Eriksson's development/);
+});
+
+test('the lesson leaves the form, the coroots and the squared lengths to the engine', () => {
+  // CLAUDE.md, Rules: mathematics lives only in packages/engine, and the pages call it. The lesson reads
+  // golden values and calls the engine (coroot, formValue); it writes no invariant form, coroot or
+  // squared length of its own (adversarial review of wave 4.4).
+  const source = readFileSync(LESSON_PATH, 'utf8');
+  const exports = source.split('\n').filter((l) => l.startsWith('export const '));
+  // The invariant form p^T D C p written by hand is a double sum.
+  for (const l of exports) expect(l, 'a sum written in the lesson').not.toMatch(/\.reduce\(/);
+  // The board's matrices are the engine's (boardFromName): the lesson reads no golden Cartan matrix or
+  // adjacency to compute with.
+  expect(source.match(/(?:gv|resolveGoldenPath)\('types\.\w+\.(?:cartan|adjacency)'\)/g) ?? []).toEqual([]);
+  // The weights d_i are printed, never multiplied or divided: (alpha_i, alpha_i) = 2 d_i is formValue's.
+  expect(source).not.toMatch(/gv\('types\.\w+\.symmetrizer'\)(?:\[\d+\])?\s*[*/]/);
+  const weights = [...source.matchAll(/^export const (\w+) = gv\('types\.\w+\.symmetrizer'\);$/gm)].map((m) => m[1]!);
+  for (const w of weights) {
+    expect(source, `the weights ${w} in a product or a quotient`).not.toMatch(new RegExp(`[*/]\\s*${w}\\b|\\b${w}(?:\\[\\d+\\])?\\s*[*/]`));
+  }
+  // The coroots of the table of beat 4 come from the engine's coroot, the squared lengths of the G2
+  // challenge from its formValue.
+  const engineImport = /^import \{([^}]*)\} from '@engine';$/m.exec(source)?.[1] ?? '';
+  expect(engineImport.split(',').map((s) => s.trim())).toEqual(expect.arrayContaining(['coroot', 'formValue']));
+  const definition = (name: string): string => exports.find((l) => l.startsWith(`export const ${name} =`)) ?? '';
+  expect(definition('COROOTS'), 'the coroot table').toMatch(/\bcoroot\(/);
+  // The exports that rest on formValue, directly or through another export; the b13 explanation uses one.
+  const names = exports.map((l) => /^export const (\w+)/.exec(l)![1]!);
+  const fromForm = new Set<string>();
+  for (let grown = true; grown; ) {
+    grown = false;
+    for (const name of names) {
+      if (fromForm.has(name)) continue;
+      const body = definition(name).replace(/^export const \w+ =/, '');
+      if (/\bformValue\(/.test(body) || [...fromForm].some((f) => new RegExp(`\\b${f}\\b`).test(body))) {
+        fromForm.add(name);
+        grown = true;
+      }
+    }
+  }
+  const b13 = /<Challenge\b[^\n]*\bfor="b13"[^\n]*\bexplanation=\{`([^`]*)`\}/.exec(source)?.[1] ?? '';
+  expect([...fromForm].filter((name) => new RegExp(`\\$\\{${name}\\b`).test(b13)), 'the squared lengths of the G2 challenge').not.toEqual([]);
 });
 
 test('anatomy', async ({ page }) => {
@@ -650,8 +798,10 @@ test('no forbidden statement', async ({ page }) => {
   // 2.13: each construction is named where it is shown.
   expect(all).toContain('folding the board, by orbit sums');
   expect(all).toContain('restricting the roots, by orbit averages');
-  // 2.5: balanced on this site means that the weights exist.
-  expect(all).toContain('here it means that the weights exist');
+  // 2.5: balanced on this site means that the weights exist; Wildberger's cycle condition is named beside it.
+  expect(norm(all)).toMatch(/A board with positive weights such that .+? is a balanced board/);
+  expect(all).toContain("Wildberger's definition, a condition on cycles");
+  expect(all).toContain('not balanced here');
 });
 
 test('no linked view, so no bridge sentence to repeat', async ({ page }) => {
@@ -753,11 +903,10 @@ test('challenge: find the four short root populations of B2', async ({ page }) =
     seen.add(steps[k + 1]!.join(','));
   }
   expect(seen.size).toBe(target);
-  // The populations met are the short root populations and their negatives: form value 2, with the
-  // form B = DC of SPEC 2.5 from the golden Cartan matrix and symmetrizer.
-  const { cartan, symmetrizer } = T('B2');
-  const form = (p: number[]): number => p.reduce((s, pi, i) => s + pi * symmetrizer[i]! * p.reduce((t, pj, j) => t + cartan[i]![j]! * pj, 0), 0);
-  const shorts = T('B2').positive_roots.filter((r) => form(r) === 2);
+  // The populations met are the short root populations and their negatives: the least form value,
+  // 2 min d_i, with the form B = DC of SPEC 2.5 from the golden Cartan matrix and symmetrizer.
+  const shortValue = 2 * Math.min(...T('B2').symmetrizer);
+  const shorts = T('B2').positive_roots.filter((r) => formValue('B2', r) === shortValue);
   expect(shorts).toHaveLength(T('B2').n_short_positive!);
   expect([...seen].sort()).toEqual(shorts.flatMap((r) => [r.join(','), r.map((x) => -x).join(',')]).sort());
   await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
@@ -767,14 +916,8 @@ test('challenge: weights on G2 that the builder accepts', async ({ page }) => {
   await page.goto(ROUTE);
   const challenge = await challengeFor(page, 'b13');
   await hydrate(page, 'b13');
-  const field = (kind: 'city' | 'road', index: number): Locator =>
-    tool(page, 'b13').locator(`[data-control="weightField"][data-weight="${kind}"][data-weight-index="${index}"]`);
-  const set = async (city: number[], road: number[]): Promise<void> => {
-    for (const [k, w] of city.entries()) await field('city', k).fill(String(w));
-    for (const [k, w] of road.entries()) await field('road', k).fill(String(w));
-    for (const [k, w] of city.entries()) await expect(field('city', k)).toHaveValue(String(w));
-    await control(page, 'b13', 'test').click();
-  };
+  const field = (kind: 'city' | 'road', index: number): Locator => weightField(page, 'b13', kind, index);
+  const set = (city: number[], road: number[]): Promise<void> => testWeights(page, 'b13', city, road);
   // The check reads only the verdict, so the builder must stay on G2 (repair of wave 4.3: with a board
   // picker, A2 and its starting weights 1, 1, 1 passed and reported the goal). The reader can reach no
   // other board: b13 has no picker, and its meter follows b11, the G2 board of the first challenge,
@@ -795,11 +938,16 @@ test('challenge: weights on G2 that the builder accepts', async ({ page }) => {
   await page.waitForTimeout(200);
   await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
   // w_i = 2 d_i and w_12 = 2 d_1 A_21 (SPEC 4 T3) with d from the golden symmetrizer.
-  const d = T('G2').symmetrizer;
-  const A21 = T('G2').adjacency[1]![0]!;
-  await set(d.map((x) => 2 * x), [2 * d[0]! * A21]);
+  const { city, road } = passingWeights('G2');
+  await set(city, road);
   await expect(out(page, 'b13', 'testVerdict')).toHaveText('Passes: every mutation preserves this form.');
   await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
+  // The explanation names the same weights, the symmetrizer and the ratio of squared lengths.
+  const d = T('G2').symmetrizer;
+  const explanation = plain(await challenge.locator('details').textContent());
+  expect(explanation).toContain(`squared length ${2 * Math.max(...d)}, ${T('G2').long_to_short_ratio} times that of the short city`);
+  expect(explanation).toContain(`in the ratio ${d.join(' to ')}`);
+  expect(explanation).toContain(`${city.join(', ')} and ${road.join(', ')}, or ${d.join(', ')} and ${road.map((w) => w / 2).join(', ')}`);
   // The caption's claim: the meter of b13 reads b11. After a move on b11, the table of b13 shows its population.
   await expect(out(page, 'b13', 'meterNote')).toHaveCount(1);
   await hydrate(page, 'b11');
@@ -808,7 +956,19 @@ test('challenge: weights on G2 that the builder accepts', async ({ page }) => {
   await expect(tool(page, 'b13').locator('[data-table-value="population"]')).toHaveText(text(along('G2', 'mutation', [0, 1], [1]).at(-1)!));
 });
 
-test('challenge: a board and a symmetry that fold to C3', async ({ page }) => {
+test('the explanation of the G2 builder challenge is written from the golden file', () => {
+  // SPEC 8.4 and 7.3: a number with a golden value is never typed. In the explanation of b13 every
+  // number is an expression (the symmetrizer and the ratio of squared lengths from the golden file,
+  // the squared lengths, which are the city weights, from the engine's formValue); only city labels
+  // are typed.
+  const source = readFileSync(LESSON_PATH, 'utf8');
+  const m = /<Challenge\b[^\n]*\bfor="b13"[^\n]*\bexplanation=\{`([^`]*)`\}/.exec(source);
+  expect(m, 'the b13 challenge and its explanation').not.toBeNull();
+  const typed = m![1]!.replace(/\$\{[^}]*\}/g, ' ').replace(/\bcity \d\b/gi, ' ');
+  expect(typed.match(/\d+/g) ?? [], typed).toEqual([]);
+});
+
+test(`challenge: a board and a symmetry that fold to ${D4S.folds_to}`, async ({ page }) => {
   await page.goto(ROUTE);
   const challenge = await challengeFor(page, 'b14');
   await hydrate(page, 'b14');
@@ -822,7 +982,6 @@ test('challenge: a board and a symmetry that fold to C3', async ({ page }) => {
   await control(page, 'b14', 'picker').selectOption('D4');
   await expect(out(page, 'b14', 'symmetry')).toBeAttached();
   await expect(out(page, 'b14', 'folded-name')).toHaveAttribute('data-name', D4S.folds_to!);
-  expect(D4S.folds_to).toBe('C3');
   await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
 });
 

@@ -17,7 +17,7 @@ import { G, Tex, Cite, Unverified } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased } from '@lib/pages/released';
 import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
-import { applyWord, boardFromName, toPositions } from '@engine';
+import { applyWord, boardFromName, coroot, formValue, ratToString, toPositions } from '@engine';
 import { BUILDER_TEXT } from '@components/tools/t03/weights';
 
 export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
@@ -52,11 +52,18 @@ export const SHORT_ROOTS = 2 * gv('types.B2.n_short_positive');
 export const SHORT_START = gv('types.B2.positive_roots[0]');
 export const SHORT_TOUR = [[1], [2], [2, 1]].map((w) => show(play('B2', 'mutation', SHORT_START, w)));
 export const SEEN = 'verified by computation';
+export const B2L = sorted(boardFromName('B2'));
+export const asForm = (c) => c.map((x, i) => (x === 0 ? '' : `${x === 1 ? '' : x}x_${B2L[i]}`)).filter((t) => t !== '').join('+');
+export const COROOTS = gv('types.B2.positive_roots').map((r, k) => { const b = boardFromName('B2'); const c = inLabels(b, coroot(b, fromLabels(b, r))); return { k, c, j: gv('types.C2.positive_roots').findIndex((q) => q.join() === c.join()), differs: c.join() !== r.join() }; });
+export const squaredLengths = (name) => { const b = boardFromName(name); return sorted(b).map((l) => ratToString(formValue(b, fromLabels(b, sorted(b).map((x) => (x === l ? 1 : 0)))))); };
+export const G2D = gv('types.G2.symmetrizer');
+export const G2_LENGTHS = squaredLengths('G2');
 
 {/* P4-A5: lesson M6, drafted from SPEC.md 2.1, 2.2, 2.4, 2.5, 2.8, 2.10, 2.13 and 3 M6 in the words
     of the site (D17: a draft until the owner approves it). Every number with a golden value goes
-    through G, a golden path inside Tex, or resolveGoldenPath in a property; positions and counts
-    with no golden value are computed with the engine in the exports above or written inside Tex;
+    through G, a golden path inside Tex, or resolveGoldenPath in a property; positions, coroots and
+    squared lengths with no golden value come from the engine (applyWord, coroot, formValue) in the
+    exports above, which compute no form or coroot of their own (CLAUDE.md), or are written inside Tex;
     node labels and locators are brace strings, so scripts/numbers-in-prose.mjs finds nothing in
     this file. Instance ids b1 to b14 in reading order; b1 is client:idle, every other island
     client:visible. No linked view is placed, so the bridge sentence is not repeated here. No
@@ -71,7 +78,7 @@ Wildberger's rule is unchanged <Cite k="W20"/> ({'section 2'}): when city $i$ mu
 
 The garden finds <G k="types.B2.n_roots"/> <Term a="root-population">root populations</Term>: <G k="types.B2.positive_roots[0]"/>, <G k="types.B2.positive_roots[1]"/>, <G k="types.B2.positive_roots[2]"/>, <G k="types.B2.positive_roots[3]"/> and their negatives, the highest being <G k="types.B2.highest_root"/>. The <Term a="form-value">form value</Term> in the panel shows two kinds: **long** ones <Tex src="\pm{{types.B2.positive_roots[1]}}"/>, <Tex src="\pm{{types.B2.positive_roots[3]}}"/> with value <Tex src="4"/>, **short** ones <Tex src="\pm{{types.B2.positive_roots[0]}}"/>, <Tex src="\pm{{types.B2.positive_roots[2]}}"/> with value <Tex src="2"/>. So <G k="types.B2.n_long_positive"/> positive ones are long, <G k="types.B2.n_short_positive"/> short, and the highest short one is <G k="types.B2.highest_short_root"/>.
 
-<T01GameBoard slot="figure" client:idle id="b1" board="B2" view="populations" mode="free" coords="populations" start={[1, 0]} roadStyle="roads" panels={['form', 'lengths']} prediction={{ question: 'City 2 holds nothing, and two roads lead into it from city 1, which holds one Martian. What will city 2 hold after it mutates?', answer: { type: 'number', value: B2_CITY_TWO[1] }, reveal: `${B2_CITY_TWO[1]}: city 2 has nothing to change, and one Martian arrives down each of the two roads from city 1. The population is now ${fmt('types.B2.highest_root')}, the highest root population of B2.` }} caption={`B2 has two roads from city 1 to city 2 and one back. Mutating city 2 turns one Martian in city 1 into ${fmt('types.B2.highest_root')}, the highest root population, and the form value stays 4.`} />
+<T01GameBoard slot="figure" client:idle id="b1" board="B2" view="populations" mode="free" coords="populations" start={[1, 0]} roadStyle="roads" panels={['form', 'lengths']} prediction={{ question: 'City 2 holds nothing, and two roads lead into it from city 1, which holds one Martian. What will city 2 hold after it mutates?', answer: { type: 'number', value: B2_CITY_TWO[1] }, reveal: `${B2_CITY_TWO[1]}: city 2 has nothing to change, and one Martian arrives down each of the two roads from city 1. The population is now ${fmt('types.B2.highest_root')}, the highest root population of B2.` }} caption={`On B2, with two roads from city 1 to city 2 and one back, mutating city 2 turns one Martian in city 1 into ${fmt('types.B2.highest_root')}, the highest root population, and the form value stays 4.`} />
 <T02OrbitGarden slot="figure" client:visible id="b2" preset="explore" board="B2" grows="roots" growth="explore" grown={2} linkTo="b1" caption={`The garden of B2, grown from the two single Martians: ${fmt('types.B2.n_roots')} root populations, ${fmt('types.B2.positive_roots[0]')}, ${fmt('types.B2.positive_roots[1]')}, ${fmt('types.B2.positive_roots[2]')}, ${fmt('types.B2.positive_roots[3]')} and their negatives.`} />
 </Beat>
 
@@ -91,7 +98,7 @@ On <Tex src="B_2"/> the builder rejects the equal weights <Tex src="2,2,2"/> tha
 
 Half the city weights, <G k="types.B2.symmetrizer"/>, are the <Term a="weights">weights</Term> $d_i$. A board with positive weights such that $d_iA_{ji}=d_jA_{ij}$ is a <Term a="balanced-board">balanced board</Term>, and city $i$ has squared length <Tex src="(\alpha_i,\alpha_i)=2d_i"/>: <Tex src="4"/> and <Tex src="2"/> here. As $d_i/d_j=A_{ij}/A_{ji}$, more roads run from the long city to the short one. On <Tex src="G_2"/>, with weights <G k="types.G2.symmetrizer"/>, city {'2'} is long, with squared length <Tex src="6"/>: the ratio of squared lengths is <G k="types.G2.long_to_short_ratio"/>, against <G k="types.B2.long_to_short_ratio"/> on <Tex src="B_2"/>. On <Tex src="F_4"/> cities {'1'}, {'2'} are long and {'3'}, {'4'} short.
 
-A board has such a form exactly when it is balanced, unique up to a factor <Cite k="W20"/> ({'Theorems 8.4 and 8.7'}). Wildberger defines balanced by a condition on cycles, which every tree meets, a lone one-way road included <Cite k="W20"/> ({'Corollary 8.5'}); here it means that the weights exist.
+A board has a form with positive city weights that no mutation changes exactly when it is balanced, unique up to a factor <Cite k="W20"/> ({'Theorems 8.4 and 8.7'}). Wildberger's definition, a condition on cycles, agrees when every road has a road back <Cite k="W20"/> ({'Corollary 8.5'}). A lone one-way road meets his condition but, lacking positive weights, is not balanced here.
 
 <T03FormFinder slot="figure" client:visible id="b5" preset="builder" board="B2" cityWeights={[2, 2]} roadWeights={[{ pair: [1, 2], weight: 2 }]} caption="On B2 the test passes exactly when city 1 weighs twice city 2 and the road weight equals the weight of city 1, as with 4, 2 and 4; the weights 2, 2 and 2, which pass on A2, fail." />
 </Beat>
@@ -105,15 +112,12 @@ On <Tex src="B_2"/> the complete symbolic game fires <Tex src="x_1"/>, <Tex src=
 <T07SymbolicGame slot="figure" client:visible id="b6" preset="default" board="B2" moves={gv('types.B2.longest_word')} caption={`The complete legal game ${fmt('types.B2.longest_word', 'plain')} on B2 from all ones, played with letters, fires x1, 2x1 + x2, x1 + x2 and x2: the positive root populations of the reversed board C2.`} />
 <figure slot="figure" data-figure="roots-compared">
 <table>
-<thead><tr><th scope="col">Roots of <Tex src="B_2"/></th><th scope="col">Form fired</th><th scope="col">As a population</th></tr></thead>
+<thead><tr><th scope="col">Root of <Tex src="B_2"/></th><th scope="col">Its coroot, fired</th><th scope="col">In <Tex src="C_2"/></th></tr></thead>
 <tbody>
-<tr data-row="0"><td><G k="types.B2.positive_roots[0]"/></td><td><Tex src="x_2"/></td><td><G k="types.C2.positive_roots[0]"/></td></tr>
-<tr data-row="1"><td><G k="types.B2.positive_roots[1]"/></td><td><Tex src="x_1"/></td><td><G k="types.C2.positive_roots[1]"/></td></tr>
-<tr data-row="2"><td><G k="types.B2.positive_roots[2]"/></td><td><Tex src="x_1+x_2"/></td><td><G k="types.C2.positive_roots[2]"/></td></tr>
-<tr data-row="3" data-differs="true"><td><G k="types.B2.positive_roots[3]"/></td><td><Tex src="2x_1+x_2"/></td><td><G k="types.C2.positive_roots[3]"/></td></tr>
+{COROOTS.map(({ k, c, j, differs }) => <tr data-row={k} data-differs={differs ? 'true' : undefined}><td><G k={`types.B2.positive_roots[${k}]`}/></td><td><Tex src={asForm(c)}/></td><td><G k={`types.C2.positive_roots[${j}]`}/></td></tr>)}
 </tbody>
 </table>
-<figcaption>Forms fired on <Tex src="B_2"/>, roots of <Tex src="C_2"/>: the last row differs.</figcaption>
+<figcaption>Each root of <Tex src="B_2"/> beside its coroot, as fired and as a root of <Tex src="C_2"/>.</figcaption>
 </figure>
 </Beat>
 
@@ -178,7 +182,7 @@ Readers of Wildberger's texts need one warning.
 
 <ul data-seen-statements>
 <li data-seen-statement>The pair of moves returns after <Tex src="3"/>, <Tex src="4"/> or <Tex src="6"/> rounds when <Tex src="A_{ij}A_{ji}=1,2,3"/>, and never when the product is larger or the roads run one way. <Cite k="W20"/>, {'Theorem 5.1'}.</li>
-<li data-seen-statement>A board has a form no mutation changes exactly when it is balanced (<Cite k="W20"/>, {'Theorems 8.4, 8.7'}); short roots have form value <Tex src="2"/>, long ones <Tex src="4"/> or <Tex src="6"/>, verified by computation.</li>
+<li data-seen-statement>A board has a form with positive city weights that no mutation changes exactly when it is balanced (<Cite k="W20"/>, {'Theorems 8.4, 8.7'}); short roots have form value <Tex src="2"/>, long ones <Tex src="4"/> or <Tex src="6"/>, verified by computation.</li>
 <li data-seen-statement>Firing is mutation on the reversed board, transposed. Verified by computation; <Cite k="Don08"/>.</li>
 <li data-seen-statement>Symmetric play is play on the folded board; averaging the roots gives the dual type. Verified by computation; <Cite k="Ste08"/>, <Cite k="FSS96"/>.</li>
 <li data-seen-statement>For rank at least {'3'}, Wildberger's B and C are Bourbaki's C and B. Verified by computation.</li>
@@ -202,7 +206,7 @@ The arrow of a Dynkin diagram points from the long simple root to the short one.
 
 <T01GameBoard client:visible id="b12" board="B2" view="populations" mode="free" coords="populations" start={[0, 1]} roadStyle="roads" caption="One Martian in city 2 of B2, the short city; every population it reaches has form value 2." />
 
-<Challenge client:visible for="b13" goal="On G2, find weights that the builder accepts." explanation={`City 2 is long, with squared length 6, and city 1 is short, with 2, so the city weights must be in the ratio 1 to 3, as the weights ${fmt('types.G2.symmetrizer')} say, and the road weight must equal the weight of city 2: 2, 6 and 6, or 1, 3 and 3.`} check={{ kind: 'out', name: 'testVerdict', equals: BUILDER_TEXT.pass }} />
+<Challenge client:visible for="b13" goal="On G2, find weights that the builder accepts." explanation={`City 2 is long, with squared length ${G2_LENGTHS[1]}, ${fmt('types.G2.long_to_short_ratio')} times that of the short city 1, so the city weights must be in the ratio ${G2D[0]} to ${G2D[1]}, as the weights ${fmt('types.G2.symmetrizer')} say, and the road weight must equal the weight of city 2: ${G2_LENGTHS[0]}, ${G2_LENGTHS[1]} and ${G2_LENGTHS[1]}, or ${G2D[0]}, ${G2D[1]} and ${G2D[1]}.`} check={{ kind: 'out', name: 'testVerdict', equals: BUILDER_TEXT.pass }} />
 
 <T03FormFinder client:visible id="b13" preset="builder" board="G2" linkTo="b11" coords="populations" start={[0, 1]} caption="The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test." />
 
