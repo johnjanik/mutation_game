@@ -1,0 +1,54 @@
+---
+// P4-A2: the development page of the drawing-time test (SPEC.md 7.6 "Main-thread work"; 9.1 G4 "the
+// drawing-time test of section 7.6 for the E8 picture"). It is not linked from anywhere, like
+// dev/math-check and dev/lesson-check. The probe island draws the T10 showpiece (the root polytope of
+// E8 in the Coxeter plane) on a canvas and reports its timings through data-out hooks, read by
+// site/tests/e2e/draw-time.spec.ts. Its root carries data-tool="geometry", so that npm run size
+// measures this route as a page with one tool.
+//
+// Without JavaScript the probe shows the SVG snapshot of the same picture, made here at build time by
+// the projector running in Node (SPEC 7.4): the showpiece file of site/public/presets/T10/ (found
+// through the manifest), drawn at y = E C^-1 a with the engine's euclideanBasis, projected to the
+// Coxeter plane at zero turn, depth cue off, in a 360 by 360 box, rendered by renderSvg with the
+// colour tokens. Nothing here is fetched by the reader's browser except by the probe itself.
+import Page from '../../layouts/Page.astro';
+import DrawTimeProbe from '../../components/draw/DrawTimeProbe.svelte';
+import { boardFromName, euclideanBasis } from '@engine';
+import { buildScene, frameFor, project, toEuclidean } from '../../components/draw/projector';
+import { renderSvg } from '../../components/draw/svgScene';
+import { MANIFEST_FILE, type PresetData, type PresetManifest } from '../../components/draw/presetsT10';
+
+const DIR = '../../../public/presets/T10/';
+const files = import.meta.glob<string>('../../../public/presets/T10/*.json', { query: '?raw', import: 'default', eager: true });
+function text(file: string): string {
+  const t = files[DIR + file];
+  if (t === undefined) throw new Error(`dev/draw-time: no preset file ${file} under site/public/presets/T10/`);
+  return t;
+}
+const manifest = JSON.parse(text(MANIFEST_FILE)) as PresetManifest;
+const entry = manifest.files.find((f) => f.presets.includes('showpiece'));
+if (entry === undefined) throw new Error('dev/draw-time: the T10 manifest has no showpiece file');
+const data = JSON.parse(text(entry.file)) as PresetData;
+const board = boardFromName(data.board);
+const { E } = euclideanBasis(board);
+const frame = frameFor(board.n, { kind: 'coxeter' });
+const points = data.vertices.map((a) => project(frame, toEuclidean(board, E, a)));
+const edges = data.adjacency.flatMap((list, i) => list.map((j): [number, number] => [i, j]));
+const scene = buildScene(points, edges, { width: 360, height: 360 }, { depthCue: false });
+const snapshot = renderSvg(scene, {
+  title: 'The roots of E8 in the Coxeter plane',
+  desc: 'Each root is joined to the roots at inner product 1. A snapshot made at build time.',
+  id: 'draw-time-e8',
+});
+---
+
+<Page title="Drawing time of the E8 picture">
+  <p>
+    A development page, not part of the course. It draws the root set of E8 in its Coxeter plane, with
+    the edges of the root polytope, on a canvas, the way the Geometry Studio draws it, and records how
+    long the drawing takes. The browser test of the performance budget reads the numbers below.
+  </p>
+  <DrawTimeProbe client:load>
+    <Fragment set:html={snapshot} />
+  </DrawTimeProbe>
+</Page>

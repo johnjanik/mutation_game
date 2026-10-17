@@ -155,3 +155,7 @@ Due before release 0.5; never blocks the next phase (SPEC 9.1).
 - The first run on 4a36786 (section 1) found a stale test assertion, not a defect of the site; it is kept as evidence of the fix, not cited as proof.
 - Leads for the red team: RT-04 the first tool's hydration task (T1, 200 to 330 ms at four times slowdown) and the flaky long-task test of T05 seen under heavy load during stage 3.3; RT-05 T8's canvas above 192 elements (theme switch leaves the old colours until the next draw) and the T6 drag snapping; RT-08 the E2, E3 and E16 wraps on M4 and M5; RT-10 T7's right board built beside Board.svelte; RT-12 the @lhci/cli tree's npm audit findings (build only).
 - The red team of phase 3 was not run in this build (budget).
+
+## 13. Addendum (2026-10-17)
+
+The owner accepted the lab item as bound to the build container (DECISIONS.md, "OWNER: gate G3's lab item accepted as machine-bound"); the automatic part of G3 is treated as passed and phase 4 starts. The measurements above are unchanged.
