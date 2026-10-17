@@ -5,8 +5,10 @@
 // the hexagon of A2. Golden values are read with node:fs as data; no coverage is registered here (the
 // golden keys are covered in the engine suite, CONTRACTS.md 3).
 //
-// These tests need the phase 4 engine functions of P4-A1 (euclideanBasis) and the files written by
-// scripts/presets.mjs; until both exist they fail (they are not skipped: COMMON.md 4.4).
+// The tests of the files need the phase 4 engine functions of P4-A1 (euclideanBasis) and the files
+// written by scripts/presets.mjs; until both exist they fail (they are not skipped: COMMON.md 4.4).
+// The tests of the short roots (presetShortRoots, the shortRoots field of computePreset) need only the
+// engine of phases 0 to 3 and run on a board with two root lengths that no shipped file covers.
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { boardFromName, formValue, toPopulation } from '@engine';
 import type { AnyBoard, Board } from '@engine';
 import { countDistinct, frameFor, project, ringsOf, roundTo, toEuclidean } from '../../src/components/draw/projector';
-import { PRESET_CONFIGS, phase4Engine, presetFile, presetKey, type PresetConfig, type PresetData } from '../../src/components/draw/presetsT10';
+import { PRESET_CONFIGS, phase4Engine, presetFile, presetKey, presetShortRoots, type PresetConfig, type PresetData } from '../../src/components/draw/presetsT10';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const DIR = resolve(ROOT, 'site/public/presets/T10');
@@ -25,6 +27,9 @@ interface GoldenType {
   coxeter_number: number;
   numbers_of_highest_root: number[];
   highest_short_root?: number[] | null;
+  numbers_of_highest_short_root?: number[];
+  n_short_positive?: number;
+  positive_roots?: number[][];
   coxeter_plane?: { rings: [number, number][]; distinct_points: number; h_points_on_every_ring: boolean };
 }
 interface GoldenWythoff {
@@ -162,11 +167,70 @@ describe('T10 preset files: the mathematics against the golden data', () => {
       const data = load(config);
       expect(data.rings, config.board).toEqual(golden.types[config.board]!.numbers_of_highest_root);
     }
-    // Every shipped configuration is simply laced, so no file carries short roots.
-    for (const config of PRESET_CONFIGS) {
+    // The four root polytope configurations are on simply laced boards (the golden file has no highest
+    // short root for them), so their files carry no short roots.
+    for (const config of roots) {
       const short = golden.types[config.board]!.highest_short_root;
-      expect(short === undefined || short === null).toBe(true);
-      expect(load(config).shortRoots).toBeNull();
+      expect(short === undefined || short === null, config.board).toBe(true);
     }
+    // No file carries short roots: the root polytopes for the reason above, and every other configuration
+    // because it is not a root polytope (B3 has two root lengths, but its two files are not root polytopes).
+    for (const config of PRESET_CONFIGS) expect(load(config).shortRoots, presetKey(config)).toBeNull();
+  });
+});
+
+describe('T10 presets: the short roots of a root polytope (SPEC 2.14)', () => {
+  const rootPolytope = (board: string): PresetConfig => ({ board, rings: 'highest-root', presets: ['root-polytope'] });
+
+  it('a root polytope on a board with two root lengths carries the orbit of the highest short root, else null', () => {
+    // Every named type of the golden file but C2, which is the board B2 (its computed name says B2).
+    const names = Object.keys(golden.types).filter((t) => t !== 'C2');
+    let twoLengths = 0;
+    let checkedAgainstRoots = 0;
+    for (const name of names) {
+      const g = golden.types[name]!;
+      const short = presetShortRoots(rootPolytope(name));
+      if (g.highest_short_root === undefined || g.highest_short_root === null) {
+        expect(short, name).toBeNull();
+        continue;
+      }
+      twoLengths++;
+      expect(short, name).not.toBeNull();
+      // The orbit starts at the numbers of the highest short root and holds each short root once.
+      expect(short![0], name).toEqual(g.numbers_of_highest_short_root);
+      expect(short!, name).toHaveLength(2 * g.n_short_positive!);
+      expect(new Set(short!.map((v) => v.join(','))).size).toBe(short!.length);
+      // Every point is a short root: an integer population of the length of the highest short root, and,
+      // where the golden file lists the positive roots (rank 4 and below), plus or minus one of them.
+      const board = boardFromName(name) as Board<number>;
+      const positive = g.positive_roots === undefined ? null : new Set(g.positive_roots.map((r) => r.join(',')));
+      const shortLength = formValue(board, g.highest_short_root)!;
+      for (const a of short!) {
+        const p = toPopulation(board, a)!.map((r) => {
+          expect(r.den).toBe(1n);
+          return Number(r.num);
+        });
+        const length = formValue(board, p)!;
+        expect(length.num === shortLength.num && length.den === shortLength.den, `${name} ${a.join(',')}`).toBe(true);
+        if (positive === null) continue;
+        const sign = p.some((x) => x > 0) ? 1 : -1;
+        expect(positive.has(p.map((x) => sign * x).join(',')), `${name} ${a.join(',')}`).toBe(true);
+      }
+      if (positive !== null) checkedAgainstRoots++;
+    }
+    // The boards B, C, F4 and G2 of the golden file have two root lengths; the loop must have met them,
+    // and checked those of rank 4 and below against the golden positive roots.
+    expect(twoLengths).toBeGreaterThan(0);
+    expect(checkedAgainstRoots).toBeGreaterThan(0);
+  });
+
+  it('a configuration that is not a root polytope carries no short roots, on a board with two root lengths too', () => {
+    const b3 = golden.types['B3']!;
+    expect(b3.highest_short_root).not.toBeNull();
+    expect(presetShortRoots(rootPolytope('B3'))).not.toBeNull();
+    for (const config of PRESET_CONFIGS) expect(presetShortRoots(config), presetKey(config)).toBeNull();
+    // The rule is exercised by shipped configurations: those of B3 (face-table, make-uniform).
+    const notRootPolytopes = PRESET_CONFIGS.filter((c) => c.rings !== 'highest-root' && golden.types[c.board]!.highest_short_root != null);
+    expect(notRootPolytopes.length).toBeGreaterThan(0);
   });
 });

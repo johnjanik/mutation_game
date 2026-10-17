@@ -176,6 +176,24 @@ function safeOrText(x: bigint): number | string {
   return x <= BigInt(Number.MAX_SAFE_INTEGER) && x >= -BigInt(Number.MAX_SAFE_INTEGER) ? Number(x) : x.toString();
 }
 
+/**
+ * The short roots of a configuration (SPEC 2.14: a root polytope "with the short roots available as a
+ * second set of points"): when the configuration is a root polytope (rings 'highest-root') on a board
+ * with two root lengths, the orbit of the numbers of highestShortRoot(board) in the engine's order,
+ * no edges; null when the board is simply laced or the configuration is not a root polytope. Needs only
+ * the engine of phases 0 to 3, so it is tested on a board with two root lengths (B3) although no shipped
+ * configuration is a root polytope there.
+ */
+export function presetShortRoots(config: PresetConfig): number[][] | null {
+  if (config.rings !== 'highest-root') return null;
+  const board = namedBoard(config.board);
+  const short = highestShortRoot(board);
+  if (short === null) return null;
+  const g = orbitGraph(board, [toNumbers(board, short)], 'firing', CAPS.verticesDrawn);
+  if (g.truncated) throw new PresetRefused(`${presetKey(config)}: the short roots exceed ${CAPS.verticesDrawn}`);
+  return g.items.map((v) => [...v]);
+}
+
 /** Turns unordered pairs into sorted lists of larger neighbours; a repeated pair or a loop is a bug. */
 function adjacencyLists(count: number, pairs: Iterable<readonly [number, number]>, what: string): { lists: number[][]; size: number } {
   const lists: number[][] = Array.from({ length: count }, () => []);
@@ -200,7 +218,8 @@ function adjacencyLists(count: number, pairs: Iterable<readonly [number, number]
  * CAPS.verticesDrawn).items (E-5 order, items[0] the start), refused when truncated; the polytope edges
  * are wythoffEdges(board, rings, CAPS.edgesAtRest), refused when truncated, each end mapped to its
  * vertex by the hashing rule; the move graph applies every node to every vertex once more (5.4); the
- * face counts are wythoffFVector. An edge end that is not a vertex is a bug and throws.
+ * face counts are wythoffFVector; the short roots are presetShortRoots. An edge end that is not a
+ * vertex is a bug and throws.
  */
 export function computePreset(config: PresetConfig): PresetData {
   const board = namedBoard(config.board);
@@ -236,15 +255,7 @@ export function computePreset(config: PresetConfig): PresetData {
   });
   const moves = adjacencyLists(vertices.length, movePairs, `${key} move graph`);
 
-  let shortRoots: number[][] | null = null;
-  if (config.rings === 'highest-root') {
-    const short = highestShortRoot(board);
-    if (short !== null) {
-      const g = orbitGraph(board, [toNumbers(board, short)], 'firing', CAPS.verticesDrawn);
-      if (g.truncated) throw new PresetRefused(`${key}: the short roots exceed ${CAPS.verticesDrawn}`);
-      shortRoots = g.items.map((v) => [...v]);
-    }
-  }
+  const shortRoots = presetShortRoots(config);
 
   return {
     schema: 1,
