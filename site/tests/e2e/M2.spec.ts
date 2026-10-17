@@ -455,7 +455,7 @@ test('the Kaleidoscope of beat 4 draws the six roots of A2', async ({ page }) =>
   await expect(b4).toHaveAttribute('data-tool', 'mirror');
   await expect(out(page, 'b4', 'boardName')).toHaveAttribute('data-name', 'A2');
   await expect(out(page, 'b4', 'caption')).toHaveText(
-    'Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its six roots, which you can play on.',
+    `Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its ${A2.n_roots} roots, which you can play on.`,
   );
   // The picker stays on A2, the board the caption describes (P3-RT-09-04).
   expect(await control(page, 'b4', 'picker').locator('option').allTextContents()).toEqual(['A2']);
@@ -738,4 +738,11 @@ test('the Lie theory paragraph of M2 gives the invariant bilinear form only on b
   const clause = lie.slice(lie.lastIndexOf('. ', at) + 2, at);
   expect(clause).not.toMatch(/\bIn general\b/);
   expect(clause).toMatch(/\bbalanced board\b/);
+});
+
+// regression: P3-RT-08-05
+test('m2-form.mdx: "A2 with its six roots" states types.A2.n_roots as a typed word', () => {
+  // 6 is the value of the typed word "six"; the golden value of the quantity it states is the same.
+  expect(A2.n_roots, 'types.A2.n_roots is the quantity the phrase states').toBe(6);
+  expect(readFileSync(LESSON_PATH, 'utf8').includes('A2 with its six roots'), 'm2-form.mdx types types.A2.n_roots as a word').toBe(false);
 });

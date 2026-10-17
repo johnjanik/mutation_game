@@ -14,7 +14,7 @@ import T06Kaleidoscope from '@components/tools/T06Kaleidoscope.svelte';
 import { G, Tex, Cite } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased } from '@lib/pages/released';
-import { resolveGoldenPath } from '@lib/golden';
+import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
 import { boardFromName, formValue, isRootPopulation, mutate, ratToString } from '@engine';
 import { BUILDER_TEXT } from '@components/tools/t03/weights';
 
@@ -24,6 +24,7 @@ export const m3 = linkIfReleased({ kind: 'module', number: 3 });
 export const ModuleThree = () => (m3 ? <a href={m3} data-module-link="3">module three</a> : <>module three</>);
 export const mirror = linkIfReleased({ kind: 'tool', id: 'mirror' });
 export const Kaleidoscope = () => (mirror ? <a href={mirror} data-tool-link="mirror">the Kaleidoscope</a> : <>the Kaleidoscope</>);
+export const fmt = (k, as) => formatGoldenValue(resolveGoldenPath(k), as);
 export const A3 = boardFromName('A3');
 export const pop = (b, xs) => xs.map((x) => b.arith.fromInt(x));
 export const formNumber = (b, p) => Number(ratToString(formValue(b, p)));
@@ -117,7 +118,7 @@ The picture draws <Tex src="A_2"/> in the plane so that the form is the ordinary
 {/* P3-X1 (at the request of P3-A4; SPEC 3 M2 row 4): T6 on A2 with its roots overlay replaces the static
     figure of phase 2 (data-figure m2-roots-a2); the legend of that figure became the sentence above.
     The picker offers A2 only: the caption states the angle and length of single roads (P3-RT-09-04). */}
-<T06Kaleidoscope slot="figure" client:visible id="b4" preset="default" overlays={["roots"]} boardChoices={['A2']} caption="Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its six roots, which you can play on." />
+<T06Kaleidoscope slot="figure" client:visible id="b4" preset="default" overlays={["roots"]} boardChoices={['A2']} caption={`Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its ${fmt('types.A2.n_roots')} roots, which you can play on.`} />
 </Beat>
 
 <Beat n={5}>
