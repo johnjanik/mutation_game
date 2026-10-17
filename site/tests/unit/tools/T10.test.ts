@@ -54,7 +54,7 @@ import {
   type PresetFile,
 } from '../../../src/components/tools/t10/scene';
 import { sharedEdgeCount, moveEdgeColour } from '../../../src/components/tools/t10/graphs';
-import { MoveGraphBuilder, drawMoves, moveEdges } from '../../../src/components/tools/t10/moves';
+import { MoveGraphBuilder, deriveInTasks, drawMoves, moveEdges } from '../../../src/components/tools/t10/moves';
 import { coxeterStats, distinctDotsText, planeStats } from '../../../src/components/tools/t10/coxeter';
 import { baseEdgeLengths, distinctLengths, replayVertices, replayWholeWords, symmetrizerFloats, uniformConstant, uniformMatters, uniformStart } from '../../../src/components/tools/t10/uniform';
 import { MANIFEST_FILE, PLACED_FIGURES, PRESET_DIR, SHELL_LINKS, dataFileFor, presetState } from '../../../src/components/tools/t10/presets';
@@ -63,7 +63,6 @@ import {
   admit,
   coreFacts,
   coreFactsInTasks,
-  deriveInTasks,
   drawnOf,
   enumerateInTasks,
   factsOf,
@@ -606,7 +605,7 @@ describe('where the work runs', () => {
     const BUDGET = 25; // ms, the margin SPEC 7.6 sets for its own benchmark (plan)
     const timings: Record<string, number> = {};
     // Each piece is timed alone, because the tool runs each in a task of its own (studio.ts coreFactsInTasks,
-    // prepareInTasks, enumerateInTasks, deriveInTasks; the tests below check that structure). The verdict of
+    // prepareInTasks, enumerateInTasks; moves.ts deriveInTasks; the tests below check that structure). The verdict of
     // classify is timed on a new board object (the engine keeps it per object, E-11), as the first change to
     // a board computes it; the short roots are timed without their cache, as the first change computes them.
     timings['E8: classify, first time on the board'] = timeMedian(() => classify(B('E8')));

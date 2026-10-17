@@ -40,7 +40,6 @@
     admit,
     configure,
     coreFacts,
-    deriveInTasks,
     enumerateInTasks,
     figureText,
     fVectorText,
@@ -441,7 +440,7 @@
 
   // The move graph, derived from the vertex list once more (5.4) when it is shown, or when it is small
   // enough to give the shared count at once; in slices of at most 2000 moves, each in a task of its own,
-  // the first after the task that completed the orbit (7.6; t10/studio.ts deriveInTasks).
+  // the first after the task that completed the orbit (7.6; t10/moves.ts deriveInTasks).
   // The move graph's module (t10/moves.ts) is fetched when the move graph is first needed (7.6).
   let movesModule = $state.raw<typeof import('./t10/moves') | null>(null);
   let movesLoading = false;
@@ -466,7 +465,7 @@
     }
     const builder = new mod.MoveGraphBuilder(b, o.data.vertices);
     let cancelled = false;
-    void deriveInTasks((budget) => builder.step(budget), { nextTask, live: () => !cancelled && orbit === o }).then((done) => {
+    void mod.deriveInTasks((budget) => builder.step(budget), { nextTask, live: () => !cancelled && orbit === o }).then((done) => {
       if (done && !cancelled && orbit === o) orbit = { ...o, data: { ...o.data, moveEdges: builder.edges } };
     });
     return () => {

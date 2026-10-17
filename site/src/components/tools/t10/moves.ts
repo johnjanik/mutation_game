@@ -4,8 +4,9 @@
 // route's first scripts stay within 7.6's 90 kB; the build-time snapshot and the unit tests import it
 // statically. The derivation fires every vertex at every node through the engine's `fire` (graphs.ts says
 // which pairs count); the renderer draws every edge in its node's colour with its label as text.
-import { fire } from '@two-games/engine';
+import { CAPS, fire } from '@two-games/engine';
 import type { Board } from '@two-games/engine';
+import type { TaskSteps } from './studio';
 import { levelOf, levelStyles, pointPlan, selectSegments, type Context2DLike } from '../../draw/canvasScene';
 import { DEFAULT_LINE_WIDTH, DEFAULT_POINT_RADIUS } from '../../draw/projector';
 import { HALO, LABEL_SIZE, edgeStroke, vertexScene, type CanvasTextLike, type Picture, type PictureColours, type PictureDrawResult } from './drawing';
@@ -67,6 +68,22 @@ export function moveEdges(board: Board<number>, vertices: readonly (readonly num
   const b = new MoveGraphBuilder(board, vertices);
   b.step();
   return b.edges;
+}
+
+/**
+ * The move graph in slices: `step(budget)` applies at most about `budget` moves and answers true when the
+ * graph is complete (MoveGraphBuilder.step). Every slice, the first included, runs in a task of its own,
+ * after the task that asked for it, with at most CAPS.mainThreadItems moves (E-9, 7.6). False when the work
+ * stopped. Here rather than in studio.ts, so that the route's first scripts do not carry it (7.6: 90 kB).
+ */
+export async function deriveInTasks(step: (budget: number) => boolean, steps: TaskSteps): Promise<boolean> {
+  for (;;) {
+    await steps.nextTask();
+    if (!steps.live()) return false;
+    const done = step(CAPS.mainThreadItems);
+    steps.mark?.('moves');
+    if (done) return true;
+  }
 }
 
 /** Draws the move graph: edges coloured by label, far to near, then the points, then a label on every drawn edge. */

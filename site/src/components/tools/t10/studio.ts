@@ -319,21 +319,6 @@ export async function enumerateInTasks(
   return data;
 }
 
-/**
- * The move graph in slices: `step(budget)` applies at most about `budget` moves and answers true when the
- * graph is complete (moves.ts MoveGraphBuilder). Every slice, the first included, runs in a task of its
- * own, after the task that asked for it, with at most CAPS.mainThreadItems moves (E-9, 7.6). False when
- * the work stopped.
- */
-export async function deriveInTasks(step: (budget: number) => boolean, steps: TaskSteps): Promise<boolean> {
-  for (;;) {
-    await steps.nextTask();
-    if (!steps.live()) return false;
-    const done = step(CAPS.mainThreadItems);
-    steps.mark?.('moves');
-    if (done) return true;
-  }
-}
 
 export function factsOf(config: StudioConfig): StudioFacts {
   const core = coreFacts(config.board, config.rings);
