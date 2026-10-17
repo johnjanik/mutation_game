@@ -773,4 +773,20 @@ test.describe('regressions', () => {
       expect(s).toMatch(/finite type/);
     }
   });
+
+  // Adopted from site/tests/unit/redteam-RT-08-fallback-weaker.test.ts (lens RT-08, attack 15). SPEC
+  // 7.3: "A fallback is a weaker sentence that stays true however the item turns out". Of [BrH] only
+  // the section title and page were read (SOURCES.md 11.5), so the E10 fallback may say nothing about
+  // what the book contains.
+  // regression: P3-RT-08-07
+  test('the E10 fallback does not assert what the unread book contains', () => {
+    const SOURCES = readFileSync(fileURLToPath(new URL('../../../SOURCES.md', import.meta.url)), 'utf8');
+    expect(SOURCES).toMatch(/\*\*\[BrH\]\*\*[^\n]*\[S, section title and page\]\. The underlying theorem is due to J\. H\. Smith \(1970\); that citation is \[U\]\./);
+    const fb = (readFileSync(LESSON_PATH, 'utf8').match(/<Unverified item="E10" fallback="([^"]*)"/) ?? [])[1] ?? '';
+    expect(fb.trim(), 'E10 has a fallback').not.toBe('');
+    // Observed at 69546f0: "their book names the original source of that list, which this site has not yet checked."
+    expect(fb).not.toMatch(/book names the original source/);
+    // Nor any other statement about the book or its authors.
+    expect(fb).not.toMatch(/\bbook\b|\btheir\b|Brouwer|Haemers/i);
+  });
 });
