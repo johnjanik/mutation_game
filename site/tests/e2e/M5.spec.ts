@@ -37,7 +37,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
-import { boardFromName, commutationClassSize, fire, heapKey, toPositions } from '../../../packages/engine/src/index';
+import { boardFromName, commutationClassSize, fire, fromAdjacency, heapKey, play, symbolicPlay, toPositions } from '../../../packages/engine/src/index';
 import type { Board } from '../../../packages/engine/src/index';
 import { distDir } from './routes';
 
@@ -679,4 +679,91 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions: red team round 1, findings confirmed on this lesson and fixed by RT-FIX P3 lesson-m5
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from site/tests/unit/redteam-RT-09-02-m5-finite-type-dropped.test.ts (lens RT-09). The two
+  // counterexamples are kept as the reproducer computes them, with the values it observed (the oracle
+  // agrees: wave_play(board_from_name('A3~')[0], (1,1,1,1), 0, cap=500) raises OverflowError, still
+  // running; play([[2,0],[-1,2]], (1,1)) gives word [0,1]; symbolic_play gives [(1,0),(1,1)]), and the
+  // assertion is the finding's expected: the lesson states F6 and F8 only for boards of finite type
+  // (SPEC 2.7 opening), in the beats and in the Seen box.
+  const WAVE = 'On a board with at least two nodes every firing of this <Term a="wave">wave</Term>';
+  const WAVE_TEXT = 'On a board with at least two nodes every firing of this **wave** is legal, and the game ends after the same number of rounds whichever colour starts';
+  const FORMS = 'On any board the forms fired are the positive root populations of the **reversed board**';
+  const sentences = (text: string): string[] => norm(text).split(/(?<=\.)\s+/);
+  /** Each statement of the Seen box, preceded by the box's scope line when it has one. */
+  const seenStatements = async (page: Page): Promise<string[]> => {
+    const seen = page.locator('[data-anatomy="seen"]');
+    const scope = (await seen.locator('[data-seen-scope]').allTextContents()).map(norm).join(' ');
+    return (await seen.locator('[data-seen-statement]').allTextContents()).map((s) => norm(`${scope} ${s}`));
+  };
+
+  // regression: P3-RT-09-02
+  test('M5 states F6 and F8 for every board, dropping the finite-type hypothesis of section 2.7', async ({ page }) => {
+    // F8 off the finite types: on the square (the affine board A3~, colour classes {0, 2} and {1, 3} by
+    // position) the wave from all ones fires legally and never ends.
+    const square = boardFromName('square') as Board<unknown>;
+    const { arith } = square;
+    const classes = [[0, 2], [1, 3]];
+    let a: unknown[] = [1, 1, 1, 1].map((x) => arith.fromInt(x));
+    let rounds = 0;
+    let illegal = 0;
+    while (a.some((x) => arith.sign(x) > 0) && rounds < 1000) {
+      for (const i of classes[rounds % 2]!) {
+        if (arith.sign(a[i]) <= 0) illegal += 1;
+        a = fire(square, a, i);
+      }
+      rounds += 1;
+    }
+    expect(illegal, 'every firing of the wave was legal here').toBe(0);
+    expect(a.some((x) => arith.sign(x) > 0), `after ${rounds} rounds the wave on the square still has a positive number`).toBe(true);
+    // F6 off the finite types: on the one-way road (C = [[2,0],[-1,2]], SPEC 2.11) the complete game from
+    // (1, 1) fires the forms x1 and x1 + x2 only, never the simple root (0, 1) of the reversed board.
+    const oneWay = fromAdjacency([
+      [0, 1],
+      [0, 0],
+    ]) as Board<unknown>;
+    const g = play(oneWay, [1, 1].map((x) => oneWay.arith.fromInt(x)));
+    expect(g.status).toBe('ended');
+    expect(g.word).toEqual([0, 1]);
+    const forms = symbolicPlay(oneWay, g.word).map((f) => f.join(','));
+    expect(forms).toEqual(['1,0', '1,1']);
+    expect(forms).not.toContain('0,1');
+    // So the lesson may state F6 and F8 only with the hypothesis of SPEC 2.7.
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    expect(source.includes(WAVE_TEXT) || source.includes(WAVE), `M5 beat 7 states F8 for every board: "${WAVE_TEXT}"`).toBe(false);
+    expect(source, `M5 beat 5 states F6 for every board: "${FORMS}"`).not.toContain(FORMS);
+    await page.goto(ROUTE);
+    const f6 = sentences(await proseText(page, '[data-beat="5"]')).filter((s) => /forms fired/.test(s) && /reversed board/.test(s));
+    const f8 = sentences(await proseText(page, '[data-beat="7"]')).filter((s) => /every firing of this wave is legal/.test(s));
+    expect(f6.length, 'beat 5 states F6').toBeGreaterThanOrEqual(1);
+    expect(f8.length, 'beat 7 states F8').toBeGreaterThanOrEqual(1);
+    for (const s of [...f6, ...f8]) expect(s, 'a statement of F6 or F8 in the beats').toMatch(/\bfinite type\b/);
+    // In the Seen box a statement carries the hypothesis itself or under the box's scope line
+    // (data-seen-scope, this lesson's markup), which the reader meets before the list.
+    const scoped = await seenStatements(page);
+    const seenF6 = scoped.filter((s) => /reversed board/.test(s));
+    const seenF8 = scoped.filter((s) => /\bwave\b/.test(s));
+    expect(seenF6.length, 'the Seen box states F6').toBe(1);
+    expect(seenF8.length, 'the Seen box states F8').toBe(1);
+    for (const s of [...seenF6, ...seenF8]) expect(s, 'a statement of F6 or F8 in the Seen box').toMatch(/\bfinite type\b/);
+  });
+
+  // regression: P3-RT-09-02 (sibling)
+  test('the other facts of section 2.7 in the Seen box, and the claims of computation, name the finite type', async ({ page }) => {
+    await page.goto(ROUTE);
+    const scoped = await seenStatements(page);
+    // Every statement but the one on heaps (Stembridge's, true for every board) is a fact of SPEC 2.7.
+    const facts = scoped.filter((s) => !/\bheap\b/.test(s));
+    expect(facts.length).toBe(scoped.length - 1);
+    for (const s of facts) expect(s, 'a statement of SPEC 2.7 in the Seen box').toMatch(/\bfinite type\b/);
+    // verify.py checks the types of rank at most 8 (SPEC 2.7), not every board of that rank.
+    const text = norm(await proseText(page, 'article'));
+    expect(text).not.toMatch(/every board of rank at most/);
+  });
 });
