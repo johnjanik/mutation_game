@@ -190,17 +190,199 @@ describe('root package.json', () => {
   });
 });
 
-// P4-X2 (for MERGE, P4 wave 4.4): the timing assertions of the site unit tests run alone, after the engine's
-// orbit benchmark of SPEC 7.6, through `npm run bench`; the parallel suite of `npm test` holds none of them.
+// P4-X2 (for MERGE, P4 wave 4.4, polished in wave 4.5): the timing assertions run alone through `npm run bench`,
+// the engine's (packages/engine/test/bench) first, then the site's (site/tests/timing). The parallel suite of
+// `npm test` holds no assertion on a duration, whatever clock it is read from, except the one limit of the runner
+// listed below, and every clock reading left in it is listed with its reason.
 describe('timing checks run alone', () => {
   const TIMING_CONFIG = 'site/tests/timing/vitest.config.ts';
-  /** The timer the moved tests read, spelled apart so that this file does not count as using it. */
-  const TIMER = ['performance', 'now('].join('.');
+  const SITE_UNIT = join(ROOT, 'site/tests/unit');
+  const ENGINE_TEST = join(ROOT, 'packages/engine/test');
+  /**
+   * The clocks of Node a duration can be read from: the performance timer, the Date clock (its now, and a Date
+   * made with no argument) and the high-resolution timer of the process under any spelling (a call, its bigint
+   * form, or the name imported from node:process). Written as patterns, so that this file does not read as using one.
+   */
+  const CLOCK_SOURCE = [
+    String.raw`\bperformance\s*\.\s*now\b`,
+    String.raw`\bDate\s*\.\s*now\b`,
+    String.raw`\bnew\s+Date\s*\(\s*\)`,
+    String.raw`\bhrtime\b`,
+  ].join('|');
+  const clockReadings = (src: string): number => src.match(new RegExp(CLOCK_SOURCE, 'g'))?.length ?? 0;
+  const IDENT = String.raw`[A-Za-z_$][\w$]*`;
+
+  /** The index of the bracket that closes the one at `open` (round, curly or square); brackets in strings count too. */
+  function closing(src: string, open: number): number {
+    const o = src[open]!;
+    const c = o === '(' ? ')' : o === '{' ? '}' : ']';
+    let depth = 0;
+    for (let k = open; k < src.length; k++) {
+      if (src[k] === o) depth += 1;
+      else if (src[k] === c && --depth === 0) return k;
+    }
+    return src.length;
+  }
+
+  /**
+   * `src` with the text of its comments, strings, regular expressions and template literals (but not their ${}
+   * parts) blanked to spaces, newlines and length kept, so that a name is followed only where it is code.
+   */
+  function codeOnly(src: string): string {
+    const out = src.split('');
+    const blank = (from: number, to: number): void => {
+      for (let k = from; k < to; k++) if (out[k] !== '\n') out[k] = ' ';
+    };
+    const open: number[] = []; // for each ${ still open, the depth of braces at which its template resumes
+    let depth = 0;
+    let prev = ''; // the last character of code, to tell a regular expression from a division
+    let i = 0;
+    const template = (from: number): void => {
+      let j = from;
+      for (; j < src.length; j++) {
+        if (src[j] === '\\') j += 1;
+        else if (src[j] === '`') {
+          blank(from, j);
+          i = j + 1;
+          prev = ')';
+          return;
+        } else if (src[j] === '$' && src[j + 1] === '{') {
+          blank(from, j);
+          open.push(depth);
+          depth += 1;
+          i = j + 2;
+          prev = '{';
+          return;
+        }
+      }
+      blank(from, j);
+      i = j;
+    };
+    while (i < src.length) {
+      const c = src[i]!;
+      const d = src[i + 1];
+      if (c === '/' && (d === '/' || d === '*')) {
+        const e = d === '/' ? src.indexOf('\n', i) : src.indexOf('*/', i + 2);
+        const end = e === -1 ? src.length : d === '/' ? e : e + 2;
+        blank(i, end);
+        i = end;
+      } else if (c === "'" || c === '"') {
+        let j = i + 1;
+        while (j < src.length && src[j] !== c && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
+        blank(i + 1, j);
+        i = j + 1;
+        prev = ')';
+      } else if (c === '`') {
+        template(i + 1);
+      } else if (c === '/' && (prev === '' || '(,=:[!&|?{};+-*%<>~^'.includes(prev) || /\b(?:return|typeof|case|of|in)$/.test(src.slice(Math.max(0, i - 8), i).trimEnd()))) {
+        let j = i + 1;
+        let inClass = false;
+        for (; j < src.length && src[j] !== '\n'; j++) {
+          if (src[j] === '\\') j += 1;
+          else if (src[j] === '[') inClass = true;
+          else if (src[j] === ']') inClass = false;
+          else if (src[j] === '/' && !inClass) break;
+        }
+        blank(i + 1, j);
+        i = j + 1;
+        prev = ')';
+      } else {
+        if (c === '{') depth += 1;
+        else if (c === '}') {
+          depth -= 1;
+          if (open.length > 0 && open[open.length - 1] === depth) {
+            open.pop();
+            template(i + 1);
+            continue;
+          }
+        }
+        if (!/\s/.test(c)) prev = c;
+        i += 1;
+      }
+    }
+    return out.join('');
+  }
+
+  /**
+   * Every assertion in `source` whose subject rests on a clock reading: an expect or assert call whose argument
+   * reads a clock, or a name that holds a reading or a duration. A name holds one when it is assigned from such an
+   * expression (`const t0 = ...`, `total += ...`, `timings[key] = ...`, a destructuring, a for-of over it, a field
+   * `{ ms: ... }`), when such an expression is pushed into it, or, for a function, when it returns one
+   * (`return median(times)`); repeated until no name is added. A field is a name too, so `build.ms` rests on a
+   * clock when `ms` does. Only code counts (codeOnly). The one subject left out is a list's length
+   * (`toHaveLength`): the number of runs, not their time.
+   */
+  function durationAssertions(source: string): { line: number; text: string }[] {
+    const src = codeOnly(source);
+    const names = new Set<string>();
+    const reads = (text: string): boolean =>
+      new RegExp(CLOCK_SOURCE).test(text) || [...names].some((n) => new RegExp(String.raw`(?<![\w$])${n.replace(/\$/g, '\\$')}(?![\w$])`).test(text));
+    const bindings: [string, string][] = [];
+    const bind = (pattern: string, each: (m: RegExpMatchArray) => void): void => {
+      for (const m of src.matchAll(new RegExp(pattern, 'g'))) each(m);
+    };
+    const bindAll = (targets: string, value: string): void => {
+      for (const t of targets.match(new RegExp(IDENT, 'g')) ?? []) bindings.push([t, value]);
+    };
+    bind(String.raw`(${IDENT})\s*(?:\[[^\]\n]*\]\s*)?[-+*/]?=(?![=>])([^;\n]*)`, (m) => bindings.push([m[1]!, m[2]!]));
+    bind(String.raw`(${IDENT})\s*:([^,;\n}]*)`, (m) => bindings.push([m[1]!, m[2]!]));
+    bind(String.raw`(${IDENT})\s*\.\s*push\s*\(([^;\n]*)`, (m) => bindings.push([m[1]!, m[2]!]));
+    bind(String.raw`\b(?:const|let|var)\s*([{[][^=;\n]*[}\]])\s*=([^;\n]*)`, (m) => bindAll(m[1]!, m[2]!));
+    bind(String.raw`\bfor\s*\(\s*(?:const|let|var)\s+([^;\n]*?)\s+of\s+([^\n]*)`, (m) => bindAll(m[1]!, m[2]!));
+    bind(String.raw`\bfunction\s+(${IDENT})\s*\(|(${IDENT})\s*=\s*(?:async\s*)?\(`, (m) => {
+      const afterParams = closing(src, m.index! + m[0].length - 1) + 1;
+      const head = /^\s*(?::[^{=;]*)?(?:=>\s*)?\{/.exec(src.slice(afterParams));
+      if (head === null) return;
+      const open = afterParams + head[0].length - 1;
+      for (const r of src.slice(open, closing(src, open)).matchAll(/\breturn\s+(?!\{)([^;\n]*)/g)) bindings.push([(m[1] ?? m[2])!, r[1]!]);
+    });
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const [name, value] of bindings) {
+        if (!names.has(name) && reads(value)) {
+          names.add(name);
+          grew = true;
+        }
+      }
+    }
+    const found: { line: number; text: string }[] = [];
+    for (const m of src.matchAll(new RegExp(String.raw`\b(?:expect|assert)(?:\s*\.\s*${IDENT})?\s*\(`, 'g'))) {
+      const open = m.index! + m[0].length - 1;
+      const close = closing(src, open);
+      if (!reads(src.slice(open + 1, close))) continue;
+      if (/^\s*\.\s*toHaveLength\s*\(/.test(src.slice(close + 1))) continue;
+      const end = source.indexOf('\n', close);
+      found.push({ line: source.slice(0, m.index).split('\n').length, text: source.slice(m.index, end === -1 ? undefined : end).trim() });
+    }
+    return found;
+  }
+
+  /** Every test source under `dir` (relative path with forward slashes, text), leaving out the paths `skip` rejects. */
+  function sources(dir: string, skip: (path: string) => boolean = () => false): [string, string][] {
+    return readdirSync(dir, { recursive: true, encoding: 'utf8' })
+      .map((f) => f.split(sep).join('/'))
+      .filter((f) => /\.(?:[cm]?[jt]s|svelte)$/.test(f) && !skip(f))
+      .sort()
+      .map((f) => [f, readFileSync(join(dir, f), 'utf8')]);
+  }
+  /** The engine's parallel suite: every file under packages/engine/test except the bench run. */
+  const engineParallel = (): [string, string][] => sources(ENGINE_TEST, (f) => f.startsWith('bench/'));
+
   /** Each moved test: its file in the serial run, its old file in the parallel suite, and its name (unchanged). */
   const MOVED = [
     { timing: 'T07.timing.test.ts', unit: 'tools/T07.test.ts', name: 'recomputation after a move stays under the long-task budget' },
     { timing: 'T10.timing.test.ts', unit: 'tools/T10.test.ts', name: 'main-thread work stays under the long-task budget' },
   ];
+  /** The E8 timing of the phase-3 roster (P3-A1 instruction, acceptance), moved from the engine's parallel suite. */
+  const E8_TIMING = {
+    bench: 'bench/weyl-dimension.bench.ts',
+    old: 'golden/p3a-weyl-dimension.test.ts',
+    describe: 'E8 3875 under one second',
+    name: 'weylDimension(E8, [1, 0, 0, 0, 0, 0, 0, 0]) computes in under a second',
+    bound: 'expect(ms).toBeLessThan(1000);',
+  };
+  /** The one assertion on a duration left in the engine's parallel suite: a limit of the runner that guards a hang. */
+  const RUNNER_LIMIT = { file: 'golden/p3b-complete-games.test.ts', text: 'expect(elapsed).toBeLessThan(60000);' };
 
   it('npm run bench runs the engine benchmark, then the timing files; CI runs it right after npm run check', () => {
     const scripts: Record<string, string> = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts;
@@ -234,30 +416,92 @@ describe('timing checks run alone', () => {
 
   it('each moved test lives in its timing file and no longer in the parallel suite', () => {
     const timingDir = join(ROOT, 'site/tests/timing');
-    const unitDir = join(ROOT, 'site/tests/unit');
     // Every test file of the timing directory is one the configuration's pattern collects.
     const timingFiles = readdirSync(timingDir).filter((f) => f.endsWith('.ts') && f !== 'vitest.config.ts');
     expect(timingFiles.sort()).toEqual(MOVED.map((m) => m.timing).sort());
     for (const m of MOVED) {
       const moved = readFileSync(join(timingDir, m.timing), 'utf8');
       expect(moved, m.timing).toContain(`it('${m.name}'`);
-      expect(moved, m.timing).toContain(TIMER);
-      expect(readFileSync(join(unitDir, m.unit), 'utf8'), m.unit).not.toContain(`it('${m.name}'`);
+      expect(clockReadings(moved), m.timing).toBeGreaterThan(0);
+      expect(readFileSync(join(SITE_UNIT, m.unit), 'utf8'), m.unit).not.toContain(`it('${m.name}'`);
     }
-    // The only site unit file that still reads the timer is T3's, whose measurement is printed and not
-    // asserted (P2-A2 instruction 5.10); a new duration assertion belongs under site/tests/timing.
-    const timed = readdirSync(unitDir, { recursive: true, encoding: 'utf8' })
-      .filter((f) => f.endsWith('.ts'))
-      .filter((f) => readFileSync(join(unitDir, f), 'utf8').includes(TIMER))
-      .map((f) => f.split(sep).join('/'))
-      .sort();
-    expect(timed).toEqual(['tools/T03.test.ts']);
-    const t03 = readFileSync(join(unitDir, 'tools/T03.test.ts'), 'utf8');
-    const start = t03.indexOf("it('capped root test timing is measured'");
-    expect(start).toBeGreaterThan(-1);
-    const block = t03.slice(start, t03.indexOf('\n  it(', start + 1));
-    expect(block).toContain(TIMER);
-    expect(block).not.toMatch(/toBeLessThan|toBeGreaterThan/);
+  });
+
+  it('the E8 timing of the roster runs in the engine bench run, unchanged in name and bound, and no longer in npm test', async () => {
+    const bench = readFileSync(join(ENGINE_TEST, E8_TIMING.bench), 'utf8');
+    expect(bench).toContain(`describe('${E8_TIMING.describe}'`);
+    expect(bench).toContain(`it('${E8_TIMING.name}'`);
+    expect(bench).toContain(E8_TIMING.bound);
+    expect(clockReadings(bench)).toBeGreaterThan(0);
+    const old = readFileSync(join(ENGINE_TEST, E8_TIMING.old), 'utf8');
+    expect(old).not.toContain(`it('${E8_TIMING.name}'`);
+    expect(old).not.toContain(`describe('${E8_TIMING.describe}'`);
+    expect(old).not.toContain(E8_TIMING.bound);
+    // The bench configuration collects every *.bench.ts of test/bench, one file at a time; the engine project
+    // of npm test collects nothing there.
+    const benchConfig = (await import('../../../packages/engine/test/bench/vitest.config')).default as { test: { include: string[]; fileParallelism: boolean } };
+    expect(benchConfig.test.include).toEqual(['test/bench/**/*.bench.ts']);
+    expect(benchConfig.test.fileParallelism).toBe(false);
+    const engineConfig = (await import('../../../packages/engine/vitest.config')).default as { test?: { include?: string[] } };
+    expect(engineConfig.test?.include?.length).toBeGreaterThan(0);
+    for (const pattern of engineConfig.test?.include ?? []) expect(pattern.startsWith('test/bench/'), pattern).toBe(false);
+    const enginePackage = JSON.parse(readFileSync(join(ROOT, 'packages/engine/package.json'), 'utf8')) as { scripts: Record<string, string> };
+    expect(enginePackage.scripts.bench).toBe('vitest run --config test/bench/vitest.config.ts');
+  });
+
+  it('every clock reading left in the parallel suite is listed, with its reason', () => {
+    const readings = (files: [string, string][]): Record<string, number> =>
+      Object.fromEntries(files.map(([f, text]) => [f, clockReadings(text)] as const).filter(([, n]) => n > 0));
+    // A new reading of any clock in either project fails here: a duration assertion belongs under
+    // site/tests/timing or packages/engine/test/bench, and a reading that is printed and not asserted is listed.
+    expect(readings(sources(SITE_UNIT))).toEqual({
+      'content-components.test.ts': 2, // the fixture build's time, kept in its result and never asserted (P0-A4)
+      'lab-thresholds.test.ts': 1, // the text of the canary page, compared as a string; no clock is read (P3-A7)
+      'tools/T03.test.ts': 2, // the capped root test, printed and not asserted (P2-A2 instruction 5.10)
+      'tools/T15.test.ts': 2, // the positive-level sweep, printed (decisions/P2-A4.md)
+    });
+    expect(readings(engineParallel())).toEqual({
+      [RUNNER_LIMIT.file]: 2, // plays that do not end: the limit of the runner below
+      'golden/p4-wythoff.test.ts': 2, // the largest edge enumerations, printed and not asserted (P4-A1)
+    });
+  });
+
+  it('no assertion of the parallel suite rests on a clock reading, but the one limit of the runner that guards a hang', () => {
+    const found = (files: [string, string][]): { file: string; line: number; text: string }[] =>
+      files.flatMap(([file, text]) => durationAssertions(text).map((a) => ({ file, ...a })));
+    expect(found(sources(SITE_UNIT))).toEqual([]);
+    const engine = found(engineParallel());
+    expect(engine.map(({ file, text }) => ({ file, text }))).toEqual([RUNNER_LIMIT]);
+    // The limit says what it is, in the comment right above it.
+    const lines = readFileSync(join(ENGINE_TEST, RUNNER_LIMIT.file), 'utf8').split('\n');
+    let k = engine[0]!.line - 2;
+    const comment: string[] = [];
+    while (k >= 0 && lines[k]!.trim().startsWith('//')) comment.unshift(lines[k--]!.trim().replace(/^\/\/\s?/, ''));
+    expect(comment.join(' ')).toContain('a limit of the runner that guards a hang, not a timing check');
+  });
+
+  it('the search for assertions on a clock finds the bound of every timing file', () => {
+    const timing = (path: string): string[] => durationAssertions(readFileSync(join(ROOT, path), 'utf8')).map((a) => a.text);
+    expect(timing('site/tests/timing/T07.timing.test.ts')).toContain('expect(median).toBeLessThan(25);');
+    expect(timing('site/tests/timing/T10.timing.test.ts')).toContain('expect(ms, w).toBeLessThan(BUDGET);');
+    expect(timing('packages/engine/test/bench/orbit.bench.ts')).toContain('expect(median).toBeLessThanOrEqual(THRESHOLD_MS);');
+    expect(timing(`packages/engine/test/${E8_TIMING.bench}`)).toContain(E8_TIMING.bound);
+    // Each binding the search follows, on a fragment written here (the clock spelled apart, as above).
+    const now = ['Date', 'now()'].join('.');
+    const cases: [string, number][] = [
+      [`const t0 = ${now}; work(); expect(${now} - t0).toBeLessThan(25);`, 1],
+      [`const t0 = ${now}; work(); const ms = ${now} - t0;\nexpect(ms < 25).toBe(true);`, 1],
+      [`const runs = [];\nruns.push(${now});\nexpect(runs).toHaveLength(1);\nexpect(runs[0]).toBeGreaterThan(0);`, 1],
+      [`function took(f) {\n  const t0 = ${now};\n  f();\n  return ${now} - t0;\n}\nconst t = {};\nt['a'] = took(work);\nfor (const [k, v] of Object.entries(t)) expect(v, k).toBeLessThan(25);`, 1],
+      [`function build() {\n  const t0 = ${now};\n  const ms = ${now} - t0;\n  return { status: 0, ms };\n}\nconst r = build();\nexpect(r.status).toBe(0);\nexpect(r.ms).toBeLessThan(9);`, 1],
+      [`const { ms } = { ms: ${now} };\nassert.ok(ms < 25);`, 1],
+      [`const t0 = ${now};\nprint(${now} - t0);\nexpect(work()).toBe(3);`, 0],
+      // only code counts: a clock in a string or a comment is not a reading, a ${} part of a template is code
+      [`expect(page).toContain('${now} + 600'); // expect(${now} - t0).toBeLessThan(1)`, 0],
+      [`const k = 'x = ${now}';\nexpect(k).toBe('x');`, 0],
+      ['const t0 = ' + now + ';\nexpect(`took ${' + now + ' - t0} ms`).toMatch(/took/);', 1],
+    ];
+    for (const [src, n] of cases) expect(durationAssertions(src), src).toHaveLength(n);
   });
 });
 
