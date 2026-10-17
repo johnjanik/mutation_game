@@ -90,3 +90,5 @@ export { symmetries, fold, averagedRootsType, averagedSimpleCartan } from './fol
 export type { Symmetry, FoldResult } from './fold';
 export { classifyRestricted } from './restrictedType';
 export type { RestrictedType, RestrictedEntry } from './restrictedType';
+export { symEig, euclideanBasis, coxeterPlanePoints, coxeterPlaneRings, coxeterWord, applyWordFloat } from './geometry';
+export type { CoxeterPlaneRings } from './geometry';

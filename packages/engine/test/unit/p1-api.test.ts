@@ -40,6 +40,7 @@ const PHASE_3_NAMES = [
 // phase-4 additions of geometry.ts and wythoff.ts, pinned here as the earlier phases are.
 const PHASE_4_NAMES = [
   'symmetries', 'fold', 'averagedRootsType', 'averagedSimpleCartan', 'classifyRestricted',
+  'symEig', 'euclideanBasis', 'coxeterPlanePoints', 'coxeterPlaneRings', 'coxeterWord', 'applyWordFloat',
 ] as const;
 
 const PHASE_0_NAMES = [
