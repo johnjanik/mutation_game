@@ -781,11 +781,16 @@
                   <mo>=</mo><mfrac><mn>{dim.M.toString()}</mn><mn>{dim.D.toString()}</mn></mfrac>
                 {/if}
                 <mo>=</mo>
-                <mn>{dim.dimension.toString()}</mn>
+                {#if isLong(dim.dimension.toString())}
+                  <mtext>{shortValue(dim.dimension.toString())}</mtext>
+                {:else}
+                  <mn>{dim.dimension.toString()}</mn>
+                {/if}
               </mrow>
             </math>
           </div>
-          <p class="line">Dimension: <span class="numeral" data-out="dimension">{dim.dimension.toString()}</span></p>
+          <!-- 4.0 Long numbers: shortened above 12 digits, the exact digits in the tooltip, the table and the export. -->
+          <p class="line">Dimension: <span class="numeral" data-out="dimension" title={isLong(dim.dimension.toString()) ? dim.dimension.toString() : null}>{shortValue(dim.dimension.toString())}</span></p>
         {/if}
       {/if}
     </div>
@@ -914,7 +919,7 @@
         <tr><th scope="row">Tape from λ + ρ</th><td class="numeral">{listText(dim.tapeLambdaRho)}</td></tr>
         <tr><th scope="row">D</th><td class="numeral exact" data-table-exact="D">{dim.D.toString()}</td></tr>
         <tr><th scope="row">M</th><td class="numeral exact" data-table-exact="M">{dim.M.toString()}</td></tr>
-        <tr><th scope="row">M / D</th><td class="numeral">{dim.dimension.toString()}</td></tr>
+        <tr><th scope="row">M / D</th><td class="numeral exact" data-table-exact="dimension">{dim.dimension.toString()}</td></tr>
       </tbody>
     </table>
   {/if}

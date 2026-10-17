@@ -29,7 +29,8 @@ function jsonSafe(value: unknown): unknown {
   if (value === null || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map(jsonSafe);
   if (value instanceof Map) return [...value.entries()].map(([k, v]) => [jsonSafe(k), jsonSafe(v)]);
-  if (isRational(value)) return value.den === 1n ? value.num.toString() : `${value.num}/${value.den}`;
+  // A rational whose denominator is 1 is an integer, so the integer rule applies to it.
+  if (isRational(value)) return value.den === 1n ? jsonSafe(value.num) : `${value.num}/${value.den}`;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value)) if (v !== undefined) out[k] = jsonSafe(v);
   return out;

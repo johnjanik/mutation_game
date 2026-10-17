@@ -9,7 +9,8 @@
 //   parts:    data-part ("meter", "builder", "small-values")
 //   controls: data-control = test, weightSlider, weightField (with data-weight "city" | "road" and
 //             data-weight-index: the position of the city, or the index of the joined pair), entry
-//             (with data-row and data-city), addRow, picker, undo, redo, reset; data-export="svg"
+//             (with data-row and data-city), addRow, picker, undo, redo, reset, copyLink,
+//             downloadData (regressions); data-export="svg"
 //   live:     [data-live] (ToolFrame's polite live region)
 // data-out names (every one T3 renders; the registry's `outs`):
 //   formValue (data-value), meterNote, testVerdict (data-invariant), witness (data-city,
@@ -27,6 +28,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { ssrLoader } from '../unit/_svelteSsr';
+import { copiedLink, downloadData, openForExport, safeAsStrings, unsafeNumbers } from './exportIntegers';
 
 const ROUTE = 'tools/form/';
 const PASS = 'Passes: every mutation preserves this form.';
@@ -330,6 +332,10 @@ test('the tool renders without JavaScript', async ({ browser, baseURL }) => {
   await context.close();
 });
 
+// ---------------------------------------------------------------------------------------------
+// Regressions
+// ---------------------------------------------------------------------------------------------
+
 test.describe('regressions', () => {
   // SPEC 7.4: a follower extends the play it keeps by the moves of each new state. The meter's
   // subscription must not track the play it extends: inside its effect it would depend on what it
@@ -357,5 +363,20 @@ test.describe('regressions', () => {
     await expect(meter.locator('[data-table-value="population"]')).toHaveText(leaderValues as string[]);
     await expect(meter.locator('[data-out="formValue"]')).toHaveAttribute('data-value', '2');
     expect(errors).toEqual([]);
+  });
+
+  // regression: P3-RT-04-05
+  test('export of the default state: integer rule, engine version, commit, state agrees with Copy link', async ({ page }) => {
+    await openForExport(page, 'tools/form/');
+    const { raw, doc } = await downloadData(page);
+    expect(typeof doc.engineVersion).toBe('string');
+    expect(doc.commit).toMatch(/^[0-9a-f]{7,40}$/);
+    expect(unsafeNumbers(raw)).toEqual([]);
+    expect(safeAsStrings(doc.derived, 'derived')).toEqual([]);
+    expect(Object.keys(doc.derived ?? {}).length).toBeGreaterThan(0);
+    const q = await copiedLink(page);
+    if (doc.state.board !== undefined && typeof doc.state.board === 'string' && q.has('g')) expect(q.get('g')).toBe(doc.state.board);
+    if (doc.state.moves !== undefined && q.has('w')) expect(q.get('w')).toBe(doc.state.moves.join('.'));
+    if (doc.state.start !== undefined && q.has('s')) expect(q.get('s')).toBe(doc.state.start.join(','));
   });
 });

@@ -31,7 +31,7 @@
   import Builder from './t03/Builder.svelte';
   import SmallValues from './t03/SmallValues.svelte';
   import { BUILDER_TEXT, defaultWeights, initialWeights, joinedPairs, matrixOf, witnessView, type RoadWeightProp, type WeightKind, type WitnessView } from './t03/weights';
-  import { entryAllowed } from './t03/digits';
+  import { entryAllowed, entryValue } from './t03/digits';
   import { FORM_TEXT, defaultRows, followPlay, judgeRow, meterModel, type FollowedPlay } from './t03/model';
   import { FORM_PRESETS, isPresetId, partsInOrder } from './t03/presets';
 
@@ -304,14 +304,18 @@
     const byLabel = (v: readonly number[]): number[] => order.map((l) => v[game.board.labels.indexOf(l)]!);
     return {
       ...game.derived(),
-      meter: { population: meter.population.map(exportValue), formValue: meter.value, linkedTo: follow ?? null },
+      meter: { population: meter.population.map(exportValue), formValue: meter.value === null ? null : exportValue(meter.value), linkedTo: follow ?? null },
       builder: {
         convention: 'the matrix handed to formIsInvariant is 2M: diagonal 2 w_i, off the diagonal -w_ij',
         cityWeights: byLabel(weights.city),
         roadWeights: pairs.map((p, k) => ({ pair: p.labels, weight: weights.road[k]! })),
         lastTest: verdict === null ? null : { invariant: verdict.invariant, witness: verdict.witness },
       },
-      smallValues: rows.map((r, k) => ({ population: r, formValue: judged[k]!.value, verdict: judged[k]!.verdict })),
+      // A whole number typed in a city is exported as that integer; an unfinished entry as its text (6.6).
+      smallValues: rows.map((r, k) => {
+        const { value, verdict } = judged[k]!;
+        return { population: r.map((t) => entryValue(t) ?? t), formValue: value === null ? null : exportValue(value), verdict };
+      }),
     };
   }
 </script>
