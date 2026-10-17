@@ -2,7 +2,10 @@
 // 7.4, 7.5). Cases open /tools/weyl/ (the `default` preset, A3) and use its board, its picker and bare
 // query parameters (6.6: every state is a link). Tests read only the hooks of 4.0 and the live region
 // (and, where a criterion is about the address bar, a download or a timing, those). Golden values are
-// read from reference/golden_data.json and engine values computed here in Node; none is typed.
+// read from reference/golden_data.json and engine values computed here in Node; none is typed. The
+// names and announcements are the templates of SPEC 7.5 (A-3, A-4) typed here, and the details of a
+// vertex are computed with the engine (orbitGraph, wordTo, separatingRoots): this file imports neither
+// site/src/lib/a11y.ts nor the tool's own t08/graph.ts (RT-FIX P3-RT-11-06).
 //
 // Hooks read:
 //   root:     data-tool="weyl", data-moves, data-hydrated="true"
@@ -47,10 +50,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { boardFromName, fire, toPositions } from '../../../packages/engine/src/index';
+import { CAPS, boardFromName, fire, orbitGraph, separatingRoots, toLabels, toPositions, wordTo } from '../../../packages/engine/src/index';
 import type { Board } from '../../../packages/engine/src/index';
-import { announceTemplates, nodeName, speak } from '../../src/lib/a11y';
-import { buildGraph, inLabelOrder, pathOfMoves, vertexDetails } from '../../src/components/tools/t08/graph';
 
 const ROUTE = 'tools/weyl/';
 const NOTICE = 'The link could not be read, so the tool shows its default state.';
@@ -128,10 +129,15 @@ async function lowestCanAct(page: Page): Promise<number> {
 const A3 = boardFromName('A3') as Board<number>;
 const onesA3 = [1, 1, 1];
 
+/** A vector in engine order as decimal text in label order (E-7), through the engine's toPositions. */
+const labelOrder = (b: Board<number>, v: readonly number[]): string[] =>
+  toPositions(b, [...b.labels].sort((x, y) => x - y)).map((p) => String(v[p]));
+
 // ---------------------------------------------------------------------------------------------
 // The named examples (SPEC 4 T8; SPEC 3 M5 rows 1 to 4)
 // ---------------------------------------------------------------------------------------------
 
+// regression: P3-RT-11-06
 test('A3 graph: 24 vertices in 7 layers, the game is a path', async ({ page }) => {
   await open(page);
   const t = golden.types.A3!;
@@ -160,15 +166,28 @@ test('A3 graph: 24 vertices in 7 layers, the game is a path', async ({ page }) =
   await page.waitForTimeout(900);
   const said = (await read()).filter((s) => s.startsWith('Played'));
   expect(said).toHaveLength(1);
-  const end = (await values(page)).map((v) => speak(v));
-  expect(said[0]).toBe(announceTemplates.playedToEnd(Number(bottom) - 3, end));
+  // A-4 as typed in SPEC 7.5; every complete game on A3 ends at minus rho.
+  expect(await values(page)).toEqual(['-1', '-1', '-1']);
+  expect(said[0]).toBe(`Played ${Number(bottom) - 3} moves to the end. Numbers now minus 1, minus 1, minus 1.`);
 });
 
+// regression: P3-RT-11-06
 test('hovering a vertex shows the word and separating mirrors', async ({ page }) => {
   await open(page);
-  const model = buildGraph(A3, undefined, 'A3');
-  const k = pathOfMoves(model, [1, 3, 2])[3]!;
-  const want = vertexDetails(model, k);
+  // The expected details, from the engine: the vertex reached by 1, 3, 2 from all ones in the graph of
+  // legal moves from all ones (orbitGraph with T8's cap), a shortest word to it (wordTo) and its
+  // separating roots (separatingRoots), each in label order.
+  let reached = [...onesA3];
+  for (const i of toPositions(A3, [1, 3, 2])) reached = fire(A3, reached, i);
+  const graph = orbitGraph(A3, [onesA3], 'firing', CAPS.weylExplorerGroup, undefined, true);
+  const k = graph.items.findIndex((v) => v.join(',') === reached.join(','));
+  expect(k).toBeGreaterThan(0);
+  const want = {
+    position: labelOrder(A3, reached),
+    word: toLabels(A3, wordTo(graph, k)),
+    layer: graph.depth[k]!,
+    roots: separatingRoots(A3, reached).map((r) => labelOrder(A3, r)),
+  };
   const text = want.position.join(',');
   const check = async (): Promise<void> => {
     await expect(out(page, 'vertexPosition')).toHaveAttribute('data-position', text);
@@ -187,7 +206,7 @@ test('hovering a vertex shows the word and separating mirrors', async ({ page })
   // The engine's own reading: replaying the word from all ones gives the position.
   let a = [...onesA3];
   for (const i of toPositions(A3, want.word)) a = fire(A3, a, i);
-  expect(inLabelOrder(A3, a).join(',')).toBe(text);
+  expect(labelOrder(A3, a).join(',')).toBe(text);
   // Separately by keyboard: Tab-stop vertex, then the arrows to the target.
   await page.mouse.move(1, 1);
   await expect(out(page, 'vertexPosition')).toHaveAttribute('data-position', onesA3.join(','));
@@ -415,22 +434,24 @@ test('undo, redo, reset, history, step, export and table', async ({ page }) => {
   await expect(root(page)).toHaveAttribute('data-moves', layer!);
 });
 
+// regression: P3-RT-11-06
 test('accessibility: names, announcements, hit areas, reduced motion, text alternatives', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await open(page);
-  // A-3
-  for (const l of [1, 2, 3]) await expect(node(page, l)).toHaveAttribute('aria-label', nodeName('node', l, '1', 'can be fired'));
+  // A-3, the template of SPEC 7.5 typed here
+  for (const l of [1, 2, 3]) await expect(node(page, l)).toHaveAttribute('aria-label', `Node ${l}, value 1, can be fired`);
   // A-4: the region exists and is empty before the first move.
   await expect(live(page)).toHaveCount(1);
   await expect(live(page)).toHaveText('');
-  const after = fire(A3, onesA3, 0);
+  // Firing node 1 of A3 from all ones gives (minus 1, 2, 1) (the engine agrees with the sentences below).
+  expect(labelOrder(A3, fire(A3, onesA3, 0))).toEqual(['-1', '2', '1']);
   await node(page, 1).click();
-  await expect(live(page)).toHaveText(announceTemplates.fired(1, inLabelOrder(A3, after).map((v) => speak(v)), 1));
-  await expect(node(page, 1)).toHaveAttribute('aria-label', nodeName('node', 1, speak(after[0]!), 'cannot be fired'));
+  await expect(live(page)).toHaveText('Fired node 1. Numbers now minus 1, 2, 1. Move 1.');
+  await expect(node(page, 1)).toHaveAttribute('aria-label', 'Node 1, value minus 1, cannot be fired');
   await expect(node(page, 1)).toHaveAttribute('data-can-act', 'false');
   await page.waitForTimeout(700);
   await node(page, 1).click();
-  await expect(live(page)).toHaveText(announceTemplates.cannotFire(1, speak(after[0]!)));
+  await expect(live(page)).toHaveText('Node 1 cannot be fired: its number is minus 1.');
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   // A-9: the path changes at once, with no transition.
   await expect(pathVertices(page)).toHaveCount(2);
