@@ -88,8 +88,13 @@
         </label>
       {/each}
     {/if}
-    <button type="button" class="control" data-control="predictCheck" disabled={!hydrated || resolved !== null} onclick={check}>Check</button>
-    <button type="button" class="control" data-control="predictShow" disabled={!hydrated || resolved !== null} onclick={() => finish('shown')}>Show me</button>
+    <!-- Once answered, the two buttons are done but keep the focus the reader left on one of them (A-1,
+         WCAG 2.4.3): aria-disabled, not the disabled attribute, which is for the time before hydration
+         (7.4) and would drop the focus to the page; finish() ignores a second answer. -->
+    <button type="button" class="control" data-control="predictCheck" disabled={!hydrated} aria-disabled={resolved !== null ? 'true' : undefined} onclick={check}>Check</button>
+    <button type="button" class="control" data-control="predictShow" disabled={!hydrated} aria-disabled={resolved !== null ? 'true' : undefined} onclick={() => finish('shown')}
+      >Show me</button
+    >
   </div>
   <p class="line" data-out="predictResult">{resultText}</p>
   {#if resolved !== null}
@@ -159,7 +164,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,
