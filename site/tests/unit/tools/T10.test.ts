@@ -18,6 +18,7 @@ import {
   CAPS,
   applyWordFloat,
   boardFromName,
+  classify,
   orbitGraph,
   orbitSize,
   symmetrizer,
@@ -29,7 +30,9 @@ import type { Board } from '@engine';
 import T10 from '../../../src/tools/registry/T10';
 import { T10_BOARDS, T10_OUTS, T10_PRESETS, T10_PRESET_IDS, defaultProjectionText } from '../../../src/components/tools/t10/config';
 import {
+  classifiedBoard,
   computeOrbit,
+  countsOf,
   drawingMatrix,
   edgeArgs,
   edgeLimitText,
@@ -37,7 +40,9 @@ import {
   enumerationHint,
   faceTable,
   fitsMainThread,
+  fromGraph,
   fromPresetFile,
+  isClassified,
   RING_MAX,
   refusalText,
   rootPolytopeRings,
@@ -54,7 +59,26 @@ import { coxeterStats, distinctDotsText, planeStats } from '../../../src/compone
 import { baseEdgeLengths, distinctLengths, replayVertices, replayWholeWords, symmetrizerFloats, uniformConstant, uniformMatters, uniformStart } from '../../../src/components/tools/t10/uniform';
 import { MANIFEST_FILE, PLACED_FIGURES, PRESET_DIR, SHELL_LINKS, dataFileFor, presetState } from '../../../src/components/tools/t10/presets';
 import { POLYTOPE_NAMES, polytopeNameHtml, polytopeNamePlain } from '../../../src/components/tools/t10/names';
-import { admit, drawnOf, factsOf, figureText, limitTexts, loadPlan, pictureOf, shortRootPositions, stateOf, uncachedCore, type StudioConfig } from '../../../src/components/tools/t10/studio';
+import {
+  admit,
+  coreFacts,
+  coreFactsInTasks,
+  deriveInTasks,
+  drawnOf,
+  enumerateInTasks,
+  factsOf,
+  figureText,
+  forgetCore,
+  limitTexts,
+  loadPlan,
+  otherFacts,
+  pictureOf,
+  prepareInTasks,
+  shortRootPositions,
+  stateOf,
+  uncachedCore,
+  type StudioConfig,
+} from '../../../src/components/tools/t10/studio';
 import { drawPicture, type PictureColours } from '../../../src/components/tools/t10/drawing';
 import { pictureSvg } from '../../../src/components/tools/t10/svg';
 import { snapshotOf } from '../../../src/components/tools/t10/snapshot';
@@ -101,7 +125,11 @@ const record = (type: string, rings: number[]): WythoffRecord => {
   return hits[0]!;
 };
 const oneRing = (n: number, label: number): number[] => Array.from({ length: n }, (_, k) => (k + 1 === label ? 1 : 0));
+/** The vertices of a configuration without edges, as a change finds them before it is shown. */
+const prepareVertices = (c: StudioConfig): ReturnType<typeof fromGraph> => fromGraph(t10Board(c.board), c.rings, orbitGraph(...vertexArgs(t10Board(c.board), c.rings)));
 const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
+/** The time limit of a test that enumerates whole orbits of tens of thousands of items (a limit of the runner, not of the tool). */
+const HEAVY = 60_000;
 function timeMedian(f: () => unknown, runs = 7): number {
   f(); // warm up once, outside the measurement
   const t: number[] = [];
@@ -201,7 +229,7 @@ describe('SPEC 4 T10 acceptance', () => {
     // 2_41 is among them: the largest edge set drawn at rest, below the cap.
     expect(largest).toBe(record('E8', [1, 0, 0, 0, 0, 0, 0, 0]).f_vector[1]);
     expect(largest).toBeLessThanOrEqual(CAPS.edgesAtRest);
-  });
+  }, HEAVY); // 25 whole orbits, 2_41's 69120 edges among them: about 2 s alone, more than Vitest's 5 s default in the parallel suite
 
   it('1_42 gives 17280 vertices, no edges, and the edge limit message', () => {
     const r = record('E8', [0, 1, 0, 0, 0, 0, 0, 0]);
@@ -335,7 +363,7 @@ describe('limits', () => {
     // Above the rest cap nothing but the vertices (a move graph that large; the polytope graph is never enumerated there).
     const big = { ...picture, scene: { ...picture.scene, segments: Array.from({ length: CAPS.edgesAtRest + 1 }, () => picture.scene.segments[0]!) } };
     expect(drawPicture(recorder(), big, COLOURS, { turning: false, dpr: 1 }).verticesOnly).toBe(true);
-  });
+  }, HEAVY);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -577,12 +605,23 @@ describe('where the work runs', () => {
   it('main-thread work stays under the long-task budget', () => {
     const BUDGET = 25; // ms, the margin SPEC 7.6 sets for its own benchmark (plan)
     const timings: Record<string, number> = {};
-    // Counts and face table of every E8 configuration with one ringed node (the refused ones included).
+    // Each piece is timed alone, because the tool runs each in a task of its own (studio.ts coreFactsInTasks,
+    // prepareInTasks, enumerateInTasks, deriveInTasks; the tests below check that structure). The verdict of
+    // classify is timed on a new board object (the engine keeps it per object, E-11), as the first change to
+    // a board computes it; the short roots are timed without their cache, as the first change computes them.
+    timings['E8: classify, first time on the board'] = timeMedian(() => classify(B('E8')));
+    const e8 = classifiedBoard('E8');
     for (let label = 1; label <= 8; label++) {
-      timings[`E8 node ${label}: counts and face table`] = timeMedian(() => uncachedCore('E8', oneRing(8, label)));
+      const rings = oneRing(8, label);
+      timings[`E8 node ${label}: counts`] = timeMedian(() => countsOf(e8, rings));
+      timings[`E8 node ${label}: face table`] = timeMedian(() => faceTable(e8, rings));
+      timings[`E8 node ${label}: other facts, first time on the board`] = timeMedian(() => [shortRootRings(e8), otherFacts(e8, 'E8', rings)]);
     }
-    // The move graph of the showpiece from its vertex list.
-    const showpiece = fromPresetFile(B('E8'), fileOf('E8-r0.0.0.0.0.0.0.1.json'));
+    // The showpiece: its data file read into orbit data, and its move graph from the vertex list (one slice).
+    const showpieceFile = fileOf('E8-r0.0.0.0.0.0.0.1.json');
+    timings['E8 showpiece: data file to orbit data'] = timeMedian(() => fromPresetFile(t10Board('E8'), showpieceFile));
+    const showpiece = fromPresetFile(B('E8'), showpieceFile);
+    expect(B('E8').n * showpiece.vertices.length).toBeLessThanOrEqual(CAPS.mainThreadItems);
     timings['E8 showpiece: move graph'] = timeMedian(() => moveEdges(B('E8'), showpiece.vertices));
     // The largest enumeration the plan still sends to the main thread, over the 32 types with one ringed node.
     let best: { T: string; label: number; items: number } | null = null;
@@ -598,12 +637,164 @@ describe('where the work runs', () => {
     expect(best).not.toBeNull();
     const largest = configOf(best!.T, oneRing(B(best!.T).n, best!.label));
     const lf = factsOf(largest);
-    // The component runs the two enumerations as separate tasks (a macrotask yield between them), so each is timed alone.
+    const what = `${best!.T} node ${best!.label}`;
     const vertices = orbitGraph(...vertexArgs(lf.board, largest.rings)).items;
-    timings[`largest main-thread vertex enumeration (${best!.T} node ${best!.label}, ${lf.decision.vertexItems} items)`] = timeMedian(() => orbitGraph(...vertexArgs(lf.board, largest.rings)));
-    timings[`largest main-thread edge enumeration (${best!.T} node ${best!.label}, ${lf.decision.edgeItems} items)`] = timeMedian(() => edgesToIndices(vertices, wythoffEdges(...edgeArgs(lf.board, largest.rings))));
-    for (const [what, ms] of Object.entries(timings)) expect(ms, what).toBeLessThan(BUDGET);
+    const edges = wythoffEdges(...edgeArgs(lf.board, largest.rings));
+    timings[`largest main-thread vertex enumeration (${what}, ${lf.decision.vertexItems} items)`] = timeMedian(() => orbitGraph(...vertexArgs(lf.board, largest.rings)));
+    timings[`largest main-thread edge enumeration (${what}, ${lf.decision.edgeItems} items)`] = timeMedian(() => wythoffEdges(...edgeArgs(lf.board, largest.rings)));
+    timings[`its index pairs (${what})`] = timeMedian(() => edgesToIndices(vertices, edges));
+    timings[`its move graph, one slice (${what})`] = timeMedian(() => new MoveGraphBuilder(lf.board, vertices).step(CAPS.mainThreadItems));
+    for (const [w, ms] of Object.entries(timings)) expect(ms, w).toBeLessThan(BUDGET);
     console.info(`T10 main-thread medians (ms): ${JSON.stringify(Object.fromEntries(Object.entries(timings).map(([k, v]) => [k, Math.round(v * 100) / 100])))}`);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Tasks of their own (7.6): what the tool runs between two yields to the browser
+// ---------------------------------------------------------------------------------------------
+
+/** A stand-in for nextTask that counts the tasks; `mark` records the task in which each piece of work ended. */
+function taskCounter(): { steps: { nextTask: () => Promise<void>; live: () => boolean; mark: (s: string) => void }; task: () => number; marks: [string, number][]; stopAfter: (k: number) => void } {
+  let task = 0;
+  let stop = Infinity;
+  const marks: [string, number][] = [];
+  return {
+    steps: {
+      nextTask: async () => {
+        await Promise.resolve();
+        task++;
+      },
+      live: () => task <= stop,
+      mark: (s: string) => marks.push([s, task]),
+    },
+    task: () => task,
+    marks,
+    stopAfter: (k: number) => {
+      stop = k;
+    },
+  };
+}
+
+describe('tasks of their own', () => {
+  it('a change computes its counts, its face table and its other facts in three tasks after the one that asked', async () => {
+    for (const [T, rings] of [
+      ['E8', [1, 0, 0, 0, 0, 0, 0, 0]],
+      ['E8', [0, 0, 1, 0, 0, 0, 0, 0]],
+      ['B6', [0, 0, 0, 1, 0, 0]],
+    ] as [string, number[]][]) {
+      forgetCore(T, rings);
+      const t = taskCounter();
+      const firstOnBoard = !isClassified(T);
+      const core = await coreFactsInTasks(T, rings, t.steps);
+      // One piece per task, from the first task after the caller's: the verdict of classify the first time on a board.
+      expect(t.marks.map(([s]) => s), T).toEqual([...(firstOnBoard ? ['board'] : []), 'counts', 'faces', 'others']);
+      expect(t.marks.map(([, k]) => k), T).toEqual(t.marks.map((_, i) => i + 1));
+      // The same facts as in one call, stored where the component's derived value finds them.
+      expect(coreFacts(T, rings)).toBe(core);
+      const fresh = uncachedCore(T, rings);
+      expect(core!.counts).toEqual(fresh.counts);
+      expect(core!.faces).toEqual(fresh.faces);
+      expect([core!.name, core!.shortRings, core!.uniformMatters]).toEqual([fresh.name, fresh.shortRings, fresh.uniformMatters]);
+      // A configuration already known answers at once, in the caller's task.
+      const again = taskCounter();
+      expect(await coreFactsInTasks(T, rings, again.steps)).toBe(coreFacts(T, rings));
+      expect(again.task()).toBe(0);
+    }
+    // A newer change stops the work at its next task, and nothing is stored.
+    const rings = [0, 0, 0, 0, 0, 1, 0, 0];
+    forgetCore('E8', rings);
+    const t = taskCounter();
+    t.stopAfter(1);
+    expect(isClassified('E8')).toBe(true);
+    expect(await coreFactsInTasks('E8', rings, t.steps)).toBeNull();
+    expect(t.marks).toEqual([['counts', 1]]);
+    expect(await coreFactsInTasks('E8', rings, taskCounter().steps)).not.toBeNull();
+  });
+
+  it('a change finds the vertices of a main-thread orbit in a task of its own, and is shown in one more', async () => {
+    const config = configOf('B6', [0, 0, 0, 1, 0, 0], 'coxeter');
+    forgetCore(config.board, config.rings);
+    const t = taskCounter();
+    const p = await prepareInTasks(config, null, t.steps);
+    expect(t.marks.map(([s]) => s).filter((s) => s !== 'board')).toEqual(['counts', 'faces', 'others', 'vertices', 'shown']);
+    expect(t.marks.map(([, k]) => k)).toEqual(t.marks.map((_, i) => i + 1));
+    expect(p!.vertices!.vertices).toEqual(orbitGraph(...vertexArgs(t10Board('B6'), config.rings)).items);
+    // A refused orbit and an orbit above 2000 vertices get none; known vertices are not computed again.
+    for (const [c, known] of [
+      [configOf('E8', [0, 0, 1, 0, 0, 0, 0, 0], 'coxeter'), null],
+      [configOf('E8', [1, 0, 0, 0, 0, 0, 0, 0], 'coxeter'), null],
+      [config, p!.vertices],
+    ] as [StudioConfig, ReturnType<typeof fromPresetFile> | null][]) {
+      const u = taskCounter();
+      const q = await prepareInTasks(c, known, u.steps);
+      expect(u.marks.map(([s]) => s)).not.toContain('vertices');
+      expect(u.marks.at(-1)).toEqual(['shown', u.task()]);
+      expect(u.task()).toBeGreaterThan(u.marks.length > 1 ? u.marks.at(-2)![1] : 0);
+      expect(q!.vertices).toBe(known);
+    }
+  });
+
+  it('a load runs the vertices, the edges and their index pairs each in a task of its own', async () => {
+    const config = configOf('B6', [0, 0, 0, 1, 0, 0], 'coxeter');
+    const facts = factsOf(config);
+    const plan = loadPlan(facts, manifest, 'reader');
+    expect(plan.kind).toBe('enumerate');
+    if (plan.kind !== 'enumerate') return;
+    expect(plan.worker).toBe(false);
+    const expected = computeOrbit(facts.board, config.rings, facts.decision)!;
+    for (const partial of [null, prepareVertices(config)]) {
+      const t = taskCounter();
+      const calls: [string, number][] = [];
+      const result = await enumerateInTasks(facts, plan, partial, {
+        ...t.steps,
+        orbitGraph: async (args) => {
+          calls.push(['orbitGraph', t.task()]);
+          return orbitGraph(...args);
+        },
+        wythoffEdges: async (args) => {
+          calls.push(['wythoffEdges', t.task()]);
+          return wythoffEdges(...args);
+        },
+      });
+      // Nothing heavy in the caller's task (0); each enumeration and the index pairs in a task of their own.
+      const pieces = [...calls, ...t.marks.filter(([s]) => s === 'indices')];
+      expect(pieces.every(([, k]) => k >= 1)).toBe(true);
+      expect(new Set(pieces.map(([, k]) => k)).size).toBe(pieces.length);
+      expect(calls.map(([f]) => f)).toEqual(partial === null ? ['orbitGraph', 'wythoffEdges'] : ['wythoffEdges']);
+      expect(t.marks.map(([s]) => s)).toEqual(partial === null ? ['vertices', 'edges', 'indices'] : ['edges', 'indices']);
+      expect(result!.vertices).toEqual(expected.vertices);
+      expect(result!.polytopeEdges).toEqual(expected.polytopeEdges);
+    }
+  });
+
+  it('the move graph is derived in slices of at most 2000 moves, the first after the task that asked', async () => {
+    const board = t10Board('E8');
+    const vertices = orbitGraph(...vertexArgs(board, [1, 0, 0, 0, 0, 0, 0, 0])).items.map((v) => [...v]);
+    expect(board.n * vertices.length).toBeGreaterThan(CAPS.mainThreadItems);
+    const builder = new MoveGraphBuilder(board, vertices);
+    const t = taskCounter();
+    const slices: { task: number; budget: number; vertices: number }[] = [];
+    const done = await deriveInTasks((budget) => {
+      const before = builder.progress;
+      const complete = builder.step(budget);
+      slices.push({ task: t.task(), budget, vertices: builder.progress - before });
+      return complete;
+    }, t.steps);
+    expect(done).toBe(true);
+    expect(slices.length).toBeGreaterThan(1);
+    expect(slices[0]!.task).toBeGreaterThanOrEqual(1);
+    expect(slices.map((s) => s.task)).toEqual(slices.map((_, i) => slices[0]!.task + i));
+    // A move is a firing at a node whose entry is not zero; a slice stops once it has applied its budget.
+    let from = 0;
+    slices.forEach((s, i) => {
+      const moves = vertices.slice(from, from + s.vertices).reduce((sum, v) => sum + v.filter((x) => x !== 0).length, 0);
+      from += s.vertices;
+      expect(s.budget).toBe(CAPS.mainThreadItems);
+      expect(moves).toBeLessThan(CAPS.mainThreadItems + board.n);
+      if (i < slices.length - 1) expect(moves).toBeGreaterThanOrEqual(CAPS.mainThreadItems);
+    });
+    expect(from).toBe(vertices.length);
+    expect(builder.edges).toEqual(moveEdges(board, vertices));
   });
 });
 

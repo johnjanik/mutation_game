@@ -4,7 +4,7 @@
 // is known, what is drawn (coordinates, edges of the graph shown, the Coxeter-plane statistics, the
 // picture). The snapshot of 7.4 is the same picture rendered as SVG by the same code, in Node.
 import { CAPS, orbitGraph } from '@two-games/engine';
-import type { Board } from '@two-games/engine';
+import type { Board, Enumeration, OrbitGraph } from '@two-games/engine';
 import type { ToolState } from '../../../lib/state';
 import { whereToRun, type CallHint } from '../../../lib/worker';
 import { formatProjection, type FloatMatrix, type Projection } from '../../draw/projector';
@@ -16,20 +16,27 @@ import { sharedEdgeCount, type MoveEdge } from './graphs';
 import { polytopeName, polytopeNamePlain } from './names';
 import { dataFileFor, presetOf } from './presets';
 import {
+  classifiedBoard,
   countsOf,
   decide,
+  edgeArgs,
   edgeLimitText,
+  edgesToIndices,
   enumerationHint,
   euclideanPoints,
   faceTable,
+  fromGraph,
+  isClassified,
   isT10Board,
   plural,
   refusalText,
   shortRootRings,
+  shortRootRingsOf,
   t10Board,
   toPositionVector,
   validRings,
   rootPolytopeRings,
+  vertexArgs,
   type Counts,
   type Decision,
   type FaceTable,
@@ -134,33 +141,198 @@ export type CoreFacts = Omit<StudioFacts, 'config' | 'projection'>;
 const coreCache = new Map<string, CoreFacts>();
 const CORE_CACHE_SIZE = 24;
 
-/**
- * The core facts of a board and rings (label order), computed once and kept for the last few
- * configurations (plan: undo, redo and turning never recompute the face table; the same object is
- * returned, so a derived value that reads it does not change). Pure: the cache changes no result.
- */
-export function coreFacts(boardName: string, rings: readonly number[]): CoreFacts {
-  const key = `${boardName}:${rings.join('.')}`;
+function cachedCore(key: string): CoreFacts | undefined {
   const hit = coreCache.get(key);
   if (hit !== undefined) {
     coreCache.delete(key);
     coreCache.set(key, hit);
-    return hit;
   }
-  const board = t10Board(boardName);
-  const counts = countsOf(board, rings);
-  const core: CoreFacts = {
-    board,
-    counts,
-    decision: decide(counts),
-    faces: faceTable(board, rings),
-    name: polytopeName(boardName, rings),
-    shortRings: shortRootRings(board),
-    uniformMatters: uniformMatters(board, rings),
-  };
+  return hit;
+}
+
+function storeCore(key: string, core: CoreFacts): CoreFacts {
+  const known = coreCache.get(key);
+  if (known !== undefined) return known; // the first object stays, so that a derived value reading it does not change
   coreCache.set(key, core);
   if (coreCache.size > CORE_CACHE_SIZE) coreCache.delete(coreCache.keys().next().value!);
   return core;
+}
+
+/** The facts that are neither counts nor faces: the golden name, the short roots of the board, make uniform. */
+export function otherFacts(board: Board<number>, boardName: string, rings: readonly number[]): Pick<CoreFacts, 'name' | 'shortRings' | 'uniformMatters'> {
+  return { name: polytopeName(boardName, rings), shortRings: shortRootRingsOf(board), uniformMatters: uniformMatters(board, rings) };
+}
+
+/**
+ * The core facts of a board and rings (label order), computed once and kept for the last few
+ * configurations (plan: undo, redo and turning never recompute the face table; the same object is
+ * returned, so a derived value that reads it does not change). Pure: the cache changes no result.
+ * In one call: build time, the configured state at hydration, and the tests; a change in the browser
+ * computes the same facts in tasks of their own first (coreFactsInTasks), so that this finds them.
+ */
+export function coreFacts(boardName: string, rings: readonly number[]): CoreFacts {
+  const key = `${boardName}:${rings.join('.')}`;
+  const hit = cachedCore(key);
+  if (hit !== undefined) return hit;
+  const board = t10Board(boardName);
+  const counts = countsOf(board, rings);
+  return storeCore(key, { board, counts, decision: decide(counts), faces: faceTable(board, rings), ...otherFacts(board, boardName, rings) });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Work in tasks of its own (7.6: no long task on the main thread)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A promise that settles in a later macrotask (a message to a channel of its own: no 4 ms clamp of nested
+ * timers), so that the browser can paint and take input between two pieces of work. The pieces of a load
+ * or of a change (the counts, the face table, each enumeration, the index pairs, each slice of the move
+ * graph) each run in a task of their own, because several of them together can pass the 50 ms of a long
+ * task even when each is small (plan, Traps: "run them as separate tasks").
+ */
+export function nextTask(): Promise<void> {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
+  });
+}
+
+/** How a sequence of tasks proceeds: where the next task comes from, whether the work is still wanted, and a probe for the tests. */
+export interface TaskSteps {
+  nextTask: () => Promise<void>;
+  /** False once a newer change has made this work useless: the sequence stops at its next task. */
+  live: () => boolean;
+  /** Called with the name of each piece of work as it ends (unit tests record which task ran it). */
+  mark?: (step: string) => void;
+}
+
+/**
+ * coreFacts in tasks of their own, each after a yield: on a board not classified yet, its verdict of
+ * `classify` (classifiedBoard); the counts (orbitSize, wythoffFVector); the face table (wythoffFaceTypes);
+ * the other facts. The result is stored where coreFacts finds it. Null when the work stopped (live()
+ * false). A configuration already known answers at once, in the caller's task.
+ */
+export async function coreFactsInTasks(boardName: string, rings: readonly number[], steps: TaskSteps): Promise<CoreFacts | null> {
+  const key = `${boardName}:${rings.join('.')}`;
+  const hit = cachedCore(key);
+  if (hit !== undefined) return hit;
+  if (!isClassified(boardName)) {
+    await steps.nextTask();
+    if (!steps.live()) return null;
+    classifiedBoard(boardName);
+    steps.mark?.('board');
+  }
+  await steps.nextTask();
+  if (!steps.live()) return null;
+  const board = t10Board(boardName);
+  const counts = countsOf(board, rings);
+  steps.mark?.('counts');
+  await steps.nextTask();
+  if (!steps.live()) return null;
+  const faces = faceTable(board, rings);
+  steps.mark?.('faces');
+  await steps.nextTask();
+  if (!steps.live()) return null;
+  const others = otherFacts(board, boardName, rings);
+  steps.mark?.('others');
+  return storeCore(key, { board, counts, decision: decide(counts), faces, ...others });
+}
+
+/** What a change needs before it is shown: the core facts, and the vertices when they belong on the main thread. */
+export interface Prepared {
+  config: StudioConfig;
+  core: CoreFacts;
+  /** The vertices without edges, when the orbit has at most 2000 of them (E-9) and none was known; else null. */
+  vertices: OrbitData | null;
+}
+
+/**
+ * The work before a change is shown, in tasks of their own: the core facts (coreFactsInTasks), then the
+ * vertices when the count sends them to the main thread and `known` has none for this board and rings, so
+ * that the first picture of the new state shows its points. The answer comes in one more task of its own,
+ * in which the caller shows the change (the page's update and the first drawing). Null when the work stopped.
+ */
+export async function prepareInTasks(next: StudioConfig, known: OrbitData | null, steps: TaskSteps): Promise<Prepared | null> {
+  const core = await coreFactsInTasks(next.board, next.rings, steps);
+  if (core === null) return null;
+  let vertices = known;
+  if (known === null && !core.decision.refused && whereToRun(enumerationHint(core.board, core.decision.vertexItems)) === 'main') {
+    await steps.nextTask();
+    if (!steps.live()) return null;
+    vertices = fromGraph(core.board, next.rings, orbitGraph(...vertexArgs(core.board, next.rings)));
+    steps.mark?.('vertices');
+  }
+  await steps.nextTask();
+  if (!steps.live()) return null;
+  steps.mark?.('shown');
+  return { config: next, core, vertices };
+}
+
+/** The enumerations of a load: engineCall in the component (main thread or worker, as the hint says), the engine in the tests. */
+export interface EnumerationSteps extends TaskSteps {
+  orbitGraph: (args: ReturnType<typeof vertexArgs>, hint: CallHint) => Promise<OrbitGraph<number>>;
+  wythoffEdges: (args: ReturnType<typeof edgeArgs>, hint: CallHint) => Promise<Enumeration<[number[], number[]]>>;
+  /** The vertices are known before the edges (the picture shows them at once). */
+  onVertices?: (data: OrbitData) => void;
+}
+
+/**
+ * The enumerations of a plan, each in a task of its own: the vertices (unless `partial` holds them already
+ * and the hint keeps them on the main thread), then the edges of wythoffEdges, then, in the next task, their
+ * index pairs (and with them the drawing). A call to the worker is posted from its own task and its answer
+ * arrives in another. Null when the work stopped. A call is never started in one place and continued in the
+ * other (E-9): each enumeration runs where its hint says, whole.
+ */
+export async function enumerateInTasks(
+  facts: Pick<StudioFacts, 'board' | 'config'>,
+  plan: Extract<LoadPlan, { kind: 'enumerate' }>,
+  partial: OrbitData | null,
+  steps: EnumerationSteps,
+): Promise<OrbitData | null> {
+  const { board, config } = facts;
+  let data: OrbitData;
+  if (partial !== null && whereToRun(plan.vertexHint) === 'main') {
+    data = { ...partial, polytopeEdges: null, moveEdges: null };
+  } else {
+    await steps.nextTask();
+    if (!steps.live()) return null;
+    const graph = await steps.orbitGraph(vertexArgs(board, config.rings), plan.vertexHint);
+    if (!steps.live()) return null;
+    data = fromGraph(board, config.rings, graph);
+    steps.mark?.('vertices');
+    steps.onVertices?.(data);
+  }
+  if (plan.edgeHint === null) return data;
+  await steps.nextTask();
+  if (!steps.live()) return null;
+  const edges = await steps.wythoffEdges(edgeArgs(board, config.rings), plan.edgeHint);
+  steps.mark?.('edges');
+  if (!steps.live()) return null;
+  await steps.nextTask();
+  if (!steps.live()) return null;
+  data.polytopeEdges = edgesToIndices(data.vertices, edges);
+  steps.mark?.('indices');
+  return data;
+}
+
+/**
+ * The move graph in slices: `step(budget)` applies at most about `budget` moves and answers true when the
+ * graph is complete (moves.ts MoveGraphBuilder). Every slice, the first included, runs in a task of its
+ * own, after the task that asked for it, with at most CAPS.mainThreadItems moves (E-9, 7.6). False when
+ * the work stopped.
+ */
+export async function deriveInTasks(step: (budget: number) => boolean, steps: TaskSteps): Promise<boolean> {
+  for (;;) {
+    await steps.nextTask();
+    if (!steps.live()) return false;
+    const done = step(CAPS.mainThreadItems);
+    steps.mark?.('moves');
+    if (done) return true;
+  }
 }
 
 export function factsOf(config: StudioConfig): StudioFacts {
@@ -174,6 +346,11 @@ export function factsOf(config: StudioConfig): StudioFacts {
 export function uncachedCore(boardName: string, rings: readonly number[]): CoreFacts {
   coreCache.delete(`${boardName}:${rings.join('.')}`);
   return coreFacts(boardName, rings);
+}
+
+/** Forgets the core facts of a configuration (unit tests of coreFactsInTasks). */
+export function forgetCore(boardName: string, rings: readonly number[]): void {
+  coreCache.delete(`${boardName}:${rings.join('.')}`);
 }
 
 /** The f-vector the tool shows: the n entries of dimensions 0 to n - 1, as the golden f_vector. */

@@ -12,6 +12,7 @@ import {
   CAPS,
   boardFromName,
   cartanNumbers,
+  classify,
   euclideanBasis,
   fire,
   highestRoot,
@@ -39,12 +40,44 @@ export function isT10Board(name: unknown): name is string {
   return typeof name === 'string' && (T10_BOARDS as readonly string[]).includes(name);
 }
 
-/** The named finite board, SafeInt arithmetic (CONTRACTS 2.4 boardFromName). RangeError for any other name. */
+const boards = new Map<string, Board<number>>();
+
+/**
+ * The named finite board, SafeInt arithmetic (CONTRACTS 2.4 boardFromName). RangeError for any other name.
+ * One object per name (boards are immutable, so the cache changes no result): the engine keeps the verdict
+ * of `classify` per board object (E-11), and a new object for every configuration made every guarded call
+ * classify the whole board again (7.6: main-thread work after a ring change).
+ */
 export function t10Board(name: string): Board<number> {
   if (!isT10Board(name)) throw new RangeError(`the Geometry Studio does not offer the board ${JSON.stringify(name)}`);
+  const known = boards.get(name);
+  if (known !== undefined) return known;
   const board: AnyBoard = boardFromName(name);
   if (typeof board.arith.zero !== 'number') throw new RangeError(`${name} is not a named finite board`);
+  boards.set(name, board as Board<number>);
   return board as Board<number>;
+}
+
+const classified = new WeakSet<Board<number>>();
+
+/** True when the board of this name has been classified through classifiedBoard. */
+export function isClassified(name: string): boolean {
+  const board = boards.get(name);
+  return board !== undefined && classified.has(board);
+}
+
+/**
+ * The board of a name with the engine's verdict of `classify` computed and kept on it (5.6: "a tool decides
+ * finite type by classify once, when the board is loaded"), so that the guards of the calls that follow find
+ * it. The first time on a board this is a piece of work of its own (7.6).
+ */
+export function classifiedBoard(name: string): Board<number> {
+  const board = t10Board(name);
+  if (!classified.has(board)) {
+    classify(board);
+    classified.add(board);
+  }
+  return board;
 }
 
 /** The labels of a board in increasing order: the order of `rings` and of every vector shown (6.6). */
@@ -93,6 +126,19 @@ export function rootPolytopeRings(board: Board<number>): number[] {
 export function shortRootRings(board: Board<number>): number[] | null {
   const short = highestShortRoot(board);
   return short === null ? null : toLabelVector(board, toNumbers(board, short));
+}
+
+const shortRings = new WeakMap<Board<number>, number[] | null>();
+
+/**
+ * shortRootRings once per board object, so once per name through t10Board (it depends on the board only, and
+ * highestShortRoot lists the roots to find it).
+ */
+export function shortRootRingsOf(board: Board<number>): number[] | null {
+  if (shortRings.has(board)) return shortRings.get(board)!;
+  const rings = shortRootRings(board);
+  shortRings.set(board, rings);
+  return rings;
 }
 
 /**

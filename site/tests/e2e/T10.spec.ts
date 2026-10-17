@@ -35,7 +35,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { CAPS } from '../../../packages/engine/src/index';
+import { CAPS, boardFromName, toPositions, wythoffFVector } from '../../../packages/engine/src/index';
 
 interface WythoffRecord {
   type: string;
@@ -452,39 +452,114 @@ test('mathematics is MathML and no KaTeX script loads', async ({ page }) => {
 // Main-thread work (7.6; smoke check on an unthrottled runner, the phone verdict is GATE's lab run)
 // ---------------------------------------------------------------------------------------------
 
-test('no long task on E8 loads and the graph switch', async ({ page }) => {
+// The long tasks of a page, recorded from navigation on (an observer installed before any script of the
+// page runs), and the time the island finished hydrating (Astro's astro:hydrate event on the island).
+// While a measurement runs the test waits with page.waitForFunction, never with expect: an expect that
+// retries computes an accessibility snapshot of the page on the main thread, which is not the tool's work.
+async function recordLongTasks(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    const w = window as unknown as { __longtasks: { start: number; duration: number }[] };
+    const w = window as unknown as { __longtasks: { start: number; duration: number }[]; __hydratedAt: number | null };
     w.__longtasks = [];
+    w.__hydratedAt = null;
     new PerformanceObserver((list) => {
-      for (const e of list.getEntries()) w.__longtasks.push({ start: e.startTime, duration: e.duration });
+      for (const e of list.getEntries()) w.__longtasks.push({ start: Math.round(e.startTime), duration: Math.round(e.duration) });
     }).observe({ type: 'longtask', buffered: true });
+    document.addEventListener(
+      'astro:hydrate',
+      (e) => {
+        if ((e.target as Element | null)?.querySelector?.('[data-tool="geometry"]')) w.__hydratedAt = Math.round(performance.now());
+      },
+      { capture: true },
+    );
   });
-  const tasksAfterHydration = async (): Promise<{ start: number; duration: number }[]> =>
-    page.evaluate(() => {
-      const w = window as unknown as { __longtasks: { start: number; duration: number }[]; __hydratedAt?: number };
-      return w.__longtasks.filter((t) => t.start >= (w.__hydratedAt ?? 0));
-    });
-  const markHydrated = async (): Promise<void> => {
-    await page.evaluate(() => {
-      (window as unknown as { __hydratedAt: number }).__hydratedAt = performance.now();
-    });
-  };
-  // The refusal: counts and face table only. The tool's own work after hydration: nothing long.
-  await open(page, 'g=E8&r=0.0.1.0.0.0.0.0');
-  await markHydrated();
-  await page.waitForTimeout(300);
-  expect(await tasksAfterHydration()).toEqual([]);
-  // The showpiece, then the switch to the move graph (its 456 edges derived on the main thread).
-  await open(page, 'g=E8&r=0.0.0.0.0.0.0.1&j=coxeter');
-  await markHydrated();
+}
+const longTasks = async (page: Page, from = 0): Promise<{ start: number; duration: number }[]> =>
+  page.evaluate((t0) => (window as unknown as { __longtasks: { start: number; duration: number }[] }).__longtasks.filter((t) => t.start + t.duration > t0), from);
+const now = async (page: Page): Promise<number> => page.evaluate(() => performance.now());
+const settle = async (page: Page, condition: string): Promise<void> => {
+  await page.waitForFunction(
+    (c) => {
+      const tool = document.querySelector('[data-tool="geometry"]');
+      const text = (name: string): string => tool?.querySelector(`[data-out="${name}"]`)?.textContent ?? '';
+      const [name, value] = c.split('=');
+      return tool?.getAttribute('data-hydrated') === 'true' && (value === undefined ? text(name!) !== '' : text(name!) === value);
+    },
+    condition,
+    { polling: 50, timeout: 30000 },
+  );
+};
+
+test('no long task on E8 loads and the graph switch', async ({ page }) => {
+  await recordLongTasks(page);
+  const showpiece = record('E8', [0, 0, 0, 0, 0, 0, 0, 1]);
+  // A first visit compiles the route's scripts (the browser's work, the same for every link; GATE's lab run
+  // measures the cold load on the phone profile). The loads below are measured whole, from navigation on:
+  // parsing, hydration, the link's counts and face table, the data file and the drawing.
+  await page.goto(ROUTE);
+  await settle(page, 'drawMs');
+  const loads: [string, string][] = [
+    ['g=E8&r=0.0.1.0.0.0.0.0', 'refused'], // the refusal: counts and face table only
+    ['g=E8&r=0.0.0.0.0.0.0.1&j=coxeter', `edgesDrawn=${showpiece.f_vector[1]}`], // the showpiece, from its data file
+  ];
+  for (const [query, condition] of loads) {
+    await page.goto(`${ROUTE}?${query}`);
+    await settle(page, condition);
+    await page.waitForTimeout(500);
+    const hydratedAt = await page.evaluate(() => (window as unknown as { __hydratedAt: number | null }).__hydratedAt);
+    const tasks = await longTasks(page);
+    console.info(`T10 long tasks on the load of ${query} (hydrated at ${hydratedAt} ms): ${JSON.stringify(tasks)}`);
+    expect(hydratedAt, query).not.toBeNull();
+    expect(tasks, query).toEqual([]);
+  }
+  // The switch to the move graph of the showpiece (its edges from the data file, each with its label).
+  const t0 = await now(page);
   await control(page, 'graphMoves').click();
-  await expect(out(page, 'graph')).toHaveText('moves');
-  await expect(out(page, 'edgesDrawn')).not.toHaveText(String(record('E8', [0, 0, 0, 0, 0, 0, 0, 1]).f_vector[1]));
+  await page.waitForFunction(
+    (polytopeEdges) => {
+      const out = (name: string): string => document.querySelector(`[data-tool="geometry"] [data-out="${name}"]`)?.textContent ?? '';
+      return out('graph') === 'moves' && out('edgesDrawn') !== '' && out('edgesDrawn') !== polytopeEdges;
+    },
+    String(showpiece.f_vector[1]),
+    { polling: 50, timeout: 30000 },
+  );
   await page.waitForTimeout(800);
-  const tasks = await tasksAfterHydration();
-  console.info(`T10 long tasks after hydration: ${JSON.stringify(tasks)}`);
+  const tasks = await longTasks(page, t0);
+  console.info(`T10 long tasks after the graph switch: ${JSON.stringify(tasks)}`);
   expect(tasks).toEqual([]);
+});
+
+test('no long task after a ring click on the largest main-thread configuration', async ({ page }) => {
+  // The configuration with the most vertices and edges that the tool still enumerates on the main thread
+  // (at most CAPS.mainThreadItems of each, E-9), over the 32 types with one ringed node, found by the engine.
+  let best: { type: string; label: number; vertices: number; edges: number } | null = null;
+  for (const type of Object.keys(golden.types)) {
+    const board = boardFromName(type);
+    for (let label = 1; label <= board.n; label++) {
+      const rings = new Array<number>(board.n).fill(0);
+      rings[toPositions(board, [label])[0]!] = 1; // the engine takes positions (E-7)
+      const f = wythoffFVector(board, rings);
+      const vertices = Number(f[0]);
+      const edges = Number(f[1]);
+      if (vertices > CAPS.mainThreadItems || edges > CAPS.mainThreadItems) continue;
+      if (best === null || vertices + edges > best.vertices + best.edges) best = { type, label, vertices, edges };
+    }
+  }
+  expect(best).not.toBeNull();
+  const { type, label, edges } = best!;
+  await recordLongTasks(page);
+  const zeros = Array.from({ length: boardFromName(type).n }, () => 0).join('.');
+  await page.goto(`${ROUTE}?g=${type}&r=${zeros}`);
+  await settle(page, 'drawMs');
+  await page.waitForTimeout(500);
+  const t0 = await now(page);
+  await node(page, label).click();
+  await settle(page, `edgesDrawn=${edges}`);
+  await page.waitForTimeout(800);
+  const tasks = await longTasks(page, t0);
+  console.info(`T10 long tasks after ringing node ${label} of ${type} (${best!.vertices} vertices, ${edges} edges): ${JSON.stringify(tasks)}`);
+  expect(tasks).toEqual([]);
+  await expect(out(page, 'vertexCount')).toHaveText(String(best!.vertices));
+  await expect(out(page, 'sharedEdges')).not.toHaveText('');
 });
 
 // ---------------------------------------------------------------------------------------------

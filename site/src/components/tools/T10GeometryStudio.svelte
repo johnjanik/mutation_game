@@ -40,23 +40,26 @@
     admit,
     configure,
     coreFacts,
+    deriveInTasks,
+    enumerateInTasks,
     figureText,
     fVectorText,
     isPlanePicture,
     loadPlan,
+    nextTask,
     orbitKey,
+    prepareInTasks,
     shortRootPositions,
     stateOf,
     viewWords,
+    type CoreFacts,
     type StudioConfig,
     type StudioFacts,
   } from './t10/studio';
   import {
     drawingMatrixOf,
     edgeLimitText,
-    edgesToIndices,
     enumerationHint,
-    edgeArgs,
     euclideanPoints,
     fromGraph,
     fromPresetFile,
@@ -68,13 +71,14 @@
     RING_MAX,
     refusalText,
     rootPolytopeRings,
+    t10Board,
     toLabelVector,
     toPositionVector,
     vertexArgs,
     type OrbitData,
     type PresetFile,
   } from './t10/scene';
-  import { labelsOf, moveEdgeColour, moveGraphFitsOneTask, sharedEdgeCount } from './t10/graphs';
+  import { labelsOf, moveEdgeColour, moveGraphFitsOneTask, sharedEdgeCount, type MoveEdge } from './t10/graphs';
   import { coxeterStats, distinctDotsText, ringSizesText } from './t10/coxeter';
   import { baseEdgeLengths, distinctLengths, lengthText, replayVertices, uniformStart } from './t10/uniform';
   import { buildPicture, drawPicture, projectionOf, rotateInPlane, type Picture, type PictureColours } from './t10/drawing';
@@ -120,12 +124,19 @@
   const EDGE_ROWS = 300;
   /** The client's first value of the snapshot block: any non-empty text keeps the server's SVG (Svelte's {@html} hydration). */
   const KEEP_SERVER_SNAPSHOT = '<!--kept-->';
+  /** Empty lists that keep their identity, so that a derived value that is empty stays unchanged. */
+  const NO_EDGES: ReadonlyArray<readonly [number, number] | MoveEdge> = [];
+  const NO_POINTS: number[][] = [];
 
   // ------------------------------------------------------------------------------------------
   // State
   // ------------------------------------------------------------------------------------------
 
+  // `current` is the configuration shown (figure, counts, face table); `target` the latest one asked for, which
+  // the ring board, the picker and the ring table show at once. A change becomes `current` once its facts have
+  // been computed in tasks of their own (t10/studio.ts prepareInTasks; 7.6: no long task on the main thread).
   let current = $state.raw<StudioConfig>(configured.config);
+  let target = $state.raw<StudioConfig>(configured.config);
   let notice = $state<string | null>(null);
   let past = $state.raw<StudioConfig[]>([]);
   let future = $state.raw<StudioConfig[]>([]);
@@ -201,9 +212,11 @@
   const key = $derived(orbitKey(current.board, current.rings));
   const P = $derived(drawingMatrixOf(board));
   const frozen = $derived(!predictionResolved);
-  const labels = $derived(labelOrder(board));
+  // The ring board shows the configuration asked for (`target`) at once; everything else shows `current`.
+  const ringBoard = $derived(t10Board(target.board));
+  const labels = $derived(labelOrder(ringBoard));
   const coordinates = $derived(Array.from({ length: n }, (_, k) => k + 1));
-  const focusLabel = $derived(labelOf(board, Math.min(ringFocus, n - 1)));
+  const focusLabel = $derived(labelOf(ringBoard, Math.min(ringFocus, ringBoard.n - 1)));
 
   /** The orbit data that belongs to the current board and rings (complete or partial). */
   const data = $derived.by((): OrbitData | null => {
@@ -214,20 +227,28 @@
     return o.partial;
   });
   const complete = $derived(orbit.kind === 'ready' && orbit.key === key);
+  const orbitKind = $derived(orbit.kind);
   const uniformOn = $derived(uniform && core.uniformMatters);
+  // The vertices and their tree by reference, so that adding the move graph to the data (a new object with
+  // the same arrays) recomputes no coordinate and redraws nothing while the polytope graph is shown (7.6).
+  const vertexList = $derived(data?.vertices ?? null);
+  const treeParent = $derived(data?.parent ?? null);
+  const treeNode = $derived(data?.node ?? null);
   const ys = $derived.by(() => {
-    const d = data;
-    if (d === null) return null;
-    const positions = uniformOn ? replayVertices(board, d, uniformStart(board, current.rings)) : d.vertices;
+    const v = vertexList;
+    if (v === null) return null;
+    const positions = uniformOn && treeParent !== null && treeNode !== null ? replayVertices(board, { vertices: v, parent: treeParent, node: treeNode }, uniformStart(board, current.rings)) : v;
     return euclideanPoints(P, positions);
   });
   const shortPositions = $derived(showShort && core.shortRings !== null ? shortRootPositions(board, core.shortRings) : null);
-  const shortYs = $derived(shortPositions === null ? [] : euclideanPoints(P, shortPositions));
-  const edgesShown = $derived.by(() => {
+  const shortYs = $derived(shortPositions === null ? NO_POINTS : euclideanPoints(P, shortPositions));
+  const edgesShown = $derived.by((): ReadonlyArray<readonly [number, number] | MoveEdge> => {
     const d = data;
-    if (d === null) return [];
-    return current.graph === 'moves' ? (d.moveEdges ?? []) : (d.polytopeEdges ?? []);
+    if (d === null) return NO_EDGES;
+    return (current.graph === 'moves' ? d.moveEdges : d.polytopeEdges) ?? NO_EDGES;
   });
+  const movesReady = $derived(data !== null && data.moveEdges !== null);
+  const pictureReady = $derived(complete && (current.graph === 'polytope' || movesReady));
   const plane = $derived(isPlanePicture(projection, n, rotation));
   const stats = $derived(plane && ys !== null ? coxeterStats([...ys, ...shortYs]) : null);
   const shared = $derived(data !== null && data.polytopeEdges !== null && data.moveEdges !== null ? sharedEdgeCount(data.polytopeEdges, data.moveEdges) : null);
@@ -242,7 +263,7 @@
   const canTurn = $derived(n >= 4 || (n === 3 && projection.view.kind === 'xyz'));
   const turnText = $derived(projection.turn.map((t) => ((t % 360) + 360) % 360).join(', '));
   const figureLabel = $derived(figureText(facts, current.graph));
-  const values = $derived(toPositionVector(board, current.rings));
+  const values = $derived(toPositionVector(ringBoard, target.rings));
   const spoken = $derived(values.map((v) => `${v}, ${v === 0 ? 'not ringed' : 'ringed'}`));
   const canActAll = $derived(values.map(() => true));
   const states = $derived(values.map(() => null));
@@ -300,13 +321,18 @@
   /**
    * Loads the orbit of the current board and rings. `origin` 'load' (hydration, a link, the back button)
    * never starts the worker: an enumeration above 2000 items waits for "Draw the orbit"; 'reader' (a change
-   * the reader made, or that button) sends it to the worker through engineCall (E-9).
+   * the reader made, or that button) sends it to the worker through engineCall (E-9). Every piece of
+   * main-thread work runs in a task of its own (7.6): the data file is read in one task and drawn in the
+   * next; the enumerations follow t10/studio.ts enumerateInTasks (the vertices, the edges, their index
+   * pairs and the drawing, one task each).
    */
   async function startLoad(origin: 'load' | 'reader', announce?: (text: string) => void): Promise<void> {
     const my = ++loadToken;
+    const live = (): boolean => my === loadToken;
     const c = current;
     const k = orbitKey(c.board, c.rings);
-    const f: StudioFacts = { ...coreFacts(c.board, c.rings), config: c, projection: projectionOf(c.projection, coreFacts(c.board, c.rings).board.n)! };
+    const cf = coreFacts(c.board, c.rings);
+    const f: StudioFacts = { ...cf, config: c, projection: projectionOf(c.projection, cf.board.n) ?? projectionOf(defaultProjectionText(cf.board.n), cf.board.n)! };
     busyText = '';
     if (f.decision.refused) {
       orbit = { kind: 'refused', key: k };
@@ -314,16 +340,21 @@
     }
     const keep = orbit.key === k && orbit.kind === 'ready' ? orbit.data : null;
     if (keep !== null && origin === 'load') return;
-    const partial = keep ?? (orbit.key === k && orbit.kind !== 'refused' && 'partial' in orbit ? orbit.partial : verticesOnMain(f, c));
+    const partial = keep ?? (orbit.key === k && orbit.kind !== 'refused' && 'partial' in orbit ? orbit.partial : null);
     orbit = { kind: 'pending', key: k, partial };
     const m = await manifest();
-    if (my !== loadToken) return;
+    if (!live()) return;
     const plan = loadPlan(f, m, origin);
     try {
       if (plan.kind === 'file') {
         const file = await fetchJson<PresetFile>(plan.file);
-        if (my !== loadToken) return;
-        orbit = { kind: 'ready', key: k, data: fromPresetFile(f.board, file) };
+        if (!live()) return;
+        await nextTask();
+        if (!live()) return;
+        const fromFile = fromPresetFile(f.board, file);
+        await nextTask();
+        if (!live()) return;
+        orbit = { kind: 'ready', key: k, data: fromFile };
         return;
       }
       if (plan.kind === 'wait') {
@@ -339,32 +370,78 @@
         busyText = `Computing ${plural(f.counts.vertices, 'vertex', 'vertices')}${plan.edgeHint === null ? '' : ` and ${plural(f.counts.edges, 'edge', 'edges')}`} in the background.`;
         announce?.(busyText);
       }
-      // The vertices already found on the main thread are kept; otherwise the enumeration goes where its hint says.
-      const result: OrbitData =
-        partial !== null && whereToRun(plan.vertexHint) === 'main'
-          ? { ...partial, polytopeEdges: null, moveEdges: null }
-          : fromGraph(f.board, c.rings, (await engineCall('orbitGraph', vertexArgs(f.board, c.rings), plan.vertexHint)) as OrbitGraph<number>);
-      if (my !== loadToken) return;
-      if (plan.edgeHint !== null) {
-        // A task of its own for the second enumeration (7.6: two main-thread enumerations never add up in one task).
-        if (whereToRun(plan.edgeHint) === 'main') await new Promise((resolve) => setTimeout(resolve, 0));
-        if (my !== loadToken) return;
-        const edges = await engineCall('wythoffEdges', edgeArgs(f.board, c.rings), plan.edgeHint);
-        if (my !== loadToken) return;
-        result.polytopeEdges = edgesToIndices(result.vertices, edges);
-      }
+      const result = await enumerateInTasks(f, plan, partial, {
+        nextTask,
+        live,
+        orbitGraph: (args, hint) => engineCall('orbitGraph', args, hint) as Promise<OrbitGraph<number>>,
+        wythoffEdges: (args, hint) => engineCall('wythoffEdges', args, hint),
+        onVertices: (d) => {
+          if (live() && orbit.key === k && orbit.kind !== 'ready') orbit = plan.worker ? { kind: 'busy', key: k, partial: d } : { kind: 'pending', key: k, partial: d };
+        },
+      });
+      if (result === null || !live()) return;
       busyText = '';
       orbit = { kind: 'ready', key: k, data: result };
       if (plan.worker) announce?.(`Drawn: ${countsSentence(f)}`);
     } catch (err) {
-      if (my !== loadToken) return;
+      if (!live()) return;
       busyText = '';
       orbit = { kind: 'error', key: k, message: err instanceof Error ? err.message : String(err), partial };
     }
   }
 
+  // ------------------------------------------------------------------------------------------
+  // A change: its facts in tasks of their own, then shown (7.6)
+  // ------------------------------------------------------------------------------------------
+
+  let commitToken = 0;
+
+  /** The orbit data already known for a board and rings (complete or vertices only), or null. */
+  function knownData(k: string): OrbitData | null {
+    const o = orbit;
+    if (o.key !== k) return null;
+    if (o.kind === 'ready') return o.data;
+    return o.kind !== 'refused' && 'partial' in o ? o.partial : null;
+  }
+
+  /**
+   * Asks for a configuration: the ring board shows it at once (`target`); its counts, face table and other
+   * facts, and its vertices when they belong on the main thread, are computed in tasks of their own
+   * (prepareInTasks); then it becomes `current` (figure, counts, face table), its orbit loads (startLoad),
+   * and `committed` runs (the announcement with the counts). A newer request supersedes an older one.
+   */
+  function request(next: StudioConfig, origin: 'load' | 'reader', announce: ((t: string) => void) | undefined, committed?: (f: CoreFacts) => void): void {
+    target = next;
+    const my = ++commitToken;
+    loadToken++; // the load of the configuration shown is no longer wanted
+    busyText = '';
+    const live = (): boolean => my === commitToken;
+    const k = orbitKey(next.board, next.rings);
+    void prepareInTasks(next, knownData(k), { nextTask, live })
+      .then((p) => {
+        if (p === null || !live()) return;
+        if (target.board !== current.board) {
+          rotation = null;
+          showShort = false;
+          planeA = 1;
+          planeB = 2;
+        }
+        const known = orbit.key === k && (orbit.kind === 'ready' || orbit.kind === 'refused');
+        if (!known) orbit = p.core.decision.refused ? { kind: 'refused', key: k } : { kind: 'pending', key: k, partial: p.vertices };
+        current = target; // the board and rings asked for, with any view changed since
+        void startLoad(origin, announce);
+        committed?.(p.core);
+      })
+      .catch((err: unknown) => {
+        if (!live()) return;
+        current = target;
+        orbit = { kind: 'error', key: k, message: err instanceof Error ? err.message : String(err), partial: null };
+      });
+  }
+
   // The move graph, derived from the vertex list once more (5.4) when it is shown, or when it is small
-  // enough to give the shared count at once; in slices of at most 2000 moves, one task each (7.6).
+  // enough to give the shared count at once; in slices of at most 2000 moves, each in a task of its own,
+  // the first after the task that completed the orbit (7.6; t10/studio.ts deriveInTasks).
   // The move graph's module (t10/moves.ts) is fetched when the move graph is first needed (7.6).
   let movesModule = $state.raw<typeof import('./t10/moves') | null>(null);
   let movesLoading = false;
@@ -389,17 +466,11 @@
     }
     const builder = new mod.MoveGraphBuilder(b, o.data.vertices);
     let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const run = (): void => {
-      if (cancelled) return;
-      if (builder.step(CAPS.mainThreadItems)) {
-        if (orbit === o) orbit = { ...o, data: { ...o.data, moveEdges: builder.edges } };
-      } else timer = setTimeout(run, 0);
-    };
-    run();
+    void deriveInTasks((budget) => builder.step(budget), { nextTask, live: () => !cancelled && orbit === o }).then((done) => {
+      if (done && !cancelled && orbit === o) orbit = { ...o, data: { ...o.data, moveEdges: builder.edges } };
+    });
     return () => {
       cancelled = true;
-      if (timer !== null) clearTimeout(timer);
     };
   });
 
@@ -407,67 +478,76 @@
   // Hydration: read the URL once (6.6), then load the orbit. Never a change by itself (4.0, A-9).
   // ------------------------------------------------------------------------------------------
 
+  /**
+   * Shows the state of a link (hydration, the back button): the configured state with the notice when the
+   * link cannot be read; otherwise the admitted state, whose facts are computed in tasks of their own before
+   * it is shown (request), so that hydration does none of a link's work (7.6). The configured state itself
+   * needs nothing but its load.
+   */
   function applyLink(decoded: ToolState, n0: string | null): void {
+    let next: StudioConfig;
     if (n0 !== null) {
       notice = n0;
-      current = configured.config;
-      return;
+      next = configured.config;
+    } else {
+      const admitted = admit(decoded, false);
+      notice = admitted === null ? LINK_NOTICE : null;
+      next = admitted ?? configured.config;
     }
-    const admitted = admit(decoded, false);
-    if (admitted === null) {
-      notice = LINK_NOTICE;
-      current = configured.config;
-      return;
-    }
-    notice = null;
-    if (orbitKey(admitted.board, admitted.rings) !== orbitKey(current.board, current.rings)) {
+    if (orbitKey(next.board, next.rings) !== orbitKey(target.board, target.rings)) {
       rotation = null;
       uniform = false;
       showShort = false;
     }
-    current = admitted;
+    if (target === current && sameConfig(next, current)) {
+      void startLoad('load');
+      return;
+    }
+    request(next, 'load', undefined);
   }
 
+  function sameConfig(a: StudioConfig, b: StudioConfig): boolean {
+    return a.board === b.board && a.rings.join('.') === b.rings.join('.') && a.projection === b.projection && a.graph === b.graph;
+  }
+
+  // The link is read in a task of its own after hydration (7.6: hydration does none of a link's work; reading
+  // it resolves and classifies its board). The colours of the drawing are read first, while the page's layout
+  // is still the one hydration found, so that the first drawing forces no style and layout of its own.
   $effect(() => {
     untrack(() => {
-      try {
-        const { state: decoded, notice: n0 } = decodeState(window.location.search, 'geometry', configuredState, { prefix: instanceId });
+      void manifest(); // fetched while the link's facts are computed
+      void nextTask().then(() => {
+        colours();
+        let decoded: ToolState = configuredState;
+        let n0: string | null = null;
+        try {
+          ({ state: decoded, notice: n0 } = decodeState(window.location.search, 'geometry', configuredState, { prefix: instanceId }));
+        } catch {
+          // decodeState never throws on a bad link; a failure here leaves the configured state.
+        }
         applyLink(decoded, n0);
-      } catch {
-        // decodeState never throws on a bad link; a failure here leaves the configured state.
-      }
-      void startLoad('load');
+      });
     });
   });
 
   function onPopState(state: ToolState, n0: string | null): void {
-    applyLink(state, n0);
     past = [];
     future = [];
-    void startLoad('load');
+    applyLink(state, n0);
   }
 
   // ------------------------------------------------------------------------------------------
   // The reader's changes (rings and board go into the history; views do not)
   // ------------------------------------------------------------------------------------------
 
+  /** A change of rings or board: into the history at once, shown once its facts are computed (request). */
   function edit(next: StudioConfig, announce: (t: string) => void, sentence: string): void {
     if (frozen) return;
-    past = [...past, current];
+    past = [...past, target];
     future = [];
-    const boardChanged = next.board !== current.board;
-    current = next;
+    if (next.board !== target.board) ringFocus = 0;
     notice = null;
-    if (boardChanged) {
-      rotation = null;
-      showShort = false;
-      planeA = 1;
-      planeB = 2;
-      ringFocus = 0;
-    }
-    void startLoad('reader', announce);
-    const f = coreFacts(next.board, next.rings);
-    announce(`${sentence} ${countsSentence(f)}`);
+    request(next, 'reader', announce, (f) => announce(`${sentence} ${countsSentence(f)}`));
   }
 
   /** The live region's announcer, remembered when the figure renders (for ToolFrame's undo, redo, reset). */
@@ -477,45 +557,48 @@
     return '';
   }
 
+  // The ring board's edits read the configuration asked for (`target`, on `ringBoard`), so that two quick
+  // edits both count even when the first is not shown yet.
   function setRing(position: number, value: number, announce: (t: string) => void): void {
     if (!Number.isFinite(value)) return;
+    const b = ringBoard;
     const v = Math.max(0, Math.min(RING_MAX, Math.round(value)));
-    const rings = toPositionVector(board, current.rings);
+    const rings = toPositionVector(b, target.rings);
     if (rings[position] === v) return;
     rings[position] = v;
-    const label = labelOf(board, position);
+    const label = labelOf(b, position);
     const said = v === 0 ? `Node ${label} not ringed.` : `Node ${label} ring ${v}.`;
-    edit({ ...current, rings: toLabelVector(board, rings) }, announce, said);
+    edit({ ...target, rings: toLabelVector(b, rings) }, announce, said);
   }
 
   function toggleRing(position: number, announce: (t: string) => void): void {
     ringFocus = position;
-    const v = toPositionVector(board, current.rings)[position]!;
+    const v = toPositionVector(ringBoard, target.rings)[position]!;
     setRing(position, v === 0 ? 1 : 0, announce);
   }
 
   /** Focus entered a node button of the ring board: its label (the data-node hook) names the node the ring buttons act on. */
   function onRingFocus(event: FocusEvent): void {
     const label = Number((event.target as HTMLElement | null)?.dataset?.node);
-    if (Number.isInteger(label) && board.labels.includes(label)) ringFocus = positionOf(board, label);
+    if (Number.isInteger(label) && ringBoard.labels.includes(label)) ringFocus = positionOf(ringBoard, label);
   }
 
   function stepRing(delta: number, announce: (t: string) => void): void {
-    const v = toPositionVector(board, current.rings)[ringFocus] ?? 0;
+    const v = toPositionVector(ringBoard, target.rings)[ringFocus] ?? 0;
     setRing(ringFocus, v + delta, announce);
   }
 
   function rootPolytope(announce: (t: string) => void): void {
-    const rings = rootPolytopeRings(board);
-    if (rings.join('.') === current.rings.join('.')) {
-      announce(`The rings are already the root polytope of ${current.board}. ${countsSentence(core)}`);
+    const rings = rootPolytopeRings(ringBoard);
+    if (rings.join('.') === target.rings.join('.')) {
+      announce(`The rings are already the root polytope of ${target.board}.${target === current ? ` ${countsSentence(core)}` : ''}`);
       return;
     }
-    edit({ ...current, rings }, announce, `Root polytope of ${current.board}: rings ${rings.join(', ')}.`);
+    edit({ ...target, rings }, announce, `Root polytope of ${target.board}: rings ${rings.join(', ')}.`);
   }
 
   function pickBoard(name: string, announce: (t: string) => void): void {
-    if (!(T10_BOARDS as readonly string[]).includes(name) || name === current.board) return;
+    if (!(T10_BOARDS as readonly string[]).includes(name) || name === target.board) return;
     const next = admit({ board: name, rings: undefined, projection: undefined, graph: 'polytope' }, false)!;
     uniform = false;
     edit(next, announce, `Board ${name}: rings ${next.rings.join(', ')}.`);
@@ -528,12 +611,9 @@
       announce('Nothing to undo.');
       return;
     }
-    future = [current, ...future];
+    future = [target, ...future];
     past = past.slice(0, -1);
-    if (prev.board !== current.board) rotation = null;
-    current = prev;
-    void startLoad('reader', announce);
-    announce(`Undid an edit. Board ${prev.board}, rings ${prev.rings.join(', ')}. ${countsSentence(coreFacts(prev.board, prev.rings))}`);
+    request(prev, 'reader', announce, (f) => announce(`Undid an edit. Board ${prev.board}, rings ${prev.rings.join(', ')}. ${countsSentence(f)}`));
   }
 
   function redo(announce: (t: string) => void): void {
@@ -543,12 +623,9 @@
       announce('Nothing to redo.');
       return;
     }
-    past = [...past, current];
+    past = [...past, target];
     future = future.slice(1);
-    if (next.board !== current.board) rotation = null;
-    current = next;
-    void startLoad('reader', announce);
-    announce(`Redid an edit. Board ${next.board}, rings ${next.rings.join(', ')}. ${countsSentence(coreFacts(next.board, next.rings))}`);
+    request(next, 'reader', announce, (f) => announce(`Redid an edit. Board ${next.board}, rings ${next.rings.join(', ')}. ${countsSentence(f)}`));
   }
 
   function reset(announce: (t: string) => void): void {
@@ -559,16 +636,22 @@
     uniform = false;
     showShort = false;
     notice = null;
-    current = configured.config;
-    void startLoad('reader', announce);
-    announce(`Reset. Board ${current.board}, rings ${current.rings.join(', ')}. ${countsSentence(coreFacts(current.board, current.rings))}`);
+    const c = configured.config;
+    request(c, 'reader', announce, (f) => announce(`Reset. Board ${c.board}, rings ${c.rings.join(', ')}. ${countsSentence(f)}`));
   }
 
-  // Views: projection, turning, rotation in a plane, graph, options (not in the history).
+  // Views: projection, turning, rotation in a plane, graph, options (not in the history). A view applies to
+  // the configuration shown and to the one asked for, so that a change being prepared keeps it.
+  function setView(fields: Pick<StudioConfig, 'projection'> | Pick<StudioConfig, 'graph'>): void {
+    const settled = target === current;
+    current = { ...current, ...fields };
+    target = settled ? current : { ...target, ...fields };
+  }
+
   function setProjection(next: Projection, announce: ((t: string) => void) | null): void {
     const text = formatProjection(next);
     if (text === current.projection) return;
-    current = { ...current, projection: text };
+    setView({ projection: text });
     announce?.(`${viewWords(next, n)[0]!.toUpperCase()}${viewWords(next, n).slice(1)}.`);
   }
 
@@ -615,7 +698,7 @@
 
   function setGraph(g: T10Graph, announce: (t: string) => void): void {
     if (g === current.graph) return;
-    current = { ...current, graph: g };
+    setView({ graph: g });
     if (g === 'moves') {
       const m = data?.moveEdges ?? null;
       announce(m === null ? 'Move graph.' : `Move graph: ${plural(m.length, 'edge', 'edges')}${shared === null ? '' : `, ${shared} shared with the polytope graph`}.`);
@@ -735,13 +818,13 @@
     const y = ys;
     const sy = shortYs;
     const edges = edgesShown;
-    const ready = complete && (current.graph === 'polytope' || data?.moveEdges !== null);
+    const ready = pictureReady;
     const proj = projection;
     const rot = rotation;
     const hl = highlighted;
     const g = current.graph;
     const k = viewKey;
-    const o = orbit;
+    const kind = orbitKind;
     const mod = movesModule;
     void themeVersion;
     if (c === undefined || w <= 0) return;
@@ -752,7 +835,7 @@
     // The snapshot stays until the configured orbit is complete; after any change the canvas shows what
     // is known at once (vertices without edges while they come, an empty box for a refused orbit), so
     // that a picture of another state never stands in for the current one.
-    if (!ready && key === initialKey && !untrack(() => drawnOnce) && (o.kind === 'pending' || o.kind === 'ready')) return;
+    if (!ready && key === initialKey && !untrack(() => drawnOnce) && (kind === 'pending' || kind === 'ready')) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const size = Math.round(w * dpr);
     if (c.width !== size) c.width = size;
@@ -760,7 +843,7 @@
     const ctx = c.getContext('2d');
     if (ctx === null) return;
     const t0 = performance.now();
-    const refusedNow = o.kind === 'refused';
+    const refusedNow = kind === 'refused';
     const picture = buildPicture(
       { rank: n, vertices: refusedNow ? [] : (y ?? []), shortRoots: refusedNow ? [] : sy, edges: y === null ? [] : edges, graph: g, projection: proj, rotation: rot, highlighted: hl },
       { width: w, height: w },
@@ -961,13 +1044,13 @@
     <!-- The node the ring buttons act on is the last one focused (keyboard or click), never one merely hovered. -->
     <div class="rings" onfocusin={onRingFocus}>
       <Board
-        {board}
+        board={ringBoard}
         {values}
         game="firing"
         canAct={canActAll}
         {states}
         {spoken}
-        name="Rings on {current.board}"
+        name="Rings on {target.board}"
         disabled={frozen}
         onAct={(k) => toggleRing(k, api.announce)}
       />
@@ -1000,7 +1083,7 @@
         {#each groups as g (g.letter)}
           <optgroup label="Type {g.letter}" data-letter={g.letter}>
             {#each g.names as name (name)}
-              <option value={name} selected={current.board === name}>{name}</option>
+              <option value={name} selected={target.board === name}>{name}</option>
             {/each}
           </optgroup>
         {/each}
@@ -1096,7 +1179,7 @@
 
 {#snippet table(api: FrameApi)}
   <table class="values" data-table="rings">
-    <caption>Rings on {current.board}: one non-negative integer per node</caption>
+    <caption>Rings on {target.board}: one non-negative integer per node</caption>
     <thead><tr><th scope="col">Node</th><th scope="col">Ring</th></tr></thead>
     <tbody>
       {#each labels as l, j (l)}
@@ -1107,8 +1190,8 @@
               class="cell"
               data-table-node={l}
               disabled={!api.hydrated || frozen}
-              aria-label="Node {l}, value {current.rings[j]}, {current.rings[j] === 0 ? 'not ringed' : 'ringed'}"
-              onclick={() => toggleRing(positionOf(board, l), api.announce)}>Node {l}</button
+              aria-label="Node {l}, value {target.rings[j]}, {target.rings[j] === 0 ? 'not ringed' : 'ringed'}"
+              onclick={() => toggleRing(positionOf(ringBoard, l), api.announce)}>Node {l}</button
             >
           </th>
           <td
@@ -1120,9 +1203,9 @@
               class="ring-input"
               data-table-ring={l}
               aria-label="Ring of node {l}"
-              value={current.rings[j]}
+              value={target.rings[j]}
               disabled={!api.hydrated || frozen}
-              onchange={(e) => setRing(positionOf(board, l), Number((e.currentTarget as HTMLInputElement).value), api.announce)}
+              onchange={(e) => setRing(positionOf(ringBoard, l), Number((e.currentTarget as HTMLInputElement).value), api.announce)}
             /></td
           >
         </tr>
