@@ -36,7 +36,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
-import { boardFromName, classify, play } from '../../../packages/engine/src/index';
+import { boardFromName, classify, highestRoot, kostantPlay, play } from '../../../packages/engine/src/index';
 import type { Board } from '../../../packages/engine/src/index';
 import { distDir } from './routes';
 
@@ -748,5 +748,29 @@ test.describe('regressions', () => {
     expect(value).toMatch(/^verified by computation/);
     expect(value, `m3-classification.mdx prints "${value}"; the checks cover the types of rank at most 8 (SPEC 2.7, golden kostant)`).toMatch(/rank at most/);
     expect(value).toMatch(/every starting city/);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-03-lie-theory-kostant.test.ts (lens RT-09), M3 part.
+  // The reproducer held the page's sentence against the engine on B3; here the engine's B3 play is
+  // the counterexample, and the sentence must carry the hypotheses of F13 that exclude it.
+  // regression: P3-RT-09-03
+  test("the Lie theory paragraph states Kostant's game with the hypotheses of F13", () => {
+    // oracle: kostant_play(cartan('B',3), 2) ends at (1,1,1); highest_root(cartan('B',3)) is (1,2,2);
+    // golden kostant.B3.affine_board_from_node[2] is D4^(2), a twisted board (SPEC 2.7 F13, 2.12).
+    const B3 = boardFromName('B3') as Board<unknown>;
+    const r = kostantPlay(B3, 2); // from one Martian in city 3, the short node
+    const end = r.position.map((x) => Number(B3.arith.toBig(x)));
+    const theta = highestRoot(B3).map((x) => Number(B3.arith.toBig(x)));
+    expect(theta).toEqual([1, 2, 2]);
+    expect(end).toEqual(GOLDEN.kostant.B3!.end_from_node[2]);
+    expect(end, 'on B3 from city 3 the play ends at the highest short root, not at theta').not.toEqual(theta);
+    expect(GOLDEN.kostant.B3!.affine_board_from_node[2]).toBe('D4^(2)');
+    const lie = /<LieTheory>([\s\S]*?)<\/LieTheory>/.exec(readFileSync(LESSON_PATH, 'utf8'))?.[1] ?? '';
+    const sentences = lie.split(/(?<=\.)\s+/).filter((s) => /Kostant's game/.test(s));
+    expect(sentences.length, "the Lie theory paragraph names Kostant's game").toBeGreaterThan(0);
+    for (const s of sentences) {
+      expect(s, `M3 Lie theory: "${s}" (SPEC 2.7 F13: the highest root on simply laced boards of finite type)`).toMatch(/simply laced/);
+      expect(s).toMatch(/finite type/);
+    }
   });
 });
