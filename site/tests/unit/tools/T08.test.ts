@@ -52,6 +52,7 @@ import { countDots, sceneToSvg } from '../../../src/components/tools/t08/svgScen
 import { PRESETS, pickerGroups, weylState } from '../../../src/components/tools/t08/presets';
 import { LINK_OUTSIDE, admitLink, followMoves, followedGame } from '../../../src/components/tools/t08/link';
 import { T1Game, type T1Config } from '../../../src/components/tools/t01/model';
+import { boardView } from '../../../src/components/tools/t08/cache';
 import registry from '../../../src/tools/registry/T08';
 import { clearPublishedStates, followToolState, publishToolState, type ToolState } from '../../../src/lib/state';
 import { decodeState, encodeState, LINK_NOTICE } from '../../../src/lib/urlCodec';
@@ -650,5 +651,50 @@ describe('regressions', () => {
     expect(followMoves(game, t1([], [2, 1, 1]))).toBeNull();
     expect(followMoves(game, { ...t1([]), board: 'B3' })).toBeNull();
     expect(followMoves(game, { ...t1([]), coords: 'populations' })).toBeNull();
+  });
+
+  // SPEC 7.5 A-1 ("its nodes are real <button> elements, one of which is in the tab order"; "Focus is
+  // never trapped in a canvas") and 4.0 Predict ("The board is frozen until the reader has answered"); 7.4
+  // (controls disabled until hydration only). The sibling of P3-RT-05-09 and P3-RT-05-02 in T8's graph:
+  // WeylGraph gave its vertex buttons, and above 192 elements its one focus button, the HTML disabled
+  // attribute while the graph was frozen, so a T8 with a prediction had no tab stop in its graph and a
+  // vertex pressed as the graph froze lost the focus. Frozen after hydration is aria-disabled now. No T8
+  // on the site takes a prediction, so the figure is rendered by the server with hydrated set.
+  // regression: P3-RT-05-09
+  it('a frozen graph keeps its tab stop: aria-disabled after hydration, disabled only before (A3 and F4)', async () => {
+    const Graph = ((await server.ssrLoadModule('/src/components/tools/t08/WeylGraph.svelte')) as { default: unknown }).default;
+    const draw = (name: string, hydrated: boolean, disabled: boolean): string => {
+      const { model, layout } = boardView(name);
+      const scene = buildScene(model, layout, [], null);
+      return renderFn(Graph, {
+        props: {
+          model,
+          layout,
+          scene,
+          svg: sceneToSvg(scene, model.edgeMode === 'all' ? {} : { snapshot: true }),
+          positionText: (k: number) => inLabelOrder(model.board, model.graph.items[k]!).join(','),
+          vertexName: (k: number) => `Position ${k}`,
+          onPath: new Set<number>(),
+          current: 0,
+          hydrated,
+          disabled,
+          name: `Positions of ${name}`,
+          onJump: () => {},
+          onInspect: () => {},
+        },
+      }).body;
+    };
+    const buttons = (html: string): string[] => html.match(/<button[^>]*class="vertex[^"]*"[^>]*>/g) ?? [];
+    for (const name of ['A3', 'F4']) {
+      const frozen = buttons(draw(name, true, true));
+      expect(frozen.length, name).toBeGreaterThan(0);
+      for (const b of frozen) {
+        expect(b, `${name}, frozen after hydration`).not.toMatch(/\sdisabled(=|\s|>)/);
+        expect(b, `${name}, frozen after hydration`).toContain('aria-disabled="true"');
+      }
+      if (name === 'A3') expect(frozen.filter((b) => b.includes('tabindex="0"')), 'one tab stop').toHaveLength(1);
+      for (const b of buttons(draw(name, true, false))) expect(b, `${name}, free`).not.toMatch(/disabled/);
+      for (const b of buttons(draw(name, false, false))) expect(b, `${name}, before hydration`).toMatch(/\sdisabled(=|\s|>)/);
+    }
   });
 });
