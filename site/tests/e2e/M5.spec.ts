@@ -94,6 +94,9 @@ interface Golden {
 }
 const GOLDEN = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8')) as Golden;
 const T = (name: string): TypeRecord => GOLDEN.types[name]!;
+/** The value at a dotted golden path of plain keys (site/src/lib/golden.ts imports the JSON without the
+ * import attribute Playwright's loader needs, so the regressions walk the parsed file here). */
+const goldenAt = (path: string): unknown => path.split('.').reduce<unknown>((v, key) => (v as Record<string, unknown>)[key], GOLDEN);
 const dimensionOf = (type: string, hw: number[]): number => GOLDEN.weyl_dimension.find((r) => r.type === type && r.highest_weight.join(',') === hw.join(','))!.dimension;
 
 // ---------------------------------------------------------------------------------------------
@@ -769,6 +772,29 @@ test.describe('regressions', () => {
     // verify.py checks the types of rank at most 8 (SPEC 2.7), not every board of that rank.
     const text = norm(await proseText(page, 'article'));
     expect(text).not.toMatch(/every board of rank at most/);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-08-number-words.test.ts (lens RT-08), the cases of this lesson;
+  // the cases of M2 and M3 belong to those lessons.
+  const NUMBER_WORDS = [
+    // M5 beat 5, prose: the number of moves of a complete game on A3 = the number of positive roots.
+    { phrase: 'The six moves fire', path: 'types.A3.n_positive_roots', value: 6 },
+    // M5 beat 6, prose: "the value 1 <G k="types.A3.fired_tally.1"/> times, 2 twice, 3 once".
+    { phrase: '<Tex src="2"/> twice', path: 'types.A3.fired_tally.2', value: 2 },
+    { phrase: '<Tex src="3"/> once', path: 'types.A3.fired_tally.3', value: 1 },
+  ];
+  for (const c of NUMBER_WORDS) {
+    // regression: P3-RT-08-05
+    test(`m5-weyl.mdx: "${c.phrase}" states ${c.path} as a typed word`, () => {
+      expect(goldenAt(c.path), `${c.path} is the quantity the phrase states`).toBe(c.value);
+      expect(readFileSync(LESSON_PATH, 'utf8').includes(c.phrase), `m5-weyl.mdx types ${c.path} as a word`).toBe(false);
+    });
+  }
+
+  // regression: P3-RT-08-05 (sibling)
+  test('m5-weyl.mdx: the heap goal "four different plays" states the largest of heaps.A3.games_per_heap as a typed word', () => {
+    expect(Math.max(...(goldenAt('heaps.A3.games_per_heap') as number[])), 'the value the check of b13 compares with').toBe(4);
+    expect(readFileSync(LESSON_PATH, 'utf8').includes('shared by four different plays'), 'm5-weyl.mdx types the goal of b13 as a word').toBe(false);
   });
 
   // regression: P3-RT-08-08

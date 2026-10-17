@@ -82,7 +82,7 @@ Swapping neighbouring moves at unjoined nodes keeps the <Term a="heap">heap</Ter
 
 <Beat n={5}>
 
-Now play with letters: put <Tex src="x_1,x_2,x_3"/> on the nodes and fire along <G k="types.A3.longest_word" as="plain"/>. The first move fires <Tex src="x_1"/> and leaves <Tex src="x_1+x_2"/> on node <Tex src="2"/>, which the second move fires. The six moves fire <Tex src="x_1,\ x_1+x_2,\ x_2,\ x_1+x_2+x_3,\ x_2+x_3,\ x_3"/>: each positive root population of <Tex src="A_3"/>, written with letters, exactly once.
+Now play with letters: put <Tex src="x_1,x_2,x_3"/> on the nodes and fire along <G k="types.A3.longest_word" as="plain"/>. The first move fires <Tex src="x_1"/> and leaves <Tex src="x_1+x_2"/> on node <Tex src="2"/>, which the second move fires. The <G k="types.A3.n_positive_roots"/> moves fire <Tex src="x_1,\ x_1+x_2,\ x_2,\ x_1+x_2+x_3,\ x_2+x_3,\ x_3"/>: each positive root population of <Tex src="A_3"/>, written with letters, exactly once.
 
 On every board of finite type, the forms fired are the positive root populations of the **reversed board**, the board with every road turned round <Cite k="Don08"/> ({'Remark 2.13 and Theorem 5.2'}). Donnelly fires positive numbers, as this site does; his matrix is the transpose of the Cartan matrix used here. A board with single roads, such as <Tex src="A_3"/>, is its own reversed board. From an all-positive start, the numbers fired are these forms evaluated at the start.
 
@@ -93,7 +93,7 @@ On every board of finite type, the forms fired are the positive root populations
 
 From <Tex src="\rho"/> each number fired is the sum of the coefficients of a positive root of the reversed board. These roots are the **coroots** of the board, and the sum is the **height** of the coroot. On <Tex src="A_3"/> and <Tex src="E_8"/> a coroot and its root have the same height; with double roads they can differ, so the numbers fired are heights of coroots.
 
-Make a **tally** of how often each value is fired. On <Tex src="A_3"/> the game fires <G k="types.A3.fired_values" as="plain"/>: the value <Tex src="1"/> <G k="types.A3.fired_tally.1"/> times, <Tex src="2"/> twice, <Tex src="3"/> once. Draw the tally as bars and read them sideways: row <Tex src="k"/> holds the bars of height at least <Tex src="k"/>. The row lengths, in increasing order, are the **exponents** <G k="types.A3.exponents"/>, and <Tex src="({{types.A3.exponents[0]}}+1)({{types.A3.exponents[1]}}+1)({{types.A3.exponents[2]}}+1)={{types.A3.weyl_order}}"/>, the number of positions of beat one.
+Make a **tally** of how often each value is fired. On <Tex src="A_3"/> the game fires <G k="types.A3.fired_values" as="plain"/>: the values <Tex src="1"/>, <Tex src="2"/> and <Tex src="3"/> are fired <G k="types.A3.fired_tally.1"/>, <G k="types.A3.fired_tally.2"/> and <G k="types.A3.fired_tally.3"/> times. Draw the tally as bars and read them sideways: row <Tex src="k"/> holds the bars of height at least <Tex src="k"/>. The row lengths, in increasing order, are the **exponents** <G k="types.A3.exponents"/>, and <Tex src="({{types.A3.exponents[0]}}+1)({{types.A3.exponents[1]}}+1)({{types.A3.exponents[2]}}+1)={{types.A3.weyl_order}}"/>, the number of positions of beat one.
 
 On <Tex src="E_8"/> the game has <G k="types.E8.n_positive_roots"/> moves. The value <Tex src="1"/> is fired <G k="types.E8.fired_tally.1"/> times and the value <G k="types.E8.exponents[7]"/> <G k="types.E8.fired_tally.29"/> time. Read sideways, the tally gives the exponents <G k="types.E8.exponents" as="plain"/>, and the order of the Weyl group is
 
@@ -154,7 +154,7 @@ Positions are weights in fundamental-weight coordinates. The explorer draws the 
 
 <T01GameBoard client:visible id="b12" board="A3" view="numbers" mode="legal" coords="numbers" start={RHO3} caption={`Legal play on A3 from (1, 1, 1) reaches each of the ${fmt('types.A3.weyl_order')} positions of beat one, always along a shortest word.`} />
 
-<Challenge client:visible for="b13" goal="On A3, make a legal play whose heap is shared by four different plays." explanation={`Moves at nodes 1 and 3 can come in either order. The play 1, 3, 2, 1, 3 has two such pairs, so 2 times 2 plays share its heap. Among the complete games, the largest heaps hold ${BIGGEST_HEAP} games each.`} check={{ kind: 'out', name: 'heapCount', equals: String(BIGGEST_HEAP) }} />
+<Challenge client:visible for="b13" goal={`On A3, make a legal play whose heap is shared by ${BIGGEST_HEAP} different plays.`} explanation={`Moves at nodes 1 and 3 can come in either order. The play 1, 3, 2, 1, 3 has two such pairs, so 2 times 2 plays share its heap. Among the complete games, the largest heaps hold ${BIGGEST_HEAP} games each.`} check={{ kind: 'out', name: 'heapCount', equals: String(BIGGEST_HEAP) }} />
 
 <T08WeylExplorer client:visible id="b13" preset="heap" board="A3" moves={[]} caption="The heap view on A3, from no moves: plays that differ only by swapping neighbouring moves at the unjoined nodes 1 and 3 build the same heap." />
 
