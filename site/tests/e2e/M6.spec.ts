@@ -41,7 +41,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
-import { applyWord, boardFromName, fire, mutate, symbolicPlay, toPositions } from '../../../packages/engine/src/index';
+import { boardFromName, fire, mutate, symbolicPlay, toPositions } from '../../../packages/engine/src/index';
 import type { Board, Game } from '../../../packages/engine/src/index';
 import { distDir } from './routes';
 
@@ -787,6 +787,8 @@ test('challenge: a board and a symmetry that fold to C3', async ({ page }) => {
 test('static content fits a 320-pixel screen', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto(ROUTE);
+  await expect(page.locator('#wildberger-names table')).toHaveCount(2);
+  await expect(page.locator('[data-figure="roots-compared"] table')).toHaveCount(1);
   const wide = await page.evaluate(() => {
     const out: string[] = [];
     for (const el of document.querySelectorAll('#wildberger-names, #wildberger-names table, [data-figure="roots-compared"], [data-figure="roots-compared"] table')) {
