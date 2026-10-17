@@ -38,9 +38,10 @@ jobs:
       # P0-A6: the browser tests, the size budget and the oracle, after the preview build that
       # e2e and size measure. BASE_PATH is not set here: the build, astro preview, the e2e baseURL
       # and size.mjs all take the base from siteAndBase (GITHUB_REPOSITORY gives /<repo>/).
-      # The lab timings join in phase 3 (P3-A7).
-      - name: Install Chromium for Playwright
-        run: npx playwright install --with-deps chromium
+      # The lab timings join in phase 3 (P3-A7). WebKit and Firefox too, so that mathml.spec.ts runs
+      # the MathML check of SPEC.md 7.3 in all three engines here (RT-FIX P3-RT-12-03).
+      - name: Install Chromium, WebKit and Firefox for Playwright
+        run: npx playwright install --with-deps chromium webkit firefox
       - name: Browser tests
         run: npm run e2e
       - name: Size budget
