@@ -26,7 +26,8 @@ const SCRIPTS = ['test', 'build', 'build:release', 'preview', 'e2e', 'size', 'la
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
-    if (name === 'node_modules' || name === '.git' || name === 'dist' || name === '.astro' || name === 'build-plan' || name === 'reference') continue;
+    // .claude holds the agents' worktrees and settings (ignored by git), not repository files (MERGE, P4 wave 4.2).
+    if (name === 'node_modules' || name === '.git' || name === 'dist' || name === '.astro' || name === 'build-plan' || name === 'reference' || name === '.claude') continue;
     const p = join(dir, name);
     if (statSync(p).isDirectory()) walk(p, out);
     else out.push(p);
