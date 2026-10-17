@@ -710,12 +710,12 @@ export function exportDerived(game: MirrorGame, overlays: readonly Overlay[]): R
   const history = [];
   for (let k = 0; k <= game.cursor; k++) {
     const s = game.readoutAt(k);
-    history.push({ move: k, numbers: s.numbers.map(exportValue), population: [...s.population] });
+    history.push({ move: k, numbers: s.numbers.map(exportValue), population: s.population.map(exportValue) });
   }
   const out: Record<string, unknown> = {
     labels: [...g.labels],
     position: r.numbers.map(exportValue),
-    population: [...r.population],
+    population: r.population.map(exportValue),
     cartan: g.cartanByLabel.map((row) => [...row]),
     history,
   };

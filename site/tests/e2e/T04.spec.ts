@@ -33,6 +33,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { copiedLink, downloadData, openForExport, safeAsStrings, unsafeNumbers } from './exportIntegers';
 
 const ROUTE = 'tools/lab/';
 const ONE_WAY = 'has a one-way road: the theory does not apply';
@@ -394,7 +395,7 @@ test('download data gives JSON with the state, the verdict records in labels, th
   expect(star.derived.verdict[0].nodes).toEqual(testCartan('star with five arms').map((_, k) => k + 1));
   expect(star.derived.verdict[0].class).toBe('indefinite');
   expect(star.derived.spectralRadius).toBe(golden.classification_tests.find((t) => t.label === 'star with five arms')!.spectral_radius_4_decimals);
-  expect(star.derived.weights).toEqual(testCartan('star with five arms').map(() => '1'));
+  expect(star.derived.weights).toEqual(testCartan('star with five arms').map(() => 1)); // safe integers are JSON numbers (6.6; P3-RT-04-05)
   expect(star.derived.rootCounter.stopMessage).toBe(`stopped after ${rec.stop_at_2000.positions} positions; layers 0 to ${rec.stop_at_2000.complete_layers} are complete`);
   expect(star.derived.rootCounter.positionsInCompleteLayers).toBe(rec.stop_at_2000.positions_in_complete_layers);
   expect(star.derived.hunter).toBeNull();
@@ -464,4 +465,25 @@ test('show as table lists one row per node with a button each', async ({ page })
   await root(page).locator('button[data-table-node="2"]').click();
   await expect(editor(page)).toHaveAttribute('data-selected', '2');
   await expect(page.locator(':focus')).toHaveAttribute('data-node', '2');
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // regression: P3-RT-04-05
+  test('export of the default state: integer rule, engine version, commit, state agrees with Copy link', async ({ page }) => {
+    await openForExport(page, 'tools/lab/');
+    const { raw, doc } = await downloadData(page);
+    expect(typeof doc.engineVersion).toBe('string');
+    expect(doc.commit).toMatch(/^[0-9a-f]{7,40}$/);
+    expect(unsafeNumbers(raw)).toEqual([]);
+    expect(safeAsStrings(doc.derived, 'derived')).toEqual([]);
+    expect(Object.keys(doc.derived ?? {}).length).toBeGreaterThan(0);
+    const q = await copiedLink(page);
+    if (doc.state.board !== undefined && typeof doc.state.board === 'string' && q.has('g')) expect(q.get('g')).toBe(doc.state.board);
+    if (doc.state.moves !== undefined && q.has('w')) expect(q.get('w')).toBe(doc.state.moves.join('.'));
+    if (doc.state.start !== undefined && q.has('s')) expect(q.get('s')).toBe(doc.state.start.join(','));
+  });
 });

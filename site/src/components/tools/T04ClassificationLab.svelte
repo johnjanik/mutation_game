@@ -260,13 +260,16 @@
   // Export (6.6 Data export): the derived tables shown on screen, in labels.
   // ------------------------------------------------------------------------------------------
 
+  /** The weights d_i as exported (6.6): an integer by the integer rule, a fraction as its "p/q" text. */
+  const weightsOut = (w: string[] | null): (number | string)[] | null => (w === null ? null : w.map((t) => (t.includes('/') ? t : integerOut(t))));
+
   function exportData(): Record<string, unknown> {
     void version;
     const v = verdict;
     return {
-      verdict: v.components.map((c) => ({ ...c.record, verdict: c.classText, weights: c.weights })),
+      verdict: v.components.map((c) => ({ ...c.record, verdict: c.classText, weights: weightsOut(c.weights) })),
       balanced: v.balanced,
-      weights: v.weights,
+      weights: weightsOut(v.weights),
       spectralRadius: v.spectralRadius,
       nonfiniteSubboard: v.nonfinite,
       rootCounter: {
