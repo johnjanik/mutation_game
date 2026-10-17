@@ -41,6 +41,7 @@ const PHASE_3_NAMES = [
 const PHASE_4_NAMES = [
   'symmetries', 'fold', 'averagedRootsType', 'averagedSimpleCartan', 'classifyRestricted',
   'symEig', 'euclideanBasis', 'coxeterPlanePoints', 'coxeterPlaneRings', 'coxeterWord', 'applyWordFloat',
+  'wythoffFaceTypes', 'wythoffFVector', 'wythoffEdges',
 ] as const;
 
 const PHASE_0_NAMES = [

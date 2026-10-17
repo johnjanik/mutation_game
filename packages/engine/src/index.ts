@@ -92,3 +92,5 @@ export { classifyRestricted } from './restrictedType';
 export type { RestrictedType, RestrictedEntry } from './restrictedType';
 export { symEig, euclideanBasis, coxeterPlanePoints, coxeterPlaneRings, coxeterWord, applyWordFloat } from './geometry';
 export type { CoxeterPlaneRings } from './geometry';
+export { wythoffFaceTypes, wythoffFVector, wythoffEdges } from './wythoff';
+export type { FaceType } from './wythoff';
