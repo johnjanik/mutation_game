@@ -65,6 +65,7 @@
     labelOrder,
     plural,
     positionOf,
+    RING_MAX,
     refusalText,
     rootPolytopeRings,
     toLabelVector,
@@ -439,7 +440,8 @@
   }
 
   function setRing(position: number, value: number, announce: (t: string) => void): void {
-    const v = Math.max(0, Math.min(99, Math.round(value)));
+    if (!Number.isFinite(value)) return;
+    const v = Math.max(0, Math.min(RING_MAX, Math.round(value)));
     const rings = toPositionVector(board, current.rings);
     if (rings[position] === v) return;
     rings[position] = v;
@@ -452,6 +454,12 @@
     ringFocus = position;
     const v = toPositionVector(board, current.rings)[position]!;
     setRing(position, v === 0 ? 1 : 0, announce);
+  }
+
+  /** Focus entered a node button of the ring board: its label (the data-node hook) names the node the ring buttons act on. */
+  function onRingFocus(event: FocusEvent): void {
+    const label = Number((event.target as HTMLElement | null)?.dataset?.node);
+    if (Number.isInteger(label) && board.labels.includes(label)) ringFocus = positionOf(board, label);
   }
 
   function stepRing(delta: number, announce: (t: string) => void): void {
@@ -892,7 +900,8 @@
     {#if prediction}
       <Predict {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
-    <div class="rings">
+    <!-- The node the ring buttons act on is the last one focused (keyboard or click), never one merely hovered. -->
+    <div class="rings" onfocusin={onRingFocus}>
       <Board
         {board}
         {values}
@@ -903,9 +912,6 @@
         name="Rings on {current.board}"
         disabled={frozen}
         onAct={(k) => toggleRing(k, api.announce)}
-        onFocusNode={(k) => {
-          if (k !== null) ringFocus = k;
-        }}
       />
     </div>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -1051,7 +1057,7 @@
             ><input
               type="number"
               min="0"
-              max="99"
+              max={RING_MAX}
               step="1"
               class="ring-input"
               data-table-ring={l}

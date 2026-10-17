@@ -95,9 +95,16 @@ export function shortRootRings(board: Board<number>): number[] | null {
   return short === null ? null : toLabelVector(board, toNumbers(board, short));
 }
 
-/** True when the rings are one non-negative safe integer per node. */
+/**
+ * The largest ring the tool takes (plan): six digits, as the entries typed into T3 (CAPS.formFinderDigits).
+ * Far below the safe range, so that no orbit of the 32 boards leaves SafeInt (the largest coefficient of a
+ * root is 6), and far above any picture worth drawing; the shape depends only on which nodes are ringed.
+ */
+export const RING_MAX = 10 ** CAPS.formFinderDigits - 1;
+
+/** True when the rings are one integer from 0 to RING_MAX per node. */
 export function validRings(board: AnyBoard, rings: readonly unknown[]): rings is number[] {
-  return rings.length === board.n && rings.every((r) => typeof r === 'number' && Number.isSafeInteger(r) && r >= 0);
+  return rings.length === board.n && rings.every((r) => typeof r === 'number' && Number.isSafeInteger(r) && r >= 0 && r <= RING_MAX);
 }
 
 // ---------------------------------------------------------------------------------------------

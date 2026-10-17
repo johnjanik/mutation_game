@@ -3,7 +3,7 @@
 // it gives what is cheap and exact (counts, decision, face table, names, projection) and, once the orbit
 // is known, what is drawn (coordinates, edges of the graph shown, the Coxeter-plane statistics, the
 // picture). The snapshot of 7.4 is the same picture rendered as SVG by the same code, in Node.
-import { CAPS, orbitGraph, toPositions } from '@two-games/engine';
+import { CAPS, orbitGraph } from '@two-games/engine';
 import type { Board } from '@two-games/engine';
 import type { ToolState } from '../../../lib/state';
 import { whereToRun, type CallHint } from '../../../lib/worker';

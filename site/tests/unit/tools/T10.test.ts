@@ -38,6 +38,7 @@ import {
   faceTable,
   fitsMainThread,
   fromPresetFile,
+  RING_MAX,
   refusalText,
   rootPolytopeRings,
   shortRootRings,
@@ -655,6 +656,12 @@ describe('links', () => {
     expect(admit({ board: 'A4~', rings: [1, 0, 0, 0, 0] }, true)).toBeNull();
     expect(admit({ board: 'A3', rings: [1, 0, 0], projection: 'xyz:1,2,5' }, true)).toBeNull();
     expect(admit({ board: 'A3', rings: [1, 0, 0], projection: 'xyz:1,2,5' }, false)!.projection).toBe(defaultProjectionText(3));
+    // A ring above the six digits the tool takes is not a state it shows (plan: no orbit leaves SafeInt).
+    expect(admit({ board: 'E8', rings: [0, 0, 0, 0, 0, 0, 0, RING_MAX] }, true)).not.toBeNull();
+    expect(admit({ board: 'E8', rings: [0, 0, 0, 0, 0, 0, 0, RING_MAX + 1] }, true)).toBeNull();
+    expect(factsOf(admit({ board: 'E8', rings: [RING_MAX, 0, 0, 0, 0, 0, 0, RING_MAX] }, true)!).counts.vertices).toBe(
+      orbitSize(B('E8'), [1, 0, 0, 0, 0, 0, 0, 1]),
+    );
     // A link that changes the board drops the old rings (the codec) and the tool takes the root polytope.
     const e8 = decodeState('g=E8', 'geometry', defaults);
     expect(e8.state.rings).toBeUndefined();
