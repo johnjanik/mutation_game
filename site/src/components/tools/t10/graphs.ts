@@ -4,9 +4,10 @@
 //
 // The polytope graph is wythoffEdges (scene.ts). The move graph joins mu to R_i mu for every node i (ringed
 // or not) with mu_i != 0 (when mu_i = 0, R_i mu = mu and there is no edge): every vertex is fired at every
-// node through the engine's `fire`, and the pairs are deduplicated as sorted index pairs. A pair belongs
-// to exactly one node, since R_i mu - mu is a multiple of alpha_i; the edge carries that node's label, its
-// colour (palette of eight, by label) and the label as text.
+// node through the engine's `fire`, and the pairs are deduplicated as sorted index pairs (moves.ts, loaded
+// on demand). A pair belongs to exactly one node, since R_i mu - mu is a multiple of alpha_i; the edge
+// carries that node's label, its colour (palette of eight, by label) and the label as text. This module
+// holds what the page needs at once: the bounds, the shared count, the colours, the legend's labels.
 import { CAPS } from '@two-games/engine';
 import { edgeColour } from '../../draw/palette';
 

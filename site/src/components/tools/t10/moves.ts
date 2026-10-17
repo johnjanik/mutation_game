@@ -4,7 +4,7 @@
 // route's first scripts stay within 7.6's 90 kB; the build-time snapshot and the unit tests import it
 // statically. The derivation fires every vertex at every node through the engine's `fire` (graphs.ts says
 // which pairs count); the renderer draws every edge in its node's colour with its label as text.
-import { CAPS, fire } from '@two-games/engine';
+import { fire } from '@two-games/engine';
 import type { Board } from '@two-games/engine';
 import { levelOf, levelStyles, pointPlan, selectSegments, type Context2DLike } from '../../draw/canvasScene';
 import { DEFAULT_LINE_WIDTH, DEFAULT_POINT_RADIUS } from '../../draw/projector';

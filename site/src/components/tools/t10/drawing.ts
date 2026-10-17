@@ -1,8 +1,8 @@
-// T10, the Geometry Studio: the picture, on a canvas and as SVG (SPEC.md 4 T10 Projection, Switch; 6.3;
-// 7.1; 7.4; A-5; A-6). Owner P4-A3. Built on P4-A2's projector (frames, projection, scenes, the depth cue),
-// canvasScene.ts (drawScene, the caps of 5.6 through selectSegments, the depth levels) and svgScene.ts
-// (renderSvg): the polytope graph is drawn by them unchanged. What this module adds, for both renderers
-// with the same selection, levels and order:
+// T10, the Geometry Studio: the picture on a canvas (SPEC.md 4 T10 Projection, Switch; 6.3; 7.1; A-5; A-6).
+// Owner P4-A3. Built on P4-A2's projector (frames, projection, scenes, the depth cue) and canvasScene.ts
+// (drawScene, the caps of 5.6 through selectSegments, the depth levels): the polytope graph is drawn by them
+// unchanged. The move graph's renderer is moves.ts and the SVG of the picture is svg.ts (both loaded on
+// demand in the browser), with the same selection, levels and order. What these add:
 //   - the move graph: each edge in the colour of its node's label (palette of eight, --edge-k) AND its label
 //     as text at the midpoint, a numeral in the text colour on a halo of the page colour (4.5 to 1 for
 //     numerals, A-6), on every drawn edge of every graph, with no size threshold (6.3, A-5); the depth cue
@@ -18,22 +18,11 @@ import {
   rotationInPlane,
   compose,
   apply,
-  roundTo,
   type FloatMatrix,
   type Projection,
   type Scene,
 } from '../../draw/projector';
-import {
-  DEPTH_LEVELS,
-  drawScene,
-  levelOf,
-  levelStyles,
-  pointPlan,
-  segmentRuns,
-  selectSegments,
-  type Context2DLike,
-  type DrawResult,
-} from '../../draw/canvasScene';
+import { DEPTH_LEVELS, drawScene, type Context2DLike, type DrawResult } from '../../draw/canvasScene';
 import { moveEdgeColour } from './graphs';
 
 /** What the picture shows: Euclidean points (vertices, then the short roots), edges, the graph kind. */
