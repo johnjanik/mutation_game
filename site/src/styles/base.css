@@ -16,6 +16,13 @@ body {
   font-family: var(--font-prose);
 }
 
+/* RT-FIX P3-RT-05-04: a display formula typeset by <Tex> is a tab stop, so that its box can be
+   scrolled from the keyboard; the focus ring of A-2. */
+.katex-display:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .numeral,
 [data-value] {
   font-family: var(--font-numerals);
