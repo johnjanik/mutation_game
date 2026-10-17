@@ -277,3 +277,133 @@ export function defaultProjection(n: number): Projection {
   if (n === 3) return { view: { kind: 'xyz', axes: [0, 1, 2] }, turn: [0, 0, 0] };
   return { view: { kind: 'coxeter' }, turn: [0, 0, 0] };
 }
+
+// ---------------------------------------------------------------------------------------------
+// The depth cue (T10 "Projection": points and segments with a depth cue)
+// ---------------------------------------------------------------------------------------------
+
+/** Stroke width of a segment at middle depth, in CSS pixels (plan). */
+export const DEFAULT_LINE_WIDTH = 1;
+/** Radius of a point at middle depth, in CSS pixels (plan). */
+export const DEFAULT_POINT_RADIUS = 2.5;
+/**
+ * The least opacity of a far mark (plan). The road and text colours of both themes blended at this
+ * opacity over the page keep more than 4.5 to 1 against it, above the 3 to 1 of A-6 (tested).
+ */
+export const ALPHA_FLOOR = 0.6;
+
+/**
+ * The style of a mark at depth 0 (far) to 1 (near): width from half to one and a half times the base,
+ * radius from 0.6 to 1.4 times the base, opacity from ALPHA_FLOOR to 1, each linear (so continuous and
+ * non-decreasing). null, for a scene with no depth axis, gives the middle values (depth one half).
+ */
+export function depthStyle(
+  depth: number | null,
+  base: { lineWidth: number; pointRadius: number } = { lineWidth: DEFAULT_LINE_WIDTH, pointRadius: DEFAULT_POINT_RADIUS },
+): DepthStyle {
+  const d = depth === null || !Number.isFinite(depth) ? 0.5 : Math.min(1, Math.max(0, depth));
+  return {
+    width: base.lineWidth * (0.5 + d),
+    radius: base.pointRadius * (0.6 + 0.8 * d),
+    alpha: ALPHA_FLOOR + (1 - ALPHA_FLOOR) * d,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Scenes (6.1 "Size on screen", 4.0 "Small screens": a box of 320 CSS pixels works)
+// ---------------------------------------------------------------------------------------------
+
+/** The box of a scene in CSS pixels; radius is the radius of the picture in units of y. */
+export interface SceneBox {
+  width: number;
+  height: number;
+  /** Pixels kept free on each side; default the radius of the nearest point plus 2. */
+  margin?: number;
+  /** Default: the largest norm of the points (Point3.norm, else the length of x, y, z). */
+  radius?: number;
+}
+
+/**
+ * Places projected points and their segments in a box: the origin of y at the centre of the box, one
+ * scale in both directions (aspect ratio kept), y flipped so that it grows downwards (the one flip of
+ * this module; SVG and canvas both use it). The scale depends on the radius and not on the rotation:
+ * by default the largest norm of the unprojected vectors, which no rotation or turn changes, so a
+ * picture does not jump while it is turned (plan). Each point gets depth (z - zmin) / (zmax - zmin)
+ * in [0, 1] (1 near), each segment the mean depth of its ends; segments are sorted far to near, ties
+ * in the order given. Without the depth cue, or when every z is the same (rank 2), there is no depth
+ * axis: every depth is one half and hasDepth is false.
+ */
+export function buildScene(
+  points: readonly Point3[],
+  edges: ReadonlyArray<readonly [number, number]>,
+  box: SceneBox,
+  options: { depthCue?: boolean } = {},
+): Scene {
+  let R = box.radius ?? 0;
+  let zmin = Infinity;
+  let zmax = -Infinity;
+  for (const p of points) {
+    if (box.radius === undefined) R = Math.max(R, p.norm ?? Math.hypot(p.x, p.y, p.z));
+    if (p.z < zmin) zmin = p.z;
+    if (p.z > zmax) zmax = p.z;
+  }
+  const margin = box.margin ?? depthStyle(1).radius + 2;
+  const half = Math.max(0, Math.min(box.width, box.height) / 2 - margin);
+  const scale = R > 0 ? half / R : 1;
+  const range = zmax - zmin;
+  const hasDepth = options.depthCue !== false && points.length > 1 && range > 1e-12 * Math.max(R, 1);
+  const cx = box.width / 2;
+  const cy = box.height / 2;
+  const scenePoints: ScenePoint[] = points.map((p) => ({
+    x: cx + scale * p.x,
+    y: cy - scale * p.y,
+    z: scale * p.z,
+    depth: hasDepth ? (p.z - zmin) / range : 0.5,
+  }));
+  const segments: SceneSegment[] = edges.map(([a, b]) => {
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a >= points.length || b >= points.length) {
+      throw new RangeError(`the edge ${a}, ${b} names a point outside 0..${points.length - 1}`);
+    }
+    return { a, b, depth: (scenePoints[a]!.depth + scenePoints[b]!.depth) / 2 };
+  });
+  if (hasDepth) {
+    const order = segments.map((_, k) => k);
+    order.sort((i, j) => segments[i]!.depth - segments[j]!.depth || i - j);
+    return { width: box.width, height: box.height, points: scenePoints, segments: order.map((k) => segments[k]!), hasDepth, scale };
+  }
+  return { width: box.width, height: box.height, points: scenePoints, segments, hasDepth, scale };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Distinct dots and rings in the Coxeter plane (2.14; 5.4: 6 decimals, -0 counted as 0)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * x rounded to the given number of decimals as Math.round(x * 10^digits) / 10^digits, plus 0 so that
+ * the result is never -0. Not bit for bit Python's round (which rounds the exact binary value half to
+ * even): the two can differ only within about 1e-12 of a rounding boundary.
+ */
+export function roundTo(x: number, digits: number): number {
+  const f = 10 ** digits;
+  return Math.round(x * f) / f + 0;
+}
+
+/** The number of different points among x, y rounded to the digits (the oracle's `distinct`). */
+export function countDistinct(points: ReadonlyArray<{ x: number; y: number }>, digits = 6): number {
+  const seen = new Set<string>();
+  for (const p of points) seen.add(`${roundTo(p.x, digits)},${roundTo(p.y, digits)}`);
+  return seen.size;
+}
+
+/**
+ * [radius, number of points] for each radius, innermost first: the radius is computed from the
+ * unrounded x, y and then rounded to the digits (the oracle's `rings`); coordinates are not rounded first.
+ */
+export function ringsOf(points: ReadonlyArray<{ x: number; y: number }>, digits = 6): [number, number][] {
+  const count = new Map<number, number>();
+  for (const p of points) {
+    const r = roundTo(Math.hypot(p.x, p.y), digits);
+    count.set(r, (count.get(r) ?? 0) + 1);
+  }
+  return [...count.entries()].sort((a, b) => a[0] - b[0]);
+}
