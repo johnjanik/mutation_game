@@ -17,7 +17,7 @@ for (const [tool, g] of [['board', 'A13'], ['board', 'A12~'], ['garden', 'A13'],
       labels: [...new Set([...r.querySelectorAll('button[data-node]')].map((e) => e.getAttribute('data-node')))],
       notice: (r.querySelector('[data-out="notice"]')?.textContent ?? '').trim(),
     }));
-    console.log(`${tool} ${g}: ${seen.labels.length} node labels drawn (${seen.labels.join(',')}); notice ${JSON.stringify(seen.notice)}`);
+    test.info().annotations.push({ type: 'observation', description: `${tool} ${g}: ${seen.labels.length} node labels drawn (${seen.labels.join(',')}); notice ${JSON.stringify(seen.notice)}` });
     expect(seen.notice).toBe(NOTICE);
     expect(seen.labels.length).toBeLessThanOrEqual(12);
   });
@@ -33,7 +33,7 @@ test('T16 "Import board" of the JSON text "A13" (a board name) is refused like a
   await page.waitForTimeout(300);
   const status = (await root.locator('[data-out="importStatus"]').textContent())?.trim();
   const labels = await root.locator('button[data-node]').evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute('data-node')))]);
-  console.log(`import "A13": status ${JSON.stringify(status)}; ${labels.length} node labels`);
+  test.info().annotations.push({ type: 'observation', description: `import "A13": status ${JSON.stringify(status)}; ${labels.length} node labels` });
   expect(status).toMatch(/^The board could not be read/);
   expect(labels.length).toBeLessThanOrEqual(12);
 });
@@ -47,6 +47,6 @@ test('time from navigation to hydration for g=A100 and g=A200 on /tools/board/ (
     await expect(page.locator('[data-tool]').first()).toHaveAttribute('data-hydrated', 'true', { timeout: 280000 });
     await expect(page.locator('[data-tool] button[data-node][data-board="populations"]').first()).toBeVisible();
     const nodes = await page.locator('[data-tool] button[data-node][data-board="populations"]').count();
-    console.log(`g=${g}: drawn after ${Date.now() - t0} ms with ${nodes} population nodes`);
+    test.info().annotations.push({ type: 'observation', description: `g=${g}: drawn after ${Date.now() - t0} ms with ${nodes} population nodes` });
   }
 });
