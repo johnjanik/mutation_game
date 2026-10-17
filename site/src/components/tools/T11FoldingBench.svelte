@@ -11,6 +11,7 @@
   // start, moves, symmetry, caption, preset ('default' | 'fold' | 'average': the state fields and the tab),
   // prediction; linkTo and layers are accepted and ignored.
   import { untrack } from 'svelte';
+  import { toPositions } from '@two-games/engine';
   import type { AnyBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -19,7 +20,7 @@
   import OrbitOverlay from './t11/OrbitOverlay.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { encodeState } from '../../lib/urlCodec';
-  import { resolveBoard, type ToolState } from '../../lib/state';
+  import { labelOrder, resolveBoard, type ToolState } from '../../lib/state';
   import { engineCall } from '../../lib/worker';
   import { speak } from '../../lib/a11y';
   import { POPULATIONS_ICON, NUMBERS_ICON } from '../draw/palette';
@@ -122,6 +123,8 @@
   const isNumbers = $derived(cur().view === 'numbers');
   const game = $derived(cur().game);
   const bigLabels = $derived([...ctx.board.labels].sort((a, b) => a - b));
+  /** The folded board's labels in increasing order (Bourbaki order), the order of foldedInLabelOrder. */
+  const foldedLabels = $derived(ctx.folded === null ? [] : labelOrder(ctx.folded));
   const foldedName = $derived(ctx.foldedName ?? '');
   const orbitLabels = $derived(orbitsInLabels(ctx));
   /** The colour (and folded label) of each big position's orbit. */
@@ -371,7 +374,11 @@
       {#if tab === 'fold'}
         <p class="line view">
           {@render icon(isNumbers ? NUMBERS_ICON : POPULATIONS_ICON)}
-          {isNumbers ? 'Numbers game' : 'Mutation game'}, symmetric play: one click acts on a whole orbit.
+          {#if folds}
+            {isNumbers ? 'Numbers game' : 'Mutation game'}, symmetric play: one click acts on a whole orbit.
+          {:else}
+            {isNumbers ? 'Numbers game' : 'Mutation game'}, no symmetric play: the board does not fold by this symmetry.
+          {/if}
         </p>
         <div class="boards">
           <div class="panel" class:numbers={isNumbers} class:populations={!isNumbers} data-out="big-board">
@@ -524,18 +531,19 @@
       </thead>
       <tbody>
         {#each cur().foldedInLabelOrder() as v, j (j)}
-          {@const s = ctx.folded!.labels.indexOf(j + 1)}
+          {@const l = foldedLabels[j]!}
+          {@const s = toPositions(ctx.folded!, [l])[0]!}
           <tr>
-            <th scope="row">{j + 1}</th>
+            <th scope="row">{l}</th>
             <td class="numeral">{orbitText(orbitLabels[s]!)}</td>
             <td>
               <button
                 type="button"
                 class="cell"
                 data-table-board="folded"
-                data-table-node={j + 1}
+                data-table-node={l}
                 disabled={!api.hydrated || frozen}
-                aria-label="{isNumbers ? 'Node' : 'City'} {j + 1} of the folded board, {isNumbers ? 'value' : 'population'} {speak(v)}: a symmetric move on {orbitText(orbitLabels[s]!)}"
+                aria-label="{isNumbers ? 'Node' : 'City'} {l} of the folded board, {isNumbers ? 'value' : 'population'} {speak(v)}: a symmetric move on {orbitText(orbitLabels[s]!)}"
                 onclick={() => act(s, api.announce)}>{v}</button
               >
             </td>

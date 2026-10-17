@@ -31,8 +31,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { applyWord, boardFromName, fold } from '../../../packages/engine/src/index';
+import { applyWord, boardFromName, fold, toPositions } from '../../../packages/engine/src/index';
 import type { Board, Game } from '../../../packages/engine/src/index';
+import { ssrLoader } from '../unit/_svelteSsr';
 
 interface FoldingRow {
   type: string;
@@ -74,20 +75,32 @@ async function valuesOf(nodes: Locator): Promise<string[]> {
   return pairs.sort((a, b) => a[0] - b[0]).map(([, v]) => v);
 }
 
-// The engine in Node: the expected values of each case (positions are labels minus 1 on named boards).
+// The engine in Node: the expected values of each case. Labels and positions are converted only by
+// toPositions on the board concerned (E-7), never by adding or subtracting 1.
 const B = (name: string): Board<number> => boardFromName(name) as Board<number>;
-const pos = (images: number[]): number[] => images.map((l) => l - 1);
-/** Both boards after symmetric moves on the orbits containing the given labels, from a symmetric start. */
+/** The positions of a board's nodes in label order (the order of `s`, `y` and of valuesOf). */
+const labelOrderPositions = (board: Board<number>): number[] => toPositions(board, [...board.labels].sort((a, b) => a - b));
+/** A symmetry given as the images of all nodes in label order (6.6 `y`), as positions. */
+function symmetryInPositions(board: Board<number>, images: number[]): number[] {
+  const to = toPositions(board, images);
+  const sigma: number[] = new Array<number>(board.n);
+  labelOrderPositions(board).forEach((p, k) => (sigma[p] = to[k]!));
+  return sigma;
+}
+/** Both boards after symmetric moves on the orbits containing the given labels, from a symmetric start (label order). */
 function expected(name: string, images: number[], start: number[], labels: number[], game: Game): { big: string[]; folded: string[]; foldedName: string | null } {
   const board = B(name);
-  const r = fold(board, pos(images));
-  const orbitOf = (l: number): number => r.orbits.findIndex((o) => o.includes(l - 1));
+  const r = fold(board, symmetryInPositions(board, images));
+  const orbitOf = (l: number): number => r.orbits.findIndex((o) => o.includes(toPositions(board, [l])[0]!));
   const word = labels.flatMap((l) => r.orbits[orbitOf(l)]!);
-  const big = applyWord(board, start, word, game).map(String);
+  const v0: number[] = new Array<number>(board.n);
+  labelOrderPositions(board).forEach((p, k) => (v0[p] = start[k]!));
+  const after = applyWord(board, v0, word, game);
+  const big = labelOrderPositions(board).map((p) => String(after[p]));
   if (r.folded === null) return { big, folded: [], foldedName: null };
   const f = r.folded;
-  const small = applyWord(f, r.orbits.map((o) => start[o[0]!]!), labels.map(orbitOf), game);
-  const inLabels = f.labels.map((_, j) => String(small[f.labels.indexOf(j + 1)]));
+  const small = applyWord(f, r.orbits.map((o) => v0[o[0]!]!), labels.map(orbitOf), game);
+  const inLabels = labelOrderPositions(f).map((s) => String(small[s]));
   return { big, folded: inLabels, foldedName: f.name ?? null };
 }
 
@@ -197,6 +210,19 @@ test('A4 with the flip: the fold tab says an orbit contains an edge and the aver
   for (const [k, c] of r.averaged_root_classes.entries()) {
     await expect(rows.nth(k)).toHaveAttribute('data-class', c.class);
     await expect(rows.nth(k).locator('td')).toHaveText([String(c.roots), c.form_value]);
+  }
+});
+
+test('on the boards that do not fold the fold tab does not offer symmetric play', async ({ page }) => {
+  // A3 folds: the fold tab invites symmetric play.
+  await open(page);
+  await expect(root(page)).toContainText('Numbers game, symmetric play: one click acts on a whole orbit.');
+  // A2, A4, A6 and A8 with their flip (and A4 in the populations view) do not fold: nothing invites it.
+  for (const [query, game] of [['g=A2', 'Numbers game'], ['g=A4', 'Numbers game'], ['g=A6', 'Numbers game'], ['g=A8', 'Numbers game'], ['g=A4&v=p', 'Mutation game']] as const) {
+    await open(page, query);
+    await expect(out(page, 'fold-message'), query).toContainText(PHRASE);
+    await expect(root(page), query).not.toContainText('one click acts on a whole orbit');
+    await expect(root(page), query).toContainText(`${game}, no symmetric play: the board does not fold by this symmetry.`);
   }
 });
 
@@ -366,10 +392,23 @@ test('Copy link gives the 6.6 link of the current state, and opening it restores
   await control(p, 'copyLink').click();
   await expect(live(p)).toHaveText('Link copied.');
   const link = await p.evaluate(() => navigator.clipboard.readText());
-  const q = new URL(link).searchParams;
-  expect(q.get('g')).toBe('D4');
-  expect(q.get('y')).toBe('3.2.4.1');
-  expect(q.get('w')).toBe('1.2');
+  // The link decodes with the site's own codec (decodeState, loaded through Vite as in T03.spec.ts, since
+  // the codec reads the registry) against the route's defaults, to the same board, symmetry and moves.
+  const loader = await ssrLoader();
+  let decoded: { state: { board?: unknown; symmetry?: number[]; moves?: number[] }; notice: string | null };
+  try {
+    type Decode = (search: string, tool: string, defaults: unknown) => typeof decoded;
+    const { decodeState } = await loader.load<{ decodeState: Decode }>('/src/lib/urlCodec.ts');
+    const { T11_PRESETS } = await loader.load<{ T11_PRESETS: Record<'default', Record<string, unknown>> }>('/src/components/tools/t11/config.ts');
+    const { tab: _tab, caption: _caption, ...fields } = T11_PRESETS.default;
+    decoded = decodeState(new URL(link).search, 'fold', { schema: 1, tool: 'fold', ...fields });
+  } finally {
+    await loader.close();
+  }
+  expect(decoded.notice).toBeNull();
+  expect(decoded.state.board).toBe('D4');
+  expect(decoded.state.symmetry).toEqual([3, 2, 4, 1]);
+  expect(decoded.state.moves).toEqual([1, 2]);
   await p.goto(link);
   await expect(root(p)).toHaveAttribute('data-hydrated', 'true');
   await expect(root(p)).toHaveAttribute('data-moves', '2');
