@@ -16,7 +16,8 @@
 //     question, draft, beat, figure, seen, lie-theory, links, sources; data-beat; data-provenance;
 //     data-challenge, data-met, data-challenge-result (text "Goal reached."); data-link
 //   this lesson's own markup: data-statements (the list of beat 5), data-module-link,
-//     data-bridge-prose (the prose copy of the bridge sentence), data-seen-statement
+//     data-bridge-prose (the prose copy of the bridge sentence), data-seen-statement,
+//     data-view-word (populations | numbers: the name of a view in prose, with its icon and underline)
 //
 // Word-counting rule (test 4; later lessons reuse it): the words of the <article> after removing
 // every tool root ([data-tool]), every <details> (prediction reveals, challenge explanations, the
@@ -532,4 +533,39 @@ test.describe('regressions', () => {
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
+  // RT-13 attack 27: SPEC 8.1 P8 ("Populations and Numbers have fixed colours and icons in prose,
+  // figures and formulas"); 8.3 ("They mark the borders and icons of panels and the underlines of the
+  // two words"; "Icons: a small city for Populations, a small numbered disc for Numbers, used wherever
+  // the view is named"). Light theme.
+  async function load(page: Page): Promise<void> {
+    await page.goto(ROUTE);
+    await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 30)); } });
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-tool]')].every((t) => t.getAttribute('data-hydrated') === 'true'), null, { timeout: 60000 });
+  }
+
+  // regression: P3-RT-13-08
+  test('the words Populations and Numbers in the prose of M0 carry the accent underline and the icon of their view', async ({ page }) => {
+    test.setTimeout(120000);
+    const problems: string[] = [];
+    for (const word of ['Numbers', 'Populations']) {
+      await load(page);
+      const found = await page.evaluate((word) => {
+        const res: { text: string; underline: string; colour: string; icon: boolean }[] = [];
+        const walker = document.createTreeWalker(document.querySelector('article')!, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          const el = n.parentElement!;
+          if (el.closest('[data-tool], details, .katex')) continue;
+          if (!new RegExp(`\\b${word}\\b`).test(n.textContent ?? '')) continue;
+          const cs = getComputedStyle(el);
+          const icon = !!(el.querySelector('svg') || el.previousElementSibling?.matches('svg, img') || el.closest('[data-view-word]')?.querySelector('svg'));
+          res.push({ text: (n.textContent ?? '').trim().slice(0, 60), underline: cs.textDecorationLine, colour: cs.textDecorationColor, icon });
+        }
+        return res;
+      }, word);
+      const accent = word === 'Populations' ? 'rgb(0, 158, 115)' : 'rgb(204, 121, 167)';
+      if (found.length === 0) problems.push(`${ROUTE}: the word ${word} not found in prose`);
+      for (const f of found) if (!f.underline.includes('underline') || f.colour !== accent || !f.icon) problems.push(`${ROUTE}: "${f.text}" underline=${f.underline} colour=${f.colour} icon=${f.icon}`);
+    }
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
 });
