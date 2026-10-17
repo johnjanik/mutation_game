@@ -726,4 +726,41 @@ test.describe('regressions', () => {
     await typeIntoChallenge(challenge, '1, 1, 1');
     await expect(challenge).toHaveAttribute('data-met', 'true');
   });
+
+  // Adopted from site/tests/e2e/redteam-RT-13-terms.spec.ts (lens RT-13, attack 13), on the M1 page
+  // (the reproducer walks M0 to M5; the first uses on M0 belong to another fix). SPEC 8.4: "Define
+  // every term on first use and link later uses to a glossary entry". A block is a prose paragraph
+  // or list item, or a figure's visible caption and outputs, in document order; the first block of
+  // M1 that uses a term must define it (that block or the next) or link the glossary.
+  // regression: P3-RT-13-06
+  test('every term is defined or linked at its first occurrence on M1', async ({ page }) => {
+    const TERMS: { term: string; use: RegExp; definition: RegExp }[] = [
+      { term: 'finite (finite type)', use: /\bfinite type\b/, definition: /closes up when it has finitely many root populations/ },
+      { term: 'affine', use: /\baffine\b/, definition: /the site calls them affine/ },
+      { term: 'highest root', use: /\bhighest root\b/, definition: /This end is the highest root of the board/ },
+    ];
+    await page.goto(ROUTE);
+    const all = await page.evaluate(() => {
+      const found: { text: string; glossary: boolean }[] = [];
+      const visible = (el: Element) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden' && !el.closest('details:not([open])');
+      const text = (el: Element) => { const c = el.cloneNode(true) as Element; c.querySelectorAll('.katex-mathml, details, [data-live], .visually-hidden').forEach((x) => x.remove()); return (c.textContent ?? '').replace(/\s+/g, ' ').trim(); };
+      for (const el of document.querySelectorAll('article p, article li, article figcaption, article [data-out]')) {
+        if (!visible(el)) continue;
+        if (el.matches('p, li') && el.querySelector('p, li')) continue;
+        if (el.closest('[data-anatomy="lie-theory"], [data-anatomy="sources"], [data-statements]')) continue;
+        const t = text(el);
+        if (t) found.push({ text: t, glossary: !!el.querySelector('a[href*="glossary"]') });
+      }
+      return found;
+    });
+    const problems: string[] = [];
+    for (const { term, use, definition } of TERMS) {
+      const first = all.findIndex((b) => use.test(b.text));
+      const def = all.findIndex((b) => definition.test(b.text));
+      if (first < 0) continue;
+      const ok = all[first]!.glossary || def === first || def === first + 1;
+      if (!ok) problems.push(`${term}: first used on M1 in "${all[first]!.text.slice(0, 160)}"; defined ${def < 0 ? 'nowhere on M1' : `in "${all[def]!.text.slice(0, 100)}"`}`);
+    }
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
 });
