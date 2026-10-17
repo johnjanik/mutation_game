@@ -958,8 +958,9 @@ test('challenge: weights on G2 that the builder accepts', async ({ page }) => {
 
 test('the explanation of the G2 builder challenge is written from the golden file', () => {
   // SPEC 8.4 and 7.3: a number with a golden value is never typed. In the explanation of b13 every
-  // number is an expression (the symmetrizer, the ratio of squared lengths, the weights made from
-  // them); only city labels are typed.
+  // number is an expression (the symmetrizer and the ratio of squared lengths from the golden file,
+  // the squared lengths, which are the city weights, from the engine's formValue); only city labels
+  // are typed.
   const source = readFileSync(LESSON_PATH, 'utf8');
   const m = /<Challenge\b[^\n]*\bfor="b13"[^\n]*\bexplanation=\{`([^`]*)`\}/.exec(source);
   expect(m, 'the b13 challenge and its explanation').not.toBeNull();

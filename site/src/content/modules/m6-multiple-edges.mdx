@@ -17,7 +17,7 @@ import { G, Tex, Cite, Unverified } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased } from '@lib/pages/released';
 import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
-import { applyWord, boardFromName, toPositions } from '@engine';
+import { applyWord, boardFromName, coroot, formValue, ratToString, toPositions } from '@engine';
 import { BUILDER_TEXT } from '@components/tools/t03/weights';
 
 export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
@@ -52,20 +52,18 @@ export const SHORT_ROOTS = 2 * gv('types.B2.n_short_positive');
 export const SHORT_START = gv('types.B2.positive_roots[0]');
 export const SHORT_TOUR = [[1], [2], [2, 1]].map((w) => show(play('B2', 'mutation', SHORT_START, w)));
 export const SEEN = 'verified by computation';
-export const B2D = gv('types.B2.symmetrizer');
-export const B2C = gv('types.B2.cartan');
 export const B2L = sorted(boardFromName('B2'));
-export const formOf = (r) => r.reduce((s, ri, i) => s + ri * B2D[i] * r.reduce((t, rj, j) => t + B2C[i][j] * rj, 0), 0);
-export const corootOf = (r) => r.map((b, i) => (2 * b * B2D[i]) / formOf(r));
 export const asForm = (c) => c.map((x, i) => (x === 0 ? '' : `${x === 1 ? '' : x}x_${B2L[i]}`)).filter((t) => t !== '').join('+');
-export const COROOTS = gv('types.B2.positive_roots').map((r, k) => { const c = corootOf(r); return { k, c, j: gv('types.C2.positive_roots').findIndex((q) => q.join() === c.join()), differs: c.join() !== r.join() }; });
+export const COROOTS = gv('types.B2.positive_roots').map((r, k) => { const b = boardFromName('B2'); const c = inLabels(b, coroot(b, fromLabels(b, r))); return { k, c, j: gv('types.C2.positive_roots').findIndex((q) => q.join() === c.join()), differs: c.join() !== r.join() }; });
+export const squaredLengths = (name) => { const b = boardFromName(name); return sorted(b).map((l) => ratToString(formValue(b, fromLabels(b, sorted(b).map((x) => (x === l ? 1 : 0)))))); };
 export const G2D = gv('types.G2.symmetrizer');
-export const G2_ROAD = G2D[0] * gv('types.G2.adjacency')[1][0];
+export const G2_LENGTHS = squaredLengths('G2');
 
 {/* P4-A5: lesson M6, drafted from SPEC.md 2.1, 2.2, 2.4, 2.5, 2.8, 2.10, 2.13 and 3 M6 in the words
     of the site (D17: a draft until the owner approves it). Every number with a golden value goes
-    through G, a golden path inside Tex, or resolveGoldenPath in a property; positions and counts
-    with no golden value are computed with the engine in the exports above or written inside Tex;
+    through G, a golden path inside Tex, or resolveGoldenPath in a property; positions, coroots and
+    squared lengths with no golden value come from the engine (applyWord, coroot, formValue) in the
+    exports above, which compute no form or coroot of their own (CLAUDE.md), or are written inside Tex;
     node labels and locators are brace strings, so scripts/numbers-in-prose.mjs finds nothing in
     this file. Instance ids b1 to b14 in reading order; b1 is client:idle, every other island
     client:visible. No linked view is placed, so the bridge sentence is not repeated here. No
@@ -208,7 +206,7 @@ The arrow of a Dynkin diagram points from the long simple root to the short one.
 
 <T01GameBoard client:visible id="b12" board="B2" view="populations" mode="free" coords="populations" start={[0, 1]} roadStyle="roads" caption="One Martian in city 2 of B2, the short city; every population it reaches has form value 2." />
 
-<Challenge client:visible for="b13" goal="On G2, find weights that the builder accepts." explanation={`City 2 is long, with squared length ${2 * G2D[1]}, ${fmt('types.G2.long_to_short_ratio')} times that of the short city 1, so the city weights must be in the ratio ${G2D[0]} to ${G2D[1]}, as the weights ${fmt('types.G2.symmetrizer')} say, and the road weight must equal the weight of city 2: ${2 * G2D[0]}, ${2 * G2D[1]} and ${2 * G2_ROAD}, or ${G2D[0]}, ${G2D[1]} and ${G2_ROAD}.`} check={{ kind: 'out', name: 'testVerdict', equals: BUILDER_TEXT.pass }} />
+<Challenge client:visible for="b13" goal="On G2, find weights that the builder accepts." explanation={`City 2 is long, with squared length ${G2_LENGTHS[1]}, ${fmt('types.G2.long_to_short_ratio')} times that of the short city 1, so the city weights must be in the ratio ${G2D[0]} to ${G2D[1]}, as the weights ${fmt('types.G2.symmetrizer')} say, and the road weight must equal the weight of city 2: ${G2_LENGTHS[0]}, ${G2_LENGTHS[1]} and ${G2_LENGTHS[1]}, or ${G2D[0]}, ${G2D[1]} and ${G2D[1]}.`} check={{ kind: 'out', name: 'testVerdict', equals: BUILDER_TEXT.pass }} />
 
 <T03FormFinder client:visible id="b13" preset="builder" board="G2" linkTo="b11" coords="populations" start={[0, 1]} caption="The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test." />
 
