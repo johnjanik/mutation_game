@@ -3,13 +3,13 @@
 // determinism (the committed files are the pipeline's output byte for byte) and labels (E-7). The
 // mathematical content of the files is tested in presets.test.ts.
 //
-// These tests need the phase 4 engine functions of P4-A1 and the files written by scripts/presets.mjs;
-// until both exist they fail (they are not skipped: COMMON.md 4.4).
+// The files are written by scripts/presets.mjs and committed; the freshness test recomputes them with
+// the phase 4 engine functions of P4-A1 and compares bytes.
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { boardFromName } from '@engine';
+import { boardFromName, toLabels, toPositions } from '@engine';
 import { KB, gzipSize } from '../../../scripts/size.mjs';
 import {
   MANIFEST_FILE,
@@ -138,7 +138,10 @@ describe('T10 preset files: size, completeness, determinism, labels', () => {
       expect(data.tree.node[0]).toBeNull();
       for (let i = 1; i < data.tree.node.length; i++) {
         const label = data.tree.node[i]!;
-        expect(board.labels, `${key} node ${i}`).toContain(label);
+        // A label of the board: toPositions converts it (RangeError on an unknown label) and toLabels
+        // gives it back; on a named finite board the labels are 1..n.
+        expect(Number.isInteger(label) && label >= 1 && label <= board.n, `${key} node ${i}`).toBe(true);
+        expect(toLabels(board, toPositions(board, [label])), `${key} node ${i}`).toEqual([label]);
         expect(data.tree.parent[i]!).toBeLessThan(i);
       }
       expect(data.rings).toEqual(presetRings(config));
@@ -147,9 +150,12 @@ describe('T10 preset files: size, completeness, determinism, labels', () => {
     // E8 from the highest root: the first move fires the only ringed node, whose label is 8 (position 7).
     const e8 = PRESET_CONFIGS.find((c) => c.board === 'E8')!;
     const data = fileOf(presetKey(e8));
-    const ringed = data.rings.flatMap((r, p) => (r > 0 ? [boardFromName('E8').labels[p]!] : []));
+    const E8 = boardFromName('E8');
+    const ringed = toLabels(E8, data.rings.flatMap((r, p) => (r > 0 ? [p] : [])));
     expect(ringed).toEqual([8]);
     expect(data.tree.node[1]).toBe(8);
     expect(data.tree.parent[1]).toBe(0);
+    // The node fired first is the ringed one: its position is the only nonzero entry of the rings.
+    expect(toPositions(E8, [data.tree.node[1]!])).toEqual(data.rings.flatMap((r, p) => (r > 0 ? [p] : [])));
   });
 });

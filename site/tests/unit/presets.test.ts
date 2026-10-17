@@ -5,18 +5,18 @@
 // the hexagon of A2. Golden values are read with node:fs as data; no coverage is registered here (the
 // golden keys are covered in the engine suite, CONTRACTS.md 3).
 //
-// The tests of the files need the phase 4 engine functions of P4-A1 (euclideanBasis) and the files
-// written by scripts/presets.mjs; until both exist they fail (they are not skipped: COMMON.md 4.4).
-// The tests of the short roots (presetShortRoots, the shortRoots field of computePreset) need only the
-// engine of phases 0 to 3 and run on a board with two root lengths that no shipped file covers.
+// The tests of the files read the files written by scripts/presets.mjs (committed under
+// site/public/presets/T10/) and project them with the engine's euclideanBasis (P4-A1). The tests of
+// the short roots (presetShortRoots, the shortRoots field of computePreset) need only the engine of
+// phases 0 to 3 and run on a board with two root lengths that no shipped file covers.
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { boardFromName, formValue, toPopulation } from '@engine';
+import { boardFromName, euclideanBasis, formValue, toPopulation } from '@engine';
 import type { AnyBoard, Board } from '@engine';
 import { countDistinct, frameFor, project, ringsOf, roundTo, toEuclidean } from '../../src/components/draw/projector';
-import { PRESET_CONFIGS, phase4Engine, presetFile, presetKey, presetShortRoots, type PresetConfig, type PresetData } from '../../src/components/draw/presetsT10';
+import { PRESET_CONFIGS, presetFile, presetKey, presetShortRoots, type PresetConfig, type PresetData } from '../../src/components/draw/presetsT10';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const DIR = resolve(ROOT, 'site/public/presets/T10');
@@ -53,7 +53,7 @@ const configOf = (board: string, preset: string): PresetConfig =>
 /** The vertices of a file drawn at y = E C^-1 a and projected to the Coxeter plane, with no turn. */
 function coxeterPoints(data: PresetData): { x: number; y: number }[] {
   const board: AnyBoard = boardFromName(data.board);
-  const { E } = phase4Engine().euclideanBasis(board);
+  const { E } = euclideanBasis(board);
   const frame = frameFor(board.n, { kind: 'coxeter' });
   return data.vertices.map((a) => project(frame, toEuclidean(board, E, a)));
 }

@@ -7,8 +7,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import * as engine from '@engine';
-import { CAPS, boardFromName, choleskyBasis, formValue, gram, roots } from '@engine';
+import { CAPS, boardFromName, choleskyBasis, euclideanBasis, formValue, gram, roots } from '@engine';
 import type { AnyBoard, Board } from '@engine';
 import {
   ALPHA_FLOOR,
@@ -43,6 +42,7 @@ import {
   type Context2DLike,
 } from '../../src/components/draw/canvasScene';
 import { renderSvg } from '../../src/components/draw/svgScene';
+import { PRESET_CONFIGS, presetFile, presetKey, type PresetData } from '../../src/components/draw/presetsT10';
 import { DARK, LIGHT, contrastRatio } from '../../src/components/draw/palette';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -96,12 +96,12 @@ function expectOrthonormal(f: Frame, tol: number): void {
 const frameDiff = (a: Frame, b: Frame): number =>
   Math.max(maxDiff(a.u, b.u), maxDiff(a.v, b.v), a.w === null || b.w === null ? 0 : maxDiff(a.w, b.w));
 
-/** The bases E a test may use: Cholesky always, and euclideanBasis once P4-A1 has merged it. */
+/** The bases E a test uses: Cholesky (P3-A2) and euclideanBasis (P4-A1), two factorisations of B. */
 function bases(board: AnyBoard): { name: string; E: number[][] }[] {
-  const out = [{ name: 'choleskyBasis', E: choleskyBasis(board) }];
-  const eb = (engine as Record<string, unknown>)['euclideanBasis'];
-  if (typeof eb === 'function') out.push({ name: 'euclideanBasis', E: (eb as (b: AnyBoard) => { E: number[][] })(board).E });
-  return out;
+  return [
+    { name: 'choleskyBasis', E: choleskyBasis(board) },
+    { name: 'euclideanBasis', E: euclideanBasis(board).E },
+  ];
 }
 
 describe('projector core: rotations', () => {
@@ -848,19 +848,29 @@ describe('svgScene: the same picture as the canvas, as markup (SPEC 7.4)', () =>
   });
 
   it('the E8 snapshot stays under 200 kB', () => {
-    const eb = (engine as Record<string, unknown>)['euclideanBasis'];
+    // The scene of the committed E8 file (the showpiece), drawn at y = E C^-1 a with E from the
+    // engine's euclideanBasis and projected to the true Coxeter plane at zero turn, in a 360 by 360 box.
+    const config = PRESET_CONFIGS.find((c) => c.presets.includes('showpiece'))!;
+    const data = JSON.parse(readFileSync(resolve(ROOT, 'site/public/presets/T10', presetFile(presetKey(config))), 'utf8')) as PresetData;
+    expect(data.board).toBe('E8');
     const E8 = boardFromName('E8');
-    const E = typeof eb === 'function' ? (eb as (b: AnyBoard) => { E: number[][] })(E8).E : choleskyBasis(E8);
-    const { ys, edges } = rootPicture('E8', E);
-    const record = golden.wythoff.find((w) => w.type === 'E8' && w.rings.join(',') === '0,0,0,0,0,0,0,1')!;
+    const { E } = euclideanBasis(E8);
+    const ys = data.vertices.map((a) => toEuclidean(E8, E, a));
+    const edges: [number, number][] = data.adjacency.flatMap((l, i) => l.map((j): [number, number] => [i, j]));
+    const record = golden.wythoff.find((w) => w.type === 'E8' && w.rings.join(',') === data.rings.join(','))!;
     expect(record.edges_enumerated).toBe(true);
-    const scene = sceneOf(ys, edges, { view: { kind: 'coxeter' }, turn: [0, 0, 0] }, { width: 360, height: 360 }, false);
-    const svg = renderSvg(scene, { title: 'The 240 roots of E8 in the Coxeter plane', id: 'e8' });
-    const bytes = Buffer.byteLength(svg, 'utf8');
-    expect(bytes).toBeLessThan(200000);
-    const segments = [...svg.matchAll(/<path [^>]*d="([^"]*)"/g)].reduce((s, m) => s + m[1]!.match(/M/g)!.length, 0);
-    expect(segments).toBe(record.f_vector[1]);
-    expect(svg.match(/<circle /g)).toHaveLength(record.f_vector[0]!);
+    const sizes: string[] = [];
+    for (const depthCue of [false, true]) {
+      const scene = sceneOf(ys, edges, { view: { kind: 'coxeter' }, turn: [0, 0, 0] }, { width: 360, height: 360 }, depthCue);
+      expect(scene.hasDepth).toBe(depthCue);
+      const svg = renderSvg(scene, { title: 'The 240 roots of E8 in the Coxeter plane', id: 'e8' });
+      const bytes = Buffer.byteLength(svg, 'utf8');
+      expect(bytes).toBeLessThan(200000);
+      const segments = [...svg.matchAll(/<path [^>]*d="([^"]*)"/g)].reduce((s, m) => s + m[1]!.match(/M/g)!.length, 0);
+      expect(segments).toBe(record.f_vector[1]);
+      expect(svg.match(/<circle /g)).toHaveLength(record.f_vector[0]!);
+      sizes.push(`${bytes} bytes with the depth cue ${depthCue ? 'on' : 'off'}`);
+    }
     // Each root has 56 neighbours at inner product 1 (golden e8), so the edge set is the one of 2.14.
     const degree = new Array<number>(ys.length).fill(0);
     for (const [a, b] of edges) {
@@ -868,6 +878,6 @@ describe('svgScene: the same picture as the canvas, as markup (SPEC 7.4)', () =>
       degree[b]!++;
     }
     for (const d of degree) expect(d).toBe(golden.e8.neighbours_at_inner_product_1);
-    process.stdout.write(`P4-A2 E8 snapshot: ${bytes} bytes at one decimal (${typeof eb === 'function' ? 'euclideanBasis' : 'choleskyBasis'})\n`);
+    process.stdout.write(`P4-A2 E8 snapshot in the Coxeter plane (euclideanBasis), one decimal: ${sizes.join('; ')}\n`);
   });
 });

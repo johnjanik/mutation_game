@@ -11,9 +11,19 @@
 // Nodes: positions inside, labels in the files (E-7). On a named finite board the labels are 1..n in
 // position order, so a vector (rings, a vertex) is the same list in both orders; node lists (the tree's
 // `node`) are converted with toLabels. Files hold numbers only: no polytope name, no sentence.
-import * as engine from '@engine';
-import { CAPS, boardFromName, fire, highestRoot, highestShortRoot, orbitGraph, toLabels, toNumbers } from '@engine';
-import type { AnyBoard, Board, Enumeration } from '@engine';
+import {
+  CAPS,
+  boardFromName,
+  fire,
+  highestRoot,
+  highestShortRoot,
+  orbitGraph,
+  toLabels,
+  toNumbers,
+  wythoffEdges,
+  wythoffFVector,
+} from '@engine';
+import type { AnyBoard, Board } from '@engine';
 
 /** The directory of the data files under the site's base, and the manifest's name in it. */
 export const PRESET_DIR = 'presets/T10/';
@@ -117,28 +127,6 @@ export class PresetRefused extends Error {
   }
 }
 
-/**
- * The phase 4 engine functions this pipeline and its tests need, with the signatures of CONTRACTS.md
- * 2.4. P4-A1 adds them to @engine in stage 4.1, beside this module. Until that is merged they are
- * looked up on the engine's namespace, so that this module type-checks without them, and a call
- * throws an Error naming P4-A1 when one is missing. Nothing here implements them. Once P4-A1 is
- * merged, this accessor becomes a plain named import (handoff to the continuation of P4-A2).
- */
-export interface Phase4Engine {
-  euclideanBasis(board: AnyBoard): { E: number[][]; eigenvalues: number[] };
-  wythoffEdges(board: AnyBoard, rings: readonly number[], cap: number): Enumeration<[number[], number[]]>;
-  wythoffFVector(board: AnyBoard, rings: readonly number[]): bigint[];
-}
-
-export function phase4Engine(): Phase4Engine {
-  const api = engine as unknown as Partial<Record<keyof Phase4Engine, unknown>>;
-  const missing = (['euclideanBasis', 'wythoffEdges', 'wythoffFVector'] as const).filter((k) => typeof api[k] !== 'function');
-  if (missing.length > 0) {
-    throw new Error(`@engine does not export ${missing.join(', ')} yet (phase 4, P4-A1); the T10 presets cannot be computed`);
-  }
-  return api as unknown as Phase4Engine;
-}
-
 /** The named finite board of a configuration, with SafeInt arithmetic. */
 function namedBoard(name: string): Board<number> {
   const board: AnyBoard = boardFromName(name);
@@ -225,7 +213,6 @@ export function computePreset(config: PresetConfig): PresetData {
   const board = namedBoard(config.board);
   const rings = presetRings(config);
   const key = presetKey(config);
-  const { wythoffEdges, wythoffFVector } = phase4Engine();
 
   const graph = orbitGraph(board, [rings], 'firing', CAPS.verticesDrawn);
   if (graph.truncated) throw new PresetRefused(`${key}: the orbit has more than ${CAPS.verticesDrawn} vertices`);

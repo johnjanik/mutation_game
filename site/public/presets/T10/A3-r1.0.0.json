@@ -1,0 +1,1 @@
+{"schema":1,"tool":"geometry","key":"A3-r1.0.0","board":"A3","rings":[1,0,0],"presets":["rings"],"counts":{"vertices":4,"edges":6,"moveEdges":3},"edgesEnumerated":true,"fVector":[4,6,4,1],"vertices":[[1,0,0],[-1,1,0],[0,-1,1],[0,0,-1]],"adjacency":[[1,2,3],[2,3],[3],[]],"moveAdjacency":[[1],[2],[3],[]],"tree":{"parent":[null,0,1,2],"node":[null,1,2,3]},"shortRoots":null}
