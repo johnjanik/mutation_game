@@ -373,10 +373,12 @@ describe('timing checks run alone', () => {
     // Properties: `ms: <value>`, and the shorthand `{ ..., ms }` of a name that holds a reading there.
     bind(String.raw`(${IDENT})\s*:(?=([^,;\n}]*))`, (m, at) => bindings.push({ name: m[1]!, value: m[2]!, at, block: [0, src.length], field: true }));
     bind(String.raw`(?<=[{,]\s*)(${IDENT})(?=\s*[,}])`, (m, at) => bindings.push({ name: m[1]!, value: m[1]!, at, block: [0, src.length], field: true }));
+    // A keyword is never a name (`const [s, ns] = ...` would otherwise bind `const`).
+    const KEYWORDS = new Set(['as', 'await', 'case', 'const', 'delete', 'in', 'let', 'new', 'of', 'return', 'typeof', 'var', 'void', 'yield']);
     for (let grew = true; grew; ) {
       grew = false;
       for (const b of bindings) {
-        if (b.done === true || !reads(b.value, b.at)) continue;
+        if (b.done === true || KEYWORDS.has(b.name) || !reads(b.value, b.at)) continue;
         b.done = true;
         grew = true;
         if (b.field) fields.add(b.name);
@@ -533,6 +535,7 @@ describe('timing checks run alone', () => {
       [`function took(f) {\n  const t0 = ${now};\n  f();\n  return ${now} - t0;\n}\nconst t = {};\nt['a'] = took(work);\nfor (const [k, v] of Object.entries(t)) expect(v, k).toBeLessThan(25);`, 1],
       [`function build() {\n  const t0 = ${now};\n  const ms = ${now} - t0;\n  return { status: 0, ms };\n}\nconst r = build();\nexpect(r.status).toBe(0);\nexpect(r.ms).toBeLessThan(9);`, 1],
       [`const { ms } = { ms: ${now} };\nassert.ok(ms < 25);`, 1],
+      [`it('a', () => {\n  const [s, ns] = [1, ${now}];\n  expect(s + ns).toBeLessThan(25);\n});\nit('b', () => {\n  const x = [1] as const;\n  expect(x).toEqual([1]);\n});`, 1],
       [`const t0 = ${now};\nprint(${now} - t0);\nexpect(work()).toBe(3);`, 0],
       [`const build = { ms: 0 };\nbuild.ms = ${now};\nexpect(build.ms).toBeLessThan(9);`, 1],
       // a name holds a reading only in the block of its declaration
