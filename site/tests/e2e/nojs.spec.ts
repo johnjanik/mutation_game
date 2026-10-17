@@ -299,3 +299,28 @@ test('M6 b10 (T11 on the Average preset, A5) has a default figure and a text alt
   expect(figureProblems(report), 'the Average tab: default figure and its text alternative').toEqual([]);
   expect(report.figure).toBe('board');
 });
+
+// regression: P4-MERGE-02
+test('M7 prediction 0 has an answer (.answer-text) inside the <details> that follows it without JavaScript', async ({ page }) => {
+  await page.goto('modules/m7-geometry/');
+  const predictions = page.locator('[data-prediction]');
+  const n = await predictions.count();
+  expect(n, 'predictions on M7').toBeGreaterThan(0);
+  for (let k = 0; k < n; k++) {
+    const report = await predictions.nth(k).evaluate(predictionReport);
+    expect(predictionProblems(report), `prediction ${k}`).toEqual([]);
+  }
+});
+
+// regression: P4-MERGE-02
+test('M7 T10 predictions: the server markup holds the empty result line (data-out predictResult) of the hydrated prediction', async ({ page }) => {
+  await page.goto('modules/m7-geometry/');
+  const predictions = page.locator('[data-tool="geometry"] [data-prediction]');
+  const n = await predictions.count();
+  expect(n, 'T10 predictions on M7').toBeGreaterThan(0);
+  for (let k = 0; k < n; k++) {
+    const result = predictions.nth(k).locator('[data-out="predictResult"]');
+    await expect(result, `prediction ${k}: the result line`).toHaveCount(1);
+    await expect(result, `prediction ${k}: empty before an answer`).toHaveText('');
+  }
+});

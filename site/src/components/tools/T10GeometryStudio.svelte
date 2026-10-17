@@ -1037,12 +1037,14 @@
       {#if PredictComponent}
         <PredictComponent {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
       {:else}
-        <!-- Before Predict.svelte arrives, and without JavaScript (4.0 Predict): the question, then a <details> with the answer and the reveal. -->
+        <!-- Before Predict.svelte arrives, and without JavaScript (4.0 Predict): the question, then a <details> with the answer
+             and the reveal, in Predict.svelte's markup (the answer in .answer-text, the empty result line; RT-FIX P4-MERGE-02). -->
         <div class="predict" data-prediction="">
           <p class="question">{prediction.question}</p>
+          <p class="line" data-out="predictResult"></p>
           <details class="nojs-answer">
             <summary>Answer</summary>
-            <p>{predictionAnswerText(prediction)}</p>
+            <p><span class="answer-text">{predictionAnswerText(prediction)}</span></p>
             <p>{prediction.reveal}</p>
           </details>
         </div>
