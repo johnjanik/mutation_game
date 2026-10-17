@@ -55,7 +55,8 @@ describe('scaffold', () => {
     expect(pkg.workspaces).toEqual(['packages/*', 'site']);
     expect(pkg.engines.node).toBe('>=22.12');
     expect(pkg.license).toBe('AGPL-3.0-only');
-    expect(Object.keys(pkg.scripts).sort()).toEqual([...SCRIPTS, 'e2e:basepath', 'prebuild'].filter((s) => s in pkg.scripts).sort());
+    // 'bench' runs the timing checks alone (MERGE, P4 wave 4.4, P4-X2).
+    expect(Object.keys(pkg.scripts).sort()).toEqual([...SCRIPTS, 'e2e:basepath', 'prebuild', 'bench'].filter((s) => s in pkg.scripts).sort());
     for (const s of SCRIPTS) expect(pkg.scripts[s], s).toBeTypeOf('string');
     // A stub exits 2 with the exact text; once P0-A6 fills the bodies this assertion is dropped by MERGE.
     const stubs = SCRIPTS.filter((s) => pkg.scripts[s].includes('not yet implemented: P0-A6'));

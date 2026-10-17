@@ -2,9 +2,9 @@
 // command bodies, and the decisions fragment.
 import { afterAll, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { renderReport, scanSource, writeNumbersReport } from '../../../scripts/numbers-in-prose.mjs';
 import { checkOpenItemsReport } from '../../../scripts/report.mjs';
 import {
@@ -187,6 +187,77 @@ describe('root package.json', () => {
     expect(scripts.e2e).toBe('playwright test');
     expect(scripts['e2e:basepath']).toContain('BASE_PATH=/sub/path/ OUT_DIR=dist-basepath npm run build');
     expect(scripts['e2e:basepath']).toContain('playwright test site/tests/e2e/basepath.spec.ts');
+  });
+});
+
+// P4-X2 (for MERGE, P4 wave 4.4): the timing assertions of the site unit tests run alone, after the engine's
+// orbit benchmark of SPEC 7.6, through `npm run bench`; the parallel suite of `npm test` holds none of them.
+describe('timing checks run alone', () => {
+  const TIMING_CONFIG = 'site/tests/timing/vitest.config.ts';
+  /** The timer the moved tests read, spelled apart so that this file does not count as using it. */
+  const TIMER = ['performance', 'now('].join('.');
+  /** Each moved test: its file in the serial run, its old file in the parallel suite, and its name (unchanged). */
+  const MOVED = [
+    { timing: 'T07.timing.test.ts', unit: 'tools/T07.test.ts', name: 'recomputation after a move stays under the long-task budget' },
+    { timing: 'T10.timing.test.ts', unit: 'tools/T10.test.ts', name: 'main-thread work stays under the long-task budget' },
+  ];
+
+  it('npm run bench runs the engine benchmark, then the timing files; CI runs it right after npm run check', () => {
+    const scripts: Record<string, string> = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts;
+    expect(scripts.bench).toBe(`npm run bench -w packages/engine && vitest run --config ${TIMING_CONFIG}`);
+    expect(scripts.test).toBe('vitest run');
+    const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+    const check = ci.indexOf('run: npm run check\n');
+    const bench = ci.indexOf('run: npm run bench\n');
+    expect(check).toBeGreaterThan(-1);
+    expect(bench).toBeGreaterThan(check);
+    // The next step after the check is the bench: exactly one step heading lies between the two commands.
+    expect(ci.slice(check, bench).match(/^\s*- name:/gm)).toHaveLength(1);
+  });
+
+  it('the timing configuration takes only the timing files, one file at a time, with the aliases of site-unit', async () => {
+    type Project = { test?: { name?: string; include?: string[] }; resolve?: { alias?: unknown } };
+    const timing = (await import('../timing/vitest.config')).default as Project & { test?: { fileParallelism?: boolean; environment?: string } };
+    const rootConfig = (await import('../../../vitest.config')).default as { test?: { projects?: unknown[] } };
+    const siteUnit = (rootConfig.test?.projects ?? []).find((p): p is Project => typeof p === 'object' && p !== null && (p as Project).test?.name === 'site-unit');
+    expect(siteUnit).toBeDefined();
+    expect(timing.test?.include).toEqual(['site/tests/timing/**/*.timing.test.ts']);
+    expect(timing.test?.fileParallelism).toBe(false);
+    expect(timing.test?.environment).toBe('node');
+    expect(timing.resolve?.alias).toEqual(siteUnit!.resolve?.alias);
+    expect(Object.keys(timing.resolve?.alias as Record<string, string>).sort()).toEqual(['@components', '@engine', '@lib']);
+    // npm test never collects a timing file: the site-unit project includes site/tests/unit only, and the
+    // engine project lives under packages/engine.
+    for (const pattern of siteUnit!.test?.include ?? []) expect(pattern.startsWith('site/tests/unit/'), pattern).toBe(true);
+    expect((rootConfig.test?.projects ?? []).filter((p) => typeof p === 'string')).toEqual(['packages/engine']);
+  });
+
+  it('each moved test lives in its timing file and no longer in the parallel suite', () => {
+    const timingDir = join(ROOT, 'site/tests/timing');
+    const unitDir = join(ROOT, 'site/tests/unit');
+    // Every test file of the timing directory is one the configuration's pattern collects.
+    const timingFiles = readdirSync(timingDir).filter((f) => f.endsWith('.ts') && f !== 'vitest.config.ts');
+    expect(timingFiles.sort()).toEqual(MOVED.map((m) => m.timing).sort());
+    for (const m of MOVED) {
+      const moved = readFileSync(join(timingDir, m.timing), 'utf8');
+      expect(moved, m.timing).toContain(`it('${m.name}'`);
+      expect(moved, m.timing).toContain(TIMER);
+      expect(readFileSync(join(unitDir, m.unit), 'utf8'), m.unit).not.toContain(`it('${m.name}'`);
+    }
+    // The only site unit file that still reads the timer is T3's, whose measurement is printed and not
+    // asserted (P2-A2 instruction 5.10); a new duration assertion belongs under site/tests/timing.
+    const timed = readdirSync(unitDir, { recursive: true, encoding: 'utf8' })
+      .filter((f) => f.endsWith('.ts'))
+      .filter((f) => readFileSync(join(unitDir, f), 'utf8').includes(TIMER))
+      .map((f) => f.split(sep).join('/'))
+      .sort();
+    expect(timed).toEqual(['tools/T03.test.ts']);
+    const t03 = readFileSync(join(unitDir, 'tools/T03.test.ts'), 'utf8');
+    const start = t03.indexOf("it('capped root test timing is measured'");
+    expect(start).toBeGreaterThan(-1);
+    const block = t03.slice(start, t03.indexOf('\n  it(', start + 1));
+    expect(block).toContain(TIMER);
+    expect(block).not.toMatch(/toBeLessThan|toBeGreaterThan/);
   });
 });
 

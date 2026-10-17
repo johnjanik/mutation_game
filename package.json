@@ -24,7 +24,8 @@
     "report": "node scripts/report.mjs",
     "verify": "node scripts/verify.mjs",
     "typecheck": "tsc --noEmit -p packages/engine && npm run check -w site",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "bench": "npm run bench -w packages/engine && vitest run --config site/tests/timing/vitest.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

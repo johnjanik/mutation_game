@@ -18,7 +18,6 @@ import {
   CAPS,
   applyWordFloat,
   boardFromName,
-  classify,
   orbitGraph,
   orbitSize,
   symmetrizer,
@@ -30,16 +29,11 @@ import type { Board } from '@engine';
 import T10 from '../../../src/tools/registry/T10';
 import { T10_BOARDS, T10_OUTS, T10_PRESETS, T10_PRESET_IDS, defaultProjectionText } from '../../../src/components/tools/t10/config';
 import {
-  classifiedBoard,
   computeOrbit,
-  countsOf,
   drawingMatrix,
-  edgeArgs,
   edgeLimitText,
-  edgesToIndices,
   enumerationHint,
   faceTable,
-  fitsMainThread,
   fromGraph,
   fromPresetFile,
   isClassified,
@@ -70,7 +64,6 @@ import {
   forgetCore,
   limitTexts,
   loadPlan,
-  otherFacts,
   pictureOf,
   prepareInTasks,
   shortRootPositions,
@@ -126,19 +119,8 @@ const record = (type: string, rings: number[]): WythoffRecord => {
 const oneRing = (n: number, label: number): number[] => Array.from({ length: n }, (_, k) => (k + 1 === label ? 1 : 0));
 /** The vertices of a configuration without edges, as a change finds them before it is shown. */
 const prepareVertices = (c: StudioConfig): ReturnType<typeof fromGraph> => fromGraph(t10Board(c.board), c.rings, orbitGraph(...vertexArgs(t10Board(c.board), c.rings)));
-const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
 /** The time limit of a test that enumerates whole orbits of tens of thousands of items (a limit of the runner, not of the tool). */
 const HEAVY = 60_000;
-function timeMedian(f: () => unknown, runs = 7): number {
-  f(); // warm up once, outside the measurement
-  const t: number[] = [];
-  for (let k = 0; k < runs; k++) {
-    const t0 = performance.now();
-    f();
-    t.push(performance.now() - t0);
-  }
-  return median(t);
-}
 
 /** A canvas stand-in that records what is drawn (the parts drawPicture uses). */
 function recorder(): Parameters<typeof drawPicture>[0] & { strokes: number; texts: string[]; moveTos: number } {
@@ -601,51 +583,8 @@ describe('where the work runs', () => {
     }
   });
 
-  it('main-thread work stays under the long-task budget', () => {
-    const BUDGET = 25; // ms, the margin SPEC 7.6 sets for its own benchmark (plan)
-    const timings: Record<string, number> = {};
-    // Each piece is timed alone, because the tool runs each in a task of its own (studio.ts coreFactsInTasks,
-    // prepareInTasks, enumerateInTasks; moves.ts deriveInTasks; the tests below check that structure). The verdict of
-    // classify is timed on a new board object (the engine keeps it per object, E-11), as the first change to
-    // a board computes it; the short roots are timed without their cache, as the first change computes them.
-    timings['E8: classify, first time on the board'] = timeMedian(() => classify(B('E8')));
-    const e8 = classifiedBoard('E8');
-    for (let label = 1; label <= 8; label++) {
-      const rings = oneRing(8, label);
-      timings[`E8 node ${label}: counts`] = timeMedian(() => countsOf(e8, rings));
-      timings[`E8 node ${label}: face table`] = timeMedian(() => faceTable(e8, rings));
-      timings[`E8 node ${label}: other facts, first time on the board`] = timeMedian(() => [shortRootRings(e8), otherFacts(e8, 'E8', rings)]);
-    }
-    // The showpiece: its data file read into orbit data, and its move graph from the vertex list (one slice).
-    const showpieceFile = fileOf('E8-r0.0.0.0.0.0.0.1.json');
-    timings['E8 showpiece: data file to orbit data'] = timeMedian(() => fromPresetFile(t10Board('E8'), showpieceFile));
-    const showpiece = fromPresetFile(B('E8'), showpieceFile);
-    expect(B('E8').n * showpiece.vertices.length).toBeLessThanOrEqual(CAPS.mainThreadItems);
-    timings['E8 showpiece: move graph'] = timeMedian(() => moveEdges(B('E8'), showpiece.vertices));
-    // The largest enumeration the plan still sends to the main thread, over the 32 types with one ringed node.
-    let best: { T: string; label: number; items: number } | null = null;
-    for (const T of TYPES) {
-      const n = B(T).n;
-      for (let label = 1; label <= n; label++) {
-        const facts = factsOf(configOf(T, oneRing(n, label)));
-        if (!fitsMainThread(facts.decision)) continue;
-        const items = facts.decision.vertexItems + facts.decision.edgeItems;
-        if (best === null || items > best.items) best = { T, label, items };
-      }
-    }
-    expect(best).not.toBeNull();
-    const largest = configOf(best!.T, oneRing(B(best!.T).n, best!.label));
-    const lf = factsOf(largest);
-    const what = `${best!.T} node ${best!.label}`;
-    const vertices = orbitGraph(...vertexArgs(lf.board, largest.rings)).items;
-    const edges = wythoffEdges(...edgeArgs(lf.board, largest.rings));
-    timings[`largest main-thread vertex enumeration (${what}, ${lf.decision.vertexItems} items)`] = timeMedian(() => orbitGraph(...vertexArgs(lf.board, largest.rings)));
-    timings[`largest main-thread edge enumeration (${what}, ${lf.decision.edgeItems} items)`] = timeMedian(() => wythoffEdges(...edgeArgs(lf.board, largest.rings)));
-    timings[`its index pairs (${what})`] = timeMedian(() => edgesToIndices(vertices, edges));
-    timings[`its move graph, one slice (${what})`] = timeMedian(() => new MoveGraphBuilder(lf.board, vertices).step(CAPS.mainThreadItems));
-    for (const [w, ms] of Object.entries(timings)) expect(ms, w).toBeLessThan(BUDGET);
-    console.info(`T10 main-thread medians (ms): ${JSON.stringify(Object.fromEntries(Object.entries(timings).map(([k, v]) => [k, Math.round(v * 100) / 100])))}`);
-  });
+  // The timing test 'main-thread work stays under the long-task budget' runs alone, in
+  // site/tests/timing/T10.timing.test.ts, through `npm run bench` (P4-X2, MERGE P4 wave 4.4).
 });
 
 // ---------------------------------------------------------------------------------------------
