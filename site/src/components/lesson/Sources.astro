@@ -32,3 +32,11 @@ const hasNote = Astro.slots.has('default');
     {keys.map((k) => <li data-source={k}><Cite k={k} /> <Fragment set:html={titleHtml(k)} /></li>)}
   </ul>
 </section>
+
+<style>
+  /* RT-FIX P3-RT-05-01: an entry may hold a long unbroken token (a file name, an identifier); it
+     wraps inside the column instead of widening the page at 320 pixels (A-11). */
+  .sources li {
+    overflow-wrap: anywhere;
+  }
+</style>
