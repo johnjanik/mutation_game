@@ -47,7 +47,7 @@ From <Tex src="\rho"/>, <Term a="legal-play">legal play</Term> reaches exactly <
 
 The Game Board below drives the Weyl Explorer under it. The explorer draws each reachable position as a dot, in layers by the number of moves, <G k="types.A3.length_distribution"/> dots per layer, and marks your game as a path.
 
-<T01GameBoard slot="figure" client:idle id="b1" board="A3" view="numbers" mode="legal" coords="numbers" start={RHO3} prediction={{ question: 'Play legally from (1, 1, 1) until no number is positive. How many moves will the game take?', answer: { type: 'number', value: gv('types.A3.n_positive_roots') }, reveal: `${fmt('types.A3.n_positive_roots')} moves, in every order: beat two shows that each move uses up one of the ${fmt('types.A3.n_positive_roots')} positive roots of A3.` }} caption="Legal play on A3 from (1, 1, 1): fire any node whose number is positive, until none is." />
+<T01GameBoard slot="figure" client:idle id="b1" board="A3" view="numbers" mode="legal" coords="numbers" start={RHO3} prediction={{ question: 'Play legally from (1, 1, 1) until no number is positive. How many moves will the game take?', answer: { type: 'number', value: gv('types.A3.n_positive_roots') }, reveal: `${fmt('types.A3.n_positive_roots')} moves, in every order: beat two shows that each move uses up one of the ${fmt('types.A3.n_positive_roots')} positive roots of A3.` }} caption="Legal play on A3 from (1, 1, 1) ends at (−1, −1, −1) in every order of firing, and always after the same number of moves." />
 <T08WeylExplorer slot="figure" client:visible id="b2" preset="default" board="A3" linkTo="b1" caption={`All ${fmt('types.A3.weyl_order')} positions that legal play reaches from (1, 1, 1) on A3, in layers of ${fmt('types.A3.length_distribution', 'plain')}; the game on the board above is the marked path.`} />
 </Beat>
 
@@ -152,11 +152,11 @@ Positions are weights in fundamental-weight coordinates. The explorer draws the 
 
 <Challenge client:visible for="b12" goal="By legal play from (1, 1, 1) on A3, reach the position (−2, 1, −2)." explanation="It lies on layer five, so five legal moves reach it. The wave of beat seven passes through it: fire nodes 1 and 3, then node 2, then nodes 1 and 3 again." check={{ kind: 'reach', board: 'numbers', values: [-2, 1, -2] }} />
 
-<T01GameBoard client:visible id="b12" board="A3" view="numbers" mode="legal" coords="numbers" start={RHO3} caption="Legal play on A3 from (1, 1, 1); the challenge above names the position to reach." />
+<T01GameBoard client:visible id="b12" board="A3" view="numbers" mode="legal" coords="numbers" start={RHO3} caption={`Legal play on A3 from (1, 1, 1) reaches each of the ${fmt('types.A3.weyl_order')} positions of beat one, always along a shortest word.`} />
 
 <Challenge client:visible for="b13" goal="On A3, make a legal play whose heap is shared by four different plays." explanation={`Moves at nodes 1 and 3 can come in either order. The play 1, 3, 2, 1, 3 has two such pairs, so 2 times 2 plays share its heap. Among the complete games, the largest heaps hold ${BIGGEST_HEAP} games each.`} check={{ kind: 'out', name: 'heapCount', equals: String(BIGGEST_HEAP) }} />
 
-<T08WeylExplorer client:visible id="b13" preset="heap" board="A3" moves={[]} caption="The heap view on A3, from no moves: fire nodes on the board and watch the heap and its count of plays." />
+<T08WeylExplorer client:visible id="b13" preset="heap" board="A3" moves={[]} caption="The heap view on A3, from no moves: plays that differ only by swapping neighbouring moves at the unjoined nodes 1 and 3 build the same heap." />
 
 <Challenge client:visible for="b14" goal={`On A2, find a lambda whose representation has dimension ${fmt(DIM10)}.`} explanation={`Try lambda (3, 0): from lambda plus rho = (4, 1) the word 1, 2, 1 fires 4, 5, 1, with product 20, and 20 divided by 2 is ${fmt(DIM10)}. Its mirror image (0, 3) works too.`} check={{ kind: 'out', name: 'dimension', equals: String(gv(DIM10)) }} />
 
@@ -164,7 +164,7 @@ Positions are weights in fundamental-weight coordinates. The explorer draws the 
 
 <Challenge client:visible for="b15" goal="Finish the tally game on D4 and read off its exponents." explanation={`D4 has single roads, so it is its own reversed board and its coroots are its roots. The game fires ${fmt('types.D4.fired_values', 'plain')}; read sideways, the tally gives the exponents ${fmt('types.D4.exponents', 'plain')}, in which an exponent repeats, and the product of the exponents plus one is ${fmt('types.D4.weyl_order')}, the order of the group.`} check={{ kind: 'out', name: 'exponents', equals: fmt('types.D4.exponents', 'plain') }} />
 
-<T05NumbersGameLab client:visible id="b15" preset="tally" board="D4" caption="The tally game on D4 from all ones, before the first move." />
+<T05NumbersGameLab client:visible id="b15" preset="tally" board="D4" caption={`The tally game on D4 from all ones: when the game ends, the tally read sideways gives the exponents of D4, and their values plus one multiply to ${fmt('types.D4.weyl_order')}, the order of its group.`} />
 
 <ModuleLinks module={5} board="A3" />
 

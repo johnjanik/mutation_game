@@ -771,6 +771,34 @@ test.describe('regressions', () => {
     expect(text).not.toMatch(/every board of rank at most/);
   });
 
+  // regression: P3-RT-08-08
+  test("four M5 tool captions give an instruction or a description and state no result, including the first figure's", async ({ page }) => {
+    // Adopted from redteam/redteam-RT-08-captions.mjs (lens RT-08), which printed these captions for a
+    // reader. SPEC 8.1 P1, CONTRACTS 7: a caption states the result its tool demonstrates; 8.2 item 2:
+    // the first figure's caption is one sentence.
+    const OBSERVED: Record<string, string> = {
+      b1: 'Legal play on A3 from (1, 1, 1): fire any node whose number is positive, until none is.',
+      b12: 'Legal play on A3 from (1, 1, 1); the challenge above names the position to reach.',
+      b13: 'The heap view on A3, from no moves: fire nodes on the board and watch the heap and its count of plays.',
+      b15: 'The tally game on B3 from all ones, before the first move.',
+    };
+    // The result each caption states, with its golden value where it has one.
+    const RESULT: Record<string, RegExp[]> = {
+      b1: [/ends at \(−1, −1, −1\)/, /every order/, /same number of moves/],
+      b12: [new RegExp(`reaches each of the ${T('A3').weyl_order} positions`)],
+      b13: [/same heap/],
+      b15: [/tally read sideways gives the exponents/, new RegExp(`multiply to ${T(TALLY_BOARD).weyl_order}\\b`)],
+    };
+    await page.goto(ROUTE);
+    for (const [id, observed] of Object.entries(OBSERVED)) {
+      const caption = norm(await out(page, id, 'caption').textContent());
+      expect(caption, `${id} caption`).not.toBe(observed);
+      for (const re of RESULT[id]!) expect(caption, `${id} caption states its result`).toMatch(re);
+    }
+    const first = norm(await out(page, 'b1', 'caption').textContent());
+    expect(first.split(/(?<=\.)\s+/), 'the first figure has a one-sentence caption').toHaveLength(1);
+  });
+
   // regression: P3-RT-13-07
   test('/modules/m5-weyl/: no figure opens on a multiply laced board', async ({ page }) => {
     // Adopted from site/tests/e2e/redteam-RT-13-one-mechanic.spec.ts (lens RT-13), the case of this
