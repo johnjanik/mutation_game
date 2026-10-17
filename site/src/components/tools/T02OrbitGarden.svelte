@@ -52,7 +52,7 @@
   } from './t02/garden';
   import { followStopMessage, layersGrownText, stopMessage } from './t02/limits';
   import { positiveView } from './t02/poset';
-  import { extendPlay, followStart, followStep, moveMade, type FollowModel } from './t02/follow';
+  import { extendPlay, followPlay, followStep, moveMade, type FollowModel } from './t02/follow';
   import { exactText, vertexText } from './t02/numbers';
   import { pickedState, pickerGroups, presetOf } from './t02/presets';
   import { drawGarden } from './t02/drawing';
@@ -189,14 +189,23 @@
   // ------------------------------------------------------------------------------------------
   const grown = $derived(grow(spec, layersGrown));
   const gGraph: OrbitGraph<unknown> = $derived(grown.graph);
-  let followModel = $state.raw<FollowModel | null>(untrack(() => (growth === 'follow' ? followStart(gb, current, game, bound) : null)));
+  /**
+   * The follow model of the play the garden holds: the start and every position up to the cursor, with
+   * the edge of each move (followPlay), as if the garden had followed the play from its start. A garden
+   * that attaches to a board already played (client:visible: it hydrates when scrolled to) or loads a
+   * link therefore shows every position the play reached (SPEC 4 T2 follow; 3 M1 row 1, M4 row 5).
+   */
+  function playModel(): FollowModel {
+    return followPlay(gb, positions.slice(0, cursor + 1), toPositions(gb, allMoves.slice(0, cursor)), game, bound);
+  }
+  let followModel = $state.raw<FollowModel | null>(untrack(() => (growth === 'follow' ? playModel() : null)));
 
   function restartFollow(): void {
-    followModel = followStart(gb, current, game, bound);
+    followModel = playModel();
   }
   /** The follow model, made when first needed. */
   function fm(): FollowModel {
-    if (followModel === null) followModel = followStart(gb, current, game, bound);
+    if (followModel === null) followModel = playModel();
     return followModel;
   }
 
