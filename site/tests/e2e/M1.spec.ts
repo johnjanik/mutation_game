@@ -62,6 +62,7 @@ interface TypeRecord {
   n_positive_roots: number;
   highest_root: number[];
   coxeter_number: number;
+  cartan: number[][];
 }
 interface KostantRecord {
   end_from_node: number[][];
@@ -597,4 +598,47 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, red team round 1). Each test is a lens reproducer adopted here; where a
+// finding also names another lesson, only the M1 part is adopted (the other parts are other fixes).
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from site/tests/unit/redteam-RT-08-computation-range.test.ts (lens RT-08), M1 part.
+  // regression: P3-RT-08-01
+  test('"verified by computation" is never stated over every board of finite type without a range', () => {
+    // The check behind Kostant's game (golden key kostant) covers the named types of rank at most 8.
+    const kostant = Object.keys(GOLDEN.kostant);
+    expect(kostant.length).toBe(32);
+    expect(kostant).not.toContain('A9');
+    // "verified by computation" followed by "every board" or "every such board" with no rank,
+    // group-size or named-board limit.
+    const OVERCLAIM = /verified by computation (for|on) every (such )?board(?! of finite type of rank)(?! whose group)(?! of rank)(?! the site offers)[^.;'`]*/g;
+    const hits = [...readFileSync(LESSON_PATH, 'utf8').matchAll(OVERCLAIM)].map((m) => m[0]);
+    expect(hits, 'm1-mutation.mdx claims a computation on every board').toEqual([]);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-07-kostant-range.test.ts (lens RT-09), M1 part.
+  // regression: P3-RT-09-07
+  test("M1 states the range of the Kostant's game checks as checked", () => {
+    const ranks = Object.keys(GOLDEN.kostant).map((t) => GOLDEN.types[t]!.cartan.length);
+    expect(Object.keys(GOLDEN.kostant).length).toBe(32);
+    expect(Math.max(...ranks)).toBe(8);
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    // SEEN_STARTS, the provenance of the Kostant statement of the Seen box.
+    const value = /export const SEEN_STARTS = '([^']*)'/.exec(source)?.[1] ?? '';
+    expect(value).toMatch(/^verified by computation/);
+    expect(value, `M1 prints "${value}"; the checks cover the types of rank at most 8 (SPEC 2.7, golden kostant)`).toMatch(/rank at most/);
+    expect(value).toMatch(/every starting city/);
+    // Beat 3: the clause that gives the provenance of the F13 sentence.
+    const beat3 = /<Beat n=\{3\}>([\s\S]*?)<\/Beat>/.exec(source)![1]!;
+    const clauses = beat3.split(/(?<=[.;])\s+/).filter((s) => /verified by computation/.test(s));
+    expect(clauses.length).toBeGreaterThan(0);
+    for (const clause of clauses) {
+      expect(clause, `M1 beat 3 prints "${clause}"; the checks cover rank at most 8`).toMatch(/rank at most/);
+      expect(clause).toMatch(/every starting city/);
+    }
+  });
 });

@@ -26,7 +26,7 @@ export const TRI = 'layer_growth_examples[label=triangle]';
 export const triangle = { cartan: resolveGoldenPath('layer_growth_examples[label=triangle].cartan') };
 export const frozen = resolveGoldenPath('affine.A2.marks');
 export const SEEN_RANK = 'verified by computation on every board of finite type of rank at most eight';
-export const SEEN_STARTS = 'verified by computation for every board of finite type and every starting city';
+export const SEEN_STARTS = 'verified by computation on every board of finite type of rank at most eight, with random plays from every starting city';
 
 {/* P1-A9: lesson M1, drafted from SPEC.md 2.2, 2.6, 2.7 (F1, F13), 2.11, 2.12 and 3 M1 in the words of
     the site (D17: a draft until the owner approves it). Every number with a golden value goes
@@ -79,7 +79,7 @@ A worked play on <Tex src="A_3"/> from city <Tex src="1"/>. City <Tex src="2"/> 
 
 Before you play, predict whether the end depends on the starting city. The board below starts on <Tex src="A_3"/>; its chooser also offers <Tex src="D_4"/> and <Tex src="E_8"/>, and you can start from any city.
 
-It does not depend on it. On <Tex src="E_8"/> the game stops at <G k="kostant.E8.end_from_node[0]"/> after <G k="kostant.E8.moves_from_node[0]"/> moves from every starting city, as computation confirms for each of them. This end is the **highest root** of the board: the root population at which no mutation raises any city. On every board of finite type with single roads, each raising move adds exactly one Martian, every play from one Martian has exactly <Tex src="h-2"/> moves, and every play ends at the highest root; this is verified by computation for every such board and every starting city. On <Tex src="E_8"/> the Coxeter number is <Tex src="h={{types.E8.coxeter_number}}"/>.
+It does not depend on it. On <Tex src="E_8"/> the game stops at <G k="kostant.E8.end_from_node[0]"/> after <G k="kostant.E8.moves_from_node[0]"/> moves from every starting city, as computation confirms for each of them. This end is the **highest root** of the board: the root population at which no mutation raises any city. On every board of finite type with single roads, each raising move adds exactly one Martian, every play from one Martian has exactly <Tex src="h-2"/> moves, and every play ends at the highest root; this is verified by computation on every such board of rank at most eight, with random plays from every starting city. On <Tex src="E_8"/> the Coxeter number is <Tex src="h={{types.E8.coxeter_number}}"/>.
 
 <T09Kostant slot="figure" client:visible id="b5" preset="default" board="A3" start={[1, 0, 0]} boardChoices={['A3', 'D4', 'E8']} prediction={{ question: 'Start from one Martian in another city. Will the game stop at a different population?', answer: { type: 'choice', options: ['Yes, the end depends on the starting city.', 'No, every start ends at the same population.'], correct: 1 }, reveal: 'Every start ends at the same population, the highest root of the board, and after the same number of moves.' }} caption={`Raising moves from one Martian in city 1 of A3 stop at ${fmt('kostant.A3.end_from_node[0]')} after ${fmt('kostant.A3.moves_from_node[0]')} moves; on D4 and E8 too, every start ends at the highest root.`} />
 </Beat>
