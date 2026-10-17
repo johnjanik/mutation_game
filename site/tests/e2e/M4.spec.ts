@@ -545,9 +545,10 @@ test('anatomy', async ({ page }) => {
   for (const key of ['Moz90', 'Eri95b', 'Don08', 'GSS12', 'W-MS', 'W03c', 'IMO86', 'Pro84']) {
     await expect(article.locator(`[data-anatomy="sources"] [data-source="${key}"]`), key).toHaveCount(1);
   }
-  // The links: the sandbox with A3 (the next module and the Atlas are dropped while unreleased).
+  // The links: the sandbox with A2, the board of the first figure (SPEC 8.2 item 7; the next module
+  // and the Atlas are dropped while unreleased).
   const sandbox = article.locator('[data-anatomy="links"] a[data-link="sandbox"]');
-  if ((await sandbox.count()) > 0) expect(await sandbox.getAttribute('href')).toMatch(/g=A3$/);
+  if ((await sandbox.count()) > 0) expect(await sandbox.getAttribute('href')).toMatch(/g=A2$/);
 });
 
 test('wrapped items', async ({ page }) => {
@@ -700,6 +701,10 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
 // ---------------------------------------------------------------------------------------------
 
 test.describe('regressions', () => {
+  // The release build of the sandbox-link regression below: RT13_BASE_URL is the address of a
+  // static server of OUT_DIR=<dir> RELEASE=1 npm run build:release.
+  if (process.env.RT13_BASE_URL) test.use({ baseURL: process.env.RT13_BASE_URL });
+
   // RT-08 (content rules), attack 27 (credit) with attack 5 ("first"): the "What we have seen" box
   // said "Both games were first published by Wildberger ([W03c], section two), who credits the
   // numbers game to Mozes." The numbers game was published by Mozes in 1990 ([Moz90]), after
@@ -723,6 +728,43 @@ test.describe('regressions', () => {
     // "Both games were first published by Wildberger (<Cite k="W03c"/>, section two), who credits the numbers game to Mozes."
     expect(sentence, 'M4 sentence crediting first publication of both games to Wildberger').toBeNull();
   });
+
+  // RT-13, attack 17: the links a reader follows. Every internal link of the lesson answers 200 and
+  // its fragment exists; no link reaches open-items in a release build; the sandbox link opens T16
+  // with "this module's board loaded" (SPEC 8.2 item 7; P6), read against the board of the module's
+  // first figure (SPEC 3 M4 table, row 1: A2, kept by beat 1).
+  const FIRST_BOARD: Record<string, [string, number]> = { 'm4-numbers': ['A2', 2] };
+
+  for (const [m, [boardName, n]] of Object.entries(FIRST_BOARD)) {
+    // regression: P3-RT-13-05
+    test(`/modules/${m}/: links answer, fragments exist, the sandbox opens ${boardName}`, async ({ page, baseURL }) => {
+      test.setTimeout(120000);
+      await page.goto(`modules/${m}/`);
+      const firstFigure = page.locator('[data-tool]').first();
+      const firstLabel = (await firstFigure.locator('figure').first().getAttribute('aria-label')) ?? (await firstFigure.innerText());
+      expect(firstLabel, 'the first figure is on the module board').toContain(boardName);
+      const hrefs = [...new Set(await page.locator('article a[href]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? '')))]
+        .filter((h) => h.startsWith('/') || h.startsWith('#'));
+      const problems: string[] = [];
+      for (const h of hrefs) {
+        const url = new URL(h, new URL(`modules/${m}/`, baseURL)).href;
+        const [path, frag] = url.split('#');
+        const res = await page.request.get(path);
+        if (res.status() !== 200) { problems.push(`${h}: status ${res.status()}`); continue; }
+        if (frag && !(await res.text()).includes(`id="${frag}"`)) problems.push(`${h}: no element with id ${frag}`);
+        if (process.env.RT13_BASE_URL && /open-items/.test(h)) problems.push(`${h}: link to open-items in a release build`);
+      }
+      const sandbox = page.locator('[data-link="sandbox"]');
+      await expect(sandbox).toHaveCount(1);
+      await sandbox.click();
+      const r = page.locator('[data-tool="sandbox"]').first();
+      await expect(r).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      const label = `${await r.locator('figure').first().getAttribute('aria-label')}`;
+      const nodes = await r.locator('button[data-node][data-board="populations"], button[data-node][data-board="numbers"]').evaluateAll((els) => new Set(els.map((e) => (e as HTMLElement).dataset.node)).size);
+      if (!label.includes(` ${boardName}`) || nodes !== n) problems.push(`sandbox opens "${label.slice(0, 80)}" with ${nodes} nodes; the module's board is ${boardName} with ${n}`);
+      expect(problems, problems.join('\n')).toEqual([]);
+    });
+  }
 
   // RT-13, attack 27: the colours and icons of the two views. SPEC 8.1 P8 ("Populations and Numbers
   // have fixed colours and icons in prose, figures and formulas"); 8.3 ("They mark the borders and
