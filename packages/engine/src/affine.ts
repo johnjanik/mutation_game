@@ -110,16 +110,17 @@ export function extendMatrix(C: number[][], short: boolean): { cartan: number[][
 /**
  * The affine extension of a finite-type board (SPEC.md 2.12 "Building affine boards from finite ones"):
  * untwisted with the highest root, twisted with the highest short root (short true). Guards (5.6):
- * NeedsTwoWayRoads, NeedsConnectedBoard, NotFiniteType. The board is a Board<bigint> with labels 0..n
- * and, for an untwisted extension of a named board, the name "X~" (plan).
+ * NeedsTwoWayRoads, then NotFiniteType on every board that is not of finite type (connected or not),
+ * then NeedsConnectedBoard on a finite board in several pieces (plan). The board is a Board<bigint> with
+ * labels 0..n and, for an untwisted extension of a named board, the name "X~" (plan).
  */
 export function affineExtension<T>(board: Board<T>, short?: boolean): AffineExtension;
 export function affineExtension(board: AnyBoard, short?: boolean): AffineExtension;
 export function affineExtension<T>(board: Board<T>, short = false): AffineExtension {
   if (typeof short !== 'boolean') throw new RangeError('short must be a boolean');
   requireGcm(board);
-  requireConnected(board);
   requireFinite(board);
+  requireConnected(board);
   const ext = extendMatrix(intCartan(board), short);
   const labels: number[] = [];
   for (let k = 0; k <= board.n; k++) labels.push(k);
