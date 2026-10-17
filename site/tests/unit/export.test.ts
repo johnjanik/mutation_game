@@ -59,7 +59,8 @@ describe('exportJSON', () => {
     expect(doc.derived.unsafe).toEqual(['9007199254740993', '-1208925819614629174706176', '1152921504606846976']);
     expect(doc.derived.floats).toEqual([0.5, -1.25]);
     expect(doc.derived.roots).toEqual([['1,0', '18446744073709551616']]);
-    expect(doc.derived.rationals).toEqual(['2/3', '-4']);
+    // A rational whose denominator is 1 is an integer, a safe one a JSON number (SPEC 6.6; P3-RT-04-02).
+    expect(doc.derived.rationals).toEqual(['2/3', -4]);
     expect(doc.derived.nested.matrix).toEqual([[2, -1], [-1, 2]]);
     expect(doc.state.start).toEqual(['9007199254740993', 1]);
   });
