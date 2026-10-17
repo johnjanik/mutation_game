@@ -2,8 +2,8 @@
 // P1-A2 checks a move against the mode in force only when the state has a mode, and T5's state has none
 // (it plays legal moves only), so T5 checks the rule itself on the decoded state: every move must be a
 // legal firing. A link in the populations coords, or with a view or mode other than numbers and legal,
-// is unreadable for T5. A `d` with a negative entry or an entry of more than 6 digits keeps the rest of
-// the link, loads the default lambda and shows the notice. Pure.
+// is unreadable for T5. A `d` with a negative entry or an entry of more than 6 digits is unreadable too:
+// the whole default state loads with the notice, never a part of the link (SPEC 6.6). Pure.
 import { LINK_NOTICE } from '../../../lib/urlCodec';
 import { cloneState, firstForbiddenMove, resolveBoard, type ToolState } from '../../../lib/state';
 import { validLambda } from './dimension';
@@ -30,14 +30,9 @@ export function admitLink(decoded: ToolState, notice: string | null, defaults: T
     const start = decoded.start ?? Array.from({ length: board.n }, () => 1);
     const moves = decoded.moves ?? [];
     if (firstForbiddenMove(board, { ...decoded, coords: 'numbers', mode: 'legal', start, moves }) !== null) return refuse();
-    let lambda = decoded.lambda;
-    let n = notice;
-    if (lambda !== undefined && !validLambda(lambda, board.n)) {
-      const sameBoard = JSON.stringify(decoded.board) === JSON.stringify(defaults.board);
-      lambda = sameBoard && validLambda(defaults.lambda, board.n) ? defaults.lambda : undefined;
-      n = LINK_NOTICE;
-    }
-    return { state: t05State({ board: decoded.board, start, moves, lambda }), notice: n };
+    const lambda = decoded.lambda;
+    if (lambda !== undefined && !validLambda(lambda, board.n)) return refuse();
+    return { state: t05State({ board: decoded.board, start, moves, lambda }), notice };
   } catch {
     return refuse();
   }
