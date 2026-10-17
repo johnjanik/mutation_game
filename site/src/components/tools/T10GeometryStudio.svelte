@@ -15,6 +15,8 @@
   // (the client's first value of the {@html} block is a placeholder, so Svelte adopts the server's nodes).
   // After hydration a Canvas 2D drawing replaces it in the same reserved box (7.6); the SVG stays under the
   // canvas and is rewritten after the reader's changes, so that Export SVG and PNG take the current view.
+  // The drawing time (data-out="drawMs") carries data-measured: a time measured on the reader's machine,
+  // which no server markup can show and which is not part of the default state (RT-FIX P4-MERGE-04).
   //
   // Properties (CONTRACTS 5.2; listed in site/tests/e2e/T10.spec.ts): id, board, preset ('default' |
   // 'root-polytope' | 'rings' | 'face-table' | 'two-graphs' | 'make-uniform' | 'showpiece' |
@@ -1012,7 +1014,7 @@
       <p class="line small">
         Drawn: <span data-out="pointsDrawn">{pointsDrawn ?? (ssr !== null ? ssr.points : '')}</span> points,
         <span data-out="edgesDrawn">{edgesDrawn ?? (ssr !== null ? ssr.segments : '')}</span> edges, in
-        <span data-out="drawMs">{drawMs === null ? '' : (Math.round(drawMs * 10) / 10).toFixed(1)}</span> ms; edits:
+        <span data-out="drawMs" data-measured="">{drawMs === null ? '' : (Math.round(drawMs * 10) / 10).toFixed(1)}</span> ms; edits:
         <span data-out="edits">{past.length}</span>.
       </p>
     </div>

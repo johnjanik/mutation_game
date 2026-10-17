@@ -13,9 +13,11 @@
   // Hooks (SPEC 4.0): data-tool="geometry" and data-moves on the root, data-hydrated="true" when the
   // five draws are done (or failed); data-out="drawTime" (median of the five, ms, one decimal),
   // "drawTimes" (the five, comma separated), "firstDrawTime", "segmentsDrawn", "pointsDrawn", "dpr",
-  // "error" (empty unless something failed). The hooks are empty before hydration. Nothing animates
-  // (A-9): the five draws run once, when the island hydrates. The default slot holds the SVG
-  // snapshot of the same picture, rendered at build time (SPEC 7.4), shown until the canvas is drawn.
+  // "error" (empty unless something failed). The three times carry data-measured (RT-FIX P4-MERGE-04: a
+  // time measured on the reader's machine, not part of any default state). The hooks are empty before
+  // hydration. Nothing animates (A-9): the five draws run once, when the island hydrates. The default
+  // slot holds the SVG snapshot of the same picture, rendered at build time (SPEC 7.4), shown until the
+  // canvas is drawn.
   import { onMount, tick } from 'svelte';
   import type { Snippet } from 'svelte';
   import { boardFromName, euclideanBasis, toPopulation } from '@engine';
@@ -148,11 +150,11 @@
   <p class="nojs"><noscript><span data-out="noscript">The timing needs JavaScript; the picture above is the snapshot made at build time.</span></noscript></p>
   <dl class="results">
     <dt>Median drawing time of five, ms</dt>
-    <dd data-out="drawTime">{times.length === RUNS ? fmt(median(times)) : ''}</dd>
+    <dd data-out="drawTime" data-measured="">{times.length === RUNS ? fmt(median(times)) : ''}</dd>
     <dt>The five drawing times, ms</dt>
-    <dd data-out="drawTimes">{times.map(fmt).join(', ')}</dd>
+    <dd data-out="drawTimes" data-measured="">{times.map(fmt).join(', ')}</dd>
     <dt>First drawing time, ms</dt>
-    <dd data-out="firstDrawTime">{times.length > 0 ? fmt(times[0]!) : ''}</dd>
+    <dd data-out="firstDrawTime" data-measured="">{times.length > 0 ? fmt(times[0]!) : ''}</dd>
     <dt>Segments drawn</dt>
     <dd data-out="segmentsDrawn">{segmentsDrawn ?? ''}</dd>
     <dt>Points drawn</dt>

@@ -8,7 +8,9 @@
 // <figcaption>, <details>, <table>; KaTeX's .katex and its <math> (A-12, plan addition). RT-FIX
 // P3-RT-06-03 adds: data-board-group and the drawing beside it, role="img", <img alt>, the node hooks
 // data-board, data-value, data-can-act, data-editor (the board editor), every data-out and data-moves
-// (compared with the hydrated default), data-hydrated, and the prediction's .answer-text.
+// (compared with the hydrated default), data-hydrated, and the prediction's .answer-text. RT-FIX
+// P4-MERGE-04 adds data-measured: a data-out whose text measures the reader's machine (T10's drawMs) is
+// compared by its presence, not its value.
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { hydrateEveryIsland } from './hydrate';
@@ -204,7 +206,12 @@ interface StateHooks {
   /** data-node, data-board, data-value and data-can-act of every element carrying data-node. */
   nodes: string[];
   caption: string;
-  /** name=text of every data-out, on a ToolFrame tool (data-frame). */
+  /**
+   * name=text of every data-out, on a ToolFrame tool (data-frame). An output that measures the reader's
+   * machine (a drawing time) carries the attribute data-measured (RT-FIX P4-MERGE-04): it is not part of the
+   * default state, so it is listed as "name (measured)", which still requires the element, and the
+   * attribute, on both sides.
+   */
   outs: string[];
 }
 
@@ -220,7 +227,9 @@ function stateHooks(root: Element): StateHooks {
       .map((b) => ['data-node', 'data-board', 'data-value', 'data-can-act'].map((a) => `${a}=${b.getAttribute(a) ?? '-'}`).join(' ')),
     caption: text(root.querySelector('[data-out="caption"]') ?? root.closest('figure')?.querySelector(':scope > figcaption')),
     outs: root.hasAttribute('data-frame')
-      ? [...root.querySelectorAll('[data-out]')].filter(outside).map((o) => `${o.getAttribute('data-out') ?? ''}=${text(o)}`)
+      ? [...root.querySelectorAll('[data-out]')]
+          .filter(outside)
+          .map((o) => (o.hasAttribute('data-measured') ? `${o.getAttribute('data-out') ?? ''} (measured)` : `${o.getAttribute('data-out') ?? ''}=${text(o)}`))
       : [],
   };
 }
@@ -349,6 +358,32 @@ test('T10 server markup shows data-out source and sharedEdges as the hydrated de
       await expect.poll(() => outText(live, 'geometry', 'sharedEdges'), { message: `${route}: hydrated sharedEdges` }).not.toBe('');
       const hydrated = { source: await outText(live, 'geometry', 'source'), sharedEdges: await outText(live, 'geometry', 'sharedEdges') };
       expect(server, `${route}: the server markup against the hydrated default`).toEqual(hydrated);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// regression: P4-MERGE-04
+test('T10 drawMs is a measured time: present in the server markup and marked data-measured, so the default-state comparison reads its presence, not its value', async ({ page, browser }) => {
+  for (const route of ['modules/m7-geometry/', 'tools/geometry/']) {
+    await page.goto(route);
+    const roots = await page.locator('[data-tool="geometry"]').count();
+    expect(roots, `${route}: T10 roots`).toBeGreaterThan(0);
+    // Every T10 root has its drawMs element in the server markup, marked as a measurement.
+    await expect(page.locator('[data-tool="geometry"] [data-out="drawMs"]')).toHaveCount(roots);
+    await expect(page.locator('[data-tool="geometry"] [data-out="drawMs"][data-measured]')).toHaveCount(roots);
+    const server = await page.locator('[data-tool="geometry"]').first().evaluate(stateHooks);
+    expect(server.outs).toContain('drawMs (measured)');
+    const context = await browser.newContext({ javaScriptEnabled: true, viewport: { width: 360, height: 800 } });
+    try {
+      const live = await context.newPage();
+      await live.goto(route);
+      await hydrateEveryIsland(live);
+      // Hydrated, the element holds the time of this machine, still marked; the comparison sees its name only.
+      const first = live.locator('[data-tool="geometry"]').first();
+      await expect(first.locator('[data-out="drawMs"][data-measured]')).toHaveText(/^\d+\.\d$/);
+      expect((await first.evaluate(stateHooks)).outs).toContain('drawMs (measured)');
     } finally {
       await context.close();
     }
