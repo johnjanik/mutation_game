@@ -305,51 +305,89 @@ describe('timing checks run alone', () => {
 
   /**
    * Every assertion in `source` whose subject rests on a clock reading: an expect or assert call whose argument
-   * reads a clock, or a name that holds a reading or a duration. A name holds one when it is assigned from such an
-   * expression (`const t0 = ...`, `total += ...`, `timings[key] = ...`, a destructuring, a for-of over it, a field
-   * `{ ms: ... }`), when such an expression is pushed into it, or, for a function, when it returns one
-   * (`return median(times)`); repeated until no name is added. A field is a name too, so `build.ms` rests on a
-   * clock when `ms` does. Only code counts (codeOnly). The one subject left out is a list's length
-   * (`toHaveLength`): the number of runs, not their time.
+   * reads a clock, or a name that holds a reading or a duration in the block where the call stands. A name holds
+   * one, in the block where it is declared, when it is assigned from such an expression (`const t0 = ...`,
+   * `total += ...`, `timings[key] = ...`, a destructuring, a for-of over it), when such an expression is pushed
+   * or added into it, or, for a function, when it returns one (`return median(times)`); repeated until no name is
+   * added. A property that receives one (`{ ms: ... }`, `build.ms = ...`, or `{ ms }` while `ms` holds one) holds
+   * it wherever it is read as `.ms`, so a stored build time rests on the clock in every test that reads it. Only
+   * code counts (codeOnly). The one subject left out is a list's length (`toHaveLength`): the number of runs, not
+   * their time.
    */
   function durationAssertions(source: string): { line: number; text: string }[] {
     const src = codeOnly(source);
-    const names = new Set<string>();
-    const reads = (text: string): boolean =>
-      new RegExp(CLOCK_SOURCE).test(text) || [...names].some((n) => new RegExp(String.raw`(?<![\w$])${n.replace(/\$/g, '\\$')}(?![\w$])`).test(text));
-    const bindings: [string, string][] = [];
-    const bind = (pattern: string, each: (m: RegExpMatchArray) => void): void => {
-      for (const m of src.matchAll(new RegExp(pattern, 'g'))) each(m);
+    const esc = (name: string): string => name.replace(/\$/g, '\\$');
+    // The blocks of the code: a name lives in the innermost block around its declaration.
+    const blocks: [number, number][] = [];
+    const stack: number[] = [];
+    for (let k = 0; k < src.length; k++) {
+      if (src[k] === '{') stack.push(k);
+      else if (src[k] === '}' && stack.length > 0) blocks.push([stack.pop()!, k + 1]);
+    }
+    const blockAt = (at: number): [number, number] => {
+      let best: [number, number] = [0, src.length];
+      for (const [from, to] of blocks) if (from < at && at < to && from > best[0]) best = [from, to];
+      return best;
     };
-    const bindAll = (targets: string, value: string): void => {
-      for (const t of targets.match(new RegExp(IDENT, 'g')) ?? []) bindings.push([t, value]);
+    const declarations = [...src.matchAll(new RegExp(String.raw`\b(?:const|let|var)\s+(${IDENT})`, 'g'))].map((m) => ({ name: m[1]!, at: m.index! }));
+    const declaredBlock = (name: string, at: number): [number, number] => {
+      const decl = declarations.filter((d) => d.name === name && d.at < at).pop();
+      return decl === undefined ? [0, src.length] : blockAt(decl.at);
     };
-    bind(String.raw`(${IDENT})\s*(?:\[[^\]\n]*\]\s*)?[-+*/]?=(?![=>])([^;\n]*)`, (m) => bindings.push([m[1]!, m[2]!]));
-    bind(String.raw`(${IDENT})\s*:([^,;\n}]*)`, (m) => bindings.push([m[1]!, m[2]!]));
-    bind(String.raw`(${IDENT})\s*\.\s*push\s*\(([^;\n]*)`, (m) => bindings.push([m[1]!, m[2]!]));
-    bind(String.raw`\b(?:const|let|var)\s*([{[][^=;\n]*[}\]])\s*=([^;\n]*)`, (m) => bindAll(m[1]!, m[2]!));
-    bind(String.raw`\bfor\s*\(\s*(?:const|let|var)\s+([^;\n]*?)\s+of\s+([^\n]*)`, (m) => bindAll(m[1]!, m[2]!));
-    bind(String.raw`\bfunction\s+(${IDENT})\s*\(|(${IDENT})\s*=\s*(?:async\s*)?\(`, (m) => {
-      const afterParams = closing(src, m.index! + m[0].length - 1) + 1;
+    type Binding = { name: string; value: string; at: number; block: [number, number]; field: boolean; done?: boolean };
+    const bindings: Binding[] = [];
+    const held: { name: string; block: [number, number] }[] = [];
+    const fields = new Set<string>();
+    const reads = (text: string, at: number): boolean =>
+      new RegExp(CLOCK_SOURCE).test(text) ||
+      held.some((h) => h.block[0] <= at && at < h.block[1] && new RegExp(String.raw`(?<![\w$])(?<!(?:^|[^.])\.)${esc(h.name)}(?![\w$])`).test(text)) ||
+      [...fields].some((f) => new RegExp(String.raw`\.\s*${esc(f)}(?![\w$])`).test(text));
+    const bind = (pattern: string, each: (m: RegExpMatchArray, at: number) => void): void => {
+      for (const m of src.matchAll(new RegExp(pattern, 'g'))) each(m, m.index!);
+    };
+    const bindEach = (targets: string, value: string, at: number, block: [number, number]): void => {
+      for (const name of targets.match(new RegExp(IDENT, 'g')) ?? []) bindings.push({ name, value, at, block, field: false });
+    };
+    // Each value is read up to the end of its statement, inside a lookahead so that bindings inside it are found
+    // too. An assignment to a property (`build.ms = ...`) makes the property hold the value.
+    bind(String.raw`(\b(?:const|let|var)\s+)?(${IDENT})\s*(?::\s*[^=;\n]+?)?(?:\[[^\]\n]*\]\s*)?[-+*/]?=(?![=>])(?=([^;]*))`, (m, at) => {
+      let before = at - 1;
+      while (before >= 0 && /\s/.test(src[before]!)) before -= 1;
+      const field = !m[1] && src[before] === '.';
+      bindings.push({ name: m[2]!, value: m[3]!, at, block: field ? [0, src.length] : m[1] ? blockAt(at) : declaredBlock(m[2]!, at), field });
+    });
+    bind(String.raw`(${IDENT})\s*\.\s*(?:push|unshift|add|set)\s*\((?=([^;]*))`, (m, at) =>
+      bindings.push({ name: m[1]!, value: m[2]!, at, block: declaredBlock(m[1]!, at), field: false }),
+    );
+    bind(String.raw`\b(?:const|let|var)\s*([{[][^=;]*?[}\]])\s*(?::[^=;]*)?=(?![=>])(?=([^;]*))`, (m, at) => bindEach(m[1]!, m[2]!, at, blockAt(at)));
+    bind(String.raw`\bfor\s*\(\s*(?:const|let|var)\s+([^;\n]*?)\s+of\s+(?=([^\n]*))`, (m, at) => bindEach(m[1]!, m[2]!, at, blockAt(at)));
+    bind(String.raw`\bfunction\s+(${IDENT})\s*\(|(${IDENT})\s*=\s*(?:async\s*)?\(`, (m, at) => {
+      const afterParams = closing(src, at + m[0].length - 1) + 1;
       const head = /^\s*(?::[^{=;]*)?(?:=>\s*)?\{/.exec(src.slice(afterParams));
       if (head === null) return;
       const open = afterParams + head[0].length - 1;
-      for (const r of src.slice(open, closing(src, open)).matchAll(/\breturn\s+(?!\{)([^;\n]*)/g)) bindings.push([(m[1] ?? m[2])!, r[1]!]);
+      for (const r of src.slice(open, closing(src, open)).matchAll(/\breturn\s+(?!\{)(?=([^;]*))/g)) {
+        bindings.push({ name: (m[1] ?? m[2])!, value: r[1]!, at: open + r.index!, block: blockAt(at), field: false });
+      }
     });
+    // Properties: `ms: <value>`, and the shorthand `{ ..., ms }` of a name that holds a reading there.
+    bind(String.raw`(${IDENT})\s*:(?=([^,;\n}]*))`, (m, at) => bindings.push({ name: m[1]!, value: m[2]!, at, block: [0, src.length], field: true }));
+    bind(String.raw`(?<=[{,]\s*)(${IDENT})(?=\s*[,}])`, (m, at) => bindings.push({ name: m[1]!, value: m[1]!, at, block: [0, src.length], field: true }));
     for (let grew = true; grew; ) {
       grew = false;
-      for (const [name, value] of bindings) {
-        if (!names.has(name) && reads(value)) {
-          names.add(name);
-          grew = true;
-        }
+      for (const b of bindings) {
+        if (b.done === true || !reads(b.value, b.at)) continue;
+        b.done = true;
+        grew = true;
+        if (b.field) fields.add(b.name);
+        else held.push({ name: b.name, block: b.block });
       }
     }
     const found: { line: number; text: string }[] = [];
     for (const m of src.matchAll(new RegExp(String.raw`\b(?:expect|assert)(?:\s*\.\s*${IDENT})?\s*\(`, 'g'))) {
       const open = m.index! + m[0].length - 1;
       const close = closing(src, open);
-      if (!reads(src.slice(open + 1, close))) continue;
+      if (!reads(src.slice(open + 1, close), m.index!)) continue;
       if (/^\s*\.\s*toHaveLength\s*\(/.test(src.slice(close + 1))) continue;
       const end = source.indexOf('\n', close);
       found.push({ line: source.slice(0, m.index).split('\n').length, text: source.slice(m.index, end === -1 ? undefined : end).trim() });
@@ -496,6 +534,9 @@ describe('timing checks run alone', () => {
       [`function build() {\n  const t0 = ${now};\n  const ms = ${now} - t0;\n  return { status: 0, ms };\n}\nconst r = build();\nexpect(r.status).toBe(0);\nexpect(r.ms).toBeLessThan(9);`, 1],
       [`const { ms } = { ms: ${now} };\nassert.ok(ms < 25);`, 1],
       [`const t0 = ${now};\nprint(${now} - t0);\nexpect(work()).toBe(3);`, 0],
+      [`const build = { ms: 0 };\nbuild.ms = ${now};\nexpect(build.ms).toBeLessThan(9);`, 1],
+      // a name holds a reading only in the block of its declaration
+      [`it('a', () => {\n  const start = ${now};\n  print(${now} - start);\n});\nit('b', () => {\n  const start = 3;\n  expect(start).toBe(3);\n});`, 0],
       // only code counts: a clock in a string or a comment is not a reading, a ${} part of a template is code
       [`expect(page).toContain('${now} + 600'); // expect(${now} - t0).toBeLessThan(1)`, 0],
       [`const k = 'x = ${now}';\nexpect(k).toBe('x');`, 0],
