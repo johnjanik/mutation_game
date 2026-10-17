@@ -288,3 +288,14 @@ for (const route of ['tools/board/', 'modules/m0-start/']) {
     expect.soft(predictionsAccepted, `${route}: emptied predictions nojs.spec.ts accepts`).toBe(0);
   });
 }
+
+// regression: P4-MERGE-01
+test('M6 b10 (T11 on the Average preset, A5) has a default figure and a text alternative in its server markup', async ({ page }) => {
+  await page.goto('modules/m6-multiple-edges/');
+  const root = page.locator('[data-tool="fold"][data-instance="b10"]');
+  await expect(root).toHaveCount(1);
+  await expect(root.locator('[data-tab="average"]')).toHaveAttribute('aria-selected', 'true');
+  const report = await root.evaluate(toolReport);
+  expect(figureProblems(report), 'the Average tab: default figure and its text alternative').toEqual([]);
+  expect(report.figure).toBe('board');
+});
