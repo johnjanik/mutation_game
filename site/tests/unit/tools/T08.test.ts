@@ -50,7 +50,8 @@ import { brickMultiset, bricksOf, heapData } from '../../../src/components/tools
 import { buildScene, hitTest, layoutGraph, nextVertex } from '../../../src/components/tools/t08/layout';
 import { countDots, sceneToSvg } from '../../../src/components/tools/t08/svgScene';
 import { PRESETS, pickerGroups, weylState } from '../../../src/components/tools/t08/presets';
-import { LINK_OUTSIDE, admitLink, followedGame } from '../../../src/components/tools/t08/link';
+import { LINK_OUTSIDE, admitLink, followMoves, followedGame } from '../../../src/components/tools/t08/link';
+import { T1Game, type T1Config } from '../../../src/components/tools/t01/model';
 import registry from '../../../src/tools/registry/T08';
 import { clearPublishedStates, followToolState, publishToolState, type ToolState } from '../../../src/lib/state';
 import { decodeState, encodeState, LINK_NOTICE } from '../../../src/lib/urlCodec';
@@ -611,5 +612,43 @@ describe('T8 server render', () => {
     expect(linked).not.toMatch(/<button[^>]*data-node=/);
     expect(linked).not.toMatch(/data-control="step"/);
     expect(linked).toContain('data-out="linkStatus"');
+  });
+});
+
+describe('regressions', () => {
+  // SPEC 7.4: "while a tool runs it keeps the list of positions of the current play in memory and extends
+  // it by one position per move, so a move costs one engine call however long the play is". T8 following a
+  // Game Board rebuilt its game from the whole followed play on every move (the cause of P3-RT-04-04 in T2
+  // and T3). followMoves extends the game it holds: the positions held are kept (the same objects), an
+  // undo or a redo only moves the cursor, a move the legal play forbids leaves the graph, and another
+  // start, board or game is left to a load. Oracle (fire on A3 from (1, 1, 1)): 1 gives (-1, 2, 1), 2 gives
+  // (1, -2, 3), 1 gives (-1, -1, 3), where node 1 holds -1 and cannot be fired.
+  // regression: P3-RT-13-04
+  it('followMoves extends the held game, keeps every position held, and leaves another game to a load', () => {
+    const t1 = (moves: number[], start: number[] = [1, 1, 1]): ToolState => ({ schema: 1, tool: 'board', board: 'A3', view: 'numbers', mode: 'legal', coords: 'numbers', start, moves });
+    const config = (moves: number[]): T1Config => ({ board: 'A3', view: 'numbers', mode: 'legal', coords: 'numbers', start: [1, 1, 1], moves });
+    const game = new T1Game(config([]));
+    expect(followMoves(game, t1([]))).toBe('unchanged');
+    expect(followMoves(game, t1([1]))).toBe('changed');
+    const first = game.positions[1];
+    expect(followMoves(game, t1([1, 2, 1]))).toBe('changed');
+    expect(game.positions[1]).toBe(first);
+    expect(game.applied).toEqual([1, 2, 1]);
+    expect(game.shown).toEqual(new T1Game(config([1, 2, 1])).shown);
+    // An undo and a redo move the cursor over the same positions.
+    const held = game.positions;
+    expect(followMoves(game, t1([1, 2]))).toBe('changed');
+    expect(game.cursor).toBe(2);
+    expect(game.positions).toBe(held);
+    expect(followMoves(game, t1([1, 2, 1]))).toBe('changed');
+    expect(game.positions).toBe(held);
+    expect(followMoves(game, t1([1, 2, 1]))).toBe('unchanged');
+    // A move the legal play forbids leaves the graph, as followedGame says.
+    expect(followMoves(game, t1([1, 2, 1, 1]))).toBe('outside');
+    expect(followedGame(t1([1, 2, 1, 1]), OFFERED)).toBeNull();
+    // Another start, another board, the populations: another game, loaded from the start.
+    expect(followMoves(game, t1([], [2, 1, 1]))).toBeNull();
+    expect(followMoves(game, { ...t1([]), board: 'B3' })).toBeNull();
+    expect(followMoves(game, { ...t1([]), coords: 'populations' })).toBeNull();
   });
 });
