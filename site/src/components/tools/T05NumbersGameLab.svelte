@@ -799,11 +799,16 @@
 
 {#snippet controls(api: FrameApi)}
   {@const waveTab = tab === 'wave'}
+  <!-- At the end of the game (or of the wave) the two controls are done but keep the focus the reader left
+       on them: aria-disabled, the handlers doing nothing then; disabled only before hydration (7.4) and
+       while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+  {@const done = !frozen && (ended || (waveTab && (!progress.follows || progress.nextEnd === null)))}
   <button
     type="button"
     class="control"
     data-control="step"
-    disabled={!api.hydrated || frozen || ended || (waveTab && (!progress.follows || progress.nextEnd === null))}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={done ? 'true' : undefined}
     onclick={() => step(api.announce)}>{waveTab ? 'Step one round' : 'Step'}</button
   >
   <button
@@ -811,7 +816,8 @@
     class="control"
     data-control="playToEnd"
     data-play="end"
-    disabled={!api.hydrated || frozen || ended || (waveTab && (!progress.follows || progress.nextEnd === null))}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={done ? 'true' : undefined}
     onclick={() => playToEnd(api.announce)}>Play to the end</button
   >
   <label class="setting">
@@ -1037,7 +1043,8 @@
     text-decoration: underline;
   }
   .tab:disabled,
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .tab:focus-visible,

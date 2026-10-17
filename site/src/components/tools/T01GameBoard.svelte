@@ -599,20 +599,36 @@
 {/snippet}
 
 {#snippet controls(api: FrameApi)}
+  <!-- A play control that its own press makes inactive (a play running, the end reached) keeps the focus:
+       aria-disabled, its handler doing nothing then; the disabled attribute only before hydration (7.4)
+       and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
   {#if stepOffered}
-    <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || busy || atEnd} onclick={() => step(api.announce)}>Step</button>
+    <button
+      type="button"
+      class="control"
+      data-control="step"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && (busy || atEnd) ? 'true' : undefined}
+      onclick={() => step(api.announce)}>Step</button
+    >
     <button
       type="button"
       class="control"
       data-control="playToEnd"
       data-play={play.play}
-      disabled={playControlDisabled({ hydrated: api.hydrated, frozen, busy, atEnd, finite, cursor: cur().cursor })}
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && playControlDisabled({ hydrated: true, frozen: false, busy, atEnd, finite, cursor: cur().cursor }) ? 'true' : undefined}
       onclick={() => playToEnd(api.announce)}>{play.text}</button
     >
   {/if}
   {#if script}
-    <button type="button" class="control" data-control="next" disabled={!api.hydrated || frozen || busy || progress < 0 || progress >= script.length} onclick={() => next(api.announce)}
-      >Next</button
+    <button
+      type="button"
+      class="control"
+      data-control="next"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && (busy || progress < 0 || progress >= script.length) ? 'true' : undefined}
+      onclick={() => next(api.announce)}>Next</button
     >
     <p class="line script" data-out="scriptCaption">{scriptCaption(script, progress)}</p>
   {/if}
@@ -751,7 +767,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,

@@ -515,13 +515,24 @@
 {/snippet}
 
 {#snippet controls(api: FrameApi)}
-  <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || atEnd || busy} onclick={() => step(api.announce)}>Step</button>
+  <!-- A play control that its own press makes inactive (a play running, the end reached) keeps the focus:
+       aria-disabled, its handler doing nothing then; the disabled attribute only before hydration (7.4)
+       and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+  <button
+    type="button"
+    class="control"
+    data-control="step"
+    disabled={!api.hydrated || frozen}
+    aria-disabled={!frozen && (atEnd || busy) ? 'true' : undefined}
+    onclick={() => step(api.announce)}>Step</button
+  >
   <button
     type="button"
     class="control"
     data-control="playToEnd"
     data-play={playLabel.play}
-    disabled={playDisabled({ hydrated: api.hydrated, frozen, busy, atEnd, playOn: control === 'play on', cursor: cur().cursor })}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={!frozen && playDisabled({ hydrated: true, frozen: false, busy, atEnd, playOn: control === 'play on', cursor: cur().cursor }) ? 'true' : undefined}
     onclick={() => playToEnd(api.announce)}>{playLabel.text}</button
   >
   <label class="setting">
@@ -710,7 +721,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   /* Phase 2: the "add the city" link is a 44-pixel target like the buttons (A-7), placed at the start. */

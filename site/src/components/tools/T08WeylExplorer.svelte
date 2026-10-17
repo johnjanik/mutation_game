@@ -537,8 +537,24 @@
 
 {#snippet controls(api: FrameApi)}
   {#if linkTo === undefined}
-    <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || atEnd} onclick={() => step(api.announce)}>Step</button>
-    <button type="button" class="control" data-control="playToEnd" disabled={!api.hydrated || frozen || atEnd} onclick={() => playToEnd(api.announce)}>Play to the end</button>
+    <!-- At the end of the game the two controls are done but keep the focus: aria-disabled; disabled only
+         before hydration (7.4) and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+    <button
+      type="button"
+      class="control"
+      data-control="step"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && atEnd ? 'true' : undefined}
+      onclick={() => step(api.announce)}>Step</button
+    >
+    <button
+      type="button"
+      class="control"
+      data-control="playToEnd"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && atEnd ? 'true' : undefined}
+      onclick={() => playToEnd(api.announce)}>Play to the end</button
+    >
     <label class="setting">
       <span>Board</span>
       <select data-control="picker" disabled={!api.hydrated || frozen} onchange={(e) => pickBoard((e.currentTarget as HTMLSelectElement).value, api.announce)}>
@@ -699,7 +715,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,
