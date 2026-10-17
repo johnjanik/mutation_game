@@ -6,7 +6,8 @@
   // cached as T10 will cache them); then five times in a row it computes y = E p for every vertex,
   // projects to the Coxeter plane at zero turn, builds the scene for a 360 by 360 box with the depth
   // cue off and draws it at rest on the canvas with the page's device pixel ratio. Each repetition is
-  // timed with performance.now() from before the first y to after drawScene returns; the fetch, the
+  // timed with performance.now() from before the first y to after drawScene returns and a one-pixel
+  // read-back has forced the canvas to rasterise (MERGE, wave 4.2); the fetch, the
   // parse, euclideanBasis, toPopulation and the edge list are outside the timed region (plan).
   //
   // Hooks (SPEC 4.0): data-tool="geometry" and data-moves on the root, data-hydrated="true" when the
@@ -99,6 +100,10 @@
       const points: Point3[] = populations.map((p) => project(frame, toEuclideanPopulation(E, p)));
       const scene = buildScene(points, edges, { width: BOX, height: BOX }, { depthCue: false });
       result = drawScene(ctx, scene, colours, { turning: false, dpr: ratio });
+      // MERGE, P4 wave 4.2, on the review of P4-A2: Chromium defers the rasterisation of the 2D calls,
+      // so a one-pixel read-back forces the drawing to finish inside the timed region; without it the
+      // measured time leaves out the drawing itself.
+      ctx.getImageData(0, 0, 1, 1);
       measured.push(performance.now() - t0);
     }
     times = measured;

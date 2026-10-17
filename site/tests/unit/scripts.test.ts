@@ -176,7 +176,8 @@ describe('root package.json', () => {
       expect(body, n).not.toContain('not yet implemented');
       expect(body, n).not.toContain(devServer);
     }
-    expect(scripts.prebuild).toBe('node scripts/katex-assets.mjs && node scripts/names.mjs');
+    // MERGE, P4 wave 4.2: P4-A2's preset pipeline joins the prebuild chain (pre-approved by the orchestrator).
+    expect(scripts.prebuild).toBe('node scripts/katex-assets.mjs && node scripts/names.mjs && node scripts/presets.mjs');
     expect(scripts.build).toBe('npm run build -w site');
     expect(scripts['build:release']).toBe('RELEASE=1 npm run build');
     expect(scripts.size).toBe('node scripts/size.mjs');
