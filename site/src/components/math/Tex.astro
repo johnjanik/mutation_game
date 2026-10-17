@@ -18,6 +18,12 @@ interface Props {
 
 const { src, display = false } = Astro.props;
 if (typeof src !== 'string') throw new Error('<Tex> needs a src attribute');
-const html = renderTex(substituteGoldenInTex(src), Boolean(display));
+const typeset = renderTex(substituteGoldenInTex(src), Boolean(display));
+// RT-FIX P3-RT-05-04: a display formula wider than its column scrolls inside its own box (A-11), and
+// a scroll box must be reachable from the keyboard (WCAG 2.1.1; axe scrollable-region-focusable).
+// Which formulas overflow depends on the reader's width, so every display box is a tab stop; its
+// focus ring is in styles/base.css. KaTeX opens a display formula with <span class="katex-display">.
+const html = display ? typeset.replace(/^<span class="katex-display/, '<span tabindex="0" class="katex-display') : typeset;
+if (display && html === typeset) throw new Error('<Tex display> expected KaTeX output to start with <span class="katex-display">');
 ---
 <Fragment set:html={html} />

@@ -16,6 +16,25 @@ body {
   font-family: var(--font-prose);
 }
 
+/* RT-FIX P3-RT-05-11: the display formulas of every page reflow at 320 pixels (A-11), not only those
+   of a lesson or of Page.astro (the rule lived there). A display formula breaks after a relation or
+   a binary operator of its outer level, where KaTeX already splits it into pieces (as TeX breaks an
+   inline formula); a piece still wider than the column scrolls inside the formula's own box. */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.katex-display > .katex > .katex-html {
+  white-space: normal;
+}
+
+/* RT-FIX P3-RT-05-04: a display formula typeset by <Tex> is a tab stop, so that its box can be
+   scrolled from the keyboard; the focus ring of A-2. */
+.katex-display:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .numeral,
 [data-value] {
   font-family: var(--font-numerals);
