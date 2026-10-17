@@ -1,7 +1,8 @@
 // Weyl's dimension formula as two games (SPEC.md 2.7 F9, 5.4 weylDimension, 5.7 phase 3, Appendix A.3;
 // P3-A1 instruction 5.7, 5.11): the 30 records of weyl_dimension, identified by type and highest_weight
-// (rule 5, never by index), the three hand examples of A.3 with their products, the E8 timing of the
-// roster, and the RangeError cases of the plan.
+// (rule 5, never by index), the three hand examples of A.3 with their products, and the RangeError cases of
+// the plan. The E8 timing of the roster ("E8 3875 under one second") runs alone in the bench run, in
+// test/bench/weyl-dimension.bench.ts (P4-X2, P4 wave 4.5): a duration is not asserted in npm test.
 import { describe, expect, it } from 'vitest';
 import { applyWord } from '../../src/moves';
 import { play } from '../../src/play';
@@ -97,15 +98,8 @@ describe('Appendix A.3', () => {
   });
 });
 
-describe('E8 3875 under one second', () => {
-  it('weylDimension(E8, [1, 0, 0, 0, 0, 0, 0, 0]) computes in under a second', () => {
-    const b = boardOf('E8');
-    const t0 = performance.now();
-    const dim = weylDimension(b, [1, 0, 0, 0, 0, 0, 0, 0]);
-    const ms = performance.now() - t0;
-    expect(dim).toBe(3875n);
-    expect(ms).toBeLessThan(1000);
-  });
+// The timing test that stood first in this block moved to test/bench/weyl-dimension.bench.ts.
+describe('E8 3875 needs bigint', () => {
   it('the E8 product from rho exceeds 2^53 (verify.py line 340), so the quotient needs bigint', () => {
     const p = products('E8', [0, 0, 0, 0, 0, 0, 0, 0]);
     expect(p.D).toBeGreaterThan(2n ** 53n);
