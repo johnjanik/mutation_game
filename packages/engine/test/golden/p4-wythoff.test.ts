@@ -146,7 +146,9 @@ describe('wythoff records', () => {
         expect(notCanonical).toBe(0);
         expect(notVertices).toBe(0);
         expect(seen.size).toBe(E.items.length);
-      });
+        // 30 s instead of Vitest's 5 s (MERGE, P4 wave 4.1, on the review of P4-A1; instruction 5.14
+        // allows it): the E8 2_41 case took 3 s for the enumeration alone on a loaded machine.
+      }, 30_000);
     } else {
       it(`edges stop at the cap on ${rec.type} 1_42 ${JSON.stringify(rec.rings)}`, () => {
         // E-6, E-10 and 5.6: the cap is reported in `truncated`, never thrown; exactly cap items
@@ -157,7 +159,7 @@ describe('wythoff records', () => {
         expect(E.truncated).toBe(true);
         expect(E.items.length).toBe(CAPS.edgesAtRest);
         process.stdout.write(`wythoffEdges ${id}: truncated with ${E.items.length} items\n`);
-      });
+      }, 30_000);
     }
 
     if (rec.edge_length_squared !== undefined) {
