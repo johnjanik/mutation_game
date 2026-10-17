@@ -153,6 +153,22 @@ export function validRings(board: AnyBoard, rings: readonly unknown[]): rings is
   return rings.length === board.n && rings.every((r) => typeof r === 'number' && Number.isSafeInteger(r) && r >= 0 && r <= RING_MAX);
 }
 
+const RING_RANGE = `a whole number from 0 to ${RING_MAX}, the largest the studio takes`;
+
+/** The cap of the rings in words, stated beside the ring fields of the table view (4.0 Stated limits). */
+export const RING_CAP_TEXT = `A ring is ${RING_RANGE}.`;
+
+/**
+ * A ring asked for on the node with this label (a typed value, or a step of the ring buttons), rounded and
+ * held to 0..RING_MAX: the ring used, and when it was held the sentence that says so (4.0 Stated limits:
+ * the tool says it in words, beside the fields and in the live region), else null.
+ */
+export function clampRing(label: number, asked: number): { value: number; held: string | null } {
+  const r = Math.round(asked);
+  const value = Math.min(RING_MAX, Math.max(0, r));
+  return { value, held: r === value ? null : `Node ${label} held at ${value}: a ring is ${RING_RANGE}.` };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Counts before enumeration, and the decision of the caps (5.6; SPEC 4 T10 Limits)
 // ---------------------------------------------------------------------------------------------

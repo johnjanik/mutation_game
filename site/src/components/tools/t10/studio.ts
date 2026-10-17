@@ -6,6 +6,7 @@
 import { CAPS, orbitGraph } from '@two-games/engine';
 import type { Board, Enumeration, OrbitGraph } from '@two-games/engine';
 import type { ToolState } from '../../../lib/state';
+import { LINK_NOTICE } from '../../../lib/urlCodec';
 import { whereToRun, type CallHint } from '../../../lib/worker';
 import { formatProjection, type FloatMatrix, type Projection } from '../../draw/projector';
 import type { PresetManifest } from '../../draw/presetsT10';
@@ -30,6 +31,7 @@ import {
   isT10Board,
   plural,
   refusalText,
+  RING_MAX,
   shortRootRings,
   shortRootRingsOf,
   t10Board,
@@ -80,6 +82,17 @@ export function admit(state: Pick<ToolState, 'board' | 'rings' | 'projection' | 
     projection = formatProjection(parsed);
   }
   return { board: state.board, rings, projection, graph: state.graph ?? 'polytope' };
+}
+
+/**
+ * The notice of a link that `admit` refuses (6.6 Validation: the default state, with a notice that the link
+ * could not be read). When the reason is the cap of the rings, a ring above RING_MAX on a board the tool
+ * offers, the notice says so with both numbers (4.0 Stated limits); otherwise it is the codec's sentence.
+ * (A ring beyond the safe integers never gets here: the codec refuses it as a value that does not parse.)
+ */
+export function linkNotice(state: Pick<ToolState, 'board' | 'rings'>): string {
+  const over = isT10Board(state.board) ? state.rings?.find((r) => r > RING_MAX) : undefined;
+  return over === undefined ? LINK_NOTICE : `${LINK_NOTICE} It asks for a ring of ${over}, more than ${RING_MAX}, the largest the studio takes.`;
 }
 
 /** The properties that configure an instance (4.0 Configuration; CONTRACTS 5.2; listed in the test files). */
