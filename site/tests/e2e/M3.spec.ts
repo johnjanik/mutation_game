@@ -789,4 +789,23 @@ test.describe('regressions', () => {
     // Nor any other statement about the book or its authors.
     expect(fb).not.toMatch(/\bbook\b|\btheir\b|Brouwer|Haemers/i);
   });
+
+  // Adopted from site/tests/unit/redteam-RT-08-number-words.test.ts (lens RT-08, attack 12), the M3
+  // case (the M2 and M5 cases are other fixes). SPEC 8.4: "Numbers that have a golden value are
+  // written with <G>, never typed".
+  // regression: P3-RT-08-05
+  test('m3-classification.mdx: "and each arm one" states affine.D4.marks[0] as a typed word', async ({ page }) => {
+    // affine.D4.marks[0] is the quantity the phrase states: the frozen population on an arm of the star.
+    expect(GOLDEN.affine.D4!.marks[0], 'affine.D4.marks[0] is the quantity the phrase states').toBe(1);
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    // Observed at 69546f0: the phrase is in the source, typed.
+    expect(source.includes('and each arm one'), 'm3-classification.mdx types affine.D4.marks[0] as a word').toBe(false);
+    // The arms' entry is written through <G> with a path of an arm of the star (cities 0, 1, 3, 4).
+    const beat3 = /<Beat n=\{3\}>([\s\S]*?)<\/Beat>/.exec(source)![1]!;
+    expect(beat3).toMatch(/each arm <G k="affine\.D4\.marks\[[0134]\]"\/>/);
+    // The built page prints the golden value there.
+    await page.goto(ROUTE);
+    const sentence = (await proseSentences(page, '[data-beat="3"]')).find((s) => s.includes('each arm')) ?? '';
+    expect(sentence).toContain(`so it holds ${MARKS_STAR[2]} and each arm ${MARKS_STAR[0]}:`);
+  });
 });
