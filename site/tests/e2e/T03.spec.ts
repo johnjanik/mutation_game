@@ -329,3 +329,33 @@ test('the tool renders without JavaScript', async ({ browser, baseURL }) => {
   for (const el of controls) await expect(el).toBeDisabled();
   await context.close();
 });
+
+test.describe('regressions', () => {
+  // SPEC 7.4: a follower extends the play it keeps by the moves of each new state. The meter's
+  // subscription must not track the play it extends: inside its effect it would depend on what it
+  // writes and run again on every move until Svelte stops it (effect_update_depth_exceeded).
+  // regression: P3-RT-04-04
+  test('the linked meter on M2 follows moves of the board above without a page error', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto('modules/m2-form/');
+    const leader = page.locator('[data-tool][data-instance="b1"]').first();
+    const meter = page.locator('[data-tool][data-instance="b2"]');
+    await meter.scrollIntoViewIfNeeded();
+    await expect(meter).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+    await leader.scrollIntoViewIfNeeded();
+    await expect(leader).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+    const show = leader.locator('[data-control="predictShow"]');
+    if (await show.count()) await show.click();
+    for (const node of [2, 3, 1]) await leader.locator(`button[data-board="populations"][data-node="${node}"]`).click();
+    await expect(leader).toHaveAttribute('data-moves', '3');
+    // The meter reads the leader's population after the three moves (its table view lists it).
+    const leaderValues = await leader.locator('button[data-board="populations"][data-node]').evaluateAll((els) =>
+      els.map((e) => [Number(e.getAttribute('data-node')), e.getAttribute('data-value')] as const).sort((a, b) => a[0] - b[0]).map((x) => x[1]),
+    );
+    expect(leaderValues).toEqual(['0', '1', '1']);
+    await expect(meter.locator('[data-table-value="population"]')).toHaveText(leaderValues as string[]);
+    await expect(meter.locator('[data-out="formValue"]')).toHaveAttribute('data-value', '2');
+    expect(errors).toEqual([]);
+  });
+});

@@ -54,7 +54,7 @@ import {
 import { followStopMessage, layersGrownText, stopMessage } from '../../../src/components/tools/t02/limits';
 import { gardenLayersBound, gardenTotal } from '../../../src/components/tools/t02/phase2';
 import { layeredEntries, positiveView } from '../../../src/components/tools/t02/poset';
-import { followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
+import { extendPlay, followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
 import { exactText, shortNumber, vertexText } from '../../../src/components/tools/t02/numbers';
 import { PICKER_TYPES, PRESETS, pickedState, pickerGroups, presetOf } from '../../../src/components/tools/t02/presets';
 import { drawGarden, nextVertex } from '../../../src/components/tools/t02/drawing';
@@ -693,5 +693,44 @@ describe('regressions', () => {
         expect(total, `${name} node ${node}: the counter's total`).toEqual({ kind: 'number', value: expected });
       });
     }
+  });
+
+  // SPEC 7.4: "While a tool runs it keeps the list of positions of the current play in memory and
+  // extends it by one position per move, so a move costs one engine call however long the play is."
+  // The garden following a T1 replayed the whole play from the start on every state the T1 published;
+  // it now extends the positions it holds (extendPlay, called from the followToolState callback).
+  // regression: P3-RT-04-04
+  it('a follower extends the play it holds: one engine call per new move, none for an undo', () => {
+    const board = named('A2');
+    const start = startVector(board, [1, 0]).v;
+    let calls = 0;
+    const apply = (v: Vector, label: number): Vector => {
+      calls++;
+      return mutate(board as Board<unknown>, v, toPositions(board, [label])[0]!);
+    };
+    const long = Array.from({ length: 20000 }, (_, k) => (k % 2) + 1);
+    const held = extendPlay([start], [], long, apply);
+    expect(calls).toBe(long.length);
+    expect(held).toHaveLength(long.length + 1);
+    expect(keyOf(board, held[long.length]!)).toBe(keyOf(board, applyWord(board as Board<unknown>, start, toPositions(board, long), 'mutation')));
+    // One more move: one engine call, every position held kept.
+    calls = 0;
+    const next = extendPlay(held, long, [...long, 1], apply);
+    expect(calls).toBe(1);
+    expect(next).toHaveLength(long.length + 2);
+    for (const k of [0, 1, 9999, long.length]) expect(next[k]).toBe(held[k]);
+    expect(keyOf(board, next[long.length + 1]!)).toBe(keyOf(board, mutate(board as Board<unknown>, held[long.length]!, 0)));
+    // An undo: no engine call.
+    calls = 0;
+    const undo = extendPlay(next, [...long, 1], long, apply);
+    expect(calls).toBe(0);
+    expect(undo).toHaveLength(long.length + 1);
+    // A different last move: the shared moves are kept and only the moves after them are applied.
+    calls = 0;
+    const changed = extendPlay(next, [...long, 1], [...long.slice(0, -1), 1, 2], apply);
+    expect(calls).toBe(2);
+    expect(changed[long.length - 1]).toBe(held[long.length - 1]);
+    // The held list is not changed.
+    expect(held).toHaveLength(long.length + 1);
   });
 });
