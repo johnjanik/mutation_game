@@ -15,7 +15,7 @@
 //   groups:  data-board-group (a board's group of node buttons), data-game-b (game B's part)
 //   tabs:    data-tab (each tab button, role="tab", aria-selected), data-panel (the tab panel)
 //   boxes:   data-scroll="tally" (the tally chart's own scroll box, A-11)
-//   table:   data-table-node, data-table-value, data-table-exact
+//   table:   data-table-node, data-table-value, data-table-exact ("D", "M", "dimension")
 //   strip:   data-step (History.svelte), data-round (a round of the wave made so far)
 //   live:    [data-live] (ToolFrame's polite live region)
 // data-out names (every one T5 renders; the registry's `outs`):
@@ -956,4 +956,30 @@ test.describe('fixture instances', () => {
     await expect(out(root(page, 'c1'), 'tapesAgree')).toHaveText('the sorted tapes agree');
     await context.close();
   });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // weyl_dimension(E8, (9, ..., 9)) = 10^120 (121 digits); weyl_dimension(E8, (1, ..., 1)) has 37 digits.
+  // oracle: python3 -c "import sys; sys.path.insert(0, 'reference'); import lie_games as L; C = L.cartan('E', 8); print(L.weyl_dimension(C, [9] * 8) == 10 ** 120, L.weyl_dimension(C, [1] * 8))"
+  const E8_NINES = '1' + '0'.repeat(120);
+  const E8_ONES = '1329227995784915872903807060280344576';
+  for (const [lambda, exact] of [
+    ['9,9,9,9,9,9,9,9', E8_NINES],
+    ['1,1,1,1,1,1,1,1', E8_ONES],
+  ] as const) {
+    // regression: P3-RT-03-03
+    test(`E8 lambda ${lambda}: the dimension is shown shortened, exact elsewhere`, async ({ page }) => {
+      const r = await open(page, `g=E8&d=${lambda}`);
+      await tabButton(r, 'dimension').click();
+      const shown = ((await out(r, 'dimension').textContent()) ?? '').trim();
+      // The exact digits are in the table view (attack 25: they equal the oracle's weyl_dimension)...
+      await expect(r.locator('[data-table-exact="dimension"]')).toHaveText(exact);
+      // ...and SPEC 4.0 "Long numbers": a value of more than 12 digits is shown shortened.
+      expect(shown).toBe(`${exact[0]}.${exact.slice(1, 5)}... x 10^${exact.length - 1} (${exact.length} digits)`);
+    });
+  }
 });
