@@ -797,6 +797,18 @@ test.describe('regressions', () => {
     expect(readFileSync(LESSON_PATH, 'utf8').includes('shared by four different plays'), 'm5-weyl.mdx types the goal of b13 as a word').toBe(false);
   });
 
+  // regression: P3-RT-08-09
+  test('no fallback of M5 carries TeX notation that a release build prints raw', () => {
+    // Adopted from site/tests/unit/redteam-RT-08-fallbacks.test.ts (lens RT-08), the part of this lesson;
+    // the E4 fallback of the open-problem page belongs to that page. Unverified.astro prints a fallback as
+    // plain text in a release build (SPEC 7.3), so TeX in it reaches the reader raw.
+    const fallbacks = [...readFileSync(LESSON_PATH, 'utf8').matchAll(/<Unverified item="(E\d+)" fallback="([^"]*)"/g)].map((m) => ({ item: m[1], text: m[2]! }));
+    expect(fallbacks.length).toBeGreaterThanOrEqual(2);
+    const raw = fallbacks.filter((f) => /[_^\\$]/.test(f.text)).map((f) => `modules/m5-weyl.mdx ${f.item}: ${f.text}`);
+    // Observed at 69546f0: modules/m5-weyl.mdx E16 "... each count on A_n equals ...".
+    expect(raw).toEqual([]);
+  });
+
   // regression: P3-RT-08-08
   test("four M5 tool captions give an instruction or a description and state no result, including the first figure's", async ({ page }) => {
     // Adopted from redteam/redteam-RT-08-captions.mjs (lens RT-08), which printed these captions for a
