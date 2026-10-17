@@ -36,6 +36,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
+import { boardFromName, classify, play } from '../../../packages/engine/src/index';
+import type { Board } from '../../../packages/engine/src/index';
 import { distDir } from './routes';
 
 const ROUTE = 'modules/m3-classification/';
@@ -74,6 +76,7 @@ interface Golden {
   affine: Record<string, { name: string; marks: number[] }>;
   classification_tests: { label: string; spectral_radius_4_decimals: string | null }[];
   one_way_counterexample: { cartan: number[][]; start: number[]; moves: number[]; result: number[] };
+  pentagon_example: { start: number[]; moves: number; level: number };
 }
 const GOLDEN = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8')) as Golden;
 const growth = (label: string): Golden['layer_growth_examples'][number] => GOLDEN.layer_growth_examples.find((r) => r.label === label)!;
@@ -653,4 +656,53 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, red team round 1). Each test is a lens reproducer adopted here; where a
+// finding also names another lesson, only the M3 part is adopted (the other parts are other fixes).
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from site/tests/unit/redteam-RT-09-01-m3-numbers-game-ends.test.ts (lens RT-09). The
+  // reproducer held the page's sentence against the engine on the pentagon; here the engine's
+  // pentagon game is the counterexample, and the sentence must carry the hypotheses of [DE08]
+  // Theorem 2.1 that exclude it (SOURCES.md [DE08]: "a connected integer-weighted graph has a
+  // terminating game from some nonzero dominant start exactly when it is a Dynkin diagram of finite
+  // type"; a dominant start has no negative number, SPEC 2.9 row [DE08], Appendix C).
+  // regression: P3-RT-09-01
+  test("M3 beat 7 quotes Donnelly and Eriksson's theorem with its hypothesis", async ({ page }) => {
+    // oracle: play_fate(board_from_name('A4~')[0], (1,-2,3,-4,1)) ends after 14 moves (golden pentagon_example).
+    const pentagon = boardFromName('pentagon') as Board<unknown>;
+    const record = classify(pentagon);
+    expect(record.length, 'the pentagon is one connected component').toBe(1);
+    expect(record[0]!.class).toBe('affine');
+    const start = GOLDEN.pentagon_example.start;
+    expect(start).toEqual([1, -2, 3, -4, 1]);
+    const r = play(pentagon, start.map((x) => pentagon.arith.fromInt(x)));
+    expect(r.status).toBe('ended');
+    expect(r.moves).toBe(GOLDEN.pentagon_example.moves);
+    // A game from all zeros ends at once on every board, the pentagon included.
+    const zero = play(pentagon, start.map(() => pentagon.arith.fromInt(0)));
+    expect(zero.status).toBe('ended');
+    expect(zero.moves).toBe(0);
+    // So the sentence must exclude a start with a negative number and the start of all zeros, and
+    // speak of boards with roads both ways, as [DE08] does.
+    expect(start.some((x) => x < 0), 'the counterexample start has a negative number').toBe(true);
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    const beat7 = /<Beat n=\{7\}>([\s\S]*?)<\/Beat>/.exec(source)![1]!;
+    const quoted = beat7.split(/(?<=\.)\s+/).filter((s) => s.includes('<Cite k="DE08"/>'));
+    expect(quoted.length, 'beat 7 cites [DE08]').toBe(1);
+    const sentence = quoted[0]!;
+    expect(sentence, 'M3 beat 7 must not quote [DE08] with "a suitable start"').not.toMatch(/suitable start/);
+    expect(sentence, `M3 beat 7: "${sentence}" must name a start with no negative number`).toMatch(/no negative number/);
+    expect(sentence, `M3 beat 7: "${sentence}" must exclude the start of all zeros`).toMatch(/not all zeros/);
+    expect(sentence, `M3 beat 7: "${sentence}" must speak of boards with roads both ways`).toMatch(/connected board with roads both ways/);
+    expect(sentence).toMatch(/finite type/);
+    // The built page prints the same hypotheses.
+    await page.goto(ROUTE);
+    const printed = (await proseSentences(page, '[data-beat="7"]')).filter((s) => s.includes('Donnelly and Eriksson'));
+    expect(printed.length).toBe(1);
+    expect(printed[0]).toMatch(/connected board with roads both ways .*no negative number and is not all zeros/);
+  });
 });
