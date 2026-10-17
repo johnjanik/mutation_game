@@ -154,7 +154,7 @@ function coefficients(tex: string, name: string): number[] {
   return out;
 }
 /** Small counts as words, for captions that state a count in words. */
-const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+const NUMBER_WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
 
 // ---------------------------------------------------------------------------------------------
 // The engine, for positions with no golden value
@@ -626,12 +626,12 @@ test('balanced boards: a form with positive city weights, and the one-way remark
   await page.goto(ROUTE);
   const seen = sentences(await proseText(page, '[data-anatomy="seen"]')).filter((s) => s.includes('no mutation changes'));
   expect(seen, 'one Seen statement on invariant forms').toHaveLength(1);
-  expect(seen[0]).toContain('a form with positive city weights that no mutation changes exactly when it is balanced');
+  expect(seen[0]).toContain('Exactly the balanced boards have a form with positive city weights that no mutation changes');
   expect(seen[0]).toContain('[W20]');
   const beat3 = sentences(await proseText(page, '[data-beat="3"]'));
   const forms = beat3.filter((s) => s.includes('no mutation changes'));
   expect(forms).toHaveLength(1);
-  expect(forms[0]).toContain('a form with positive city weights that no mutation changes exactly when it is balanced');
+  expect(forms[0]).toContain('Exactly the balanced boards have a form with positive city weights that no mutation changes');
   // SPEC 2.5: on a connected board the form is the only one up to a constant ([W20] Theorems 8.4, 8.7).
   const unique = beat3.filter((s) => /\bunique\b/.test(s));
   expect(unique, 'one sentence on uniqueness').toHaveLength(1);
