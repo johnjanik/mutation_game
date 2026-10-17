@@ -113,6 +113,29 @@ const CHALLENGE_TOOLS: Figure[] = [
 ];
 const TOOLS = [...FIGURES, ...CHALLENGE_TOOLS];
 
+/**
+ * The predictions (8.1 P5 "ask for a prediction before a reveal"; 8.5 "predict a number", "predict a yes
+ * or no"). Each asks about a configuration that the reader reaches only after answering, because the ring
+ * board stays frozen until then, and that nothing above the question shows. T10 keeps its counts, face
+ * table, shared-edge line and graph switch live while a prediction is open, so no prediction asks about
+ * the state its own figure already shows (decisions/P4-A6.md, repair of wave 4.4).
+ *   listed: the table of solids would state the answer, so its row for the target may not come first. Its
+ *     columns are the rings, the name and the face counts (checked in "beats state their ideas"): it states
+ *     a number of vertices, never the lengths of the edges.
+ *   hidden: names that would give the answer away if they appeared above the question.
+ */
+type PredictionCase = { id: string; board: string; start: number[]; target: number[]; clicks: number[]; answer: string; listed: boolean; hidden: string[] };
+const B3_WEIGHTS = T('B3').symmetrizer;
+/** The distinct squared lengths 2 d_i a_i^2 of the edges at the start of a B3 orbit (2.14 Edge lengths). */
+const b3Lengths = (rings: number[]): number[] => [...new Set(rings.flatMap((a, i) => (a === 0 ? [] : [2 * B3_WEIGHTS[i]! * a * a])))].sort((x, y) => y - x);
+const A3_ALL = W('A3', [1, 1, 1]);
+const PREDICTIONS: PredictionCase[] = [
+  // Beat 2: from the tetrahedron, ring nodes 2 and 3 as well; with nothing unringed, one vertex per element of W.
+  { id: 'b4', board: 'A3', start: [1, 0, 0], target: [1, 1, 1], clicks: [2, 3], answer: String(A3_ALL.f_vector[0]), listed: true, hidden: A3_ALL.name.split(/ \(|\)/).filter((s) => s !== '') },
+  // Beat 5: from the truncated cube, ring node 1 as well; long and short nodes stay ringed, so two lengths.
+  { id: 'b7', board: 'B3', start: [0, 1, 1], target: [1, 1, 1], clicks: [1], answer: b3Lengths([1, 1, 1]).length === 1 ? 'Yes, one length' : 'No, two lengths', listed: false, hidden: [] },
+];
+
 // ---------------------------------------------------------------------------------------------
 // The engine, for the hexagon (2.14: "each graph has six edges, four are shared and two differ")
 // ---------------------------------------------------------------------------------------------
@@ -245,6 +268,14 @@ test.describe('without JavaScript', () => {
     }
     // The static tables: the twelve solids of beat 2 and the four shells of beat 7.
     await expect(page.locator('[data-beat="2"] table[data-table="solids"] tbody tr[data-solid]')).toHaveCount(12);
+    // It comes after the prediction of beat 2, whose answer it lists (8.1 P5).
+    const solidsAfterB4 = await tool(page, 'b4').evaluate((el) => {
+      const t = document.querySelector('table[data-table="solids"]');
+      return t !== null && (el.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    });
+    expect(solidsAfterB4, 'the table of solids follows b4').toBe(true);
+    await expect(page.locator('[data-beat="2"] [data-anatomy="figure"] figure[data-figure="solids"] table[data-table="solids"]')).toHaveCount(1);
+    await expect(page.locator('figure[data-figure="solids"] figcaption')).not.toHaveText('');
     const shells = page.locator('[data-beat="7"] [data-figure="shells"] table[data-table="shells"]');
     await expect(shells.locator('tbody tr')).toHaveCount(4);
     await expect(shells.locator('caption')).not.toHaveText('');
@@ -281,12 +312,9 @@ test.describe('without JavaScript', () => {
     await page.goto(ROUTE);
     const blocks = page.locator('[data-prediction]');
     expect(await blocks.count()).toBeGreaterThanOrEqual(2);
-    const expected: Record<string, string> = {
-      b4: String(W('A3', [1, 0, 1]).f_vector[0]),
-      b6: HEX.shared === HEX.polytope && HEX.moves === HEX.polytope ? 'Yes, the same edges' : 'No, some edges differ',
-    };
-    expect(expected.b6).toBe('No, some edges differ');
-    for (const [id, answer] of Object.entries(expected)) {
+    expect(await blocks.count()).toBe(PREDICTIONS.length);
+    expect(PREDICTIONS.find((p) => p.id === 'b7')!.answer).toBe('No, two lengths');
+    for (const { id, answer } of PREDICTIONS) {
       const block = tool(page, id).locator('[data-prediction]');
       await expect(block, id).toHaveCount(1);
       const details = block.locator('details');
@@ -315,21 +343,86 @@ test('a prediction freezes its board until answered', async ({ page }) => {
   for (const label of [1, 2, 3]) await expect(node(page, 'b4', label), `node ${label} frozen`).toBeDisabled();
   await expect(control(page, 'b4', 'ringUp')).toBeDisabled();
   await expect(control(page, 'b4', 'picker')).toBeDisabled();
-  const cuboctahedron = W('A3', [1, 0, 1]);
-  await control(page, 'b4', 'predictAnswer').fill(String(cuboctahedron.f_vector[0]));
+  await control(page, 'b4', 'predictAnswer').fill(String(A3_ALL.f_vector[0]));
   await control(page, 'b4', 'predictCheck').click();
   await expect(out(page, 'b4', 'predictResult')).toHaveText(/^Right/);
   for (const label of [1, 2, 3]) await expect(node(page, 'b4', label)).toBeEnabled();
+  await node(page, 'b4', 2).click();
+  await expect(out(page, 'b4', 'fVector')).toHaveText(W('A3', [1, 1, 0]).f_vector.join(', '));
   await node(page, 'b4', 3).click();
-  await expect(out(page, 'b4', 'vertexCount')).toHaveText(String(cuboctahedron.f_vector[0]));
-  await expect(out(page, 'b4', 'fVector')).toHaveText(cuboctahedron.f_vector.join(', '));
-  // Beat 4: the hexagon waits too, until "show me".
+  await expect(out(page, 'b4', 'vertexCount')).toHaveText(String(A3_ALL.f_vector[0]));
+  await expect(out(page, 'b4', 'fVector')).toHaveText(A3_ALL.f_vector.join(', '));
+  // Beat 5: the truncated cube waits too, until "show me".
+  await hydrate(page, 'b7');
+  await expect(control(page, 'b7', 'predictShow')).toBeVisible();
+  for (const label of [1, 2, 3]) await expect(node(page, 'b7', label)).toBeDisabled();
+  await expect(control(page, 'b7', 'ringUp')).toBeDisabled();
+  await control(page, 'b7', 'predictShow').click();
+  await expect(out(page, 'b7', 'predictResult')).toHaveText('The answer is No, two lengths.');
+  for (const label of [1, 2, 3]) await expect(node(page, 'b7', label)).toBeEnabled();
+});
+
+test('a prediction asks about what is not yet on screen', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto(ROUTE);
+  // Exactly these predictions. Beat 4 holds none: its figure prints the shared edges from the start and its
+  // graph switch stays live while a prediction is open, so a question about the two graphs would sit
+  // beside its own answer (the gap this test guards; request to P4-A3 in decisions/P4-A6.md).
+  const asked = await page.locator('[data-tool]').evaluateAll((els) => els.filter((e) => e.querySelector('[data-prediction]') !== null).map((e) => e.getAttribute('data-instance')));
+  expect(asked).toEqual(PREDICTIONS.map(({ id }) => id));
   await hydrate(page, 'b6');
-  await expect(control(page, 'b6', 'predictShow')).toBeVisible();
-  for (const label of [1, 2]) await expect(node(page, 'b6', label)).toBeDisabled();
-  await control(page, 'b6', 'predictShow').click();
-  await expect(out(page, 'b6', 'predictResult')).toHaveText('The answer is No, some edges differ.');
-  for (const label of [1, 2]) await expect(node(page, 'b6', label)).toBeEnabled();
+  await expect(out(page, 'b6', 'sharedEdges')).toHaveText(String(HEX.shared));
+  await expect(control(page, 'b6', 'graphMoves')).toBeEnabled();
+  for (const p of PREDICTIONS) {
+    expect(p.target, p.id).not.toEqual(p.start);
+    // Nothing above the question shows its answer: no row of the table of solids for the rings asked about
+    // where that row states the answer, no figure on that board with those rings (its outputs would state
+    // it), and no name of the polytope they give.
+    const above = await tool(page, p.id).evaluate(
+      (el, { board, target, listed, hidden }) => {
+        const precedes = (x: Element): boolean => !x.contains(el) && (x.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+        const rows = listed ? [...document.querySelectorAll(`tr[data-solid="${board}:${target.join(',')}"]`)].filter(precedes).map((r) => r.getAttribute('data-solid')) : [];
+        const figures = [...document.querySelectorAll('[data-tool]')]
+          .filter(precedes)
+          .filter((t) => {
+            const on = (t.querySelector('table[data-table="rings"] caption')?.textContent ?? '').includes(`Rings on ${board}:`);
+            const values = [...t.querySelectorAll('button[data-board="numbers"][data-node]')]
+              .map((b) => [Number(b.getAttribute('data-node')), b.getAttribute('data-value') ?? ''] as const)
+              .sort((a, b) => a[0] - b[0])
+              .map((v) => v[1]);
+            return on && values.join(',') === target.join(',');
+          })
+          .map((t) => t.getAttribute('data-instance'));
+        const range = document.createRange();
+        range.setStart(document.querySelector('article')!, 0);
+        range.setEndBefore(el);
+        const text = (range.cloneContents().textContent ?? '').replace(/\s+/g, ' ');
+        return { rows, figures, named: hidden.filter((h) => text.includes(h)) };
+      },
+      { board: p.board, target: p.target, listed: p.listed, hidden: p.hidden },
+    );
+    expect(above, `${p.id}: nothing above the question shows its answer`).toEqual({ rows: [], figures: [], named: [] });
+    // The figure waits at its start, which is not the configuration asked about, with its ring board frozen.
+    await hydrate(page, p.id);
+    await expect(tool(page, p.id).locator('[data-prediction] .question')).toBeVisible();
+    expect(await rings(tool(page, p.id)), p.id).toEqual(p.start.map(String));
+    for (const label of p.clicks) await expect(node(page, p.id, label), `${p.id} node ${label}`).toBeDisabled();
+    // Predict, then see: the answer, then the reader's own clicks reach the configuration.
+    const block = tool(page, p.id).locator('[data-prediction]');
+    if ((await block.locator('input[type="radio"]').count()) > 0) await block.locator('label', { hasText: p.answer }).locator('input').check();
+    else await control(page, p.id, 'predictAnswer').fill(p.answer);
+    await control(page, p.id, 'predictCheck').click();
+    await expect(out(page, p.id, 'predictResult')).toHaveText(`Right: ${p.answer}.`);
+    for (const label of p.clicks) await node(page, p.id, label).click();
+    await expect.poll(() => rings(tool(page, p.id)), p.id).toEqual(p.target.map(String));
+  }
+  // What the reader then sees: the number of vertices on A3, and two lengths of edge on B3 with make uniform off.
+  await expect(out(page, 'b4', 'vertexCount')).toHaveText(PREDICTIONS[0]!.answer);
+  await expect(out(page, 'b4', 'fVector')).toHaveText(A3_ALL.f_vector.join(', '));
+  await expect(out(page, 'b7', 'uniform')).toHaveText('off');
+  await expect(out(page, 'b7', 'edgeLengths')).toHaveAttribute('data-count', String(b3Lengths([1, 1, 1]).length));
+  for (const s of b3Lengths([1, 1, 1])) await expect(out(page, 'b7', 'edgeLengths')).toContainText(String(s));
+  await expect(out(page, 'b7', 'fVector')).toHaveText(W('B3', [1, 1, 1]).f_vector.join(', '));
 });
 
 test('every figure states its expected result', async ({ page }) => {
@@ -357,7 +450,6 @@ test('every figure states its expected result', async ({ page }) => {
   expect(plain(await out(page, 'b5', 'caption').textContent())).toContain(`${rh.f_vector[0]} vertices, ${rh.f_vector[1]} edges and ${rh.f_vector[2]} faces`);
   // Beat 4: six edges in each graph, four shared (2.14; computed here with the engine).
   expect([HEX.vertices, HEX.polytope, HEX.moves, HEX.shared]).toEqual([6, 6, 6, 4]);
-  await control(page, 'b6', 'predictShow').click();
   await control(page, 'b6', 'graphMoves').click();
   await expect(out(page, 'b6', 'graph')).toHaveText('moves');
   await expect(out(page, 'b6', 'edgeCount')).toHaveText(String(HEX.moves));
@@ -366,6 +458,7 @@ test('every figure states its expected result', async ({ page }) => {
   const d = T('B3').symmetrizer;
   const squares = [2 * d[1]!, 2 * d[2]!];
   expect(squares).toEqual([4, 2]);
+  await control(page, 'b7', 'predictShow').click();
   await expect(out(page, 'b7', 'uniform')).toHaveText('off');
   await expect(out(page, 'b7', 'edgeLengths')).toHaveAttribute('data-count', '2');
   for (const s of squares) await expect(out(page, 'b7', 'edgeLengths')).toContainText(String(s));
