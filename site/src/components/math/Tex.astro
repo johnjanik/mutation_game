@@ -1,0 +1,23 @@
+---
+// <Tex src="|W(E_8)| = {{types.E8.weyl_order}}"/> and <Tex src="..." display/> (SPEC.md 7.3).
+// This component is the only way a golden value enters a formula: each {{path}} is replaced by
+// its golden value, with digits grouped by \, from five digits, and the result is typeset at build
+// time by renderTex from @lib/katex, the one KaTeX of the site (route (a), KaTeX 0.16.47), with
+// MathML for assistive technology (A-12). Nothing is sent to the reader as JavaScript.
+// An unresolved path throws GoldenPathError and a malformed formula throws KaTeX's ParseError;
+// neither is caught, so either fails the build.
+// `display` is a presence flag: <Tex src="..." display/> gives display style.
+// Every "{{" starts a golden path, even where it would be TeX (\frac{{a}}{b}): write "{ {".
+import { renderTex } from '@lib/katex';
+import { substituteGoldenInTex } from '@lib/golden';
+
+interface Props {
+  src: string;
+  display?: boolean;
+}
+
+const { src, display = false } = Astro.props;
+if (typeof src !== 'string') throw new Error('<Tex> needs a src attribute');
+const html = renderTex(substituteGoldenInTex(src), Boolean(display));
+---
+<Fragment set:html={html} />

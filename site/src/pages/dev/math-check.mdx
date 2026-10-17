@@ -1,0 +1,29 @@
+---
+title: Math check
+released: false
+layout: ../../layouts/Base.astro
+---
+import SpikeTex from './_SpikeTex.astro';
+
+{/* MERGE, P1 stage 1.3: rendered through Base.astro (lang, title, the KaTeX stylesheet, the skip link and
+    the navigation), so that the axe scan of every route accepts this page; P0-A3's inline stylesheet
+    link went with it. */}
+
+# Math check
+
+The chosen route for mathematics (route (a), decisions/P0-A3.md), shown end to end. Inline:
+$\alpha_1$, and $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$, and $a<b$, and $\{1,2\}$.
+
+$$
+p_i \ \longmapsto\ -p_i + \sum_{j\ne i} A_{ji}\,p_j \;=\; p_i - \sum_{j} C_{ij}\,p_j .
+$$
+
+$$
+B_2=\begin{pmatrix}2&-1\\-2&2\end{pmatrix}
+$$
+
+Through the component that calls renderTex, as `<Tex>` will:
+
+<div data-out="tex-frac"><SpikeTex src="\frac{1}{2}" /></div>
+
+<div data-out="tex-cartan"><SpikeTex src="C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle" /></div>

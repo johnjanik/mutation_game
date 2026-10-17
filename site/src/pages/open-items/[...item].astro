@@ -1,0 +1,104 @@
+---
+// The open-items page (P1-A4; SPEC.md 7.3: "open-items, generated from content/unverified.json and
+// present in preview builds only"; Appendix E). It is the target of <Unverified>'s mark
+// (open-items#E4): every item carries id="<id>". The page shows each item's status and never
+// changes it; only the owner closes an item.
+// Release builds: this is a rest-parameter route whose getStaticPaths returns the single path
+// /open-items/ in a preview build and no path at all in a release build (isReleaseBuild() of
+// unverifiedRegistry.ts, the one rule), so the route does not exist in a release's dist. That is
+// why the file is open-items/[...item].astro rather than open-items.astro (P1-A4's report records
+// the deviation). Nothing links here in a release build (lib/pages/released.ts). No script.
+import Base from '../../layouts/Base.astro';
+import seed from '../../content/unverified.json';
+import { isReleaseBuild, type UnverifiedItem } from '@lib/unverifiedRegistry';
+import { renderTex } from '@lib/katex';
+import { joinBase } from '@lib/pages/released';
+import { siteUsages } from '@lib/pages/openItems';
+
+export function getStaticPaths() {
+  return isReleaseBuild() ? [] : [{ params: { item: undefined } }];
+}
+
+const items = seed as UnverifiedItem[];
+const usages = siteUsages();
+const known = new Set(items.map((i) => i.id));
+const unknown = [...usages.entries()].filter(([id]) => !known.has(id));
+const base = import.meta.env.BASE_URL;
+
+const escape = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** Text with its $...$ formulas typeset by renderTex. */
+const withMath = (s: string): string =>
+  s.split('$').map((piece, i) => (i % 2 === 1 ? renderTex(piece, false) : escape(piece))).join('');
+---
+
+<Base title="Open items: Two Games on a Dynkin Diagram" description="What a person still has to check before the site is published (preview builds only).">
+  <article class="open-items">
+    <h1>Open items</h1>
+    <p>
+      This page appears only in preview builds. It lists what a person still has to check before the site is
+      published: statements from sources that were not opened, numbers quoted from memory, and attributions.
+      A sentence of the site that rests on one of these items carries a mark linking here. In a published
+      build an open item's sentence is replaced by a weaker sentence that stays true, or left out. Only the
+      site's owner closes an item.
+    </p>
+    <h2>What a person still has to check</h2>
+    <ol class="items">
+      {items.map((it) => {
+        const pages = usages.get(it.id) ?? [];
+        return (
+          <li id={it.id} data-item={it.id} data-status={it.status}>
+            <h3>Item {it.id}</h3>
+            <dl>
+              <dt>Status</dt>
+              <dd data-field="status">
+                {it.status === 'closed' ? `closed on ${it.closedOn ?? 'an unrecorded date'}, settled by ${it.closedBy ?? 'an unrecorded source'}` : 'open'}
+              </dd>
+              <dt>To check</dt>
+              <dd data-field="statement" set:html={withMath(it.statement)} />
+              <dt>Where to check</dt>
+              <dd data-field="where" set:html={withMath(it.whereToCheck)} />
+              <dt>Due at gate</dt>
+              <dd data-field="gate">{it.gate}</dd>
+              <dt>Pages that use it</dt>
+              <dd data-field="pages">
+                {pages.length === 0 ? 'none yet' : pages.map((p, k) => <>{k > 0 ? ', ' : ''}<a href={joinBase(base, p)}>{p}</a></>)}
+              </dd>
+            </dl>
+          </li>
+        );
+      })}
+    </ol>
+    {unknown.length > 0 && (
+      <section>
+        <h2>Items used on a page but not yet listed</h2>
+        <ul>
+          {unknown.map(([id, pages]) => (
+            <li data-unknown-item={id}>{id}: {pages.map((p, k) => <>{k > 0 ? ', ' : ''}<a href={joinBase(base, p)}>{p}</a></>)}</li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </article>
+</Base>
+
+<style>
+  .items {
+    padding-inline-start: 0;
+    list-style: none;
+  }
+  .items > li {
+    border-bottom: 1px solid var(--sign-zero-outline);
+    padding-block: 8px;
+  }
+  .items h3 {
+    margin-block: 8px 4px;
+  }
+  dt {
+    font-weight: 700;
+  }
+  dd {
+    margin-inline-start: 1em;
+    margin-block-end: 6px;
+    overflow-wrap: anywhere;
+  }
+</style>

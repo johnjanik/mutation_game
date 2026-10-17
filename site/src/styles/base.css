@@ -1,0 +1,32 @@
+/* The design tokens live in tokens.css (P1-A3), imported first so every page receives them
+   (MERGE, P1 stage 1.1: the duplicate block P0-A1 wrote here was removed once the scaffold test
+   read the tokens from tokens.css). */
+@import './tokens.css';
+
+/* The two font stacks of SPEC 6.3 and 8.3 [D]: system fonts for prose, a monospaced system stack
+   with tabular figures for numerals; no font file beyond KaTeX's own. */
+:root {
+  --font-prose: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numerals: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+body {
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-prose);
+}
+
+.numeral,
+[data-value] {
+  font-family: var(--font-numerals);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

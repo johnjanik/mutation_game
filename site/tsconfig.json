@@ -1,0 +1,13 @@
+{
+  "extends": ["../tsconfig.base.json", "astro/tsconfigs/strict"],
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@engine": ["../packages/engine/src/index.ts"],
+      "@components/*": ["./src/components/*"],
+      "@lib/*": ["./src/lib/*"]
+    }
+  },
+  "include": [".astro/types.d.ts", "src/**/*", "tests/**/*", "astro.config.mjs"],
+  "exclude": ["dist", "node_modules"]
+}

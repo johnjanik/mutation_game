@@ -1,0 +1,40 @@
+---
+// The links that close a lesson (P1-A4; SPEC.md 8.2 item 7): "the sandbox with this module's board
+// loaded; the Atlas page; the next module. (A link whose target has not been released yet is left
+// out by the build; section 7.3.)" In that order, each only when released: the sandbox route with
+// the bare key g of SPEC.md 6.6 (tools/sandbox/?g=<board>; P1-A2's encodeState replaces the hand-
+// written query once it has merged), the Atlas page of the board, and the module numbered
+// module + 1 (never a later one). With no link it renders an empty wrapper with no heading and no
+// landmark. Hooks: data-anatomy="links", data-count, data-link (sandbox, atlas, next).
+import { linkIfReleased, nextModule, siteInventory } from '@lib/pages/released';
+
+interface Props {
+  /** This lesson's module number. */
+  module: number;
+  /** The module's board, for example "A3". */
+  board: string;
+}
+
+const { module, board } = Astro.props;
+if (!Number.isInteger(module)) throw new Error(`<ModuleLinks> needs a whole module number, got ${String(module)}`);
+if (typeof board !== 'string' || board === '') throw new Error('<ModuleLinks> needs a board name');
+
+const next = nextModule(module, siteInventory());
+const candidates = [
+  { link: 'sandbox', href: linkIfReleased({ kind: 'tool', id: 'sandbox', query: `g=${board}` }), text: `Open the sandbox with the board ${board}` },
+  { link: 'atlas', href: linkIfReleased({ kind: 'atlas', board }), text: `The Atlas page of ${board}` },
+  { link: 'next', href: next ? linkIfReleased({ kind: 'module', slug: next.slug }) : null, text: next ? `Next: ${next.title ?? next.slug}` : '' },
+];
+const links = candidates.filter((c): c is typeof c & { href: string } => c.href !== null);
+const headingId = `links-heading-${module}`;
+---
+{links.length === 0 ? (
+  <div data-anatomy="links" data-count="0"></div>
+) : (
+  <nav class="module-links" data-anatomy="links" data-count={links.length} aria-labelledby={headingId}>
+    <h2 id={headingId}>Where next</h2>
+    <ul>
+      {links.map((l) => <li><a data-link={l.link} href={l.href}>{l.text}</a></li>)}
+    </ul>
+  </nav>
+)}

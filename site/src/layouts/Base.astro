@@ -1,0 +1,99 @@
+---
+// The page shell (created by P0-A5; P0-A1 created none). Live-region convention: this layout has
+// no page-level live region. Each tool renders its own polite region inside its root (SPEC.md 7.5
+// A-4), present and empty before the first move, so that tools on one page never share one.
+// The layout ships no <script>. Every href is built from import.meta.env.BASE_URL (7.2 item 10).
+// The navigation and the footer are Nav.astro and Footer.astro (P1-A4): links to released targets
+// only; the footer's version slot is P6-A6's.
+import '../styles/base.css';
+import { katexStylesheetHref } from '@lib/katex';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  /** An MDX page that names this file as its layout passes its frontmatter here (MERGE, P1 stage 1.3). */
+  frontmatter?: { title?: string; description?: string };
+  description?: string;
+}
+
+const title = Astro.props.title ?? Astro.props.frontmatter?.title ?? 'Two Games on a Dynkin Diagram';
+const description = Astro.props.description ?? Astro.props.frontmatter?.description;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="stylesheet" href={katexStylesheetHref(import.meta.env.BASE_URL)} />
+    {/* P3-X1: a layout may add elements to the head here (Lesson.astro adds its render hint). */}
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+    <header class="site-header">
+      <Nav />
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style is:global>
+  body {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .skip-link {
+    position: absolute;
+    left: 8px;
+    top: -100px;
+    padding: 8px 12px;
+    background: var(--page);
+    color: var(--text);
+    border: 2px solid var(--focus-ring);
+    z-index: 10;
+  }
+  .skip-link:focus {
+    top: 8px;
+  }
+  .site-header,
+  .site-footer,
+  main {
+    max-width: 42rem;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  .site-header ul,
+  .site-footer ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+  }
+  .site-header a,
+  .site-footer a {
+    display: inline-block;
+    min-height: 24px;
+    padding: 10px 0;
+  }
+  .site-footer {
+    margin-top: 32px;
+    border-top: 1px solid var(--sign-zero-outline);
+  }
+  a {
+    color: var(--text);
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+</style>

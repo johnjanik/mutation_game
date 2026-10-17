@@ -1,0 +1,92 @@
+---
+// The layout of a lesson (P1-A4; SPEC.md 8.2, 9.2; D17). It composes Base.astro and renders the
+// first item of the anatomy itself: the title (<h1 data-anatomy="title">) and the module's question
+// (<p data-anatomy="question">), followed by the draft mark when draft is true. The lesson places
+// the rest in order: the first figure (beat 1), Beat, Seen, LieTheory, Challenge, ModuleLinks and
+// Sources from @components/lesson. The layout adds no island and no script.
+// Columns: prose in a measure near 66 characters (max-inline-size 34em); figures in a wider column
+// on desktop (up to 60rem) and from edge to edge of the viewport below 400 pixels (SPEC.md 6.1).
+// Props: the frontmatter of the modules collection, either spread (modules/[slug].astro) or as
+// `frontmatter` (an MDX page that names this file as its layout).
+import Base from './Base.astro';
+import DraftMark from '../components/lesson/DraftMark.astro';
+
+interface LessonData {
+  title: string;
+  module: number;
+  question: string;
+  phase?: number;
+  released?: boolean;
+  draft?: boolean;
+  outcomes?: string[];
+  sources?: string[];
+}
+
+type Props = Partial<LessonData> & { frontmatter?: LessonData };
+
+const props = Astro.props;
+const data = (props.frontmatter ?? props) as LessonData;
+if (typeof data.title !== 'string' || typeof data.question !== 'string') throw new Error('Lesson.astro needs a title and a question');
+// D17: a lesson is a draft until the owner approves it; the schema's default is true.
+const draft = data.draft !== false;
+---
+
+<Base title={`${data.title}: Two Games on a Dynkin Diagram`} description={data.question}>
+  {/* P3-X1, lab timings (SPEC.md 7.6; decisions/P3-X1.md): the browser paints the lesson once the
+      whole article has been read (the marker #lesson-parsed at its end), not after every chunk of
+      HTML it parses. Without the hint it painted and laid out the page again for each chunk, and
+      each pass cost as much as the first, so the main thread stayed blocked after the first paint
+      (Total Blocking Time 0.5 to 1.5 s at four times slowdown). With the marker at the end of
+      beat 1 (P3-X1's first form) the gain was small; at the end of the article (MERGE, P3 stage
+      3.3, on P3-X1's measurement) the blocking work moves before the first paint: Largest
+      Contentful Paint 1.1 to 1.8 s at four times slowdown on the build machine, within the 2.5 s of
+      7.6, and after it only the first tool's hydration task remains (240 to 300 ms there). The owner may move the marker back to beat 1 (Beat.astro) or drop the hint: it is one
+      attribute, and the trade is a later first paint against a page that answers at once.
+      Browsers that do not know the hint ignore it. */}
+  <link slot="head" rel="expect" href="#lesson-parsed" blocking="render" />
+  <article class="lesson" data-module={data.module}>
+    <h1 data-anatomy="title">{data.title}</h1>
+    <p class="question" data-anatomy="question">{data.question}</p>
+    {draft && <DraftMark />}
+    <slot />
+    <div id="lesson-parsed" hidden></div>
+  </article>
+</Base>
+
+<style>
+  .lesson {
+    --measure: 34em;
+    --figure-max: 60rem;
+  }
+  /* Prose and the lesson's boxes keep the measure; figures break out to the wider column. */
+  .lesson > :global(*),
+  .lesson :global([data-anatomy='beat'] > *:not([data-anatomy='figure'])) {
+    max-inline-size: var(--measure);
+  }
+  .lesson :global([data-anatomy='beat']) {
+    max-inline-size: none;
+  }
+  .lesson :global([data-anatomy='figure']) {
+    inline-size: min(var(--figure-max), calc(100vw - 32px));
+    margin-inline: calc(50% - min(var(--figure-max), calc(100vw - 32px)) / 2);
+    margin-block: 16px 24px;
+  }
+  .question {
+    font-size: 1.125rem;
+    font-style: italic;
+  }
+  .lesson :global(.katex-display) {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  @media (max-width: 399.98px) {
+    .lesson :global([data-anatomy='figure']) {
+      inline-size: 100vw;
+      margin-inline: calc(50% - 50vw);
+    }
+  }
+  /* P3-X1: no content-visibility here on purpose. It was tried on the blocks below the first view
+     and dropped (decisions/P3-X1.md): the text of a skipped block is missing from innerText, which
+     the lesson tests read (and would silently weaken checks such as "no em-dash in the text"), and
+     the load-time gain was small and irregular in Chromium. */
+</style>

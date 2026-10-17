@@ -1,0 +1,26 @@
+---
+// A beat of a lesson (P1-A4; SPEC.md 8.2 item 3): "a short paragraph, then a small tool or figure
+// beside or below it. One idea per beat." The default slot is the paragraph; the named slot
+// `figure` goes into the wide figure column (edge to edge below 400 pixels, SPEC.md 6.1).
+// A static figure brings its own <figure>/<figcaption>; a tool's caption comes from the tool.
+// In MDX leave a blank line before and after <Beat> so it is a block, never inside a paragraph:
+//   <Beat n={1}>
+//
+//   Three cities in a row ...
+//
+//   <T01GameBoard slot="figure" client:idle id="b1" ... />
+//   </Beat>
+// Hooks: data-anatomy="beat", data-beat, id="beat-<n>"; data-anatomy="figure".
+interface Props {
+  /** The beat number, from 1. */
+  n: number;
+}
+
+const { n } = Astro.props;
+if (!Number.isInteger(n) || n < 1) throw new Error(`<Beat> needs a positive whole number n, got ${String(n)}`);
+const hasFigure = Astro.slots.has('figure');
+---
+<section class="beat" data-anatomy="beat" data-beat={n} id={`beat-${n}`}>
+  <slot />
+  {hasFigure && <div class="figure" data-anatomy="figure"><slot name="figure" /></div>}
+</section>

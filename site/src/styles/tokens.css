@@ -1,0 +1,74 @@
+/* Design tokens of SPEC.md 6.3 and 8.3, named as CONTRACTS.md section 8 (owner P1-A3).
+   Light values on :root; dark values under prefers-color-scheme for :root:not([data-theme="light"])
+   and again for :root[data-theme="dark"], the manual switch (ThemeSwitch.svelte stores the choice
+   in localStorage and sets data-theme on <html>). The same values live in
+   site/src/components/draw/palette.ts; site/tests/unit/contrast.test.ts keeps the two equal.
+   --focus-ring, --road and --arrow are P0-A1's choice (decisions/P0-A1.md), 3 to 1 or more (A-6). */
+
+:root {
+  --page: #FFFFFF;
+  --text: #1A1A1A;
+  --sign-pos-fill: #0072B2;
+  --sign-pos-numeral: #FFFFFF;
+  --sign-neg-outline: #D55E00;
+  --sign-zero-outline: #767676;
+  --edge-1: #0072B2;
+  --edge-2: #D55E00;
+  --edge-3: #009E73;
+  --edge-4: #CC79A7;
+  --edge-5: #B26F00;
+  --edge-6: #3A8FCB;
+  --edge-7: #807500;
+  --edge-8: #1A1A1A;
+  --accent-populations: #009E73;
+  --accent-numbers: #CC79A7;
+  --focus-ring: #0072B2;
+  --road: #1A1A1A;
+  --arrow: #1A1A1A;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #121212;
+    --text: #E8E8E8;
+    --sign-pos-fill: #56B4E9;
+    --sign-pos-numeral: #121212;
+    --sign-neg-outline: #E69F00;
+    --sign-zero-outline: #8A8A8A;
+    --edge-1: #56B4E9;
+    --edge-2: #FF8A4C;
+    --edge-3: #2DBE95;
+    --edge-4: #CC79A7;
+    --edge-5: #E69F00;
+    --edge-6: #6FA8FF;
+    --edge-7: #F0E442;
+    --edge-8: #E8E8E8;
+    --accent-populations: #009E73;
+    --accent-numbers: #CC79A7;
+    --focus-ring: #56B4E9;
+    --road: #E8E8E8;
+    --arrow: #E8E8E8;
+  }
+}
+
+:root[data-theme="dark"] {
+  --page: #121212;
+  --text: #E8E8E8;
+  --sign-pos-fill: #56B4E9;
+  --sign-pos-numeral: #121212;
+  --sign-neg-outline: #E69F00;
+  --sign-zero-outline: #8A8A8A;
+  --edge-1: #56B4E9;
+  --edge-2: #FF8A4C;
+  --edge-3: #2DBE95;
+  --edge-4: #CC79A7;
+  --edge-5: #E69F00;
+  --edge-6: #6FA8FF;
+  --edge-7: #F0E442;
+  --edge-8: #E8E8E8;
+  --accent-populations: #009E73;
+  --accent-numbers: #CC79A7;
+  --focus-ring: #56B4E9;
+  --road: #E8E8E8;
+  --arrow: #E8E8E8;
+}

@@ -1,0 +1,41 @@
+---
+// The site footer (P1-A4; SPEC.md 7.9, 7.3, 7.2 closing rule). The licence line of 7.9 with SPDX
+// identifiers (content: CC BY-SA 4.0, the D4 default; code: the owner's AGPL-3.0-only), links to the
+// credits, the sources and, in preview builds only, the open-items page, all through
+// linkIfReleased. The element marked data-versions is the empty slot where P6-A6 prints the pinned
+// versions and the git commit ("record the versions in the footer of the built site").
+// No script.
+import { linkIfReleased, type Target } from '@lib/pages/released';
+
+const items: { target: Target; text: string }[] = [
+  { target: { kind: 'page', slug: 'credits' }, text: 'Credits' },
+  { target: { kind: 'static', name: 'sources' }, text: 'Sources' },
+  { target: { kind: 'static', name: 'open-items' }, text: 'Open items' },
+];
+const links = items.flatMap(({ target, text }) => {
+  const href = linkIfReleased(target);
+  return href === null ? [] : [{ href, text }];
+});
+---
+<footer class="site-footer">
+  <p class="licence">
+    Text and figures: CC BY-SA 4.0 (SPDX: CC-BY-SA-4.0). Code: GNU AGPL version 3 (SPDX: AGPL-3.0-only).
+    Code samples shown in the text fall under the code licence.
+  </p>
+  <nav aria-label="Footer">
+    <ul>
+      {links.map((l) => <li><a href={l.href}>{l.text}</a></li>)}
+    </ul>
+  </nav>
+  <div class="versions" data-versions></div>
+</footer>
+
+<style>
+  .licence {
+    margin: 12px 0 0;
+    font-size: 0.875rem;
+  }
+  .versions:empty {
+    display: none;
+  }
+</style>

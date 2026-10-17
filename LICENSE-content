@@ -1,0 +1,19 @@
+Content licence for Two Games on a Dynkin Diagram
+
+SPDX-License-Identifier: CC-BY-SA-4.0
+
+The text and figures of the site (the lessons, the pages, the captions, the
+exported pictures and the glossary) are licensed under the Creative Commons
+Attribution-ShareAlike 4.0 International licence (CC BY-SA 4.0).
+
+The full legal code of the licence is published at
+https://creativecommons.org/licenses/by-sa/4.0/legalcode
+and a human-readable summary at
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Code samples shown in the text fall under the code licence of this repository
+(the file LICENSE, GNU Affero General Public License version 3,
+SPDX-License-Identifier: AGPL-3.0-only), not under this content licence.
+
+This is the default content licence of SPEC.md section 10, decision D4,
+recorded in DECISIONS.md. The project owner may replace it.

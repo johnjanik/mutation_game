@@ -1,0 +1,65 @@
+---
+// One route per registered tool, /tools/<id> (SPEC.md 7.3, 7.4; CONTRACTS.md 5.2). The tool is shown
+// alone in its `default` state with its caption, hydrated when the browser is idle (7.6). On this route
+// the instance id is empty, so the tool's URL keys are bare (6.6). Every link comes from BASE_URL
+// (through the layout).
+//
+// Trap 1 (decisions/P1-A2.md): Astro hydrates only components it sees imported statically; a
+// component taken from the registry at run time fails with NoMatchingImport under a client directive
+// (tried in a scratch build on Astro 7.3.8). So each tool has one static import and one line below,
+// which MERGE adds when the tool lands (two lines per tool). A registered tool without its line is
+// still rendered at build time from its registry entry, without hydration, and the build says so.
+import Base from '../../layouts/Base.astro';
+import { toolRoutes, type ToolRoute } from '../../tools/index';
+// Static imports of the tools, in tool order. MERGE adds, for example:
+//   import T01GameBoard from '@components/tools/T01GameBoard.svelte';
+import T01GameBoard from '@components/tools/T01GameBoard.svelte';
+import T02OrbitGarden from '@components/tools/T02OrbitGarden.svelte';
+import T03FormFinder from '@components/tools/T03FormFinder.svelte';
+import T04ClassificationLab from '@components/tools/T04ClassificationLab.svelte';
+import { testBoardPresets } from '@components/board/editor/presets';
+import T05NumbersGameLab from '@components/tools/T05NumbersGameLab.svelte';
+import T06Kaleidoscope from '@components/tools/T06Kaleidoscope.svelte';
+import T07SymbolicGame from '@components/tools/T07SymbolicGame.svelte';
+import T08WeylExplorer from '@components/tools/T08WeylExplorer.svelte';
+import T09Kostant from '@components/tools/T09Kostant.svelte';
+import T15AffinePlayground from '@components/tools/t15/T15Route.astro';
+import T16Sandbox from '@components/tools/T16Sandbox.svelte';
+
+export function getStaticPaths(): ToolRoute[] {
+  return toolRoutes();
+}
+
+const { entry, caption } = Astro.props as ToolRoute['props'];
+
+/** The tools that have their static line below (MERGE adds the id with the import). */
+const HYDRATED: ReadonlySet<string> = new Set<string>(['affine', 'board', 'form', 'garden', 'kostant', 'lab', 'mirror', 'numbers', 'sandbox', 'symbolic', 'weyl']);
+
+let Unhydrated: ((props: Record<string, unknown>) => unknown) | null = null;
+if (!HYDRATED.has(entry.id)) {
+  const mod = (await entry.component()) as { default: (props: Record<string, unknown>) => unknown };
+  Unhydrated = mod.default;
+  console.warn(`[tools/${entry.id}] rendered without hydration: add its static import to pages/tools/[tool].astro`);
+}
+const toolProps = { id: '', caption, preset: 'default' };
+---
+
+<Base title={entry.title} description={caption}>
+  <h1>{entry.title}</h1>
+  <div class="tool-route" data-tool-route={entry.id}>
+    {/* MERGE adds one line per tool, for example:
+        {entry.id === 'board' && <T01GameBoard client:idle {...toolProps} />} */}
+    {entry.id === 'board' && <T01GameBoard client:idle {...toolProps} />}
+    {entry.id === 'garden' && <T02OrbitGarden client:idle {...toolProps} />}
+    {entry.id === 'form' && <T03FormFinder client:idle {...toolProps} />}
+    {entry.id === 'lab' && <T04ClassificationLab client:idle {...toolProps} boardPresets={testBoardPresets()} />}
+    {entry.id === 'numbers' && <T05NumbersGameLab client:idle {...toolProps} />}
+    {entry.id === 'mirror' && <T06Kaleidoscope client:idle {...toolProps} />}
+    {entry.id === 'symbolic' && <T07SymbolicGame client:idle {...toolProps} />}
+    {entry.id === 'weyl' && <T08WeylExplorer client:idle {...toolProps} />}
+    {entry.id === 'kostant' && <T09Kostant client:idle {...toolProps} />}
+    {entry.id === 'affine' && <T15AffinePlayground hydrate="idle" {...toolProps} />}
+    {entry.id === 'sandbox' && <T16Sandbox client:idle {...toolProps} boardPresets={testBoardPresets()} />}
+    {Unhydrated && <Unhydrated {...toolProps} />}
+  </div>
+</Base>

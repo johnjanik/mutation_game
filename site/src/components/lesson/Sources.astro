@@ -1,0 +1,34 @@
+---
+// "Sources for the module" (P1-A4; SPEC.md 8.2 item 8). Prop `keys`: the lesson passes
+// frontmatter.sources. Each key is rendered through <Cite> (an unknown key fails the build) and
+// followed by the entry's title from SOURCES.md, whose $...$ formulas are typeset at build time by
+// renderTex. The optional default slot holds a note, such as "[W20] section 2 for the story".
+// Hook: data-anatomy="sources"; data-source on each entry.
+import { Cite } from '@components/content';
+import { citeTitle } from '@lib/sources';
+import { renderTex } from '@lib/katex';
+
+interface Props {
+  keys: string[];
+}
+
+const { keys } = Astro.props;
+if (!Array.isArray(keys)) throw new Error('<Sources> needs a list of keys');
+
+const escape = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/** The title with its formulas typeset: odd-numbered pieces between dollar signs are TeX. */
+function titleHtml(k: string): string {
+  return citeTitle(k)
+    .split('$')
+    .map((piece, i) => (i % 2 === 1 ? renderTex(piece, false) : escape(piece)))
+    .join('');
+}
+const hasNote = Astro.slots.has('default');
+---
+<section class="sources" data-anatomy="sources">
+  <h2>Sources</h2>
+  {hasNote && <div class="note"><slot /></div>}
+  <ul>
+    {keys.map((k) => <li data-source={k}><Cite k={k} /> <Fragment set:html={titleHtml(k)} /></li>)}
+  </ul>
+</section>

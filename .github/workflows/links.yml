@@ -1,0 +1,41 @@
+# Links: SPEC.md 7.7 and 7.8. Runs weekly and on manual dispatch. Checks the external links of
+# the built site; a failure opens an issue and never fails a build.
+name: links
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Preview build
+        run: npm run build
+      - name: Check external links
+        id: lychee
+        uses: lycheeverse/lychee-action@v2
+        continue-on-error: true
+        with:
+          args: --no-progress --exclude 'localhost' --exclude '^https?://[^/]*github\.io/' --exclude-path 'site/dist/_astro' 'site/dist/**/*.html'
+          output: lychee-report.md
+          fail: true
+      - name: Open an issue on failure
+        if: steps.lychee.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --repo "$GITHUB_REPOSITORY" --title "Broken external links ($(date -u +%F))" --body-file lychee-report.md

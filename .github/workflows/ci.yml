@@ -1,0 +1,58 @@
+# CI: SPEC.md 7.8. Runs on every pull request and on every push to main.
+# One step per command, in order, so that P0-A6 can insert its steps after "npm run build".
+# Only astro build and astro preview are ever used (SPEC.md 7.2 item 9).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Type-check and test
+        run: npm run check
+      - name: Release build
+        run: npm run build:release
+      - name: Preview build
+        run: npm run build
+      - name: Upload the preview build
+        uses: actions/upload-artifact@v5
+        with:
+          name: site-dist
+          path: site/dist
+      # P0-A6: the browser tests, the size budget and the oracle, after the preview build that
+      # e2e and size measure. BASE_PATH is not set here: the build, astro preview, the e2e baseURL
+      # and size.mjs all take the base from siteAndBase (GITHUB_REPOSITORY gives /<repo>/).
+      # The lab timings join in phase 3 (P3-A7).
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run e2e
+      - name: Size budget
+        run: npm run size
+      - name: Oracle reproduces the golden file
+        run: npm run verify
+      - name: BASE_PATH=/sub/path/ browser test
+        run: npm run e2e:basepath
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: ignore

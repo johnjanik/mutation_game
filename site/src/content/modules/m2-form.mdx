@@ -1,0 +1,173 @@
+---
+title: "The form behind the game"
+module: 2
+question: "Is anything conserved when a city mutates?"
+phase: 2
+released: true
+draft: true
+outcomes: ["LO4"]
+sources: ["W20", "W03a"]
+---
+import T01GameBoard from '@components/tools/T01GameBoard.svelte';
+import T03FormFinder from '@components/tools/T03FormFinder.svelte';
+import T06Kaleidoscope from '@components/tools/T06Kaleidoscope.svelte';
+import { G, Tex, Cite } from '@components/content';
+import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
+import { linkIfReleased } from '@lib/pages/released';
+import { resolveGoldenPath } from '@lib/golden';
+import { boardFromName, formValue, isRootPopulation, mutate, ratToString } from '@engine';
+import { BUILDER_TEXT } from '@components/tools/t03/weights';
+
+export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
+export const m3 = linkIfReleased({ kind: 'module', number: 3 });
+export const ModuleThree = () => (m3 ? <a href={m3} data-module-link="3">module three</a> : <>module three</>);
+export const mirror = linkIfReleased({ kind: 'tool', id: 'mirror' });
+export const Kaleidoscope = () => (mirror ? <a href={mirror} data-tool-link="mirror">the Kaleidoscope</a> : <>the Kaleidoscope</>);
+export const A3 = boardFromName('A3');
+export const pop = (b, xs) => xs.map((x) => b.arith.fromInt(x));
+export const formNumber = (b, p) => Number(ratToString(formValue(b, p)));
+export const AFTER_CITY_TWO = mutate(A3, pop(A3, [1, 0, 0]), 1);
+export const VALUE_AFTER_CITY_TWO = formNumber(A3, AFTER_CITY_TWO);
+export const MIXED = [1, -1, 0];
+export const MIXED_VALUE = formNumber(A3, pop(A3, MIXED));
+export const MIXED_IS_ROOT = isRootPopulation(A3, pop(A3, MIXED));
+export const NEG_THETA = resolveGoldenPath('types.A3.highest_root').map((x) => -x);
+export const TAILED = { cartan: [[2, -1, -1, 0, 0], [-1, 2, -1, 0, 0], [-1, -1, 2, -1, 0], [0, 0, -1, 2, -1], [0, 0, 0, -1, 2]], xy: [[0, 0], [0, 2], [1, 1], [2, 1], [3, 1]] };
+export const COUNTEREXAMPLE = [1, 1, 1, 0, 1];
+export const SEEN_INVARIANT = 'verified by computation on every board of finite type of rank at most eight';
+export const SEEN_NORM_TWO = 'verified by computation below the highest root, on the boards of finite type with single roads of rank at most eight';
+export const SEEN_TAIL = 'verified by computation on the triangle with a tail';
+
+{/* P2-A8: lesson M2, drafted from SPEC.md 2.1, 2.2, 2.5, 2.7 (F2), 2.14 and 3 M2 in the words of
+    the site (D17: a draft until the owner approves it). Every number with a golden value goes
+    through G, through a golden path inside Tex, or through resolveGoldenPath in a property (listed
+    in decisions/P2-A8.md); every formula that holds a digit goes through Tex, so
+    scripts/numbers-in-prose.mjs finds nothing in this file. Instance ids in reading order: b1 and b2
+    (beat 1), b3 (beat 2), b4 the Kaleidoscope of beat 4 (phase 3, P3-X1), b5 and b6 (beat 5), b7 to b9 (challenges). b1 is client:idle, every other island
+    client:visible. The tailed triangle has no golden key: its matrix is the configuration of
+    reference/verify.py section 17, typed once above. */}
+
+<Beat n={1}>
+
+In the mutation game, N. J. Wildberger's game of Martians on a board <Cite k="W20"/>, every move changes one city. This lesson looks for something that no move changes. Give each population $p$ of a board a single number, its <Term a="form-value">**form value**</Term>, written $(p,p)$. On a board with single roads, where each line of the drawing is one road each way, the recipe is
+
+<Tex display src="\begin{aligned} (p,p) \;=\;& 2\sum_{i} p_i^2 \\ &-\, 2\!\!\sum_{\text{joined pairs } \{i,j\}}\!\! p_i\,p_j . \end{aligned}"/>
+
+The second sum counts each pair of joined cities once.
+
+Take the board <Tex src="A_3"/> of the earlier lessons, three cities in a row, with one Martian in city <Tex src="1"/>. The squares add up to <Tex src="1"/> and no joined pair has two occupied cities, so the form value is <Tex src="2\cdot 1-0=2"/>. The "energy meter" below the board shows this number. Before you play, predict what it will read after city <Tex src="2"/> mutates. The board waits for your answer.
+
+City <Tex src="2"/> receives the Martian of city <Tex src="1"/>, and the population becomes <Tex src="(1,1,0)"/>. Now the squares add up to <Tex src="2"/>, and the one occupied pair contributes <Tex src="1\cdot 1"/>, so the form value is <Tex src="2\cdot 2-2\cdot 1=2"/> again. Play on as long as you like: the meter never moves. A quantity that no mutation changes is called **invariant**, and the form value is invariant on every board with single roads. Wildberger proves this <Cite k="W20"/> ({'Proposition 7.1'}), and it is verified by computation for every board of finite type of rank at most eight.
+
+One Martian in any city has form value <Tex src="2"/>, and every root population is reached from one Martian by mutations. So every root population has form value <Tex src="2"/>: all <G k="types.A3.n_roots"/> of them on <Tex src="A_3"/>, and every root population of every board with single roads.
+
+<T01GameBoard slot="figure" client:idle id="b1" board="A3" view="populations" mode="free" coords="populations" start={[1, 0, 0]} prediction={{ question: 'One Martian in city 1 has form value 2. Mutate city 2: what will the meter read?', answer: { type: 'number', value: VALUE_AFTER_CITY_TWO }, reveal: 'The population becomes (1, 1, 0), and its form value is 2 times 2 minus 2 times 1, which is 2 again. No mutation ever moves the meter.' }} caption="From one Martian in city 1 of A3, mutate the cities in any order: the population changes and its form value stays at 2." />
+<T03FormFinder slot="figure" client:visible id="b2" preset="meter" linkTo="b1" board="A3" coords="populations" start={[1, 0, 0]} caption="The meter reads the form value of the board above: 2 at the start and 2 after every mutation. Below it, the builder and small values return in beats two and five." />
+</Beat>
+
+<Beat n={2}>
+
+Where does the recipe come from? Build a conserved quantity yourself, on the board <Tex src="A_2"/> of two joined cities. Choose a weight for each city, <Tex src="w_1"/> and <Tex src="w_2"/>, and a weight <Tex src="w_{12}"/> for the joined pair, and form
+
+<Tex display src="Q_w(p) \;=\; w_1\,p_1^2 + w_2\,p_2^2 - w_{12}\,p_1 p_2 ."/>
+
+The button Test asks the engine whether every mutation leaves $Q_w$ unchanged. When the answer is no, the tool shows a **witness**: a population and a city whose mutation changes $Q_w$.
+
+The builder starts with city weights <Tex src="2"/> and <Tex src="2"/> and road weight <Tex src="1"/>. These fail. One Martian in city <Tex src="1"/> gives <Tex src="Q_w(1,0)=2"/>; after city <Tex src="2"/> mutates, the population <Tex src="(1,1)"/> gives <Tex src="Q_w(1,1)=2+2-1=3"/>.
+
+Change the weights until the test passes. It passes exactly when all three weights are equal. With every weight equal to $w$, $Q_w$ is the form value of beat one multiplied by <Tex src="w/2"/>, so up to a common factor the recipe is forced. On a connected board, a pairing of populations that every mutation preserves is unique up to a constant <Cite k="W20"/> ({'Theorems 8.4 and 8.7'}). On a board with single roads the forced recipe is the one of beat one: weight <Tex src="2"/> on every city and <Tex src="2"/> on every joined pair, times a common factor.
+
+<T03FormFinder slot="figure" client:visible id="b3" preset="builder" board="A2" cityWeights={[2, 2]} caption="On A2 the test passes exactly when the two city weights and the road weight are equal; the starting weights 2, 2 and 1 fail." />
+</Beat>
+
+<Beat n={3}>
+
+The form value comes from a pairing of two populations, $(p,q)=p^{\mathsf T}Bq$, and $(p,p)$ is the pairing of $p$ with itself. On a board with single roads the matrix is <Tex src="B=2I-A"/>, where $A$ is the adjacency matrix: $A_{ij}$ counts the roads from city $i$ to city $j$. This is the **Cartan matrix** <Tex src="C=2I-A^{\mathsf T}"/> of module zero, because on such a board $A$ is symmetric. Its diagonal entries are <Tex src="2"/>, the form value of one Martian.
+
+A mutation is a reflection for this form. Pair a population $p$ with one Martian in city $i$, the population $e_i$: the result $(p,e_i)$ is twice the population of city $i$ minus the populations of its neighbours. The mutation at $i$ subtracts exactly this amount from city $i$,
+
+<Tex display src="S_i\,p \;=\; p-(p,e_i)\,e_i ,"/>
+
+which is the rule of module one. In linear algebra a reflection fixes a mirror and reverses the direction across it. Here the mirror holds the populations with <Tex src="(p,e_i)=0"/>, which the mutation leaves alone, and $e_i$ itself is sent to $-e_i$. On any board the formula reads <Tex src="S_ip=p-\frac{ 2(p,e_i) }{ (e_i,e_i) }\,e_i"/>; with single roads $(e_i,e_i)$ is <Tex src="2"/> and the fraction is $(p,e_i)$.
+
+<figure slot="figure" class="m2-static" data-figure="m2-matrix-a3" style={{ margin: '0 16px' }}>
+<svg viewBox="0 0 240 64" width="240" height="64" role="img" aria-label="The board A3: city 2 in the middle, joined to city 1 on its left and to city 3 on its right." style={{ maxWidth: '100%', height: 'auto' }}>
+<line x1="40" y1="24" x2="200" y2="24" style={{ stroke: 'var(--road)', strokeWidth: 2 }} />
+<circle cx="40" cy="24" r="12" style={{ fill: 'var(--page)', stroke: 'var(--text)', strokeWidth: 2 }} />
+<circle cx="120" cy="24" r="12" style={{ fill: 'var(--page)', stroke: 'var(--text)', strokeWidth: 2 }} />
+<circle cx="200" cy="24" r="12" style={{ fill: 'var(--page)', stroke: 'var(--text)', strokeWidth: 2 }} />
+<text x="40" y="56" text-anchor="middle" style={{ fill: 'var(--text)', fontSize: '14px' }}>{'city 1'}</text>
+<text x="120" y="56" text-anchor="middle" style={{ fill: 'var(--text)', fontSize: '14px' }}>{'city 2'}</text>
+<text x="200" y="56" text-anchor="middle" style={{ fill: 'var(--text)', fontSize: '14px' }}>{'city 3'}</text>
+</svg>
+<div class="m2-matrix">
+<Tex display src="2I-A \;=\; \begin{array}{l} {{types.A3.cartan[0]}} \\ {{types.A3.cartan[1]}} \\ {{types.A3.cartan[2]}} \end{array}"/>
+</div>
+<figcaption data-figure-text>The matrix of the form on <Tex src="A_3"/>, row by row: <G k="types.A3.cartan[0]"/>, <G k="types.A3.cartan[1]"/> and <G k="types.A3.cartan[2]"/>. A joined pair gives <Tex src="-1"/>; cities <Tex src="1"/> and <Tex src="3"/> are not joined and give <Tex src="0"/>.</figcaption>
+</figure>
+</Beat>
+
+<Beat n={4}>
+
+A pairing gives lengths and angles, as the dot product does. Read $(p,p)$ as the square of the length of $p$, and the angle $\theta$ between $p$ and $q$ from $(p,q)=|p|\,|q|\cos\theta$. One Martian in any city has squared length <Tex src="2"/>, so every city has the same length <Tex src="\sqrt2"/>. Two joined cities have $(e_i,e_j)$ equal to <Tex src="-1"/>, so <Tex src="\cos\theta=-1/2"/> and the angle between them is <Tex src="120^\circ"/>. Two cities that are not joined have $(e_i,e_j)$ equal to <Tex src="0"/>: they are perpendicular. On <Tex src="A_3"/>, cities <Tex src="1"/> and <Tex src="3"/> are perpendicular, and each makes <Tex src="120^\circ"/> with city <Tex src="2"/>.
+
+The picture draws <Tex src="A_2"/> in the plane so that the form is the ordinary dot product. The two cities are arrows of length <Tex src="\sqrt2"/> at <Tex src="120^\circ"/>, and all <G k="types.A2.n_roots"/> root populations are arrows of that same length, since every root population has form value <Tex src="2"/>. Those with no anti-Martians are <G k="types.A2.positive_roots[1]"/>, one Martian in city <Tex src="1"/>; <G k="types.A2.positive_roots[0]"/>, one Martian in city <Tex src="2"/>; and <G k="types.A2.positive_roots[2]"/>, one Martian in each city. The others are their negatives, with anti-Martians only. The picture below is <Kaleidoscope />, and you can play on it.
+
+{/* P3-X1 (at the request of P3-A4; SPEC 3 M2 row 4): T6 on A2 with its roots overlay replaces the static
+    figure of phase 2 (data-figure m2-roots-a2); the legend of that figure became the sentence above. */}
+<T06Kaleidoscope slot="figure" client:visible id="b4" preset="default" overlays={["roots"]} caption="Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its six roots, which you can play on." />
+</Beat>
+
+<Beat n={5}>
+
+Every root population has form value <Tex src="2"/>. Is every population of form value <Tex src="2"/> a root population? On a board of finite type with single roads, yes. In the form that has been checked: the positive root populations are exactly the populations with no anti-Martians and form value <Tex src="2"/>, verified by computation for every such board of rank at most eight, for the populations between zero and the highest root. Since $(-p,-p)=(p,p)$ and the negative of a root population is again one, the same holds for populations with no Martians. Wildberger states the converse for every whole-number population of such a board <Cite k="W03a"/> ({'Proposition 3.5'}), including those that mix Martians and anti-Martians.
+
+Test candidates in the table below. Before you type, predict whether <Tex src="(1,-1,0)"/>, which mixes the two kinds, is a root population of <Tex src="A_3"/>.
+
+The statement is for boards of finite type only, and <ModuleThree /> says which boards those are. Join three cities in a triangle and add a tail: city <Tex src="3"/> joined to city <Tex src="4"/>, and city <Tex src="4"/> to city <Tex src="5"/>. This board is not of finite type. On it the population <Tex src="(1,1,1,0,1)"/> has form value <Tex src="2\cdot 4-2\cdot 3=2"/>, since the triangle holds three occupied pairs and the tail none, and yet it is not a root population. This is verified by computation, and the second table shows the engine's verdict.
+
+<T03FormFinder slot="figure" client:visible id="b5" preset="small-values" board="A3" prediction={{ question: 'Is the population (1, −1, 0) a root population of A3?', answer: { type: 'choice', options: ['Yes, it is a root population.', 'No, it is not a root population.'], correct: MIXED_IS_ROOT ? 0 : 1 }, reveal: `It is not. Its form value is ${MIXED_VALUE}, and every root population has form value 2. Type it into a row of the table to see both.` }} caption="Typed populations of A3 with their form values: the root populations read 2, and the population (1, 0, 1) of value 4 is not a root population." />
+<T03FormFinder slot="figure" client:visible id="b6" preset="small-values" board={TAILED} populations={[COUNTEREXAMPLE]} caption="On the triangle with a tail, (1, 1, 1, 0, 1) has form value 2 and is not a root population: off the boards of finite type the converse fails." />
+</Beat>
+
+<Seen provenance={['W20', 'W03a', SEEN_INVARIANT, SEEN_NORM_TWO, SEEN_TAIL]}>
+
+<ul data-seen-statements>
+<li data-seen-statement>Every mutation preserves the form value. <Cite k="W20"/> ({'Proposition 7.1'}) for boards with single roads; {SEEN_INVARIANT}.</li>
+<li data-seen-statement>On a connected board the invariant pairing is unique up to a constant, so the recipe of the builder is forced: on a board with single roads, equal weights on every city and every joined pair. <Cite k="W20"/> ({'Theorems 8.4 and 8.7'}).</li>
+<li data-seen-statement>On a board with single roads every root population has form value <Tex src="2"/>, because one Martian has that value and mutations keep it; {SEEN_INVARIANT}.</li>
+<li data-seen-statement>On a board of finite type with single roads, the root populations are exactly the whole-number populations of form value <Tex src="2"/>: <Cite k="W03a"/> ({'Proposition 3.5'}). For the populations with no anti-Martians this is {SEEN_NORM_TWO}. The restriction to finite type is needed: on the triangle with a tail, <Tex src="(1,1,1,0,1)"/> has form value <Tex src="2"/> and is not a root population, {SEEN_TAIL}.</li>
+</ul>
+
+</Seen>
+
+<LieTheory>
+
+The form value is the Tits form of the graph, equivalently the Killing form restricted to the root lattice, up to scale; Wildberger works with it under the name $Q$ <Cite k="W20"/> (section seven). In general the pairing is the invariant bilinear form $(\ ,\ )$ with <Tex src="(\alpha_i,\alpha_i)=2d_i"/>, and on a simply laced board every $d_i$ is <Tex src="1"/>. The matrix <Tex src="2I-A"/> is the Cartan matrix of a simply laced type, symmetric, in the convention $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$ of Kac and SageMath; Bourbaki prints its transpose, which here is the same matrix. A <Term a="mutate">mutation</Term> is the simple reflection <Tex src="s_i(\beta)=\beta-\frac{ 2(\beta,\alpha_i) }{ (\alpha_i,\alpha_i) }\alpha_i"/>, the <Term a="root-population">root populations</Term> are the roots, and on a simply laced finite type the roots are exactly the vectors of the root lattice of squared length <Tex src="2"/>.
+
+</LieTheory>
+
+## Challenges
+
+Each challenge watches the tool just below it and says when its goal is reached.
+
+<Challenge client:visible for="b7" goal="On D4, a central city joined to three others, set the weights so that the test passes." explanation="Make every city weight and every road weight equal, for example all of them 2, and press Test. The recipe is the same as on A2: on a board with single roads only equal weights pass, up to a common factor." check={{ kind: 'out', name: 'testVerdict', equals: BUILDER_TEXT.pass }} />
+
+<T03FormFinder client:visible id="b7" preset="builder" board="D4" cityWeights={[2, 2, 2, 2]} caption="On D4 the test passes when every city weight and every road weight are equal; the starting weights, 2 on the cities and 1 on the roads, fail." />
+
+<Challenge client:visible for="b8" goal="On A3, starting from one Martian in city 1, reach the population with one anti-Martian in every city, and watch the form value on the way." explanation="Mutate city 1, which turns its Martian into an anti-Martian; then city 2, which takes in that anti-Martian; then city 3, which takes in the anti-Martian of city 2. The result is the negative of the highest root. Every population on the way is a root population, and the form value stays at 2." check={{ kind: 'reach', board: 'populations', values: NEG_THETA }} />
+
+<T01GameBoard client:visible id="b8" board="A3" view="populations" mode="free" coords="populations" start={[1, 0, 0]} panels={['form']} caption="Every population reached from one Martian on A3 shows the form value 2 in the panel, the negative of the highest root included." />
+
+<Challenge client:visible for="b9" goal="On the triangle with a tail, find weights that the test accepts." explanation="Equal weights on every city and every joined pair pass here too. The invariant pairing exists on this board, and the form value of beat five is computed with it; what fails off the finite types is the converse of beat five, not the form." check={{ kind: 'out', name: 'testVerdict', equals: BUILDER_TEXT.pass }} />
+
+<T03FormFinder client:visible id="b9" preset="builder" board={TAILED} cityWeights={[2, 2, 2, 2, 2]} caption="On the triangle with a tail equal weights pass, as on every board with single roads; the starting weights, 2 on the cities and 1 on the roads, fail." />
+
+<ModuleLinks module={2} board="A3" />
+
+<Sources keys={['W20', 'W03a']}>
+
+<Cite k="W20"/>, section two for the mutation game, section seven for the form value and its invariance ({'Proposition 7.1'}), and section eight for the uniqueness of the invariant pairing ({'Theorems 8.4 and 8.7'}). <Cite k="W03a"/>, section three ({'Lemma 3.2 and Proposition 3.5'}), for the form on boards with single roads and the root populations of form value two.
+
+</Sources>

@@ -1,0 +1,26 @@
+---
+layout: ../../../../../src/layouts/Lesson.astro
+title: "Fixture lesson, approved"
+module: 0
+question: "Does an approved lesson carry no draft mark?"
+phase: 1
+released: false
+draft: false
+outcomes: ["LO1"]
+sources: []
+---
+import { Beat, Seen } from '@components/lesson';
+
+{/* P1-A4 fixture: draft: false, and the capitalised provenance phrase of SPEC.md 8.4. */}
+
+<Beat n={1}>
+
+One beat.
+
+</Beat>
+
+<Seen provenance="Verified by computation for all boards of rank at most 8">
+
+The general statement.
+
+</Seen>

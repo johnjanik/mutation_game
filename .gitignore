@@ -15,3 +15,13 @@ coverage/
 reports/*
 !reports/gate-*.md
 !reports/discrepancies/
+__pycache__/
+# worktrees the Claude Code harness creates for build agents
+.claude/worktrees/
+# engine golden coverage registry output (P0-A2)
+packages/engine/test/golden/coverage.json
+packages/engine/test/golden/.coverage/
+# KaTeX assets copied at build time by scripts/katex-assets.mjs (P0-A3)
+site/public/katex/
+# the BASE_PATH=/sub/path/ build of npm run e2e:basepath (OUT_DIR=dist-basepath)
+site/dist-basepath/
