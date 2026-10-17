@@ -36,6 +36,12 @@ const PHASE_3_NAMES = [
   'choleskyBasis',
 ] as const;
 
+// Phase 4 (P4-A1, an edit pre-approved by the orchestrator): the names of fold.ts, restrictedType.ts, the
+// phase-4 additions of geometry.ts and wythoff.ts, pinned here as the earlier phases are.
+const PHASE_4_NAMES = [
+  'symmetries', 'fold', 'averagedRootsType', 'averagedSimpleCartan', 'classifyRestricted',
+] as const;
+
 const PHASE_0_NAMES = [
   'SafeInt', 'Big', 'EngineError', 'NotABoard', 'NeedsTwoWayRoads', 'NeedsConnectedBoard', 'NotFiniteType',
   'NotAffine', 'NotAdmissible', 'EngineOverflow', 'CAPS', 'cartan', 'boardFromName', 'fromAdjacency',
@@ -52,7 +58,10 @@ describe('exports of src/index.ts', () => {
     for (const n of PHASE_0_NAMES) expect(api).toHaveProperty(n);
     for (const n of PHASE_2_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
     for (const n of PHASE_3_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
-    expect(Object.keys(api).sort()).toEqual([...PHASE_0_NAMES, ...PHASE_1_NAMES, ...PHASE_2_NAMES, ...PHASE_3_NAMES].sort());
+    for (const n of PHASE_4_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
+    expect(Object.keys(api).sort()).toEqual(
+      [...PHASE_0_NAMES, ...PHASE_1_NAMES, ...PHASE_2_NAMES, ...PHASE_3_NAMES, ...PHASE_4_NAMES].sort(),
+    );
   });
 
   it('exports the four types (checked by tsc on this file)', () => {

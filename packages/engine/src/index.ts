@@ -84,3 +84,9 @@ export type { WaveResult } from './weyl';
 // phase 3 (P3-A2): heaps.ts, geometry.ts
 export { heap, heapKey, commutationClassSize, symbolicPlay, allCompleteGames } from './heaps';
 export { choleskyBasis } from './geometry';
+
+// phase 4 (P4-A1): fold.ts, restrictedType.ts, geometry.ts (phase-4 additions), wythoff.ts
+export { symmetries, fold, averagedRootsType, averagedSimpleCartan } from './fold';
+export type { Symmetry, FoldResult } from './fold';
+export { classifyRestricted } from './restrictedType';
+export type { RestrictedType, RestrictedEntry } from './restrictedType';
