@@ -105,6 +105,7 @@ const SHIPPED: Record<string, string> = {
   '@astrojs/svelte': 'the client renderer of the islands',
   svelte: 'the runtime of the islands',
   katex: 'the stylesheet and fonts (no script)',
+  nanostores: 'the highlight store and the state map of the islands',
 };
 
 /** Every dependency of the three package.json files, sorted by name. */
