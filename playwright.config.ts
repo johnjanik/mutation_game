@@ -14,7 +14,9 @@ export default defineConfig({
   testIgnore: process.env.BASE_PATH ? [] : ['**/basepath.spec.ts'],
   fullyParallel: false,
   retries: 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  // Under CI the html reporter writes playwright-report/, which ci.yml uploads when a step fails
+  // (RT-FIX P3-RT-12-07); 'github' alone writes no file.
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: `http://localhost:${PORT}${base}`,
     viewport: { width: 360, height: 800 },
