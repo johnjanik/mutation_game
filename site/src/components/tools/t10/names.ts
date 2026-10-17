@@ -2,11 +2,12 @@
 // a tool runs"; Appendix E items 7 and 9; 5.7 rule 6). Owner P4-A3.
 //
 // Board names have a fixed spelling: their KaTeX markup (which carries MathML) comes from
-// site/src/generated/names.json, written by scripts/names.mjs at the start of every build (7.3). The file
-// is not committed and does not exist before a build (the unit tests and the type check run first in CI),
-// so it is read through import.meta.glob, which gives an empty object when the file is absent; then the
-// name is written as plain MathML (<msub>), the way T4 and T16 write theirs. KaTeX itself is never
-// imported here (7.6; RT-07).
+// site/src/generated/names.json, written by scripts/names.mjs at the start of every build (7.3), through
+// typesetNames.ts: in-process during server rendering, and in the browser only after the reader first
+// changes the board (a lazy module, so that the route's first scripts stay within 7.6's 90 kB). Where the
+// lookup is not given (before that, or when the file is absent, as in the unit tests and the type check,
+// which run before any build in CI) the name is written as plain MathML (<msub>), the way T4 and T16 write
+// theirs. KaTeX itself is never imported (7.6; RT-07).
 //
 // Polytope names are shown only for the 26 records of the golden key `wythoff`, taken from their `name`
 // fields (documentation, rule 6) into the table below, keyed by type and rings; every other configuration
@@ -15,11 +16,8 @@
 // Text that cannot hold markup (an aria-label, the live region, the canvas, the export footer) uses plain
 // words and digits: "E8", "polytope 4 21".
 
-const namesFiles = import.meta.glob<{ names: Record<string, { text: string; tex: string; html: string }> }>('../../../generated/names.json', {
-  eager: true,
-  import: 'default',
-});
-const NAMES: Record<string, { html: string }> = Object.values(namesFiles)[0]?.names ?? {};
+/** The KaTeX markup of names.json, by name (typesetNames.ts), or null where it is not loaded. */
+export type NameLookup = Readonly<Record<string, { html: string }>> | null;
 
 /** The 26 polytope names of golden `wythoff`, keyed `<type>:<rings joined by '.'>` (unit test: equal to the file). */
 export const POLYTOPE_NAMES: Readonly<Record<string, string>> = {
@@ -69,27 +67,22 @@ export function boardMathML(name: string): string {
   return `<math display="inline"><msub><mi>${m[1]}</mi><mn>${m[2]}</mn></msub></math>`;
 }
 
-/** The markup of a board name: KaTeX's (with MathML) from names.json, else plain MathML. */
-export function boardNameHtml(name: string): string {
-  return NAMES[name]?.html ?? boardMathML(name);
-}
-
-/** True when the KaTeX markup of names.json was found (build time and the built site). */
-export function namesJsonLoaded(): boolean {
-  return Object.keys(NAMES).length > 0;
+/** The markup of a board name: KaTeX's (with MathML) from names.json when the lookup has it, else plain MathML. */
+export function boardNameHtml(name: string, lookup: NameLookup = null): string {
+  return lookup?.[name]?.html ?? boardMathML(name);
 }
 
 /**
  * The markup of a polytope name: each symbol p_qr becomes MathML with a subscript, each board name a
  * board name (names.json or MathML), the rest is escaped text.
  */
-export function polytopeNameHtml(name: string): string {
+export function polytopeNameHtml(name: string, lookup: NameLookup = null): string {
   return name
     .split(/(\b\d_\d+\b|\b[A-G][1-9]\b)/)
     .map((part) => {
       const sym = /^(\d)_(\d+)$/.exec(part);
       if (sym !== null) return `<math display="inline"><msub><mn>${sym[1]}</mn><mn>${sym[2]}</mn></msub></math>`;
-      if (FINITE.test(part)) return boardNameHtml(part);
+      if (FINITE.test(part)) return boardNameHtml(part, lookup);
       return escapeHtml(part);
     })
     .join('');

@@ -25,7 +25,8 @@
   import type { OrbitGraph } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
-  import Predict from '../board/Predict.svelte';
+  import type PredictType from '../board/Predict.svelte';
+  import { predictionAnswerText } from './t01/interop';
   import { decodeState, LINK_NOTICE } from '../../lib/urlCodec';
   import { engineCall, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
@@ -45,7 +46,6 @@
     loadPlan,
     orbitKey,
     shortRootPositions,
-    snapshotOf,
     stateOf,
     viewWords,
     type StudioConfig,
@@ -74,11 +74,12 @@
     type OrbitData,
     type PresetFile,
   } from './t10/scene';
-  import { MoveGraphBuilder, labelsOf, moveEdgeColour, moveGraphFitsOneTask, sharedEdgeCount } from './t10/graphs';
+  import { labelsOf, moveEdgeColour, moveGraphFitsOneTask, sharedEdgeCount } from './t10/graphs';
   import { coxeterStats, distinctDotsText, ringSizesText } from './t10/coxeter';
   import { baseEdgeLengths, distinctLengths, lengthText, replayVertices, uniformStart } from './t10/uniform';
-  import { buildPicture, drawPicture, pictureSvg, projectionOf, rotateInPlane, type Picture, type PictureColours } from './t10/drawing';
-  import { boardNameHtml, polytopeNameHtml } from './t10/names';
+  import { buildPicture, drawPicture, projectionOf, rotateInPlane, type Picture, type PictureColours } from './t10/drawing';
+  import { snapshotOf, ssrNames } from './t10/snapshot';
+  import { boardNameHtml, polytopeNameHtml, type NameLookup } from './t10/names';
 
   interface Props {
     id?: string;
@@ -133,6 +134,15 @@
   let rotation = $state.raw<FloatMatrix | null>(null);
   let turning = $state(false);
   let predictionResolved = $state(prediction === undefined);
+  // Predict.svelte is fetched only where a prediction is configured (lesson pages), so that the tool's own
+  // route does not carry it (7.6: 90 kB); until it arrives the static question and its <details> stand.
+  let PredictComponent = $state.raw<typeof PredictType | null>(null);
+  $effect(() => {
+    if (prediction === undefined) return;
+    void import('../board/Predict.svelte').then((m) => {
+      PredictComponent = m.default;
+    });
+  });
   let ringFocus = $state(0);
   let planeA = $state(1);
   let planeB = $state(2);
@@ -152,6 +162,18 @@
   const ssr = import.meta.env.SSR ? snapshotOf({ ...initialFacts, config: configured.config, projection: projectionOf(configured.config.projection, initialFacts.board.n)! }, svgId) : null;
   let snapshotHtml = $state(ssr !== null ? ssr.svg : KEEP_SERVER_SNAPSHOT);
   let orbit = $state.raw<Orbit>(initialOrbit());
+  // The typeset board names of names.json (7.3): in-process at build time; in the browser fetched when the
+  // reader first leaves the configured board (until then the server's markup stays; t10/names.ts).
+  let katex = $state.raw<NameLookup>(import.meta.env.SSR ? ssrNames() : null);
+  function loadNames(): void {
+    if (katex !== null) return;
+    void import('./t10/typesetNames').then((m) => {
+      katex = m.KATEX_NAMES;
+    });
+  }
+  $effect(() => {
+    if (current.board !== configured.config.board) untrack(loadNames);
+  });
 
   function initialOrbit(): Orbit {
     const key = orbitKey(configured.config.board, configured.config.rings);
@@ -343,13 +365,29 @@
 
   // The move graph, derived from the vertex list once more (5.4) when it is shown, or when it is small
   // enough to give the shared count at once; in slices of at most 2000 moves, one task each (7.6).
+  // The move graph's module (t10/moves.ts) is fetched when the move graph is first needed (7.6).
+  let movesModule = $state.raw<typeof import('./t10/moves') | null>(null);
+  let movesLoading = false;
+  function loadMoves(): void {
+    if (movesModule !== null || movesLoading) return;
+    movesLoading = true;
+    void import('./t10/moves').then((m) => {
+      movesModule = m;
+    });
+  }
+
   $effect(() => {
     const o = orbit;
     const g = current.graph;
+    const mod = movesModule;
     if (o.kind !== 'ready' || o.data.moveEdges !== null) return;
     const b = coreFacts(o.data.board, o.data.rings).board;
     if (g !== 'moves' && !moveGraphFitsOneTask(b.n, o.data.vertices.length)) return;
-    const builder = new MoveGraphBuilder(b, o.data.vertices);
+    if (mod === null) {
+      untrack(loadMoves);
+      return;
+    }
+    const builder = new mod.MoveGraphBuilder(b, o.data.vertices);
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const run = (): void => {
@@ -678,9 +716,12 @@
     if (k === snapshotKey) return;
     snapshotTimer = setTimeout(() => {
       snapshotTimer = null;
-      if (turning || lastPicture === null) return;
-      snapshotHtml = pictureSvg(lastPicture, { title: figureLabel, desc: 'The current view, drawn as SVG for export.', id: svgId });
-      snapshotKey = k;
+      // The SVG writer is fetched on the first rewrite only (after a change of the reader's; 7.6).
+      void import('./t10/svg').then(({ pictureSvg }) => {
+        if (turning || lastPicture === null || snapshotTimer !== null) return;
+        snapshotHtml = pictureSvg(lastPicture, { title: figureLabel, desc: 'The current view, drawn as SVG for export.', id: svgId });
+        snapshotKey = k;
+      });
     }, 400);
   }
 
@@ -701,8 +742,13 @@
     const g = current.graph;
     const k = viewKey;
     const o = orbit;
+    const mod = movesModule;
     void themeVersion;
     if (c === undefined || w <= 0) return;
+    if (g === 'moves' && mod === null) {
+      untrack(loadMoves);
+      return;
+    }
     // The snapshot stays until the configured orbit is complete; after any change the canvas shows what
     // is known at once (vertices without edges while they come, an empty box for a refused orbit), so
     // that a picture of another state never stands in for the current one.
@@ -719,7 +765,7 @@
       { rank: n, vertices: refusedNow ? [] : (y ?? []), shortRoots: refusedNow ? [] : sy, edges: y === null ? [] : edges, graph: g, projection: proj, rotation: rot, highlighted: hl },
       { width: w, height: w },
     );
-    const result = drawPicture(ctx, picture, colours(), { turning: isTurning, dpr });
+    const result = drawPicture(ctx, picture, colours(), { turning: isTurning, dpr }, mod?.drawMoves);
     ctx.getImageData(0, 0, 1, 1);
     drawMs = performance.now() - t0;
     pointsDrawn = result.pointsDrawn + result.shortRootsDrawn;
@@ -813,7 +859,7 @@
   {remember(api)}
   <div class="t10" data-board-name={current.board}>
     <p class="names">
-      <span class="board-name" data-out="boardName" data-name={current.board}>{@html boardNameHtml(current.board)}</span>{#if core.name !== null}<span class="sep">{': '}</span><span class="polytope-name" data-out="polytopeName">{@html polytopeNameHtml(core.name)}</span>{:else}<span data-out="polytopeName"></span>{/if}
+      <span class="board-name" data-out="boardName" data-name={current.board}>{@html boardNameHtml(current.board, katex)}</span>{#if core.name !== null}<span class="sep">{': '}</span><span class="polytope-name" data-out="polytopeName">{@html polytopeNameHtml(core.name, katex)}</span>{:else}<span data-out="polytopeName"></span>{/if}
     </p>
     <div class="stage" bind:clientWidth={boxW}>
       <div class="snapshot" data-out="snapshot" aria-hidden={drawnOnce ? 'true' : undefined}>{@html snapshotHtml}<span class="anchor"></span></div>
@@ -898,7 +944,19 @@
       {/if}
     </div>
     {#if prediction}
-      <Predict {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
+      {#if PredictComponent}
+        <PredictComponent {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
+      {:else}
+        <!-- Before Predict.svelte arrives, and without JavaScript (4.0 Predict): the question, then a <details> with the answer and the reveal. -->
+        <div class="predict" data-prediction="">
+          <p class="question">{prediction.question}</p>
+          <details class="nojs-answer">
+            <summary>Answer</summary>
+            <p>{predictionAnswerText(prediction)}</p>
+            <p>{prediction.reveal}</p>
+          </details>
+        </div>
+      {/if}
     {/if}
     <!-- The node the ring buttons act on is the last one focused (keyboard or click), never one merely hovered. -->
     <div class="rings" onfocusin={onRingFocus}>

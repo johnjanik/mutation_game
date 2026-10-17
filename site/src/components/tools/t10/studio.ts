@@ -8,18 +8,16 @@ import type { Board } from '@two-games/engine';
 import type { ToolState } from '../../../lib/state';
 import { whereToRun, type CallHint } from '../../../lib/worker';
 import { formatProjection, type FloatMatrix, type Projection } from '../../draw/projector';
-import { presetFor, type PresetManifest } from '../../draw/presetsT10';
+import type { PresetManifest } from '../../draw/presetsT10';
 import { defaultProjectionText, type T10Graph } from './config';
 import { coxeterStats, distinctDotsText, ringSizesText, type PlaneStats } from './coxeter';
-import { buildPicture, pictureSvg, projectionOf, type Box, type Picture } from './drawing';
-import { moveEdges, sharedEdgeCount, type MoveEdge } from './graphs';
+import { buildPicture, projectionOf, type Box, type Picture } from './drawing';
+import { sharedEdgeCount, type MoveEdge } from './graphs';
 import { polytopeName, polytopeNamePlain } from './names';
-import { presetOf } from './presets';
+import { dataFileFor, presetOf } from './presets';
 import {
-  computeOrbit,
   countsOf,
   decide,
-  drawingMatrixOf,
   edgeLimitText,
   enumerationHint,
   euclideanPoints,
@@ -241,7 +239,7 @@ export type LoadPlan =
  */
 export function loadPlan(facts: StudioFacts, manifest: PresetManifest | null, origin: 'load' | 'reader'): LoadPlan {
   if (facts.decision.refused) return { kind: 'refused' };
-  const entry = manifest === null ? null : presetFor(manifest, facts.config.board, facts.config.rings);
+  const entry = manifest === null ? null : dataFileFor(manifest, facts.config.board, facts.config.rings);
   if (entry !== null) return { kind: 'file', file: entry.file };
   const vertexHint = enumerationHint(facts.board, facts.decision.vertexItems);
   const edgeHint = facts.decision.verticesOnly ? null : enumerationHint(facts.board, facts.decision.edgeItems);
@@ -326,50 +324,6 @@ export function planeTexts(drawn: Drawn | null): { distinct: string; rings: stri
     distinct: distinctDotsText(drawn.stats) ?? '',
     rings: ringSizesText(drawn.stats),
     radii: drawn.stats.rings.map(([r]) => String(r)).join(', '),
-  };
-}
-
-// ---------------------------------------------------------------------------------------------
-// The snapshot of 7.4 (build time, in Node: every engine call in-process, E-9)
-// ---------------------------------------------------------------------------------------------
-
-/** The box of the snapshot, in CSS pixels; the SVG scales to the figure's width (plan, as the drawing-time probe). */
-export const SNAPSHOT_BOX: Box = { width: 360, height: 360 };
-
-export interface Snapshot {
-  svg: string;
-  data: OrbitData | null;
-  drawn: Drawn | null;
-  points: number;
-  segments: number;
-  labels: number;
-}
-
-/**
- * The SVG of a configuration at rest with the integer orbit, as the tool first shows it: computed in-process
- * (orbitGraph, wythoffEdges, the move graph when it is the graph shown), projected with the configured
- * projection, rendered by renderSvg (polytope graph) or pictureSvg (move graph), with the colour tokens.
- * A refused orbit gives the empty box with its text alternative; a vertices-only orbit, the points alone.
- */
-export function snapshotOf(facts: StudioFacts, id: string): Snapshot {
-  const data = computeOrbit(facts.board, facts.config.rings, facts.decision);
-  const options: DrawOptions = { uniform: false, shortRoots: false, rotation: null, highlighted: null };
-  let drawn: Drawn | null = null;
-  if (data !== null) {
-    if (facts.config.graph === 'moves') data.moveEdges = moveEdges(facts.board, data.vertices);
-    drawn = drawnOf(facts, data, options, drawingMatrixOf(facts.board), null);
-  }
-  const empty: Drawn = { ys: [], shortYs: [], edges: [], stats: null, shared: null };
-  const picture = pictureOf(facts, drawn ?? empty, options, SNAPSHOT_BOX);
-  const svg = pictureSvg(picture, { title: figureText(facts, facts.config.graph), desc: 'A snapshot made at build time.', id });
-  const segments = facts.decision.verticesOnly || drawn === null ? 0 : drawn.edges.length;
-  return {
-    svg,
-    data,
-    drawn,
-    points: drawn?.ys.length ?? 0,
-    segments: Math.min(segments, segments > CAPS.edgesAtRest ? 0 : segments),
-    labels: facts.config.graph === 'moves' ? segments : 0,
   };
 }
 

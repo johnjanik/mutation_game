@@ -5,11 +5,18 @@
 // figure table. A data file depends only on the board and the rings, so a state opens from a file exactly
 // when its (board, rings) is a configuration of the manifest, whatever its projection and graph, and
 // whether it came from a preset or from a link (compare board and rings, never the preset id).
+//
+// The browser reads the manifest and the files through the format of presetsT10.ts (types only): the
+// directory, the manifest's name and the lookup by (board, rings) are restated here, because importing that
+// module would add its build-time pipeline to the route's script (7.6: 90 kB); the unit test checks that
+// the three agree with presetsT10.ts on every configuration.
 import type { ToolState } from '../../../lib/state';
-import { MANIFEST_FILE, PRESET_DIR, presetFor, type ManifestEntry, type PresetManifest } from '../../draw/presetsT10';
+import type { ManifestEntry, PresetManifest } from '../../draw/presetsT10';
 import { T10_PRESETS, type T10PresetId } from './config';
 
-export { MANIFEST_FILE, PRESET_DIR };
+/** The directory of the data files under the site's base, and the manifest's name in it (presetsT10.ts). */
+export const PRESET_DIR = 'presets/T10/';
+export const MANIFEST_FILE = 'index.json';
 
 /** The state object of a preset (4.0: "every preset is also a state object and a link"). */
 export function presetState(id: T10PresetId): ToolState {
@@ -49,7 +56,8 @@ export const PLACED_FIGURES: readonly PlacedFigure[] = [
 
 /** The manifest entry of a configuration (rings in label order), or null when it is not precomputed. */
 export function dataFileFor(manifest: PresetManifest, board: string, rings: readonly number[]): ManifestEntry | null {
-  return presetFor(manifest, board, rings);
+  const r = rings.join('.');
+  return manifest.files.find((f) => f.board === board && f.rings.join('.') === r) ?? null;
 }
 
 /** The URL of a data file under the site's base (7.2 item 10: never a leading slash). */
@@ -59,7 +67,7 @@ export function dataUrl(base: string, file: string): string {
 
 /** True when a state opens from a data file: its board and rings are a configuration of the manifest. */
 export function opensFromFile(manifest: PresetManifest, state: Pick<ToolState, 'board' | 'rings'>): boolean {
-  return typeof state.board === 'string' && state.rings !== undefined && presetFor(manifest, state.board, state.rings) !== null;
+  return typeof state.board === 'string' && state.rings !== undefined && dataFileFor(manifest, state.board, state.rings) !== null;
 }
 
 /**

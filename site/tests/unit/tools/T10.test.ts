@@ -48,14 +48,17 @@ import {
   vertexArgs,
   type PresetFile,
 } from '../../../src/components/tools/t10/scene';
-import { MoveGraphBuilder, moveEdges, sharedEdgeCount, moveEdgeColour } from '../../../src/components/tools/t10/graphs';
+import { sharedEdgeCount, moveEdgeColour } from '../../../src/components/tools/t10/graphs';
+import { MoveGraphBuilder, drawMoves, moveEdges } from '../../../src/components/tools/t10/moves';
 import { coxeterStats, distinctDotsText, planeStats } from '../../../src/components/tools/t10/coxeter';
 import { baseEdgeLengths, distinctLengths, replayVertices, replayWholeWords, symmetrizerFloats, uniformConstant, uniformMatters, uniformStart } from '../../../src/components/tools/t10/uniform';
-import { PLACED_FIGURES, SHELL_LINKS, dataFileFor, presetState } from '../../../src/components/tools/t10/presets';
+import { MANIFEST_FILE, PLACED_FIGURES, PRESET_DIR, SHELL_LINKS, dataFileFor, presetState } from '../../../src/components/tools/t10/presets';
 import { POLYTOPE_NAMES, polytopeNameHtml, polytopeNamePlain } from '../../../src/components/tools/t10/names';
-import { admit, drawnOf, factsOf, figureText, limitTexts, loadPlan, pictureOf, shortRootPositions, snapshotOf, stateOf, uncachedCore, type StudioConfig } from '../../../src/components/tools/t10/studio';
-import { drawPicture, pictureSvg, type PictureColours } from '../../../src/components/tools/t10/drawing';
-import type { PresetManifest } from '../../../src/components/draw/presetsT10';
+import { admit, drawnOf, factsOf, figureText, limitTexts, loadPlan, pictureOf, shortRootPositions, stateOf, uncachedCore, type StudioConfig } from '../../../src/components/tools/t10/studio';
+import { drawPicture, type PictureColours } from '../../../src/components/tools/t10/drawing';
+import { pictureSvg } from '../../../src/components/tools/t10/svg';
+import { snapshotOf } from '../../../src/components/tools/t10/snapshot';
+import { MANIFEST_FILE as P4A2_MANIFEST, PRESET_CONFIGS, PRESET_DIR as P4A2_DIR, presetFor, presetRings, type PresetManifest } from '../../../src/components/draw/presetsT10';
 import { LINK_NOTICE, decodeState, encodeState } from '../../../src/lib/urlCodec';
 import { whereToRun } from '../../../src/lib/worker';
 import { ssrLoader, type SsrLoader } from '../_svelteSsr';
@@ -85,9 +88,9 @@ const golden = JSON.parse(readFileSync(`${ROOT}reference/golden_data.json`, 'utf
   coxeter_plane_types_with_coincident_points: string[];
 };
 const TYPES = Object.keys(golden.types);
-const PRESET_DIR = `${ROOT}site/public/presets/T10/`;
-const manifest = JSON.parse(readFileSync(`${PRESET_DIR}index.json`, 'utf8')) as PresetManifest;
-const fileOf = (name: string): PresetFile => JSON.parse(readFileSync(`${PRESET_DIR}${name}`, 'utf8')) as PresetFile;
+const DATA_DIR = `${ROOT}site/public/presets/T10/`;
+const manifest = JSON.parse(readFileSync(`${DATA_DIR}index.json`, 'utf8')) as PresetManifest;
+const fileOf = (name: string): PresetFile => JSON.parse(readFileSync(`${DATA_DIR}${name}`, 'utf8')) as PresetFile;
 
 const B = (name: string): Board<number> => boardFromName(name) as Board<number>;
 const configOf = (board: string, rings: number[], projection?: string, graph: 'polytope' | 'moves' = 'polytope'): StudioConfig =>
@@ -501,6 +504,20 @@ describe('presets', () => {
     expect(loadPlan(factsOf(admit(link.state, true)!), manifest, 'load')).toEqual({ kind: 'file', file: 'E8-r0.0.0.0.0.0.0.1.json' });
   });
 
+  it('the browser lookup of a data file agrees with P4-A2 presetsT10.ts', () => {
+    expect(PRESET_DIR).toBe(P4A2_DIR);
+    expect(MANIFEST_FILE).toBe(P4A2_MANIFEST);
+    for (const config of PRESET_CONFIGS) {
+      const rings = presetRings(config);
+      expect(dataFileFor(manifest, config.board, rings)).toEqual(presetFor(manifest, config.board, rings));
+      expect(dataFileFor(manifest, config.board, rings)).not.toBeNull();
+    }
+    for (const [board, rings] of [['A3', [1, 1, 1]], ['E8', [1, 0, 0, 0, 0, 0, 0, 0]], ['A2', [1, 0]]] as [string, number[]][]) {
+      expect(dataFileFor(manifest, board, rings)).toBeNull();
+      expect(presetFor(manifest, board, rings)).toBeNull();
+    }
+  });
+
   it('the data files read back as the engine computes them', () => {
     for (const entry of manifest.files) {
       const board = B(entry.board);
@@ -613,7 +630,9 @@ describe('labels and names', () => {
       picture.scene.segments.forEach((s, k) => expect(picture.segmentLabels![k]).toBe(byPair.get(`${Math.min(s.a, s.b)},${Math.max(s.a, s.b)}`)));
       // The canvas: a numeral for every drawn edge, no threshold.
       const ctx = recorder();
-      const result = drawPicture(ctx, picture, COLOURS, { turning: false, dpr: 1 });
+      const result = drawPicture(ctx, picture, COLOURS, { turning: false, dpr: 1 }, drawMoves);
+      // Without the move module the move graph is not drawn at all (never without its labels).
+      expect(() => drawPicture(recorder(), picture, COLOURS, { turning: false, dpr: 1 })).toThrow();
       expect(result.labelsDrawn).toBe(data.moveEdges.length);
       expect(ctx.texts.sort()).toEqual(picture.segmentLabels!.map(String).sort());
       // The SVG (the snapshot and the export): one <text> per edge, with the label as its text, and the colour by label.
@@ -767,5 +786,12 @@ describe('server rendering', () => {
     const svg = snapshotOfBody(moves);
     expect((svg.match(/<text data-edge-label=/g) ?? []).length).toBe(6);
     expect(() => loader.render(T10C.default, { id: 'b4', board: 'A4~' })).toThrow(/b4/);
+    // A prediction (4.0 Predict): without JavaScript the question is followed by a <details> with the answer and the reveal.
+    const predicted = loader.render(T10C.default, {
+      id: 'b5',
+      preset: 'rings',
+      prediction: { question: 'How many vertices?', answer: { type: 'number', value: 4 }, reveal: 'A tetrahedron.' },
+    });
+    expect(predicted).toMatch(/data-prediction=""[^]*How many vertices\?[^]*<details[^]*<summary>Answer<\/summary>[^]*<p>4<\/p>[^]*A tetrahedron\./);
   }, 60000);
 });

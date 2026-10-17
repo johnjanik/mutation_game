@@ -7,70 +7,11 @@
 // node through the engine's `fire`, and the pairs are deduplicated as sorted index pairs. A pair belongs
 // to exactly one node, since R_i mu - mu is a multiple of alpha_i; the edge carries that node's label, its
 // colour (palette of eight, by label) and the label as text.
-import { CAPS, fire } from '@two-games/engine';
-import type { Board } from '@two-games/engine';
+import { CAPS } from '@two-games/engine';
 import { edgeColour } from '../../draw/palette';
-import { keyOf, labelOf, vertexIndex } from './scene';
 
 /** A move-graph edge: vertex indices i < j and the label of the node fired. */
 export type MoveEdge = [number, number, number];
-
-/**
- * The move graph built in slices (E-9 and 7.6: the derivation applies at most n |V| moves; each call of
- * step() applies at most `budget` of them, so that a caller can spread a large derivation over tasks).
- */
-export class MoveGraphBuilder {
-  readonly edges: MoveEdge[] = [];
-  private next = 0;
-  private readonly index: Map<string, number>;
-  private readonly seen = new Set<string>();
-
-  constructor(
-    private readonly board: Board<number>,
-    private readonly vertices: readonly (readonly number[])[],
-  ) {
-    this.index = vertexIndex(vertices);
-  }
-
-  /** The vertices done so far. */
-  get progress(): number {
-    return this.next;
-  }
-
-  get done(): boolean {
-    return this.next >= this.vertices.length;
-  }
-
-  /** Fires every node at the next vertices until about `budget` moves are applied; true when the graph is complete. */
-  step(budget = Infinity): boolean {
-    const { board, vertices, index, seen, edges } = this;
-    let moves = 0;
-    while (this.next < vertices.length && moves < budget) {
-      const i = this.next++;
-      const mu = vertices[i]!;
-      for (let k = 0; k < board.n; k++) {
-        if (mu[k] === 0) continue; // R_k mu = mu: no edge
-        moves++;
-        const j = index.get(keyOf(fire(board, mu, k)));
-        if (j === undefined) throw new Error(`firing node ${labelOf(board, k)} leaves the orbit: the vertex list is incomplete`);
-        const a = Math.min(i, j);
-        const b = Math.max(i, j);
-        const key = `${a},${b}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        edges.push([a, b, labelOf(board, k)]);
-      }
-    }
-    return this.done;
-  }
-}
-
-/** The move graph of a vertex list, in one call (build time, unit tests, and graphs of at most 2000 moves). */
-export function moveEdges(board: Board<number>, vertices: readonly (readonly number[])[]): MoveEdge[] {
-  const b = new MoveGraphBuilder(board, vertices);
-  b.step();
-  return b.edges;
-}
 
 /** The bound n |V| / 2 on the number of move edges, known before the derivation (plan, 5.6). */
 export function moveEdgeBound(n: number, vertices: number): number {
