@@ -30,8 +30,10 @@
   const answerText = $derived(predictionAnswerText(prediction));
   const fields = $derived(prediction.answer.type === 'position' ? prediction.answer.value.length : 0);
 
+  /** The answer closing a sentence: a full stop is added unless the answer already ends one (a choice is often a sentence). */
+  const closed = $derived(/[.!?]$/.test(answerText) ? answerText : `${answerText}.`);
   const resultText = $derived(
-    resolved === 'correct' ? `Right: ${answerText}.` : resolved === 'wrong' ? `Not quite: the answer is ${answerText}.` : resolved === 'shown' ? `The answer is ${answerText}.` : '',
+    resolved === 'correct' ? `Right: ${closed}` : resolved === 'wrong' ? `Not quite: the answer is ${closed}` : resolved === 'shown' ? `The answer is ${closed}` : '',
   );
 
   function read(): PredictionAnswer | null {
@@ -52,7 +54,7 @@
   function finish(outcome: 'correct' | 'wrong' | 'shown'): void {
     if (resolved !== null) return;
     resolved = outcome;
-    announce?.(`${outcome === 'correct' ? 'Right' : outcome === 'wrong' ? 'Not quite' : 'Shown'}. The answer is ${answerText}. ${prediction.reveal}`);
+    announce?.(`${outcome === 'correct' ? 'Right' : outcome === 'wrong' ? 'Not quite' : 'Shown'}. The answer is ${closed} ${prediction.reveal}`);
     onResolved?.(outcome);
   }
 
