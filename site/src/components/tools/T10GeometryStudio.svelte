@@ -193,7 +193,9 @@
   function initialOrbit(): Orbit {
     const key = orbitKey(configured.config.board, configured.config.rings);
     if (initialFacts.decision.refused) return { kind: 'refused', key };
-    if (ssr !== null && ssr.data !== null) return { kind: 'ready', key, data: ssr.data };
+    // At build time, the orbit as the browser's own load on hydration leaves it (RT-FIX P4-MERGE-03): ready
+    // (from the data file or the main thread), or waiting for "Draw the orbit" with its vertices when known.
+    if (ssr !== null && ssr.data !== null) return ssr.ready ? { kind: 'ready', key, data: ssr.data } : { kind: 'wait', key, partial: verticesOnMain(initialFacts, configured.config) };
     return { kind: 'pending', key, partial: verticesOnMain(initialFacts, configured.config) };
   }
 
@@ -993,7 +995,7 @@
       <p class="line">
         View: <span data-out="projection">{current.projection}</span>; turn <span data-out="turn">{turnText}</span> degrees; graph
         <span data-out="graph">{current.graph}</span>; drawn from
-        <span data-out="source">{api.hydrated && complete && data !== null ? data.source : ''}</span>.
+        <span data-out="source">{complete && data !== null ? data.source : ''}</span>.
       </p>
       <p class="line">
         Ring sizes in this plane, innermost first: <span class="numeral" data-out="ringSizes" data-radii={stats === null ? '' : stats.rings.map(([r]) => r).join(',')}

@@ -9,7 +9,7 @@
 // P3-RT-06-03 adds: data-board-group and the drawing beside it, role="img", <img alt>, the node hooks
 // data-board, data-value, data-can-act, data-editor (the board editor), every data-out and data-moves
 // (compared with the hydrated default), data-hydrated, and the prediction's .answer-text.
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { hydrateEveryIsland } from './hydrate';
 import { discoverRoutes } from './routes';
@@ -322,5 +322,35 @@ test('M7 T10 predictions: the server markup holds the empty result line (data-ou
     const result = predictions.nth(k).locator('[data-out="predictResult"]');
     await expect(result, `prediction ${k}: the result line`).toHaveCount(1);
     await expect(result, `prediction ${k}: empty before an answer`).toHaveText('');
+  }
+});
+
+/** The text of the named data-out of the first root of a tool on a page, '' when absent. */
+async function outText(page: Page, tool: string, name: string): Promise<string> {
+  return page
+    .locator(`[data-tool="${tool}"]`)
+    .first()
+    .evaluate((root, n) => (root.querySelector(`[data-out="${n}"]`)?.textContent ?? '').replace(/\s+/g, ' ').trim(), name);
+}
+
+// regression: P4-MERGE-03
+test('T10 server markup shows data-out source and sharedEdges as the hydrated default fills them', async ({ page, browser }) => {
+  for (const route of ['modules/m7-geometry/', 'tools/geometry/']) {
+    await page.goto(route);
+    const server = { source: await outText(page, 'geometry', 'source'), sharedEdges: await outText(page, 'geometry', 'sharedEdges') };
+    const context = await browser.newContext({ javaScriptEnabled: true, viewport: { width: 360, height: 800 } });
+    try {
+      const live = await context.newPage();
+      await live.goto(route);
+      await hydrateEveryIsland(live);
+      await expect(live.locator('[data-tool="geometry"]').first()).toHaveAttribute('data-hydrated', 'true');
+      // The hydrated default fills both once the orbit has loaded.
+      await expect.poll(() => outText(live, 'geometry', 'source'), { message: `${route}: hydrated source` }).not.toBe('');
+      await expect.poll(() => outText(live, 'geometry', 'sharedEdges'), { message: `${route}: hydrated sharedEdges` }).not.toBe('');
+      const hydrated = { source: await outText(live, 'geometry', 'source'), sharedEdges: await outText(live, 'geometry', 'sharedEdges') };
+      expect(server, `${route}: the server markup against the hydrated default`).toEqual(hydrated);
+    } finally {
+      await context.close();
+    }
   }
 });
