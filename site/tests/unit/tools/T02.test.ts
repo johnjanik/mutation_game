@@ -747,4 +747,53 @@ describe('regressions', () => {
     // The held list is not changed.
     expect(held).toHaveLength(long.length + 1);
   });
+
+  // Adopted from the RT-08 lens (content rules, attacks 9 and 11, phase 3): the Orbit Garden's counter on
+  // a finite-type board in `orbit` mode. The component shows totalText(gardenTotal(spec, bound))
+  // (T02OrbitGarden.svelte), so this test reads that function. Expected values come from
+  // reference/golden_data.json (types.E8.weyl_order: the orbit of all ones is regular, so its size is the
+  // order of the group), never typed.
+  describe('T2 counter total in orbit mode on a finite-type board (phase 3)', () => {
+    function orbitSpec(name: string, start: number[]): { spec: GardenSpec; board: AnyBoard } {
+      const board = boardFromName(name);
+      const s = startVector(board, start);
+      return { spec: { board: s.board, grows: 'orbit', seed: s.v, game: gameOf('orbit', 'numbers') }, board: s.board };
+    }
+    // regression: P3-RT-08-02
+    it('E8, the numbers game from all ones: the exact size from orbitSize, not "more than 2000"', () => {
+      const { spec, board } = orbitSpec('E8', [1, 1, 1, 1, 1, 1, 1, 1]);
+      const expected = resolveGoldenPath('types.E8.weyl_order') as number;
+      // The engine function the specification names agrees with the golden value.
+      expect(orbitSize(board as never, spec.seed as never)).toBe(expected);
+      const shown = totalText(gardenTotal(spec, gardenLayersBound(spec.board)));
+      // Observed at 69546f0: "more than 2000".
+      expect(shown, 'counter total of T2 on E8 from all ones').not.toBe('more than 2000');
+      expect(shown.replace(/[\s ,]/g, '')).toBe(String(expected));
+    });
+  });
+
+  // Adopted from the RT-10 lens (spec-compliance, attack 32). The counter's total is computed by
+  // gardenTotal (t02/phase2.ts), which T02OrbitGarden.svelte shows in data-out="total" after "Show total".
+  // Expected on E6 and E8 from the numbers all ones: weyl_order (all ones lies on no mirror, so the orbit
+  // has |W| positions, far above the garden's bound of 2000).
+  describe('T2 total from orbitSize on a finite-type board (phase 3)', () => {
+    const orbitSpec = (name: string, start: number[]): GardenSpec => {
+      const s = startVector(resolveBoard(name), start);
+      return { board: s.board, grows: 'orbit', seed: s.v, game: gameOf('orbit', 'numbers') };
+    };
+    // In the two tests below, `any` reads nested keys of the golden JSON import as the lens wrote them.
+    // regression: P3-RT-10-01
+    it('E6, numbers all ones: the total shown after asking is weyl_order, not "more than 2000"', () => {
+      const spec = orbitSpec('E6', [1, 1, 1, 1, 1, 1]);
+      const expected = (golden as any).types.E6.weyl_order as number;
+      expect(orbitSize(spec.board as Board<number>, spec.seed as number[])).toBe(expected);
+      const t = gardenTotal(spec, undefined);
+      expect(totalText(t)).toBe(String(expected));
+    });
+    // regression: P3-RT-10-01
+    it('E8, numbers all ones: the total is weyl_order 696729600', () => {
+      const spec = orbitSpec('E8', [1, 1, 1, 1, 1, 1, 1, 1]);
+      expect(totalText(gardenTotal(spec, undefined))).toBe(String((golden as any).types.E8.weyl_order));
+    });
+  });
 });
