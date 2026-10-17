@@ -70,7 +70,7 @@ const TOOLS: [string, Kind][] = [
 const BEAT_OF: Record<string, number> = { b1: 1, b2: 2, b3: 2, b4: 3, b5: 3, b6: 4, b7: 4, b8: 5, b9: 6 };
 
 interface Golden {
-  types: Record<string, { n_roots: number; highest_root: number[]; numbers_of_highest_root: number[] }>;
+  types: Record<string, { n_roots: number; highest_root: number[]; numbers_of_highest_root: number[]; cartan: number[][] }>;
   kostant: Record<string, { end_from_node: number[][]; moves_from_node: number[]; final_numbers_from_node: number[][]; affine_board_from_node: string[] }>;
   layer_growth_examples: { label: string; layers: number; root_populations_found: number; new_per_layer: number[] }[];
   affine: Record<string, { name: string; marks: number[] }>;
@@ -704,5 +704,49 @@ test.describe('regressions', () => {
     const printed = (await proseSentences(page, '[data-beat="7"]')).filter((s) => s.includes('Donnelly and Eriksson'));
     expect(printed.length).toBe(1);
     expect(printed[0]).toMatch(/connected board with roads both ways .*no negative number and is not all zeros/);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-08-computation-range.test.ts (lens RT-08), M3 part (the
+  // open-problem page and M1 are other fixes).
+  // regression: P3-RT-08-01
+  test('"verified by computation" is never stated over every board of finite type without a range', () => {
+    // The check behind Kostant's game and its affine recipe (golden key kostant) covers the named types
+    // of rank at most 8.
+    const kostant = Object.keys(GOLDEN.kostant);
+    expect(kostant.length).toBe(32);
+    expect(kostant).not.toContain('A9');
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    // "verified by computation" followed by "every board" or "every such board" with no rank,
+    // group-size or named-board limit.
+    const OVERCLAIM = /verified by computation (for|on) every (such )?board(?! of finite type of rank)(?! whose group)(?! of rank)(?! the site offers)[^.;'`]*/g;
+    const hits = [...source.matchAll(OVERCLAIM)].map((m) => m[0]);
+    expect(hits, 'm3-classification.mdx claims a computation on every board').toEqual([]);
+    // Beat 5: the recipe sentence does not claim every board of finite type.
+    expect(source).not.toMatch(/from every board of finite type and every starting city, as verified by computation/);
+    // The E4 fallback: the computed check is not stated for every board of finite type.
+    expect(source, 'm3 E4 fallback').not.toMatch(/that the script checking this site has tried, no root population mixes Martians and anti-Martians: every board of finite type,/);
+    const e4 = /<Unverified item="E4" fallback="([^"]*)"/.exec(source)?.[1] ?? '';
+    expect(e4, 'the E4 fallback names the range of the finite types checked').toMatch(/every board of finite type of rank at most 8/);
+    // Beat 5: every clause that gives a provenance by computation states the range checked.
+    const beat5 = /<Beat n=\{5\}>([\s\S]*?)<\/Beat>/.exec(source)![1]!;
+    const clauses = beat5.split(/(?<=[.;])\s+/).filter((s) => /verified by computation/.test(s));
+    expect(clauses.length).toBeGreaterThan(0);
+    for (const clause of clauses) {
+      expect(clause, `M3 beat 5 prints "${clause}"; the checks cover rank at most 8`).toMatch(/rank at most/);
+      expect(clause).toMatch(/every starting city/);
+    }
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-07-kostant-range.test.ts (lens RT-09), M3 part.
+  // regression: P3-RT-09-07
+  test("M3 states the range of the Kostant's game checks as checked", () => {
+    const ranks = Object.keys(GOLDEN.kostant).map((t) => GOLDEN.types[t]!.cartan.length);
+    expect(Object.keys(GOLDEN.kostant).length).toBe(32);
+    expect(Math.max(...ranks)).toBe(8);
+    // SEEN_KOSTANT, the provenance of the Kostant recipe in the Seen box.
+    const value = /export const SEEN_KOSTANT = '([^']*)'/.exec(readFileSync(LESSON_PATH, 'utf8'))?.[1] ?? '';
+    expect(value).toMatch(/^verified by computation/);
+    expect(value, `m3-classification.mdx prints "${value}"; the checks cover the types of rank at most 8 (SPEC 2.7, golden kostant)`).toMatch(/rank at most/);
+    expect(value).toMatch(/every starting city/);
   });
 });
