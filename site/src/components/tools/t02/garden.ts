@@ -235,8 +235,8 @@ export const MORE_THAN = `more than ${CAPS.gardenPositions}`;
  * E-9 rule 1. `orbit`: from the full bounded search of the seed, its number of items when it completed,
  * "more than 2000" when the cap cut it, and no total when it stopped at the layers bound below the cap
  * (plan: "more than 2000" would then be false). Any other case: no total.
- * Phase 3 (P3-A*): on a finite-type board the orbit total comes from `orbitSize` instead; that rule
- * belongs in this one function.
+ * Phase 3: on a board `classify` calls finite the counter's orbit total comes from `orbitSize` instead,
+ * in gardenTotal (t02/phase2.ts, beside the other rules that read the verdict of `classify`).
  */
 export function totalOf(spec: GardenSpec, bound: number | undefined): Total {
   if (spec.grows === 'roots') {

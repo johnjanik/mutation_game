@@ -453,3 +453,59 @@ test('download data holds the garden', async ({ page }) => {
   expect(data.derived.depthReached).toBe(data.derived.completeLayers);
   expect(data.derived.edges.length).toBeGreaterThan(0);
 });
+
+test.describe('regressions', () => {
+  // SPEC.md 4 T2 Interactions: "otherwise the counter says "more than 2000", and from phase 3 on a
+  // finite-type board it gives the exact size from orbitSize". Expected values: golden
+  // types.E7.fundamental_orbit_sizes[2] = 2016 and types.E8.weyl_order = 696729600 (the oracle's
+  // orbit_graph_capped gives the found count and complete layers below).
+  const gardenOut = (page: Page, name: string): Locator => page.locator(`[data-tool="garden"] [data-out="${name}"]`);
+  const gardenControl = (page: Page, name: string): Locator => page.locator(`[data-tool="garden"] [data-control="${name}"]`);
+  async function growTimes(page: Page, times: number): Promise<number> {
+    let presses = 0;
+    const grow = gardenControl(page, 'grow');
+    while (presses < times && (await grow.isEnabled())) {
+      await grow.click();
+      presses++;
+    }
+    return presses;
+  }
+  async function stopText(page: Page): Promise<string> {
+    const loc = gardenOut(page, 'stopMessage');
+    return (await loc.count()) === 0 ? '' : ((await loc.first().textContent()) ?? '').trim();
+  }
+
+  test.describe('attack 11: the counter at a truncated orbit (phase 3: the exact size from orbitSize)', () => {
+    for (const [name, start, total, complete] of [
+      ['E7', '0,0,1,0,0,0,0', '2016', 41],
+      ['E8', '1,1,1,1,1,1,1,1', '696729600', 5],
+    ] as const) {
+      // regression: P3-RT-03-02
+      test(`${name} from ${start}`, async ({ page }) => {
+        test.setTimeout(180_000);
+        await open(page, `?g=${name}&c=n&s=${start}`);
+        await growTimes(page, 80);
+        await expect(gardenOut(page, 'found')).toHaveText('2000');
+        expect(await stopText(page)).toBe(`stopped after 2000 positions; layers 0 to ${complete} are complete`);
+        await gardenControl(page, 'showTotal').click();
+        // SPEC 4 T2 Interactions: "from phase 3 on a finite-type board it gives the exact size from orbitSize".
+        await expect(gardenOut(page, 'total')).toHaveText(total);
+      });
+    }
+  });
+
+  // The browser form of the same rule: orbit mode on E8 from the fundamental weight of node 1
+  // (golden types.E8.fundamental_orbit_sizes[0]).
+  // regression: P3-RT-06-01
+  test('T2 orbit of omega_1 on E8: the total is the orbit size, not "more than 2000"', async ({ page }) => {
+    const expected = (GOLDEN.types as unknown as Record<string, { fundamental_orbit_sizes: number[] }>).E8!.fundamental_orbit_sizes[0]!;
+    await page.goto('tools/garden/?z=1&g=E8&c=n&s=1,0,0,0,0,0,0,0');
+    const root = page.locator('[data-tool="garden"]');
+    await expect(root).toHaveAttribute('data-hydrated', 'true');
+    await expect(root.locator('[data-out="notice"]')).toHaveCount(0);
+    await expect(root.locator('[data-control="grows"]')).toHaveAttribute('aria-pressed', 'true');
+    await root.locator('[data-control="showTotal"]').click();
+    await expect(root.locator('[data-out="total"]')).not.toHaveText('');
+    await expect(root.locator('[data-out="total"]')).toHaveText(String(expected));
+  });
+});

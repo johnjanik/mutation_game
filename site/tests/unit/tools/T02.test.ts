@@ -11,6 +11,7 @@ import {
   boardFromName,
   mutate,
   orbitGraph,
+  orbitSize,
   roots,
   subBoard,
   toLabels,
@@ -51,6 +52,7 @@ import {
   type Vector,
 } from '../../../src/components/tools/t02/garden';
 import { followStopMessage, layersGrownText, stopMessage } from '../../../src/components/tools/t02/limits';
+import { gardenLayersBound, gardenTotal } from '../../../src/components/tools/t02/phase2';
 import { layeredEntries, positiveView } from '../../../src/components/tools/t02/poset';
 import { followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
 import { exactText, shortNumber, vertexText } from '../../../src/components/tools/t02/numbers';
@@ -638,5 +640,58 @@ describe('T2 server render', () => {
     expect(outText(html, 'total')).toBe('');
     const grow_ = /<button[^>]*data-control="grow"[^>]*>/.exec(html)?.[0] ?? '';
     expect(grow_).not.toBe('');
+  });
+});
+
+describe('regressions', () => {
+  // SPEC.md 4 T2 Interactions: "In `orbit` mode the total is known when the enumeration completes within
+  // the garden's bound; otherwise the counter says "more than 2000", and from phase 3 on a finite-type
+  // board it gives the exact size from `orbitSize`." Expected values from the engine's own orbitSize,
+  // which equals the oracle's orbit_size(C, -end) (the oracle gives orbit_size(cartan('A', 6), (1,)*6) =
+  // 5040, orbit_size(cartan('B', 5), (1,)*5) = 3840, orbit_size(cartan('E', 6), (1,)*6) = 51840, and for
+  // the A6 population (2, 1, 5, 1, 3, 8), whose numbers are (3, -5, 8, -6, -3, 13), orbit_size(C, -end) =
+  // 2520; orbitSize gives the same four values).
+  describe('T2 orbit counter on finite-type boards (phase 3: the exact size from orbitSize)', () => {
+    const cases: [string, number[], 'firing' | 'mutation', number][] = [
+      ['A6', [1, 1, 1, 1, 1, 1], 'firing', 5040], // the orbit of rho: |W(A6)|
+      ['B5', [1, 1, 1, 1, 1], 'firing', 3840], // |W(B5)|
+      ['E6', [1, 1, 1, 1, 1, 1], 'firing', 51840], // |W(E6)|
+      ['A6', [2, 1, 5, 1, 3, 8], 'mutation', 2520], // a population of A6 in the mutation game
+    ];
+    for (const [name, seed, game, oracle] of cases) {
+      // regression: P3-RT-01-02
+      it(`${name} ${game} from ${JSON.stringify(seed)}`, () => {
+        const board = boardFromName(name) as AnyBoard;
+        const spec: GardenSpec = { board, grows: 'orbit', seed, game };
+        const numbers = game === 'firing' ? seed : (board.cartan as number[][]).map((row) => row.reduce((s, c, j) => s + c * seed[j]!, 0));
+        const exact = orbitSize(board as Board<number>, numbers);
+        expect(exact).toBe(oracle);
+        expect(exact).toBeGreaterThan(2000);
+        expect(totalText(gardenTotal(spec, gardenLayersBound(board)))).toBe(String(exact));
+      });
+    }
+  });
+
+  // The same rule on the fundamental weights (golden types.E8.fundamental_orbit_sizes and
+  // types.E7.fundamental_orbit_sizes). The component computes the total with gardenTotal
+  // (T02OrbitGarden.svelte, the `total` derived value and revealTotal).
+  describe('T2 orbit total on a finite-type board above the garden bound (phase 3: orbitSize)', () => {
+    const goldenTypes = (golden as unknown as { types: Record<string, { fundamental_orbit_sizes: number[] }> }).types;
+    /** The fundamental weight of the node with Bourbaki label k (positions follow Bourbaki on named boards). */
+    function omega(board: AnyBoard, k: number): number[] {
+      return Array.from({ length: board.n }, (_, i) => (i === k - 1 ? 1 : 0));
+    }
+    for (const [name, node] of [['E8', 1], ['E7', 3], ['E7', 5]] as const) {
+      // regression: P3-RT-06-01
+      it(`${name}, orbit of the fundamental weight of node ${node}`, () => {
+        const board = boardFromName(name);
+        const expected = goldenTypes[name]!.fundamental_orbit_sizes[node - 1]!;
+        expect(expected).toBeGreaterThan(2000);
+        expect(orbitSize(board, omega(board, node))).toBe(expected);
+        const spec = { board, grows: 'orbit' as const, seed: omega(board, node), game: 'firing' as const };
+        const total = gardenTotal(spec, gardenLayersBound(board));
+        expect(total, `${name} node ${node}: the counter's total`).toEqual({ kind: 'number', value: expected });
+      });
+    }
   });
 });
