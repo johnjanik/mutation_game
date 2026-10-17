@@ -465,3 +465,22 @@ test('show as table lists one row per node with a button each', async ({ page })
   await expect(editor(page)).toHaveAttribute('data-selected', '2');
   await expect(page.locator(':focus')).toHaveAttribute('data-node', '2');
 });
+
+test.describe('regressions', () => {
+  // A-4: "one polite live region per tool", ToolFrame's [data-live]. The selector counts every element
+  // that is a live region by its role or aria-live, so a second region inside the tool root is seen.
+  const LIVE = '[aria-live]:not([aria-live="off"]), [role="status"], [role="log"], [role="alert"]';
+
+  // regression: P3-RT-05-07
+  test('one live region in the Classification Lab while it keeps counting (/tools/lab/, star with five arms)', async ({ page }) => {
+    // The star with five arms: centre 1 joined to 2..6 (custom Cartan matrix, SPEC 6.6 `c:`).
+    const C = Array.from({ length: 6 }, (_, i) => Array.from({ length: 6 }, (_, j) => (i === j ? 2 : i === 0 || j === 0 ? -1 : 0)));
+    await page.goto(`tools/lab/?z=1&g=c:${C.map((r) => r.join(',')).join(';')}`);
+    await page.locator('[data-tool][data-hydrated="true"]').waitFor();
+    await page.locator('[data-control="keepCounting"]').focus();
+    await page.keyboard.press('Enter');
+    await page.locator('[data-out="counterStatus"]').waitFor({ timeout: 10000 });
+    const regions = await page.evaluate((sel) => [...document.querySelector('[data-tool]')!.querySelectorAll(sel)].map((e) => `${e.tagName} role=${e.getAttribute('role')} data-out=${e.getAttribute('data-out')} text="${(e.textContent ?? '').trim()}"`), LIVE);
+    expect(regions, '/tools/lab/ star with five arms, after "keep counting": live regions inside [data-tool]').toHaveLength(1);
+  });
+});

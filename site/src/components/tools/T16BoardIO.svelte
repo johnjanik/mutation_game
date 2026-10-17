@@ -122,23 +122,33 @@
     disabled: boolean;
     /** Called with a board that passed every check; the host replaces the board and resets the play. */
     onImport: (spec: BoardSpec) => void;
+    /**
+     * Speaks the status line through the tool's one polite live region (A-4: one region per tool,
+     * ToolFrame's); the line itself is ordinary text in data-out="importStatus".
+     */
+    announce?: (text: string) => void;
   }
 
-  let { spec, disabled, onImport }: Props = $props();
+  let { spec, disabled, onImport, announce }: Props = $props();
 
   const uid = $props.id();
   let text = $state('');
   let status = $state('');
   const exportText = $derived(boardJsonText(spec));
 
+  function setStatus(line: string): void {
+    status = line;
+    announce?.(line);
+  }
+
   function importText(source: string): void {
     const r = parseBoardImport(source);
     if (!r.ok) {
-      status = refusedText(r.reason);
+      setStatus(refusedText(r.reason));
       return;
     }
     onImport(r.spec);
-    status = importedText(r.nodes);
+    setStatus(importedText(r.nodes));
   }
 
   async function onFile(event: Event): Promise<void> {
@@ -148,7 +158,7 @@
     try {
       importText(await file.text());
     } catch {
-      status = refusedText('the file could not be opened');
+      setStatus(refusedText('the file could not be opened'));
     }
     input.value = '';
   }
@@ -185,7 +195,7 @@
       <input type="file" accept=".json,application/json" data-control="importFile" {disabled} onchange={onFile} />
     </label>
   </div>
-  <p class="status" data-out="importStatus" role="status">{status}</p>
+  <p class="status" data-out="importStatus">{status}</p>
   <div class="row">
     <button type="button" class="control" data-control="exportBoard" {disabled} onclick={onExport}>Export board</button>
     <span>as board.json; the same text:</span>

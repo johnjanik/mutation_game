@@ -347,7 +347,8 @@
       >
     {/if}
     {#if counting}
-      <p class="line" data-out="counterStatus" role="status">Counting in the background, up to {CAPS.workerPositions} positions.</p>
+      <!-- Ordinary text: the frame's one polite live region (A-4) already says "Counting in the background." -->
+      <p class="line" data-out="counterStatus">Counting in the background, up to {CAPS.workerPositions} positions.</p>
     {/if}
     {#if counterNotice !== null}
       <p class="line" data-out="counterNotice">{counterNotice}</p>
