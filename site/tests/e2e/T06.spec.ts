@@ -40,6 +40,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CAPS, boardFromName, choleskyBasis, fire, orbit, ratToString, toNumbers, toPopulation } from '../../../packages/engine/src/index';
 import type { Board } from '../../../packages/engine/src/index';
+import { copiedLink, downloadData, openForExport, safeAsStrings, unsafeNumbers } from './exportIntegers';
 
 const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../../reference/golden_data.json', import.meta.url)), 'utf8')) as {
   types: Record<string, { n_roots: number }>;
@@ -422,4 +423,32 @@ test('a 40-digit link: shortened, off view, no crash', async ({ page }) => {
   await expect(node(page, 1)).toHaveAttribute('data-value', String(a[0]));
   await expect(node(page, 2)).toHaveAttribute('data-value', String(a[1]));
   expect(errors).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // regression: P3-RT-04-02
+  test('export of the default state: integer rule, engine version, commit, state agrees with Copy link', async ({ page }) => {
+    await openForExport(page, 'tools/mirror/');
+    const { raw, doc } = await downloadData(page);
+    expect(typeof doc.engineVersion).toBe('string');
+    expect(doc.commit).toMatch(/^[0-9a-f]{7,40}$/);
+    expect(unsafeNumbers(raw)).toEqual([]);
+    expect(safeAsStrings(doc.derived, 'derived')).toEqual([]);
+    expect(Object.keys(doc.derived ?? {}).length).toBeGreaterThan(0);
+    const q = await copiedLink(page);
+    if (doc.state.board !== undefined && typeof doc.state.board === 'string' && q.has('g')) expect(q.get('g')).toBe(doc.state.board);
+    if (doc.state.moves !== undefined && q.has('w')) expect(q.get('w')).toBe(doc.state.moves.join('.'));
+    if (doc.state.start !== undefined && q.has('s')) expect(q.get('s')).toBe(doc.state.start.join(','));
+  });
+
+  // regression: P3-RT-04-02
+  test('default point a = (1,1) on A2: population (1,1) exported as numbers', async ({ page }) => {
+    await openForExport(page, 'tools/mirror/');
+    const { doc } = await downloadData(page);
+    expect(doc.derived.population).toEqual([1, 1]);
+  });
 });

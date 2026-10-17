@@ -31,8 +31,8 @@
   import Builder from './t03/Builder.svelte';
   import SmallValues from './t03/SmallValues.svelte';
   import { BUILDER_TEXT, defaultWeights, initialWeights, joinedPairs, matrixOf, witnessView, type RoadWeightProp, type WeightKind, type WitnessView } from './t03/weights';
-  import { entryAllowed } from './t03/digits';
-  import { FORM_TEXT, defaultRows, judgeRow, meterModel } from './t03/model';
+  import { entryAllowed, entryValue } from './t03/digits';
+  import { FORM_TEXT, defaultRows, followPlay, judgeRow, meterModel, type FollowedPlay } from './t03/model';
   import { FORM_PRESETS, isPresetId, partsInOrder } from './t03/presets';
 
   interface Props {
@@ -116,6 +116,8 @@
   let verdict = $state<{ invariant: boolean; witness: WitnessView | null } | null>(null);
   let rows = $state<string[][]>(untrack(() => authorRows(initialGame.board)));
   let followed = $state<ToolState | null>(null);
+  /** The followed play, kept in memory and extended by the moves of each new state (7.4). */
+  let followedPlay = $state.raw<FollowedPlay | null>(null);
 
   const touch = (): void => {
     version++;
@@ -133,7 +135,7 @@
   const popsInOrder = $derived(inLabelOrder(anyBoard, pops));
   const title = $derived(typeof game.spec === 'string' ? game.spec : 'custom board');
   const toolState = $derived(toState(cur()));
-  const meter = $derived(meterModel(follow, followed, { board: anyBoard, population: popsInOrder }));
+  const meter = $derived(meterModel(follow, followed, { board: anyBoard, population: popsInOrder }, followedPlay));
   const pairs = $derived(joinedPairs(anyBoard));
   const judged = $derived(rows.map((r) => judgeRow(anyBoard, r)));
   const canAct = $derived(anyBoard.labels.map(() => !frozen));
@@ -199,11 +201,14 @@
   });
 
   // linkTo (7.4): follow the T1 the page names, through P1-A2's link store (as T2 does).
+  // Untracked: the first state arrives at once, inside this effect, and the callback reads the play it
+  // extends; tracked, the effect would depend on what it writes and run again on every move.
   $effect(() => {
     if (follow === undefined) return;
-    return followToolState(follow, (s) => {
+    return untrack(() => followToolState(follow, (s) => {
+      followedPlay = followPlay(followedPlay, s);
       followed = s;
-    });
+    }));
   });
 
   // ------------------------------------------------------------------------------------------
@@ -299,14 +304,18 @@
     const byLabel = (v: readonly number[]): number[] => order.map((l) => v[game.board.labels.indexOf(l)]!);
     return {
       ...game.derived(),
-      meter: { population: meter.population.map(exportValue), formValue: meter.value, linkedTo: follow ?? null },
+      meter: { population: meter.population.map(exportValue), formValue: meter.value === null ? null : exportValue(meter.value), linkedTo: follow ?? null },
       builder: {
         convention: 'the matrix handed to formIsInvariant is 2M: diagonal 2 w_i, off the diagonal -w_ij',
         cityWeights: byLabel(weights.city),
         roadWeights: pairs.map((p, k) => ({ pair: p.labels, weight: weights.road[k]! })),
         lastTest: verdict === null ? null : { invariant: verdict.invariant, witness: verdict.witness },
       },
-      smallValues: rows.map((r, k) => ({ population: r, formValue: judged[k]!.value, verdict: judged[k]!.verdict })),
+      // A whole number typed in a city is exported as that integer; an unfinished entry as its text (6.6).
+      smallValues: rows.map((r, k) => {
+        const { value, verdict } = judged[k]!;
+        return { population: r.map((t) => entryValue(t) ?? t), formValue: value === null ? null : exportValue(value), verdict };
+      }),
     };
   }
 </script>

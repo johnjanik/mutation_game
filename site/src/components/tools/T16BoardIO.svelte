@@ -10,7 +10,7 @@
   // name ("A3", "B3~"), a state object of 6.6 (its `board`), and a whole data export (its
   // `state.board`); every other field, a start or a move list included, is ignored. Import and export
   // are of boards, never of positions.
-  import { CAPS, boardKind } from '@two-games/engine';
+  import { CAPS, adjacency, boardKind, toLabels, type AnyBoard } from '@two-games/engine';
   import { resolveBoard, type BoardSpec } from '../../lib/state';
   import { fromSpec, toSpec } from '../board/editor/model';
 
@@ -38,8 +38,9 @@
       try {
         const b = resolveBoard(value);
         return { ok: true, spec: value, nodes: b.n };
-      } catch {
-        return refuse(`no board is named ${JSON.stringify(value)}`);
+      } catch (e) {
+        // resolveBoard refuses a known name above 12 nodes with a RangeError (6.6, as for a matrix).
+        return refuse(e instanceof RangeError ? e.message : `no board is named ${JSON.stringify(value)}`);
       }
     }
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return refuse('it is neither a board name nor an object with a cartan matrix');
@@ -76,10 +77,21 @@
       // spoil only the layout, which falls back to the circle in label order (6.6, as for links).
       spec.xy = (xy as number[][]).map((p) => [p[0]!, p[1]!] as [number, number]);
     }
+    let board: AnyBoard;
     try {
-      resolveBoard(spec);
+      board = resolveBoard(spec);
     } catch (e) {
       return refuse(e instanceof Error ? e.message : 'it is not a board');
+    }
+    // The sandbox is the editor of T4 (SPEC 4 T16), which has 0 to 4 roads each way (4 T4, 5.6): a
+    // board with more is one the tool does not offer (6.6 Validation).
+    const A = adjacency(board);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        if (A[i]![j]! <= CAPS.roadsEachWay) continue;
+        const [from, to] = toLabels(board, [i, j]);
+        return refuse(`it has ${A[i]![j]!} roads from node ${from} to node ${to}, and the editor allows at most ${CAPS.roadsEachWay} each way`);
+      }
     }
     return { ok: true, spec, nodes: n };
   }
@@ -122,23 +134,33 @@
     disabled: boolean;
     /** Called with a board that passed every check; the host replaces the board and resets the play. */
     onImport: (spec: BoardSpec) => void;
+    /**
+     * Speaks the status line through the tool's one polite live region (A-4: one region per tool,
+     * ToolFrame's); the line itself is ordinary text in data-out="importStatus".
+     */
+    announce?: (text: string) => void;
   }
 
-  let { spec, disabled, onImport }: Props = $props();
+  let { spec, disabled, onImport, announce }: Props = $props();
 
   const uid = $props.id();
   let text = $state('');
   let status = $state('');
   const exportText = $derived(boardJsonText(spec));
 
+  function setStatus(line: string): void {
+    status = line;
+    announce?.(line);
+  }
+
   function importText(source: string): void {
     const r = parseBoardImport(source);
     if (!r.ok) {
-      status = refusedText(r.reason);
+      setStatus(refusedText(r.reason));
       return;
     }
     onImport(r.spec);
-    status = importedText(r.nodes);
+    setStatus(importedText(r.nodes));
   }
 
   async function onFile(event: Event): Promise<void> {
@@ -148,7 +170,7 @@
     try {
       importText(await file.text());
     } catch {
-      status = refusedText('the file could not be opened');
+      setStatus(refusedText('the file could not be opened'));
     }
     input.value = '';
   }
@@ -185,7 +207,7 @@
       <input type="file" accept=".json,application/json" data-control="importFile" {disabled} onchange={onFile} />
     </label>
   </div>
-  <p class="status" data-out="importStatus" role="status">{status}</p>
+  <p class="status" data-out="importStatus">{status}</p>
   <div class="row">
     <button type="button" class="control" data-control="exportBoard" {disabled} onclick={onExport}>Export board</button>
     <span>as board.json; the same text:</span>

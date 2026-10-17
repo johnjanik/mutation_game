@@ -107,21 +107,39 @@
     tabStop = null;
   });
 
+  // The theme in force, as a key: data-theme on <html> (the switch of the site bar) and the system
+  // setting. Both are watched, so the canvas is drawn again in the new theme's colours (A-6, 6.3).
+  let themeKey = $state('');
+  $effect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const read = (): void => {
+      themeKey = `${root.dataset.theme ?? ''}|${media.matches}`;
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    media.addEventListener('change', read);
+    return () => {
+      observer.disconnect();
+      media.removeEventListener('change', read);
+    };
+  });
+
   // The colour tokens, read again only when the theme changes (reading forces a style pass).
   let colours: { key: string; value: CanvasColours } | null = null;
-  function coloursOf(el: Element): CanvasColours {
-    const root = document.documentElement;
-    const key = `${root.dataset.theme ?? ''}|${window.matchMedia('(prefers-color-scheme: dark)').matches}`;
+  function coloursOf(el: Element, key: string): CanvasColours {
     if (colours === null || colours.key !== key) colours = { key, value: readColours(el) };
     return colours.value;
   }
 
-  // Draw once per scene, in one pass, in a task of its own after the DOM update, and only after
-  // hydration (7.6: no long task; nothing of this runs during the server render).
+  // Draw once per scene and once per theme, in one pass, in a task of its own after the DOM update,
+  // and only after hydration (7.6: no long task; nothing of this runs during the server render).
   $effect(() => {
     const s = scene;
     const c = canvas;
     if (!canvasMode || c === undefined) return;
+    const key = themeKey;
     const timer = setTimeout(() => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2, 8192 / Math.max(s.width, s.height));
       const w = Math.round(s.width * dpr);
@@ -130,7 +148,7 @@
       if (c.height !== h) c.height = h;
       const ctx = c.getContext('2d');
       if (ctx === null) return;
-      drawScene(ctx, s, coloursOf(c), dpr);
+      drawScene(ctx, s, coloursOf(c, key), dpr);
       scale = dpr;
       drawn = true;
     }, 0);

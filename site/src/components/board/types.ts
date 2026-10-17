@@ -45,7 +45,7 @@ export interface BoardProps {
   spoken?: readonly string[];
   /** Hint ghosts: the value each node would take, shown on hover or focus (aria-hidden). */
   ghosts?: readonly (string | null)[];
-  /** Freezes the board (a prediction step): every node button is disabled. */
+  /** Freezes the board (a prediction step): no node acts; the buttons stay focusable with aria-disabled. */
   disabled?: boolean;
   /** Marks the board (the page's highlight store matches its current values). */
   highlighted?: boolean;

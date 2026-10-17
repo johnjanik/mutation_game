@@ -504,7 +504,7 @@
     <BoardEditor value={spec} onChange={onEdit} name="Board editor" disabled={!api.hydrated} presets={pickerEntries} />
   </section>
   <div class="wide">
-    <T16BoardIO {spec} disabled={!api.hydrated} {onImport} />
+    <T16BoardIO {spec} disabled={!api.hydrated} {onImport} announce={api.announce} />
   </div>
 {/snippet}
 

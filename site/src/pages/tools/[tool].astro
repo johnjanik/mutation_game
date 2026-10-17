@@ -23,6 +23,7 @@ import T06Kaleidoscope from '@components/tools/T06Kaleidoscope.svelte';
 import T07SymbolicGame from '@components/tools/T07SymbolicGame.svelte';
 import T08WeylExplorer from '@components/tools/T08WeylExplorer.svelte';
 import T09Kostant from '@components/tools/T09Kostant.svelte';
+import T10GeometryStudio from '@components/tools/T10GeometryStudio.svelte';
 import T11FoldingBench from '@components/tools/T11FoldingBench.svelte';
 import T15AffinePlayground from '@components/tools/t15/T15Route.astro';
 import T16Sandbox from '@components/tools/T16Sandbox.svelte';
@@ -34,7 +35,7 @@ export function getStaticPaths(): ToolRoute[] {
 const { entry, caption } = Astro.props as ToolRoute['props'];
 
 /** The tools that have their static line below (MERGE adds the id with the import). */
-const HYDRATED: ReadonlySet<string> = new Set<string>(['affine', 'board', 'fold', 'form', 'garden', 'kostant', 'lab', 'mirror', 'numbers', 'sandbox', 'symbolic', 'weyl']);
+const HYDRATED: ReadonlySet<string> = new Set<string>(['affine', 'board', 'fold', 'form', 'garden', 'geometry', 'kostant', 'lab', 'mirror', 'numbers', 'sandbox', 'symbolic', 'weyl']);
 
 let Unhydrated: ((props: Record<string, unknown>) => unknown) | null = null;
 if (!HYDRATED.has(entry.id)) {
@@ -59,6 +60,7 @@ const toolProps = { id: '', caption, preset: 'default' };
     {entry.id === 'symbolic' && <T07SymbolicGame client:idle {...toolProps} />}
     {entry.id === 'weyl' && <T08WeylExplorer client:idle {...toolProps} />}
     {entry.id === 'kostant' && <T09Kostant client:idle {...toolProps} />}
+    {entry.id === 'geometry' && <T10GeometryStudio client:idle {...toolProps} />}
     {entry.id === 'fold' && <T11FoldingBench client:idle {...toolProps} />}
     {entry.id === 'affine' && <T15AffinePlayground hydrate="idle" {...toolProps} />}
     {entry.id === 'sandbox' && <T16Sandbox client:idle {...toolProps} boardPresets={testBoardPresets()} />}

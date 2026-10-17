@@ -69,7 +69,7 @@
     {#if prediction.answer.type === 'number'}
       <label class="field">
         <span>Your answer</span>
-        <input type="text" inputmode="numeric" data-control="predictAnswer" bind:value={numberAnswer} disabled={!hydrated || resolved !== null} />
+        <input type="text" inputmode="numeric" class="number" data-control="predictAnswer" bind:value={numberAnswer} disabled={!hydrated || resolved !== null} />
       </label>
     {:else if prediction.answer.type === 'position'}
       {#each Array.from({ length: fields }, (_, k) => k) as k (k)}
@@ -139,6 +139,12 @@
     border: 1px solid var(--text);
     border-radius: 4px;
     padding: 0 6px;
+  }
+  /* RT-FIX P3-RT-05-01: the answer to a number question gets a width of its own. With the browser's
+     default (about 20 characters) the label and the field could not be narrower than about 323
+     pixels, more than a tool's figure has at 320 (A-11); T05 set the same width locally. */
+  .number {
+    width: 8em;
   }
   .control {
     min-width: 44px;

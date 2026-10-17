@@ -13,8 +13,9 @@
 // Properties of T11 beyond the common ones of 4.0 Configuration (id, board, coords, start, moves,
 // prediction, preset, caption): `symmetry` (images of all nodes in label order, as `y`) and `view`
 // ('populations' | 'numbers'). `linkTo` and `layers` are accepted and ignored.
+import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { applyWord, boardFromName, fold, roots, symmetries, toLabels } from '@engine';
+import { applyWord, boardFromName, fold, roots, symmetries, toLabels, toPositions } from '@engine';
 import type { AnyBoard, Board } from '@engine';
 import { TYPE_NAMES, golden, intEq, labels as harnessLabels, matchRecord } from '../../../../packages/engine/test/golden/_harness';
 import {
@@ -41,6 +42,7 @@ import {
   foldMessage,
   foldedWord,
   isSymmetricStart,
+  nameWithNote,
   offeredSymmetries,
   orbitOfLabel,
   orbitText,
@@ -54,7 +56,7 @@ import {
   undoAnnouncement,
 } from '../../../src/components/tools/t11/model';
 import { LINK_NOTICE, decodeState, encodeState } from '../../../src/lib/urlCodec';
-import { positionsOf, type ToolState } from '../../../src/lib/state';
+import { labelOrder, positionsOf, resolveBoard, type ToolState } from '../../../src/lib/state';
 import { whereToRun } from '../../../src/lib/worker';
 import T11 from '../../../src/tools/registry/T11';
 import { ssrLoader, type SsrLoader } from '../_svelteSsr';
@@ -292,6 +294,23 @@ describe('T11 boards and symmetries (plan 5.1, 5.2)', () => {
     expect(() => symmetryToPositions(named('A3'), [3, 2])).toThrow(RangeError);
   });
 
+  it('T11 never converts between labels and positions by adding or subtracting 1 (E-7: only toLabels and toPositions convert)', () => {
+    // A label is not a position plus one in general (E-7: an affine board labels its first node 0, a
+    // custom board numbers its nodes in order of creation). On the boards T11 offers the two differ by 1,
+    // so a stray "+ 1" passes every value check; this scan of the tool's code and of its browser test is
+    // the guard (polish of the wave 4.2 review).
+    const files = ['src/components/tools/t11/model.ts', 'src/components/tools/T11FoldingBench.svelte', 'tests/e2e/T11.spec.ts'];
+    const forbidden = [
+      /\.map\(\(\s*(\w+)\s*\)\s*=>\s*\1\s*[+-]\s*1\s*\)/, // a list of positions or labels shifted by one
+      /\.includes\(\s*\w+\s*[+-]\s*1\s*\)/, // a label looked up as a position
+      /\.labels\.indexOf\(\s*\w+\s*[+-]\s*1\s*\)/, // an index read as a label
+    ];
+    for (const file of files) {
+      const text = readFileSync(new URL(`../../../${file}`, import.meta.url), 'utf8');
+      for (const re of forbidden) expect(text, `${file} ${re}`).not.toMatch(re);
+    }
+  });
+
   it('a symmetry is shown by its orbits in labels with its order', () => {
     const a3 = named('A3');
     const d4 = named('D4');
@@ -423,6 +442,17 @@ describe('T11 state, moves and links (plan 5.3, 6.6)', () => {
     expect(defaultStart(d4, 'populations', foldContext(d4, [1, 2, 4, 3]).orbits)).toEqual([1, 0, 0, 0]);
     expect(defaultStart(d4, 'populations', foldContext(d4, [3, 2, 1, 4]).orbits)).toEqual([1, 0, 1, 0]);
     expect(defaultStart(d4, 'numbers', foldContext(d4, [3, 2, 1, 4]).orbits)).toEqual([1, 1, 1, 1]);
+    // On the folded board that start is one Martian in the city of the orbit of city 1, which is the
+    // folded board's city 1 only when that orbit comes first in Bourbaki order: on D4 it is city 1 of C3
+    // for the swap 1.2.4.3, city 3 of C3 for the other two swaps, and city 2 of G2 for the rotations.
+    const cities = offeredSymmetries(d4).map((s) => {
+      const bench = new FoldBench({ board: 'D4', view: 'populations', symmetry: symmetryToLabels(d4, s) });
+      const folded = bench.ctx.folded!;
+      const city = toLabels(folded, [orbitOfLabel(bench.ctx, 1)])[0]!;
+      expect(bench.foldedInLabelOrder()).toEqual(labelOrder(folded).map((l) => (l === city ? '1' : '0')));
+      return city;
+    });
+    expect(cities).toEqual([1, 3, 2, 2, 3]);
   });
 
   it('presets are state objects: fold on A3 and average on A5, the tab outside the state', () => {
@@ -434,8 +464,28 @@ describe('T11 state, moves and links (plan 5.3, 6.6)', () => {
     }
     expect(T11_PRESETS.default.tab).toBe('fold');
     expect(T11_PRESETS.average.tab).toBe('average');
-    expect(T11_PRESETS.fold.caption).toBe(FOLD_CAPTION);
-    expect(T11_PRESETS.average.caption).toBe(AVERAGE_CAPTION);
+    // Each preset's caption names its board, the engine's folded name and the engine's averaged type for
+    // its board and symmetry (both checked against the golden row), each in its own role: the fold tab's
+    // caption says which board the fold gives; the average tab's caption names the averaged type and,
+    // beside it, the folded board (2.13: dual answers). Rank 2 names carry the D19 note, as on screen.
+    const word = (name: string): RegExp => new RegExp(`(^|[^A-Za-z0-9])${name}([^A-Za-z0-9]|$)`);
+    for (const [id, p] of Object.entries(T11_PRESETS)) {
+      const ctx = foldContext(named(p.board), p.symmetry);
+      const row = matchRecord(rows, { type: p.board, symmetry: p.symmetry });
+      const foldedName = ctx.foldedName!;
+      const averagedName = averagedOf(ctx).name;
+      expect(foldedName, id).toBe(row.folds_to);
+      expect(averagedName, id).toBe(row.averaged_roots_type);
+      expect(p.caption, id).toMatch(word(p.board));
+      expect(p.caption, id).toMatch(word(foldedName));
+      expect(p.caption, id).toMatch(word(averagedName));
+      if (p.tab === 'fold') {
+        expect(p.caption, id).toContain(`gives the board ${nameWithNote(foldedName)}.`);
+      } else {
+        expect(p.caption, id).toContain(`a root system of type ${nameWithNote(averagedName)},`);
+        expect(p.caption, id).toContain(`gives ${nameWithNote(foldedName)}:`);
+      }
+    }
     // The golden slot: present as data, not released in phase 4.
     expect(T11_TABS.map((t) => [t.id, t.released])).toEqual([['fold', true], ['average', true], ['golden', false]]);
     expect(CONSTRUCTION.fold).toBe('Folding the board (orbit sums)');
@@ -527,6 +577,11 @@ describe('T11 export, worker and hints (4.0 Share and export; E-9)', () => {
       const deferred = new FoldBench({ board, view, symmetry: [...symmetry], moves }, { defer: true });
       expect(deferred.pending).toBe(true);
       const calls = deferred.workerStates();
+      // Each worker state names its moves and start in the labels of the board the worker rebuilds from
+      // it (resolveBoard of its spec), converted by toLabels and toPositions on that board (E-7).
+      const wire = resolveBoard(calls.folded.board);
+      expect(toPositions(wire, calls.folded.moves!)).toEqual(foldedWord(deferred.ctx, moves));
+      expect(toPositions(named(board), calls.big.moves!)).toEqual(foldedWord(deferred.ctx, moves).flatMap((s) => expandMove(deferred.ctx, s)));
       deferred.acceptReplay(positionsOf(calls.big), positionsOf(calls.folded));
       expect(deferred.pending).toBe(false);
       for (let k = 0; k <= moves.length; k++) {
@@ -634,6 +689,8 @@ describe('T11 server render', () => {
     expect(body).toMatch(/data-live=""[^>]*><\/div>|<div[^>]*data-live=""[^>]*><\/div>/);
     expect(body).not.toContain('data-out="fold-message"');
     expect(body).not.toContain('quasi');
+    // The fold tab invites symmetric play where the board folds.
+    expect(body).toContain('symmetric play: one click acts on a whole orbit.');
   });
 
   it('A4 with the flip: the message in place of the folded board, and no node can act', () => {
@@ -643,6 +700,9 @@ describe('T11 server render', () => {
     const buttons = [...body.matchAll(/<button[^>]*data-node="(\d+)"[^>]*>/g)].map((m) => m[0]);
     expect(buttons).toHaveLength(4);
     for (const b of buttons) expect(b).toContain('data-can-act="false"');
+    // Nothing invites symmetric play on a board that does not fold.
+    expect(body).not.toContain('one click acts on a whole orbit');
+    expect(body).toContain('no symmetric play');
   });
 
   it('the average tab: A5 averages to C3 beside the folded B3; A4 gives BC2 with three classes; A3 carries the B2 = C2 note', () => {

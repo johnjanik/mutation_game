@@ -178,8 +178,8 @@ export function orbitsInLabels(ctx: FoldContext): number[][] {
 export function orbitsInBourbakiOrder(ctx: FoldContext): number[][] | null {
   if (ctx.folded === null) return null;
   const inLabels = orbitsInLabels(ctx);
-  const folded = ctx.folded;
-  return inLabels.map((_, k) => inLabels[folded.labels.indexOf(k + 1)]!);
+  // Folded position s is orbit s; its label is its Bourbaki label (E-7), so label order is Bourbaki order.
+  return toPositions(ctx.folded, labelOrder(ctx.folded)).map((s) => inLabels[s]!);
 }
 
 /** "{1, 3} {2}, order 2": the symmetry as the picker shows it (plan). */
@@ -219,8 +219,11 @@ export function normaliseMoves(ctx: FoldContext, moves: readonly number[]): numb
 
 /**
  * The default start in label order (plan): all ones for the numbers view (6.6, symmetric for every
- * symmetry); for the populations view one Martian in every city of the orbit of the first city, which is
- * the folded board's "one Martian in the first city".
+ * symmetry); for the populations view one Martian in every city of the orbit of city 1 (the city with
+ * the first label), which is symmetric for every symmetry. On the folded board this start is one Martian
+ * in the city of that orbit, which is the folded board's city 1 only when the orbit comes first in
+ * Bourbaki order: on D4 it is city 3 of C3 for the swaps 3.2.1.4 and 4.2.3.1, and city 2 of G2 for the
+ * rotations.
  */
 export function defaultStart(board: AnyBoard, view: T11View, orbits: readonly (readonly number[])[]): number[] {
   const order = labelOrder(board);
@@ -434,35 +437,49 @@ export class FoldBench {
   }
 
   /**
+   * The folded board as the worker rebuilds it: a custom matrix in orbit order (resolveBoard of the spec
+   * workerStates sends), whose labels are its own (E-7: custom boards), not the Bourbaki labels of
+   * `folded`. Positions are kept, so folded position s is still orbit s.
+   */
+  private wireFolded(): { spec: { cartan: number[][] }; board: AnyBoard } {
+    const spec = { cartan: cartanNumbers(this.ctx.folded!) };
+    return { spec, board: resolveBoard(spec) };
+  }
+
+  /**
    * The two replays as states for the site's `positionsOf` (6.6 fields; coords = the view): the big board
-   * by name with the expanded word as labels; the folded board as a custom matrix in orbit order, whose
-   * labels 1..m follow its positions (E-7: custom boards), so that it is rebuilt in the worker with the
-   * same positions. Every position of each play comes back.
+   * by name with the expanded word as labels; the folded board as a custom matrix in orbit order, so that
+   * it is rebuilt in the worker with the same positions, its start and moves in that board's labels
+   * (toLabels and toPositions on the board the worker builds). Every position of each play comes back.
    */
   workerStates(): { big: ToolState; folded: ToolState } {
-    const folded = this.ctx.folded!;
+    const wire = this.wireFolded();
     const f0 = this.smallAt[0]!;
     return {
       big: { schema: 1, tool: 'fold', board: this.spec, coords: this.view, start: [...this.start], moves: toLabels(this.ctx.board, bigWord(this.ctx, this.moves)) },
       folded: {
         schema: 1,
         tool: 'fold',
-        board: { cartan: cartanNumbers(folded) },
+        board: wire.spec,
         coords: this.view,
-        start: f0.map((t) => integerOut(t)),
-        moves: foldedWord(this.ctx, this.moves).map((s) => s + 1),
+        start: toPositions(wire.board, labelOrder(wire.board)).map((s) => integerOut(f0[s]!)),
+        moves: toLabels(wire.board, foldedWord(this.ctx, this.moves)),
       },
     };
   }
 
   /** Takes the positions of both replays (label order, as positionsOf gives them) and keeps those after each symmetric move. */
   acceptReplay(bigList: readonly (readonly (number | string)[])[], foldedList: readonly (readonly (number | string)[])[]): void {
-    const positions = toPositions(this.ctx.board, labelOrder(this.ctx.board));
-    const inPositions = (row: readonly (number | string)[]): string[] => {
-      const out: string[] = new Array<string>(row.length);
-      positions.forEach((p, k) => (out[p] = String(row[k])));
-      return out;
+    /** A row in the label order of `board` as values by position. */
+    const byPosition = (board: AnyBoard) => {
+      const positions = toPositions(board, labelOrder(board));
+      return (row: readonly (number | string)[]): string[] => {
+        const out: string[] = new Array<string>(row.length);
+        positions.forEach((p, k) => (out[p] = String(row[k])));
+        return out;
+      };
     };
+    const inPositions = byPosition(this.ctx.board);
     const word = foldedWord(this.ctx, this.moves);
     let at = 0;
     this.bigAt = [inPositions(bigList[0]!)];
@@ -470,7 +487,7 @@ export class FoldBench {
       at += this.ctx.orbits[s]!.length;
       this.bigAt[k + 1] = inPositions(bigList[at]!);
     });
-    this.smallAt = foldedList.map((row) => row.map(String));
+    this.smallAt = foldedList.map(byPosition(this.wireFolded().board));
     if (this.bigAt.length !== this.moves.length + 1 || this.smallAt.length !== this.moves.length + 1) throw new RangeError('the replay does not match the moves');
     this.useBig = this.bigAt.some((v) => v !== undefined && needsBig(v)) || needsBig(this.start);
     this.bigCopies = null;
@@ -545,7 +562,7 @@ export class FoldBench {
     const f = this.ctx.folded;
     if (f === null) return [];
     const v = this.foldedValues(k);
-    return f.labels.map((_, j) => v[f.labels.indexOf(j + 1)]!);
+    return toPositions(f, labelOrder(f)).map((s) => v[s]!);
   }
 }
 

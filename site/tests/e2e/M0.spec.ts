@@ -24,7 +24,7 @@
 // KaTeX formula counts as one word. A word is a run of characters other than white space.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
 import { distDir } from './routes';
@@ -35,6 +35,15 @@ const GOLDEN = fileURLToPath(new URL('../../../reference/golden_data.json', impo
 const BUILT = `${distDir()}/modules/m0-start/index.html`;
 const TOOL_IDS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7'] as const;
 const BRIDGE = 'The number on node i is the amount by which a mutation would lower city i.';
+/** The modules whose frontmatter says released: true (MERGE, P4 wave 4.3: read from the content files,
+ *  so that each phase's release no longer needs this test edited). */
+const MODULES_DIR = fileURLToPath(new URL('../../src/content/modules/', import.meta.url));
+const RELEASED_SLUGS = new Set(
+  readdirSync(MODULES_DIR)
+    .filter((f) => f.endsWith('.mdx'))
+    .filter((f) => /^released:\s*true\s*$/m.test(readFileSync(MODULES_DIR + f, 'utf8').split(/^---\s*$/m)[1] ?? ''))
+    .map((f) => f.replace(/\.mdx$/, '')),
+);
 
 type BoardName = 'populations' | 'numbers';
 
@@ -289,8 +298,9 @@ test('beat 5: seven statements, links only to released modules', async ({ page, 
   const base = new URL(page.url()).pathname.replace(/modules\/m0-start\/?$/, '');
   for (const href of hrefs) {
     expect(href.startsWith('/') ? href.startsWith(base) : true, `${href} respects the base ${base}`).toBe(true);
-    // MERGE, P3 stage 3.3: M0 to M5 are released through phase 3; M6 to M10 are not yet.
-    expect(href, `${href} targets an unreleased module`).not.toMatch(/modules\/m([6-9]|10)-/);
+    // A link to a module must name a released one (the frontmatter flag), whichever phase is built.
+    const slug = /modules\/(m\d+-[a-z0-9-]+)\/?/.exec(href)?.[1];
+    if (slug !== undefined) expect(RELEASED_SLUGS.has(slug), `${href} targets an unreleased module`).toBe(true);
     const res = await request.get(new URL(href, page.url()).toString());
     expect(res.status(), href).toBe(200);
   }

@@ -389,3 +389,49 @@ test('keyboard: Tab reaches the view control, the import field and the export bu
   await expect(gameNodes(page, 'populations')).toHaveCount(2);
   await expect(out(page, 'importStatus')).toContainText('Board imported');
 });
+
+test.describe('regressions', () => {
+  // A-4: "one polite live region per tool", ToolFrame's [data-live]. The selector counts every element
+  // that is a live region by its role or aria-live, so a second region inside the tool root is seen.
+  const LIVE = '[aria-live]:not([aria-live="off"]), [role="status"], [role="log"], [role="alert"]';
+
+  // regression: P3-RT-05-07
+  test('one live region in the Sandbox tool (/tools/sandbox/)', async ({ page }) => {
+    await page.goto('tools/sandbox/');
+    await page.locator('[data-tool][data-hydrated="true"]').waitFor();
+    const regions = await page.evaluate((sel) => [...document.querySelector('[data-tool]')!.querySelectorAll(sel)].map((e) => `${e.tagName} role=${e.getAttribute('role')} aria-live=${e.getAttribute('aria-live')} data-out=${e.getAttribute('data-out')} data-live=${e.hasAttribute('data-live')}`), LIVE);
+    expect(regions, '/tools/sandbox/ after hydration: live regions inside [data-tool]').toHaveLength(1);
+  });
+
+  // The import's status line, now ordinary text, is spoken through that one region: a result is still
+  // announced (4.0 "a polite live region announces each result").
+  test('the import status is announced through the frame live region', async ({ page }) => {
+    await open(page, 'g=A3');
+    await control(page, 'importText').fill(JSON.stringify({ cartan: BT.cartan }));
+    await control(page, 'importBoard').click();
+    await expect(out(page, 'importStatus')).toContainText('Board imported');
+    await expect(root(page).locator('[data-live]')).toHaveText(/^Board imported: 2 nodes\./);
+    await control(page, 'importText').fill('not json');
+    await control(page, 'importBoard').click();
+    await expect(root(page).locator('[data-live]')).toHaveText(/^The board could not be read: the text is not JSON\./);
+  });
+
+  // SPEC 5.6: "Roads between two nodes, each way (editor only; the engine accepts any count) | 4 | editor
+  // refuses more"; 6.2: on a one-way board every road is drawn as its own arrow. An import with 2^53 - 1
+  // roads must not hang the page. Adopted from the red team's reproducer (RT-03 attacks 15 and 30).
+  // regression: P3-RT-03-01
+  test('a one-way board with 9007199254740991 roads from an import does not hang the page', async ({ page }) => {
+    test.setTimeout(60_000);
+    await open(page);
+    await control(page, 'importText').fill('{"cartan": [[2, -9007199254740991], [0, 2]]}');
+    const t0 = Date.now();
+    await control(page, 'importBoard').click({ timeout: 20_000 });
+    // Either refused, or imported and drawn: the page must answer within 20 seconds.
+    await expect(out(page, 'importStatus')).not.toBeEmpty({ timeout: 20_000 });
+    const answered = await Promise.race([
+      page.evaluate(() => document.querySelectorAll('[data-tool="sandbox"] [data-node]').length).then((n) => ({ n })),
+      new Promise<{ n: number }>((resolve) => setTimeout(() => resolve({ n: -1 }), 20_000)),
+    ]);
+    expect(answered.n, `page answered after ${Date.now() - t0} ms`).toBeGreaterThan(0);
+  });
+});

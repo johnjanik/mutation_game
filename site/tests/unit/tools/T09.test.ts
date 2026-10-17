@@ -15,7 +15,7 @@ function checkoutKey(): string {
   return createHash('sha256').update(import.meta.url).digest('hex').slice(0, 8);
 }
 import { join } from 'node:path';
-import { CAPS, EngineOverflow, boardFromName, kostantPlay, raisingNodes, raisingPlay, toNumbers } from '@engine';
+import { CAPS, EngineOverflow, boardFromName, kostantPlay, raisingNodes, raisingPlay, subBoard, toNumbers } from '@engine';
 import type { Board } from '@engine';
 import { createServer, type ViteDevServer } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
@@ -23,6 +23,7 @@ import {
   KOSTANT_BOARDS,
   MOOD_SHAPE,
   MOOD_STATE,
+  affineCaptionParts,
   endPanel,
   isNamedFinite,
   kostantSummary,
@@ -472,5 +473,22 @@ describe('T9 server render', () => {
     const nodes = tags(n, 'button').filter((t) => attr(t, 'data-node') !== null);
     expect(nodes.map((t) => attr(t, 'data-value'))).toEqual(['1', '0', '0']);
     expect(() => render({ board: 'A3', coords: 'numbers', start: [1, 0, 0] })).toThrow(/integral/);
+  });
+});
+
+describe('regressions', () => {
+  // regression: P3-RT-02-02
+  it('Label arithmetic in T9: on B3 drawn as nodes 2, 3, 4 of B4 the new city sends 1 road to city 2, not 0', () => {
+    // subBoard(B4, positions [1, 2, 3]) is B3 in Bourbaki order with labels [2, 3, 4] (E-7: labels kept).
+    // oracle: kostant_play(sub, 2) ends at (1, 1, 1); dynkin_labels = (1, 0, 0): city 2 (position 0) gets 1 road,
+    // and <beta^vee, alpha_2> = 2 roads come back (coroot_coords((1,1,1)) = (2, 2, 1), first column of C: 2*2 - 2 = 2).
+    const b = subBoard(boardFromName('B4'), [1, 2, 3]) as Board<number>;
+    expect([...b.labels]).toEqual([2, 3, 4]);
+    const panel = endPanel(b, [1, 1, 1], 2);
+    expect(panel.marked).toEqual([2]);
+    expect(panel.finalNumbers).toEqual(['1', '0', '0']);
+    const parts = affineCaptionParts(panel)!;
+    expect(parts.sends).toBe('1 to city 2');
+    expect(parts.receives).toBe('2 from city 2');
   });
 });

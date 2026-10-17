@@ -208,7 +208,11 @@ describe('5.6 row 8: affineExtension', () => {
   it('throws NeedsTwoWayRoads on a one-way board and NotFiniteType off the finite types', () => {
     expect(() => api.affineExtension(oneWay())).toThrow(NeedsTwoWayRoads);
     for (const b of nonFinite()) expect(() => api.affineExtension(b)).toThrow(NotFiniteType);
-    expect(() => api.affineExtension(twoPieces())).toThrow(NeedsConnectedBoard);
+    // a board in several pieces that is not of finite type gets NotFiniteType, as 5.6 says (P3-RT-03-06);
+    // only a finite board in several pieces gets NeedsConnectedBoard (row 10 below)
+    expect(() => api.affineExtension(twoPieces())).toThrow(NotFiniteType);
+    expect(() => api.affineExtension(boardFromCartan([[2, 0, 0], [0, 2, -3], [0, -3, 2]]))).toThrow(NotFiniteType);
+    expect(() => api.affineExtension(boardFromCartan([[2, 0, 0], [0, 2, -1], [0, 0, 2]]))).toThrow(NeedsTwoWayRoads);
     expect(api.affineExtension(boardOf('A1')).marks).toEqual([1, 1]);
   });
 });

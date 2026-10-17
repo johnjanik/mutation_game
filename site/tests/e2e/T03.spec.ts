@@ -9,7 +9,8 @@
 //   parts:    data-part ("meter", "builder", "small-values")
 //   controls: data-control = test, weightSlider, weightField (with data-weight "city" | "road" and
 //             data-weight-index: the position of the city, or the index of the joined pair), entry
-//             (with data-row and data-city), addRow, picker, undo, redo, reset; data-export="svg"
+//             (with data-row and data-city), addRow, picker, undo, redo, reset, copyLink,
+//             downloadData (regressions); data-export="svg"
 //   live:     [data-live] (ToolFrame's polite live region)
 // data-out names (every one T3 renders; the registry's `outs`):
 //   formValue (data-value), meterNote, testVerdict (data-invariant), witness (data-city,
@@ -27,6 +28,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { ssrLoader } from '../unit/_svelteSsr';
+import { copiedLink, downloadData, openForExport, safeAsStrings, unsafeNumbers } from './exportIntegers';
 
 const ROUTE = 'tools/form/';
 const PASS = 'Passes: every mutation preserves this form.';
@@ -328,4 +330,53 @@ test('the tool renders without JavaScript', async ({ browser, baseURL }) => {
   expect(controls.length).toBeGreaterThan(20);
   for (const el of controls) await expect(el).toBeDisabled();
   await context.close();
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // SPEC 7.4: a follower extends the play it keeps by the moves of each new state. The meter's
+  // subscription must not track the play it extends: inside its effect it would depend on what it
+  // writes and run again on every move until Svelte stops it (effect_update_depth_exceeded).
+  // regression: P3-RT-04-04
+  test('the linked meter on M2 follows moves of the board above without a page error', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto('modules/m2-form/');
+    const leader = page.locator('[data-tool][data-instance="b1"]').first();
+    const meter = page.locator('[data-tool][data-instance="b2"]');
+    await meter.scrollIntoViewIfNeeded();
+    await expect(meter).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+    await leader.scrollIntoViewIfNeeded();
+    await expect(leader).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+    const show = leader.locator('[data-control="predictShow"]');
+    if (await show.count()) await show.click();
+    for (const node of [2, 3, 1]) await leader.locator(`button[data-board="populations"][data-node="${node}"]`).click();
+    await expect(leader).toHaveAttribute('data-moves', '3');
+    // The meter reads the leader's population after the three moves (its table view lists it).
+    const leaderValues = await leader.locator('button[data-board="populations"][data-node]').evaluateAll((els) =>
+      els.map((e) => [Number(e.getAttribute('data-node')), e.getAttribute('data-value')] as const).sort((a, b) => a[0] - b[0]).map((x) => x[1]),
+    );
+    expect(leaderValues).toEqual(['0', '1', '1']);
+    await expect(meter.locator('[data-table-value="population"]')).toHaveText(leaderValues as string[]);
+    await expect(meter.locator('[data-out="formValue"]')).toHaveAttribute('data-value', '2');
+    expect(errors).toEqual([]);
+  });
+
+  // regression: P3-RT-04-05
+  test('export of the default state: integer rule, engine version, commit, state agrees with Copy link', async ({ page }) => {
+    await openForExport(page, 'tools/form/');
+    const { raw, doc } = await downloadData(page);
+    expect(typeof doc.engineVersion).toBe('string');
+    expect(doc.commit).toMatch(/^[0-9a-f]{7,40}$/);
+    expect(unsafeNumbers(raw)).toEqual([]);
+    expect(safeAsStrings(doc.derived, 'derived')).toEqual([]);
+    expect(Object.keys(doc.derived ?? {}).length).toBeGreaterThan(0);
+    const q = await copiedLink(page);
+    if (doc.state.board !== undefined && typeof doc.state.board === 'string' && q.has('g')) expect(q.get('g')).toBe(doc.state.board);
+    if (doc.state.moves !== undefined && q.has('w')) expect(q.get('w')).toBe(doc.state.moves.join('.'));
+    if (doc.state.start !== undefined && q.has('s')) expect(q.get('s')).toBe(doc.state.start.join(','));
+  });
 });

@@ -11,6 +11,7 @@
 //   table:    data-table="layers" | "vertices" | "heap", data-table-node, data-table-count
 //   strip:    data-step (History.svelte)
 //   live:     [data-live] (ToolFrame's polite live region)
+//   site bar: data-theme-switch (the theme switch; the canvas regression reads the canvas pixels)
 // data-out names (every one T8 renders; the registry's `outs`):
 //   layerSizes (children data-layer, data-count), vertex (data-position, data-layer, data-on-path; SVG
 //   mode, at most 192 elements), edge (data-from, data-to, data-label, data-on-path; inside the SVG,
@@ -497,4 +498,70 @@ test('axe finds no violation on /tools/weyl', async ({ page }) => {
   await open(page);
   const result = await new AxeBuilder({ page }).include('[data-tool="weyl"]').analyze();
   expect(result.violations.map((v) => v.id)).toEqual([]);
+});
+
+test.describe('regressions', () => {
+  // Above 192 elements T8 draws on a Canvas 2D with the colour tokens read when it draws. After the
+  // theme switch of the site bar (light to dark) the dots and the edge labels must be drawn again in
+  // the dark theme's text colour, not left in the light theme's #1A1A1A on the dark page #121212
+  // (A-6: at least 3 to 1 for graphics and 4.5 to 1 for text, in both themes; 6.3; CONTRACTS 8).
+  // Adopted from the red team's reproducer (RT-05 attacks 29, 44, 10).
+  // regression: P3-RT-05-03
+  test('T8 canvas follows the theme switch (F4, 1152 elements)', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto('tools/weyl/');
+    await page.locator('[data-tool][data-hydrated="true"]').waitFor();
+    await page.locator('[data-control="picker"]').selectOption('F4');
+    await page.locator('[data-out="canvas"][data-scale]').waitFor();
+    await page.waitForTimeout(800);
+    // The theme switch of the site bar, by keyboard.
+    await page.locator('[data-theme-switch]').focus();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1500);
+    const r = await page.evaluate(() => {
+      const c = document.querySelector('[data-out="canvas"] canvas') as HTMLCanvasElement;
+      const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+      let lightThemeInk = 0;
+      let darkThemeInk = 0;
+      const near = (i: number, v: number) => Math.abs(d[i]! - v) < 6 && Math.abs(d[i + 1]! - v) < 6 && Math.abs(d[i + 2]! - v) < 6;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3]! < 250) continue;
+        if (near(i, 0x1a)) lightThemeInk++;
+        if (near(i, 0xe8)) darkThemeInk++;
+      }
+      return { page: getComputedStyle(document.documentElement).getPropertyValue('--page').trim(), text: getComputedStyle(document.documentElement).getPropertyValue('--text').trim(), lightThemeInk, darkThemeInk };
+    });
+    expect(r.page, 'page colour after the switch').toBe('#121212');
+    expect(r.lightThemeInk, `/tools/weyl/ F4, light to dark by the theme switch: opaque canvas pixels still in #1A1A1A (the light --text) on the ${r.page} page`).toBe(0);
+    expect(r.darkThemeInk, 'opaque canvas pixels in the dark --text #E8E8E8').toBeGreaterThan(0);
+  });
+
+  // The same cause by the other route: with no choice stored, the system setting decides the theme
+  // (CONTRACTS 8), and a change of it must draw the canvas again too.
+  // regression: P3-RT-05-03
+  test('T8 canvas follows a change of the system colour scheme (F4, 1152 elements)', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await open(page);
+    await pick(page, 'F4');
+    await root(page).locator('[data-out="canvas"][data-scale]').waitFor();
+    await page.waitForTimeout(800);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.waitForTimeout(1500);
+    const r = await page.evaluate(() => {
+      const c = document.querySelector('[data-out="canvas"] canvas') as HTMLCanvasElement;
+      const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+      let lightThemeInk = 0;
+      let darkThemeInk = 0;
+      const near = (i: number, v: number) => Math.abs(d[i]! - v) < 6 && Math.abs(d[i + 1]! - v) < 6 && Math.abs(d[i + 2]! - v) < 6;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3]! < 250) continue;
+        if (near(i, 0x1a)) lightThemeInk++;
+        if (near(i, 0xe8)) darkThemeInk++;
+      }
+      return { page: getComputedStyle(document.documentElement).getPropertyValue('--page').trim(), lightThemeInk, darkThemeInk };
+    });
+    expect(r.page, 'page colour after the system change').toBe('#121212');
+    expect(r.lightThemeInk, `opaque canvas pixels still in #1A1A1A (the light --text) on the ${r.page} page`).toBe(0);
+    expect(r.darkThemeInk, 'opaque canvas pixels in the dark --text #E8E8E8').toBeGreaterThan(0);
+  });
 });

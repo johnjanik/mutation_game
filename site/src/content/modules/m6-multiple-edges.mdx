@@ -1,0 +1,223 @@
+---
+title: "Multiple edges: B, C, F, G and folding"
+module: 6
+question: "What changes when two cities are joined by more roads one way than the other?"
+phase: 4
+released: true
+draft: true
+outcomes: ["LO6"]
+sources: ["W20", "W-MS", "Don08", "Moz90", "Pro84", "Eri95b", "Ste08", "Lus93", "FSS96"]
+---
+import T01GameBoard from '@components/tools/T01GameBoard.svelte';
+import T02OrbitGarden from '@components/tools/T02OrbitGarden.svelte';
+import T03FormFinder from '@components/tools/T03FormFinder.svelte';
+import T07SymbolicGame from '@components/tools/T07SymbolicGame.svelte';
+import T11FoldingBench from '@components/tools/T11FoldingBench.svelte';
+import { G, Tex, Cite, Unverified } from '@components/content';
+import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
+import { linkIfReleased } from '@lib/pages/released';
+import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
+import { applyWord, boardFromName, coroot, formValue, ratToString, toPositions } from '@engine';
+import { BUILDER_TEXT } from '@components/tools/t03/weights';
+
+export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
+export const gv = (k) => resolveGoldenPath(k);
+export const fmt = (k, as) => formatGoldenValue(resolveGoldenPath(k), as);
+export const A3F = 'folding[type=A3;symmetry=3,2,1]';
+export const A4F = 'folding[type=A4;symmetry=4,3,2,1]';
+export const A5F = 'folding[type=A5;symmetry=5,4,3,2,1]';
+export const D4R = 'folding[type=D4;symmetry=3,2,4,1]';
+export const D4S = 'folding[type=D4;symmetry=1,2,4,3]';
+export const E6F = 'folding[type=E6;symmetry=6,2,5,4,3,1]';
+export const MP = 'wildberger_lists.misprints_in_paper_and_manuscript';
+export const MM = 'wildberger_lists.misprints_in_manuscript_only';
+export const sorted = (b) => [...b.labels].sort((x, y) => x - y);
+export const fromLabels = (b, xs) => { const v = new Array(b.n); toPositions(b, sorted(b)).forEach((p, k) => { v[p] = b.arith.fromInt(xs[k]); }); return v; };
+export const inLabels = (b, v) => toPositions(b, sorted(b)).map((p) => Number(b.arith.show(v[p])));
+export const play = (name, game, start, labels) => { const b = boardFromName(name); return inLabels(b, applyWord(b, fromLabels(b, start), toPositions(b, labels), game)); };
+export const alternation = (n) => Array.from({ length: n }, (_, k) => (k % 2) + 1);
+export const show = (xs) => `(${xs.map((x) => String(x).replace('-', '−')).join(', ')})`;
+export const scriptOf = (n) => alternation(n).map((move, k) => ({ move, caption: `Round ${Math.floor(k / 2) + 1}, ${k % 2 === 0 ? 'first' : 'second'} move: mutate city ${move}.${k === n - 1 ? ' After it the start is back.' : ''}` }));
+export const B2_START = [2, 1];
+export const G2_START = [1, 2];
+export const B2_SCRIPT = scriptOf(8);
+export const G2_SCRIPT = scriptOf(12);
+export const B2_CITY_TWO = play('B2', 'mutation', [1, 0], [2]);
+export const G2_AFTER_FOUR_ROUNDS = play('G2', 'mutation', G2_START, alternation(8));
+export const G2_BACK_AFTER_FOUR_ROUNDS = G2_AFTER_FOUR_ROUNDS.every((x, k) => x === G2_START[k]);
+export const A3_ORBIT_FIRED = play('A3', 'firing', [1, 1, 1], [1, 3]);
+export const B2_NODE_ONE_FIRED = play('B2', 'firing', [1, 1], [1]);
+export const SHORT_ROOTS = 2 * gv('types.B2.n_short_positive');
+export const SHORT_START = gv('types.B2.positive_roots[0]');
+export const SHORT_TOUR = [[1], [2], [2, 1]].map((w) => show(play('B2', 'mutation', SHORT_START, w)));
+export const SEEN = 'verified by computation';
+export const B2L = sorted(boardFromName('B2'));
+export const asForm = (c) => c.map((x, i) => (x === 0 ? '' : `${x === 1 ? '' : x}x_${B2L[i]}`)).filter((t) => t !== '').join('+');
+export const COROOTS = gv('types.B2.positive_roots').map((r, k) => { const b = boardFromName('B2'); const c = inLabels(b, coroot(b, fromLabels(b, r))); return { k, c, j: gv('types.C2.positive_roots').findIndex((q) => q.join() === c.join()), differs: c.join() !== r.join() }; });
+export const squaredLengths = (name) => { const b = boardFromName(name); return sorted(b).map((l) => ratToString(formValue(b, fromLabels(b, sorted(b).map((x) => (x === l ? 1 : 0)))))); };
+export const G2D = gv('types.G2.symmetrizer');
+export const G2_LENGTHS = squaredLengths('G2');
+
+{/* P4-A5: lesson M6, drafted from SPEC.md 2.1, 2.2, 2.4, 2.5, 2.8, 2.10, 2.13 and 3 M6 in the words
+    of the site (D17: a draft until the owner approves it). Every number with a golden value goes
+    through G, a golden path inside Tex, or resolveGoldenPath in a property; positions, coroots and
+    squared lengths with no golden value come from the engine (applyWord, coroot, formValue) in the
+    exports above, which compute no form or coroot of their own (CLAUDE.md), or are written inside Tex;
+    node labels and locators are brace strings, so scripts/numbers-in-prose.mjs finds nothing in
+    this file. Instance ids b1 to b14 in reading order; b1 is client:idle, every other island
+    client:visible. No linked view is placed, so the bridge sentence is not repeated here. No
+    apostrophe in this comment: the scanner reads one as the start of a string. */}
+
+
+<Beat n={1}>
+
+Until now every <Term a="roads">road</Term> had a road back, as on <Tex src="A_2"/>. Here the **one-way counts** of two cities, the numbers of roads each way, differ: two roads run from city {'1'} to city {'2'} and one runs back. This is <Tex src="B_2"/>, every road drawn as an arrow.
+
+Wildberger's rule is unchanged <Cite k="W20"/> ({'section 2'}): when city $i$ mutates, its Martians and anti-Martians change type, and every other city sends one copy of its population down each road into city $i$. So city {'1'} sends two copies into city {'2'}, and city {'2'} one copy into city {'1'}.
+
+The garden finds <G k="types.B2.n_roots"/> <Term a="root-population">root populations</Term>: <G k="types.B2.positive_roots[0]"/>, <G k="types.B2.positive_roots[1]"/>, <G k="types.B2.positive_roots[2]"/>, <G k="types.B2.positive_roots[3]"/> and their negatives, the highest being <G k="types.B2.highest_root"/>. The <Term a="form-value">form value</Term> in the panel shows two kinds: **long** ones <Tex src="\pm{{types.B2.positive_roots[1]}}"/>, <Tex src="\pm{{types.B2.positive_roots[3]}}"/> with value <Tex src="4"/>, **short** ones <Tex src="\pm{{types.B2.positive_roots[0]}}"/>, <Tex src="\pm{{types.B2.positive_roots[2]}}"/> with value <Tex src="2"/>. So <G k="types.B2.n_long_positive"/> positive ones are long, <G k="types.B2.n_short_positive"/> short, and the highest short one is <G k="types.B2.highest_short_root"/>.
+
+<T01GameBoard slot="figure" client:idle id="b1" board="B2" view="populations" mode="free" coords="populations" start={[1, 0]} roadStyle="roads" panels={['form', 'lengths']} prediction={{ question: 'City 2 holds nothing, and two roads lead into it from city 1, which holds one Martian. What will city 2 hold after it mutates?', answer: { type: 'number', value: B2_CITY_TWO[1] }, reveal: `${B2_CITY_TWO[1]}: city 2 has nothing to change, and one Martian arrives down each of the two roads from city 1. The population is now ${fmt('types.B2.highest_root')}, the highest root population of B2.` }} caption={`On B2, with two roads from city 1 to city 2 and one back, mutating city 2 turns one Martian in city 1 into ${fmt('types.B2.highest_root')}, the highest root population, and the form value stays 4.`} />
+<T02OrbitGarden slot="figure" client:visible id="b2" preset="explore" board="B2" grows="roots" growth="explore" grown={2} linkTo="b1" caption={`The garden of B2, grown from the two single Martians: ${fmt('types.B2.n_roots')} root populations, ${fmt('types.B2.positive_roots[0]')}, ${fmt('types.B2.positive_roots[1]')}, ${fmt('types.B2.positive_roots[2]')}, ${fmt('types.B2.positive_roots[3]')} and their negatives.`} />
+</Beat>
+
+<Beat n={2}>
+
+A **round** is one mutation at each of two cities. With $A_{ij}$ roads from city $i$ to city $j$, the pair of moves returns after <Tex src="3"/>, <Tex src="4"/> or <Tex src="6"/> rounds when $A_{ij}A_{ji}$ is <Tex src="1"/>, <Tex src="2"/> or <Tex src="3"/>, as on <Tex src="A_2"/>, <Tex src="B_2"/> and <Tex src="G_2"/>, and never when it is <Tex src="4"/> or more or the roads run one way only <Cite k="W20"/> ({'Theorem 5.1'}). The finite cases are also verified by computation on every board of rank at most eight.
+
+Press Next: <Tex src="B_2"/> is back at <Tex src="(2,1)"/> after eight moves, when the round counter reads <Tex src="4"/>. On <Tex src="G_2"/>, with three roads from city {'2'} to city {'1'}, answer the question first; there the return takes twelve moves. Some populations return sooner, as a mutation can leave one unchanged.
+
+<T01GameBoard slot="figure" client:visible id="b3" board="B2" view="populations" mode="free" coords="populations" start={B2_START} script={B2_SCRIPT} rounds={2} caption="From (2, 1) on B2, Next alternates mutations at cities 1 and 2. After 8 moves, 4 rounds, the board shows (2, 1) again." />
+<T01GameBoard slot="figure" client:visible id="b4" board="G2" view="populations" mode="free" coords="populations" start={G2_START} script={G2_SCRIPT} rounds={2} prediction={{ question: 'On B2 the pair of moves brought the board back after 4 rounds. From (1, 2) on G2, will the board be back after 4 rounds?', answer: { type: 'choice', options: ['Yes, after 4 rounds', 'No'], correct: G2_BACK_AFTER_FOUR_ROUNDS ? 0 : 1 }, reveal: `No. After 4 rounds, 8 moves, G2 shows ${show(G2_AFTER_FOUR_ROUNDS)}. With three roads one way the pair of moves needs 6 rounds, 12 moves, to bring (1, 2) back.` }} caption="From (1, 2) on G2 the same alternation needs 12 moves, 6 rounds, to come back." />
+</Beat>
+
+<Beat n={3}>
+
+On <Tex src="B_2"/> the builder rejects the equal weights <Tex src="2,2,2"/> that pass on <Tex src="A_2"/>, and accepts exactly those where city {'1'} weighs twice city {'2'} and the road as much as city {'1'}, such as <Tex src="4,2,4"/>.
+
+Half the city weights, <G k="types.B2.symmetrizer"/>, are the <Term a="weights">weights</Term> $d_i$. A board with positive weights such that $d_iA_{ji}=d_jA_{ij}$ is a <Term a="balanced-board">balanced board</Term>, and city $i$ has squared length <Tex src="(\alpha_i,\alpha_i)=2d_i"/>: <Tex src="4"/> and <Tex src="2"/> here. As $d_i/d_j=A_{ij}/A_{ji}$, more roads run from the long city to the short one. On <Tex src="G_2"/>, with weights <G k="types.G2.symmetrizer"/>, city {'2'} is long, with squared length <Tex src="6"/>: the ratio of squared lengths is <G k="types.G2.long_to_short_ratio"/>, against <G k="types.B2.long_to_short_ratio"/> on <Tex src="B_2"/>. On <Tex src="F_4"/> cities {'1'}, {'2'} are long and {'3'}, {'4'} short.
+
+A board has a form with positive city weights that no mutation changes exactly when it is balanced, unique up to a factor <Cite k="W20"/> ({'Theorems 8.4 and 8.7'}). Wildberger's definition, a condition on cycles, agrees when every road has a road back <Cite k="W20"/> ({'Corollary 8.5'}). A lone one-way road meets his condition but, lacking positive weights, is not balanced here.
+
+<T03FormFinder slot="figure" client:visible id="b5" preset="builder" board="B2" cityWeights={[2, 2]} roadWeights={[{ pair: [1, 2], weight: 2 }]} caption="On B2 the test passes exactly when city 1 weighs twice city 2 and the road weight equals the weight of city 1, as with 4, 2 and 4; the weights 2, 2 and 2, which pass on A2, fail." />
+</Beat>
+
+<Beat n={4}>
+
+The numbers game is Mozes' <Cite k="Moz90"/>, with Proctor's earlier use of the same process <Cite k="Pro84"/> and Eriksson's development <Cite k="Eri95b"/>. With single roads the two moves are transposes. In general it is the mutation game on the **reversed board**, every road turned round, transposed: <Tex src="R_i(C)=S_i(C^{\mathsf T})^{\mathsf T}"/>, verified by computation. Reversing <Tex src="B_2"/> gives <Tex src="C_2"/>, the same board renamed: <Tex src="B_2=C_2"/>. For <Tex src="n\ge 3"/>, <Tex src="B_n"/> and <Tex src="C_n"/> differ, each the reversal of the other; <Tex src="F_4"/> and <Tex src="G_2"/> reversed are themselves, long and short exchanged.
+
+On <Tex src="B_2"/> the complete symbolic game fires <Tex src="x_1"/>, <Tex src="2x_1+x_2"/>, <Tex src="x_1+x_2"/>, <Tex src="x_2"/>: the positive roots of the reversed board <Cite k="Don08"/> ({'Theorem 5.2'}), whose highest root is <G k="types.B2.highest_root_of_reversed_board"/> where <Tex src="B_2"/> has <G k="types.B2.highest_root"/>. So the numbers fired in module five are heights of coroots: the root <G k="types.B2.positive_roots[2]"/> has height <Tex src="2"/>, its coroot <G k="types.C2.positive_roots[3]"/> height <Tex src="3"/>.
+
+<T07SymbolicGame slot="figure" client:visible id="b6" preset="default" board="B2" moves={gv('types.B2.longest_word')} caption={`The complete legal game ${fmt('types.B2.longest_word', 'plain')} on B2 from all ones, played with letters, fires x1, 2x1 + x2, x1 + x2 and x2: the positive root populations of the reversed board C2.`} />
+<figure slot="figure" data-figure="roots-compared">
+<table>
+<thead><tr><th scope="col">Root of <Tex src="B_2"/></th><th scope="col">Its coroot, fired</th><th scope="col">In <Tex src="C_2"/></th></tr></thead>
+<tbody>
+{COROOTS.map(({ k, c, j, differs }) => <tr data-row={k} data-differs={differs ? 'true' : undefined}><td><G k={`types.B2.positive_roots[${k}]`}/></td><td><Tex src={asForm(c)}/></td><td><G k={`types.C2.positive_roots[${j}]`}/></td></tr>)}
+</tbody>
+</table>
+<figcaption>Each root of <Tex src="B_2"/> beside its coroot, as fired and as a root of <Tex src="C_2"/>.</figcaption>
+</figure>
+</Beat>
+
+<Beat n={5}>
+
+A **symmetry** of a board with single roads renumbers its nodes and keeps every road; on <Tex src="A_3"/> it exchanges nodes {'1'} and {'3'}, with **orbits**, the sets of nodes it permutes, <Tex src="\{1,3\}"/> and <Tex src="\{2\}"/>. If no orbit holds two joined nodes, the <Term a="folded-board">folded board</Term> has one node per orbit, with as many roads from orbit $O'$ to orbit $O$ as run from the nodes of $O'$ into one node of $O$: **folding the board**, by orbit sums.
+
+Firing all nodes of an orbit is a **symmetric move**: <Tex src="(1,1,1)"/> becomes <Tex src="(-1,3,-1)"/>, and on the folded board <G k={`${A3F}.folds_to`}/> firing node {'1'} turns <Tex src="(1,1)"/> into <Tex src="(-1,3)"/>. Symmetric play is play on the folded board, in both games, with the same numbers, verified by computation on <Tex src="200"/> random plays per fold. Larger orbits become longer roots. The rotation <Tex src="1\to3\to4\to1"/> folds <Tex src="D_4"/> to <G k={`${D4R}.folds_to`}/>, the flip of <Tex src="E_6"/> folds it to <G k={`${E6F}.folds_to`}/>; <Tex src="A_{2n-1}"/> folds to <Tex src="B_n"/> and <Tex src="D_{n+1}"/> to <Tex src="C_n"/>, while on <Tex src="A_{2n}"/> the middle orbit holds a road and the flip does not fold.
+
+<T11FoldingBench slot="figure" client:visible id="b7" preset="fold" board="A3" symmetry={gv(`${A3F}.symmetry`)} prediction={{ question: 'From (1, 1, 1) one click fires nodes 1 and 3 together. What number will node 2 hold afterwards?', answer: { type: 'number', value: A3_ORBIT_FIRED[1] }, reveal: `${A3_ORBIT_FIRED[1]}: node 2 keeps its own 1 and receives 1 from node 1 and 1 from node 3. On the folded board ${fmt(`${A3F}.folds_to`)} node 1 sends its 1 down two roads into node 2, which ends at ${B2_NODE_ONE_FIRED[1]} too.` }} caption={`Folding A3 by its flip gives the board ${fmt(`${A3F}.folds_to`)} = C2. One click fires the orbit {${fmt(`${A3F}.folded_orbits_in_bourbaki_order[0]`, 'plain')}}: from (1, 1, 1) that gives ${show(A3_ORBIT_FIRED)}, and the folded board shows the same numbers, ${show(B2_NODE_ONE_FIRED)}.`} />
+<T11FoldingBench slot="figure" client:visible id="b8" preset="fold" board="D4" symmetry={gv(`${D4R}.symmetry`)} caption={`Folding D4 by its rotation 1 → 3 → 4 → 1 gives ${fmt(`${D4R}.folds_to`)}: the orbit {${fmt(`${D4R}.folded_orbits_in_bourbaki_order[1]`, 'plain')}} is its long node 2, and the orbit {${fmt(`${D4R}.folded_orbits_in_bourbaki_order[0]`, 'plain')}} its short node 1.`} />
+<T11FoldingBench slot="figure" client:visible id="b9" preset="fold" board="E6" symmetry={gv(`${E6F}.symmetry`)} caption={`Folding E6 by its flip gives ${fmt(`${E6F}.folds_to`)}; its nodes 1 to 4 are the orbits {${fmt(`${E6F}.folded_orbits_in_bourbaki_order[0]`, 'plain')}}, {${fmt(`${E6F}.folded_orbits_in_bourbaki_order[1]`, 'plain')}}, {${fmt(`${E6F}.folded_orbits_in_bourbaki_order[2]`, 'plain')}} and {${fmt(`${E6F}.folded_orbits_in_bourbaki_order[3]`, 'plain')}}.`} />
+</Beat>
+
+<Beat n={6}>
+
+The other construction called folding gives the dual answer: average every root population over the orbits. On <Tex src="A_3"/> one Martian in city {'1'} and one in city {'3'} both average to half a Martian in each. The averages form a root system of the dual type, larger orbits giving shorter roots: **restricting the roots**, by orbit averages, the Average tab.
+
+On <Tex src="A_5"/> folding gives <G k={`${A5F}.folds_to`}/>, averaging <G k={`${A5F}.averaged_roots_type`}/>; whenever the board folds, the two Cartan matrices are transposes, verified by computation. The flip of <Tex src="A_4"/> does not fold, its orbit <Tex src="\{2,3\}"/> holding a road, yet averaging gives the non-reduced system <G k={`${A4F}.averaged_roots_type`}/>. In general <Tex src="A_{2n-1}"/> averages to <Tex src="C_n"/>, <Tex src="D_{n+1}"/> to <Tex src="B_n"/>, <Tex src="A_{2n}"/> to <Tex src="BC_n"/>; <Tex src="E_6"/> and <Tex src="D_4"/> give <Tex src="F_4"/> and <Tex src="G_2"/> with long and short exchanged. In rank two <Tex src="B_2=C_2"/>, so <Tex src="A_3"/> gives <G k={`${A3F}.averaged_roots_type`}/> both ways. Module nine returns to this construction.
+
+<T11FoldingBench slot="figure" client:visible id="b10" preset="average" board="A5" symmetry={gv(`${A5F}.symmetry`)} caption={`On A5 with its flip, the Average tab names the type of the averaged roots, ${fmt(`${A5F}.averaged_roots_type`)}, beside the folded board ${fmt(`${A5F}.folds_to`)}: the two constructions give dual answers.`} />
+</Beat>
+
+<Beat n={7}>
+
+Readers of Wildberger's texts need one warning.
+
+<aside id="wildberger-names" aria-labelledby="wildberger-names-title" data-warning="names">
+<h2 id="wildberger-names-title">Warning: Wildberger's names for B and C</h2>
+<p data-warning-line="convention">This site uses Bourbaki's names and numbering. Comparing the printed lists of <Cite k="W20"/> ({'section 9'}) and <Cite k="W-MS"/> ({'pp. 23-29'}) with the computed ones in the checking script gives these translations. So for rank at least {'3'} the letters B and C are exchanged relative to Bourbaki: his “<Tex src="B_3"/>” is <G k="wildberger_lists.names.B3"/>.</p>
+<table data-table="names">
+<thead><tr><th scope="col">In his texts</th><th scope="col">In Bourbaki's terms</th></tr></thead>
+<tbody>
+<tr data-name-row="B2C2"><td>“<Tex src="B_2"/>”, “<Tex src="C_2"/>”</td><td><G k="wildberger_lists.names.B2"/>, <G k="wildberger_lists.names.C2"/> with the same numbering</td></tr>
+<tr data-name-row="Bn"><td>“<Tex src="B_n"/>”, <Tex src="n\ge 3"/>: two roads from vertex {'1'} to vertex {'2'}</td><td><Tex src="C_n"/> with the node order reversed (his vertex <Tex src="k"/> is node <Tex src="n+1-k"/>)</td></tr>
+<tr data-name-row="Cn"><td>“<Tex src="C_n"/>”, <Tex src="n\ge 3"/>: two roads from vertex {'2'} to vertex {'1'}</td><td><Tex src="B_n"/> with the node order reversed</td></tr>
+<tr data-name-row="F4"><td>“<Tex src="F_4"/>” (highest root printed as {'2432'})</td><td><G k="wildberger_lists.names.F4"/>; his vertices {'3'}, {'4'} are long</td></tr>
+<tr data-name-row="G2"><td>“<Tex src="G_2"/>”</td><td><G k="wildberger_lists.names.G2"/>, same numbering (vertex {'1'} short)</td></tr>
+<tr data-name-row="Dn"><td>“<Tex src="D_n"/>”: path <Tex src="1,\dots,n-1"/> with vertex {'0'} joined to vertex {'2'}</td><td><Tex src="D_n"/> with his vertex <Tex src="k"/> equal to node <Tex src="n-k"/> and his {'0'} equal to node <Tex src="n"/></td></tr>
+<tr data-name-row="En"><td>“<Tex src="E_6"/>”, “<Tex src="E_7"/>”: path <Tex src="1,2,\dots"/> with vertex {'0'} joined to vertex {'3'}</td><td><Tex src="E_n"/> with his path <Tex src="1,2,3,\dots"/> equal to nodes <Tex src="1,3,4,\dots"/> and his {'0'} equal to node {'2'}</td></tr>
+</tbody>
+</table>
+<p data-warning-line="applet">The applet of {'2004'} on Wildberger's pages numbers D and E graphs the same way, with an extra vertex {'0'} joined to vertex {'2'} or {'3'}. The Python package mutation-game ({'0.1.5'}) states that it follows Wildberger's convention for B and C, but its <Tex src="B_3"/> is Bourbaki's <Tex src="B_3"/>.</p>
+<p data-warning-line="misprints">The lists also have misprints; the site prints only computed lists. An entry a/bcde is a over bcde, vertex {'0'} on top.</p>
+<table data-table="misprints">
+<thead><tr><th scope="col">Where</th><th scope="col">Printed</th><th scope="col">Should read</th></tr></thead>
+<tbody>
+<tr data-misprint="C4"><td>“<Tex src="C_4"/>” list, both texts</td><td><G k={`${MP}.C4[0]`} as="plain"/></td><td><G k={`${MP}.C4[1]`} as="plain"/></td></tr>
+<tr data-misprint="G2"><td>“<Tex src="G_2"/>” list, both texts</td><td><G k={`${MP}.G2[0]`} as="plain"/></td><td><G k={`${MP}.G2[1]`} as="plain"/></td></tr>
+<tr data-misprint="example"><td>Example {'8.6'} of <Cite k="W20"/>, p. {'20'} of <Cite k="W-MS"/>, both texts</td><td><Tex src="\beta_{41}=60"/> and the term <Tex src="-60p_4p_1"/></td><td><Tex src="\beta_{42}"/> and <Tex src="-60p_4p_2"/>: the fourth edge joins <Tex src="x_4"/> to <Tex src="x_2"/>, and only the corrected form is invariant</td></tr>
+<tr data-misprint="A4"><td>“<Tex src="A_4"/>” list, manuscript only</td><td><G k={`${MM}.A4[0]`} as="plain"/> a second time</td><td><G k={`${MM}.A4[1]`} as="plain"/></td></tr>
+<tr data-misprint="D5"><td>“<Tex src="D_5"/>” list (p. {'27'}), manuscript only</td><td><G k={`${MM}.D5[0]`} as="plain"/>, each printed twice</td><td><G k={`${MM}.D5[1]`} as="plain"/> in place of the first copies</td></tr>
+<tr data-misprint="E6"><td>“<Tex src="E_6"/>” list (p. {'28'}), manuscript only</td><td><G k={`${MM}.E6[0]`} as="plain"/>, each printed twice</td><td><G k={`${MM}.E6[1]`} as="plain"/></td></tr>
+<tr data-misprint="E6-diagram"><td>“<Tex src="E_6"/>” diagram (p. {'28'}), manuscript only</td><td>vertex {'0'} drawn above vertex {'2'}</td><td>above vertex {'3'}, as the root lists on the same page require</td></tr>
+</tbody>
+</table>
+<p data-warning-line="provenance">The paper corrects the <Tex src="A_4"/>, <Tex src="D_5"/>, <Tex src="E_6"/> lists. Verified by computation, except the <Tex src="E_6"/> diagram (page image) and the package statement (its documentation).</p>
+</aside>
+</Beat>
+
+<Seen provenance={['W20', 'Don08', 'Ste08', 'FSS96', SEEN]}>
+
+<ul data-seen-statements>
+<li data-seen-statement>The pair of moves returns after <Tex src="3"/>, <Tex src="4"/> or <Tex src="6"/> rounds when <Tex src="A_{ij}A_{ji}=1,2,3"/>, and never when the product is larger or the roads run one way. <Cite k="W20"/>, {'Theorem 5.1'}.</li>
+<li data-seen-statement>A board has a form with positive city weights that no mutation changes exactly when it is balanced (<Cite k="W20"/>, {'Theorems 8.4, 8.7'}); short roots have form value <Tex src="2"/>, long ones <Tex src="4"/> or <Tex src="6"/>, verified by computation.</li>
+<li data-seen-statement>Firing is mutation on the reversed board, transposed. Verified by computation; <Cite k="Don08"/>.</li>
+<li data-seen-statement>Symmetric play is play on the folded board; averaging the roots gives the dual type. Verified by computation; <Cite k="Ste08"/>, <Cite k="FSS96"/>.</li>
+<li data-seen-statement>For rank at least {'3'}, Wildberger's B and C are Bourbaki's C and B. Verified by computation.</li>
+</ul>
+
+</Seen>
+
+<LieTheory>
+
+The arrow of a Dynkin diagram points from the long simple root to the short one. Here $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$, as in Kac and SageMath; Bourbaki prints the transpose. Reversing the roads transposes $C$, giving the dual root system of coroots; the numbers fired from $\rho$ are heights of positive coroots. Folding the board is the folding of Lusztig and Stembridge, whose Weyl group is the subgroup of $W$ commuting with $\sigma$ (<Cite k="Ste08"/>; <Cite k="Lus93"/>), and gives the orbit Lie algebra of <Cite k="FSS96"/>. Restricting the roots gives, for <Tex src="A_{2n-1}"/>, <Tex src="D_{n+1}"/>, <Tex src="E_6"/> and the rotation of <Tex src="D_4"/>, the roots of the fixed subalgebra <Cite k="FSS96"/>. <Unverified item="E16" fallback="The case of A with an even index is left aside here.">For <Tex src="A_{2n}"/> the fixed subalgebra is <Tex src="\mathfrak{so}(2n+1)"/>, of type <Tex src="B_n"/>, using only part of <Tex src="BC_n"/>.</Unverified> For a symmetry of order two it gives the restricted roots of the quasi-split real form, whose Satake diagram is all white with arrows $\sigma$: verified by computation.
+
+</LieTheory>
+
+## Challenges
+
+<Challenge client:visible for="b11" goal={`On G2, reach the highest root population ${fmt('types.G2.highest_root')} from one Martian in city 2.`} explanation={`City 2 is the long city. Mutate city 1: three roads bring three Martians from city 2, which gives ${fmt('types.G2.positive_roots[4]')}. Then mutate city 2: it changes type and receives three Martians from city 1, which gives ${fmt('types.G2.highest_root')}. From one Martian in the short city 1 this population is out of reach, because no mutation changes the form value.`} check={{ kind: 'reach', board: 'populations', values: gv('types.G2.highest_root') }} />
+
+<T01GameBoard client:visible id="b11" board="G2" view="populations" mode="free" coords="populations" start={[0, 1]} caption="One Martian in city 2 of G2, the long city; the challenge above names the population to reach." />
+
+<Challenge client:visible for="b12" goal={`On B2, find all ${SHORT_ROOTS} short root populations from one Martian in city 2.`} explanation={`From ${show(SHORT_START)}, mutating city 1 gives ${SHORT_TOUR[0]} and mutating city 2 gives ${SHORT_TOUR[1]}; from ${SHORT_TOUR[1]}, mutating city 1 gives ${SHORT_TOUR[2]}. These ${SHORT_ROOTS}, the short root populations and their negatives, are all that one Martian in city 2 can reach: each has form value 2.`} check={{ kind: 'distinct', board: 'populations', count: SHORT_ROOTS }} />
+
+<T01GameBoard client:visible id="b12" board="B2" view="populations" mode="free" coords="populations" start={[0, 1]} roadStyle="roads" caption="One Martian in city 2 of B2, the short city; every population it reaches has form value 2." />
+
+<Challenge client:visible for="b13" goal="On G2, find weights that the builder accepts." explanation={`City 2 is long, with squared length ${G2_LENGTHS[1]}, ${fmt('types.G2.long_to_short_ratio')} times that of the short city 1, so the city weights must be in the ratio ${G2D[0]} to ${G2D[1]}, as the weights ${fmt('types.G2.symmetrizer')} say, and the road weight must equal the weight of city 2: ${G2_LENGTHS[0]}, ${G2_LENGTHS[1]} and ${G2_LENGTHS[1]}, or ${G2D[0]}, ${G2D[1]} and ${G2D[1]}.`} check={{ kind: 'out', name: 'testVerdict', equals: BUILDER_TEXT.pass }} />
+
+<T03FormFinder client:visible id="b13" preset="builder" board="G2" linkTo="b11" coords="populations" start={[0, 1]} caption="The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test." />
+
+<Challenge client:visible for="b14" goal={`Find a board and a symmetry that fold to ${fmt(`${D4S}.folds_to`)}.`} explanation={`D4 with the swap of nodes 3 and 4 has the orbits {1}, {2} and {3, 4}, and it folds to ${fmt(`${D4S}.folds_to`)}: the pattern of D with n + 1 nodes folding to C with n nodes, for n = 3. Its averaged roots are of type ${fmt(`${D4S}.averaged_roots_type`)}. The other two swaps of two outer nodes of D4 fold to the same board.`} check={{ kind: 'out', name: 'folded-name', equals: fmt(`${D4S}.folds_to`) }} />
+
+<T11FoldingBench client:visible id="b14" preset="fold" caption={`The Folding Bench on A3 with its flip, which folds to ${fmt(`${A3F}.folds_to`)}; pick another board and symmetry to reach the goal.`} />
+
+<ModuleLinks module={6} board="B2" />
+
+<Sources keys={['W20', 'W-MS', 'Don08', 'Moz90', 'Pro84', 'Eri95b', 'Ste08', 'Lus93', 'FSS96']}>
+
+Mainly <Cite k="W20"/> ({'sections 4, 5, 8, 9'}), <Cite k="Ste08"/> and <Cite k="FSS96"/>. <Cite k="W-MS"/> is unpublished and undated {'(circulated c. 2001 to 2004)'}.
+
+</Sources>

@@ -412,3 +412,22 @@ describe('server render (SPEC 4.0 Works before and without JavaScript)', () => {
     expect(named).not.toContain('B_2=C_2');
   });
 });
+
+describe('regressions', () => {
+  // SPEC 4 T16: the sandbox is the editor of T4, which has 0 to 4 roads each way (4 T4, 5.6); 6.6
+  // Validation refuses a board the tool does not offer. An import above the cap is refused with a
+  // reason, and the board stays as it was (the parser returns no spec).
+  // regression: P3-RT-03-01
+  it('an import with more than 4 roads each way is refused; 4 each way is accepted', () => {
+    expect(IO.parseBoardImport('{"cartan": [[2, -4], [-4, 2]]}')).toEqual({ ok: true, spec: { cartan: [[2, -4], [-4, 2]] }, nodes: 2 });
+    const oneWay = IO.parseBoardImport('{"cartan": [[2, -9007199254740991], [0, 2]]}');
+    expect(oneWay.ok).toBe(false);
+    // C[0][1] = -9007199254740991: roads from node 2 to node 1 (A[i][j] = -C[j][i], SPEC 2.1).
+    if (!oneWay.ok) expect(oneWay.reason).toBe('it has 9007199254740991 roads from node 2 to node 1, and the editor allows at most 4 each way');
+    const five = IO.parseBoardImport('{"cartan": [[2, -1, 0], [-1, 2, -1], [0, -5, 2]]}');
+    expect(five.ok).toBe(false);
+    if (!five.ok) expect(five.reason).toBe('it has 5 roads from node 2 to node 3, and the editor allows at most 4 each way');
+    // Inside a state object too.
+    expect(IO.parseBoardImport(JSON.stringify({ schema: 1, tool: 'sandbox', board: { cartan: [[2, 0], [-5, 2]] } })).ok).toBe(false);
+  });
+});

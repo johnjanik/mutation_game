@@ -579,3 +579,28 @@ describe('T5 server render', () => {
     expect(g.applied.length).toBe(golden.types.A3!.longest_word.length);
   });
 });
+
+describe('regressions', () => {
+  // P3-RT-04-03: T5 shows the notice of a default state over a link it applied. On T5 a link whose `d`
+  // parses but is not a lambda the calculator takes (a negative entry, or more than 6 digits) was applied
+  // in part: the link's board, start and moves were shown, lambda went back to a default, and the notice
+  // "The link could not be read, so the tool shows its default state." was shown although the tool did not
+  // show its default state. SPEC 6.6 Validation: a failure "makes the instance load its default state and
+  // show a notice"; a value that is not a failure is applied with no notice. t05/link.ts admitLink().
+  const { caption: _c, ...fields } = T05.presets.default;
+  const D = { schema: 1, tool: 'numbers', ...fields } as ToolState;
+
+  for (const q of ['g=E8&c=n&s=1,1,1,1,1,1,1,1&w=1&d=1000000,0,0,0,0,0,0,0', 'g=E8&c=n&s=1,1,1,1,1,1,1,1&w=1&d=-1,0,0,0,0,0,0,0']) {
+    // regression: P3-RT-04-03
+    it(q, () => {
+      const decoded = decodeState(q, 'numbers', D);
+      expect(decoded.notice).toBeNull(); // the codec accepts d (6.6: "one integer per node")
+      const r = admitLink(decoded.state, decoded.notice, D);
+      // Either the whole link is applied with no notice, or the notice comes with the default state.
+      if (r.notice !== null) {
+        expect(r.notice).toBe(LINK_NOTICE);
+        expect(r.state).toEqual(D);
+      }
+    });
+  }
+});
