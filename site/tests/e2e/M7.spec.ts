@@ -2,8 +2,9 @@
 // 2.14, 2.17, 4 T10, 4.0, 6.6, 7.3, 7.4, 7.6, 8.2, 8.4, 8.5, 9.2, Appendix C, E items 7 and 9, F;
 // build-plan/agents/P4-A6-lesson-m7.md 5.14). Run after `npm run build` against `astro preview`, one
 // Playwright run at a time. The pattern is that of M5.spec.ts and M6.spec.ts. Every expected number with a
-// golden value is read from reference/golden_data.json; the hexagon counts, which have none, are computed
-// here with the engine (the only constants typed are the statements of 2.14 about that hexagon).
+// golden value is read from reference/golden_data.json, the guard lists of counts included; the hexagon
+// counts are computed here with the engine and checked against the golden order of the group, and the only
+// constant typed for them is the statement of 2.14 that four edges are shared (it has no golden value).
 //
 // Hooks read, and where they come from:
 //   tool roots (P1-A2 ToolFrame): data-tool ("geometry"), data-instance (b1 to b13), data-moves,
@@ -57,6 +58,7 @@ interface WythoffRecord {
   edges_enumerated: boolean;
 }
 interface TypeRecord {
+  cartan: number[][];
   n_roots: number;
   numbers_of_highest_root: number[];
   coxeter_number: number;
@@ -90,6 +92,41 @@ const E8 = T('E8');
 const E8_ROOT = [0, 0, 0, 0, 0, 0, 0, 1];
 const ringCounts = (type: string): number[] => T(type).coxeter_plane!.rings.map(([, c]) => c);
 const sum = (xs: number[]): number => xs.reduce((s, x) => s + x, 0);
+/** The boards of this page (its figures, its challenge tools and the shell table). */
+const PAGE_BOARDS = ['A2', 'A3', 'B3', 'D4', 'E8'];
+
+/**
+ * The golden values a text about one board may print, read from the golden file: its numbers of roots, the
+ * order of its group, h, the orbit sizes of the fundamental positions, the circles and dots of its Coxeter
+ * plane, the face counts of its records in `wythoff`, and for E8 the neighbours at inner product 1.
+ */
+function goldenNumbersOf(board: string): Set<number> {
+  const t = T(board);
+  const values = [t.n_roots, t.weyl_order, t.coxeter_number, ...t.fundamental_orbit_sizes];
+  if (t.coxeter_plane) values.push(t.coxeter_plane.rings.length, t.coxeter_plane.distinct_points, ...ringCounts(board));
+  for (const r of GOLDEN.wythoff.filter((w) => w.type === board)) values.push(...r.f_vector);
+  if (board === 'E8') values.push(GOLDEN.e8.neighbours_at_inner_product_1);
+  return new Set(values);
+}
+/** The golden lists a text about one board may print as a tuple: the rings of its records, the numbers of its highest root. */
+function goldenTuplesOf(board: string): Set<string> {
+  return new Set([T(board).numbers_of_highest_root.join(','), ...GOLDEN.wythoff.filter((w) => w.type === board).map((w) => w.rings.join(','))]);
+}
+/**
+ * The golden counts of the page above 8, read from the golden file, for the guards that no such count is
+ * typed (in a fallback, a formula or a brace string). The numbers up to 8 are left out: the page types them
+ * for other reasons (node labels, the form values 2, 4, 6, 8, the squared edge lengths 4 and 2).
+ */
+const PAGE_COUNTS: number[] = [
+  ...new Set([
+    ...PAGE_BOARDS.flatMap((b) => [...goldenNumbersOf(b)]),
+    GOLDEN.wythoff_hull_checks,
+    GOLDEN.wythoff.length,
+    ...GOLDEN.e8.h4_projection.shell_sizes,
+  ]),
+]
+  .filter((v) => v > 8)
+  .sort((x, y) => x - y);
 
 type Figure = { id: string; beat: number; board: string; rings: number[] };
 /** The nine figures of beats 1 to 6 (SPEC 3 M7 figure table, instruction 5.3). */
@@ -151,6 +188,8 @@ function hexagonGraphs(): { vertices: number; polytope: number; moves: number; s
   return { vertices: vertices.length, polytope: polytope.size, moves: moves.size, shared: [...moves].filter((e) => polytope.has(e)).length };
 }
 const HEX = hexagonGraphs();
+/** 2.14 "four are shared and two differ" (verify.py line 1116): asserted by the oracle, not stored, so typed (instruction 5.7). */
+const HEXAGON_SHARED = 4;
 
 // ---------------------------------------------------------------------------------------------
 // Helpers
@@ -448,19 +487,26 @@ test('every figure states its expected result', async ({ page }) => {
   const rh = W('B3', [1, 0, 1]);
   for (const [d, total] of rh.f_vector.entries()) await expect(out(page, 'b5', 'faceTable').locator(`[data-total="${d}"]`)).toHaveText(String(total));
   expect(plain(await out(page, 'b5', 'caption').textContent())).toContain(`${rh.f_vector[0]} vertices, ${rh.f_vector[1]} edges and ${rh.f_vector[2]} faces`);
-  // Beat 4: six edges in each graph, four shared (2.14; computed here with the engine).
-  expect([HEX.vertices, HEX.polytope, HEX.moves, HEX.shared]).toEqual([6, 6, 6, 4]);
+  // Beat 4: the hexagon, computed here with the engine and checked against the golden file: both nodes
+  // ringed, so one vertex for each element of the group; a polygon has as many edges as vertices; the move
+  // graph fires each node at each vertex and meets every edge from both ends. Four shared edges is the
+  // statement of 2.14 (verify.py line 1116), which the golden file does not store (instruction 5.7).
+  const a2 = T('A2');
+  expect(HEX.vertices).toBe(a2.weyl_order);
+  expect(HEX.polytope).toBe(a2.weyl_order);
+  expect(HEX.moves).toBe((a2.weyl_order * a2.cartan.length) / 2);
+  expect(HEX.shared).toBe(HEXAGON_SHARED);
   await control(page, 'b6', 'graphMoves').click();
   await expect(out(page, 'b6', 'graph')).toHaveText('moves');
   await expect(out(page, 'b6', 'edgeCount')).toHaveText(String(HEX.moves));
   await expect(out(page, 'b6', 'sharedEdges')).toHaveText(String(HEX.shared));
   // Beat 5: two edge lengths, squared 2 d_i a_i^2 = 4 and 2 from the golden weights; make uniform gives one.
-  const d = T('B3').symmetrizer;
-  const squares = [2 * d[1]!, 2 * d[2]!];
+  const squares = b3Lengths(W('B3', [0, 1, 1]).rings);
+  // The squared lengths the lesson types (instruction 5.7), equal to 2 d_i a_i^2 from the golden weights.
   expect(squares).toEqual([4, 2]);
   await control(page, 'b7', 'predictShow').click();
   await expect(out(page, 'b7', 'uniform')).toHaveText('off');
-  await expect(out(page, 'b7', 'edgeLengths')).toHaveAttribute('data-count', '2');
+  await expect(out(page, 'b7', 'edgeLengths')).toHaveAttribute('data-count', String(squares.length));
   for (const s of squares) await expect(out(page, 'b7', 'edgeLengths')).toContainText(String(s));
   await control(page, 'b7', 'uniform').check();
   await expect(out(page, 'b7', 'uniform')).toHaveText('on');
@@ -499,7 +545,8 @@ test('no default state on the page needs the worker', async ({ page, context }) 
 });
 
 test('shell table links decode', async ({ page }) => {
-  test.setTimeout(120_000);
+  // Five studio loads, then the edges of 2_41 computed in the worker after the reader's press.
+  test.setTimeout(300_000);
   await page.goto(ROUTE);
   const base = new URL(page.url()).pathname.replace(/modules\/m7-geometry\/$/, '');
   const links = page.locator('[data-table="shells"] a[data-shell-link]');
@@ -537,12 +584,30 @@ test('shell table links decode', async ({ page }) => {
     expect(seen, k).toEqual([]);
     page.off('request', onRequest);
   }
-  // 2_41 draws all its edges (below the limit at rest); 1_42 shows its vertices only, with the message.
+  // 1_42 shows its vertices only, with the message.
   await page.goto(hrefs.find(([k]) => k === '2')![1]);
   await expect(page.locator('[data-tool="geometry"] [data-out="limitMessage"]')).toContainText(String(W('E8', [0, 1, 0, 0, 0, 0, 0, 0]).f_vector[1]));
+  // 2_41 is below the limit at rest: the reader presses "Draw the orbit" and every edge is drawn. The worker
+  // runs after that press (the reader's action), never at load.
+  const twoFortyOne = W('E8', [1, 0, 0, 0, 0, 0, 0, 0]);
+  const worker: string[] = [];
+  page.on('request', (rq) => {
+    if (WORKER.test(rq.url())) worker.push(rq.url());
+  });
+  page.on('worker', (w) => worker.push(`worker started: ${w.url()}`));
   await page.goto(hrefs.find(([k]) => k === '1')![1]);
-  await expect(page.locator('[data-tool="geometry"] [data-out="edgeCount"]')).toHaveText(String(W('E8', [1, 0, 0, 0, 0, 0, 0, 0]).f_vector[1]));
-  await expect(page.locator('[data-tool="geometry"] [data-out="limitMessage"]')).toHaveText('');
+  const studio = page.locator('[data-tool="geometry"]');
+  await expect(studio).toHaveAttribute('data-hydrated', 'true', { timeout: 20000 });
+  await expect(studio.locator('[data-out="edgeCount"]')).toHaveText(String(twoFortyOne.f_vector[1]));
+  await expect(studio.locator('[data-out="limitMessage"]')).toHaveText('');
+  await expect(studio.locator('[data-out="edgesDrawn"]')).not.toHaveText(String(twoFortyOne.f_vector[1]));
+  await page.waitForLoadState('networkidle');
+  expect(worker, 'no worker before the press').toEqual([]);
+  await studio.locator('[data-control="drawOrbit"]').click();
+  await expect(studio.locator('[data-out="edgesDrawn"]')).toHaveText(String(twoFortyOne.f_vector[1]), { timeout: 150000 });
+  await expect(studio.locator('[data-out="pointsDrawn"]')).toHaveText(String(twoFortyOne.f_vector[0]));
+  await expect(studio.locator('[data-out="limitMessage"]')).toHaveText('');
+  expect(worker.length, 'the worker ran after the press').toBeGreaterThan(0);
 });
 
 test('the shell table holds the golden populations, sizes and shells', async ({ page }) => {
@@ -589,10 +654,13 @@ test('E7 and E9 are wrapped', async ({ page }) => {
   for (const id of ['E7', 'E9']) expect(list.find((i) => i.id === id)?.status, id).toBe('open');
   const wraps = [...source.matchAll(/<Unverified\b([^>]*)>/g)].map((m) => m[1]!);
   expect(wraps.map((a) => /\bitem="([^"]*)"/.exec(a)?.[1]).sort()).toEqual(['E7', 'E7', 'E9']);
-  // The fallbacks are attributes, so they hold no <G>; none names a count with a golden value.
+  // The fallbacks are attributes, so they hold no <G>; none names a count of the page with a golden value
+  // (PAGE_COUNTS, read from the golden file), nor the fourth shell.
   for (const attrs of wraps) {
     const fallback = /\bfallback="([^"]*)"/.exec(attrs)?.[1];
-    if (fallback !== undefined) expect(fallback, attrs).not.toMatch(/\b(240|2160|6720|17280|17520|48|26)\b/);
+    if (fallback === undefined) continue;
+    const typed = (fallback.match(/\d+/g) ?? []).map(Number);
+    expect(typed.filter((v) => PAGE_COUNTS.includes(v) || v === E8.fundamental_orbit_sizes[1]! + E8.n_roots), attrs).toEqual([]);
   }
   await page.goto(ROUTE);
   // E7: the attribution clause sits in "What we have seen", the "published" clause in beat 3.
@@ -683,8 +751,10 @@ test('anatomy of 8.2', async ({ page }) => {
     const computed = /verified by computation|in the OEIS/i.test(norm(await s.textContent()));
     expect(cited > 0 || computed, `Seen statement ${k + 1} has a provenance`).toBe(true);
   }
-  // The face-counting rule is presented as verified by computation.
-  expect(norm(await statements.nth(2).textContent())).toMatch(/verified by computation against exact convex hulls of \S+ polytopes/);
+  // The face-counting rule is presented as verified by computation, each count with its noun.
+  expect(plain(await statements.nth(2).textContent())).toContain(
+    `verified by computation against exact convex hulls of ${GOLDEN.wythoff_hull_checks} polytopes and the recorded face counts of ${GOLDEN.wythoff.length} polytopes.`,
+  );
   // No link to the golden tab of T11, to M8 or to the Atlas (unreleased in phase 4); the sandbox loads B3.
   await expect(article.locator('a[href*="tools/fold"]')).toHaveCount(0);
   await expect(article.locator('a[href*="m8"], a[href*="atlas/"]')).toHaveCount(0);
@@ -809,11 +879,14 @@ test('numbers in prose', () => {
   expect([...tex].sort()).toEqual(Object.keys(TYPED).sort());
   const braced = new Set([...source.matchAll(/\{'([^']*)'\}/g)].map((m) => m[1]!).filter((s) => /\d/.test(s)));
   expect([...braced].sort()).toEqual(Object.keys(BRACED).sort());
-  // No number with a golden value of this page is typed, in Tex or anywhere in the prose.
-  // Names such as the 24-cell carry their number in the name and are left out here.
+  // No count of this page with a golden value (PAGE_COUNTS, read from the golden file) is typed, in Tex or
+  // anywhere in the prose. Names such as the 24-cell carry their number in the name and are left out here.
+  expect(PAGE_COUNTS).toContain(E8.n_roots);
+  expect(PAGE_COUNTS).toContain(GOLDEN.wythoff_hull_checks);
   const names = new Set(['24-cell', '600-cells']);
-  for (const golden of ['240', '2160', '6720', '17280', '69120', '483840', '56', '30', '12', '24', '48', '26', '36', '120']) {
-    for (const s of [...tex, ...braced].filter((x) => !names.has(x))) expect(s.split(/[^\d]+/), `${golden} typed in ${s}`).not.toContain(golden);
+  for (const s of [...tex, ...braced].filter((x) => !names.has(x))) {
+    const typed = s.split(/[^\d]+/).filter((x) => x !== '').map(Number);
+    expect(typed.filter((v) => PAGE_COUNTS.includes(v)), `a golden count typed in ${s}`).toEqual([]);
   }
 });
 
@@ -828,6 +901,127 @@ test('at least two predictions and three challenges', async ({ page }) => {
   }
   const islands = await page.locator('astro-island[component-export="Challenge"]').evaluateAll((els) => els.map((e) => e.getAttribute('props') ?? ''));
   for (const id of ['b10', 'b11', 'b12', 'b13']) expect(islands.some((p) => p.includes(`"${id}"`)), id).toBe(true);
+});
+
+type ChallengeProps = { for: string; goal: string; explanation: string; check: { kind: string; name?: string; equals?: string } };
+/** Astro's serialised island props ([0, value] for a plain value or an object, [1, items] for an array), decoded. */
+function decodeProps(value: unknown): unknown {
+  if (!Array.isArray(value) || value.length !== 2 || typeof value[0] !== 'number') return value;
+  const [kind, inner] = value as [number, unknown];
+  if (kind === 1 && Array.isArray(inner)) return inner.map(decodeProps);
+  if (kind === 0 && inner !== null && typeof inner === 'object' && !Array.isArray(inner)) {
+    return Object.fromEntries(Object.entries(inner as Record<string, unknown>).map(([k, v]) => [k, decodeProps(v)]));
+  }
+  return inner;
+}
+/** The goal, explanation, tool and check of every challenge, from the island props the page was built with. */
+async function challengeProps(page: Page): Promise<ChallengeProps[]> {
+  const raw = await page.locator('astro-island[component-export="Challenge"]').evaluateAll((els) => els.map((e) => e.getAttribute('props') ?? '{}'));
+  return raw.map((p) => decodeProps([0, JSON.parse(p)]) as ChallengeProps);
+}
+const BOARD_NAME = /\b[A-H]\d\b/g;
+
+// Typed numbers a caption, goal or explanation may print besides golden values (instruction 5.7), with the
+// reason for each; the hexagon counts as the engine computes them. A configuration given as a start is
+// listed whole.
+const TYPED_IN_TEXTS: Record<string, Record<string, string>> = {
+  'b6 caption': {
+    [String(HEX.polytope)]: 'the edges of each graph of the hexagon (2.14; computed with the engine, equal to the moves)',
+    [String(HEX.shared)]: 'the shared edges of the hexagon (2.14; verify.py line 1116)',
+  },
+  'b7 caption': { '(0,1,√2)': 'the real numbers of the uniform truncated cube (2.14)' },
+};
+
+test('every number in the captions, goals and explanations is golden or allowed', async ({ page }) => {
+  await page.goto(ROUTE);
+  const boardOf = new Map(TOOLS.map((t) => [t.id, t.board]));
+  const texts: { where: string; board: string; text: string }[] = [];
+  for (const { id, board } of TOOLS) texts.push({ where: `${id} caption`, board, text: norm(await out(page, id, 'caption').textContent()) });
+  const challenges = await challengeProps(page);
+  expect(challenges.length).toBe(CHALLENGE_TOOLS.length);
+  for (const c of challenges) {
+    const board = boardOf.get(c.for)!;
+    // The rendered goal and explanation are the ones the props carry.
+    const box = page.locator('[data-challenge]').nth(challenges.indexOf(c));
+    expect(norm(await box.locator('.goal').textContent())).toBe(`Challenge. ${c.goal}`);
+    expect(norm(await box.locator('details p').textContent())).toBe(c.explanation);
+    texts.push({ where: `${c.for} goal`, board, text: c.goal }, { where: `${c.for} explanation`, board, text: c.explanation });
+  }
+  const beats = await page.locator('[data-beat]').count();
+  const unexplained: string[] = [];
+  for (const { where, board, text } of texts) {
+    const golden = goldenNumbersOf(board);
+    const tuples = goldenTuplesOf(board);
+    const allowed = TYPED_IN_TEXTS[where] ?? {};
+    const rank = T(board).numbers_of_highest_root.length;
+    const flag = (what: string): string => {
+      unexplained.push(`${where}: ${what}`);
+      return ' ';
+    };
+    // Grouping spaces (U+202F) inside a number are dropped first, so that 6 720 reads as one number.
+    let rest = text.replace(/(?<=\d) (?=\d)/g, '').replace(/−/g, '-').replace(BOARD_NAME, ' ');
+    // Names of polytopes that carry a number, when a golden record is named so (the 24-cell).
+    rest = rest.replace(/\b(\d+)-cells?\b/g, (m, n: string) => (GOLDEN.wythoff.some((r) => r.name.startsWith(`${n}-cell`)) ? ' ' : flag(m)));
+    // Node labels of the board and beats of the page are places, not counts.
+    rest = rest.replace(/\bnodes? \d+(?:(?:,| and) \d+)*/g, (m) => ((m.match(/\d+/g) ?? []).map(Number).every((l) => l >= 1 && l <= rank) ? ' ' : flag(`${m}, not on ${board}`)));
+    rest = rest.replace(/\bbeat (\d+)\b/g, (m, n: string) => (Number(n) >= 1 && Number(n) <= beats ? ' ' : flag(m)));
+    // Tuples, whole: the rings of a golden record or the numbers of the highest root, or an allowed start.
+    rest = rest.replace(/\(([^()]*\d[^()]*)\)/g, (m, inner: string) => {
+      const key = inner.replace(/\s+/g, '');
+      return tuples.has(key) || allowed[`(${key})`] !== undefined ? ' ' : flag(m);
+    });
+    // Every other number: a golden value of the board, or a typed number allowed for this text.
+    for (const v of rest.match(/\d+(?:\.\d+)?/g) ?? []) if (!golden.has(Number(v)) && allowed[v] === undefined) flag(v);
+  }
+  expect(unexplained).toEqual([]);
+  // Each allowed typed number is printed where it is listed.
+  for (const [where, list] of Object.entries(TYPED_IN_TEXTS)) {
+    const text = texts.find((t) => t.where === where)!.text.replace(/\s+/g, '');
+    for (const typed of Object.keys(list)) expect(text, `${where} prints ${typed}`).toContain(typed);
+  }
+});
+
+test('challenge goals promise no board that their check cannot read', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto(ROUTE);
+  const challenges = await challengeProps(page);
+  expect(challenges.map((c) => c.for)).toEqual(CHALLENGE_TOOLS.map(({ id }) => id));
+  for (const c of challenges) {
+    const named = [...new Set(c.goal.match(BOARD_NAME) ?? [])];
+    // Every check of this page reads one output of T10 and never the board it is on.
+    expect(c.check.kind, c.for).toBe('out');
+    if (c.check.name === 'polytopeName') {
+      // A golden name belongs to the board of its records, so a name check is met only there: the goal may
+      // name exactly that board.
+      const owners = [...new Set(GOLDEN.wythoff.filter((r) => r.name === c.check.equals).map((r) => r.type))];
+      expect(owners, c.for).toHaveLength(1);
+      expect(named, `${c.for}: ${c.goal}`).toEqual(owners);
+    } else {
+      // Any other output, such as the face counts, can be met on another board: the goal names none.
+      expect(named, `${c.for}: ${c.goal}`).toEqual([]);
+    }
+  }
+  // Why: the face counts of a goal are met off the studio's board. The picker loads the root polytope of the
+  // board it chooses (the golden numbers of the highest root); clicking a node rings it or clears its ring.
+  const elsewhere: { id: string; board: string; clicks: number[] }[] = [
+    { id: 'b10', board: 'B3', clicks: [] }, // (0, 1, 0) on B3, a cuboctahedron
+    { id: 'b11', board: 'C3', clicks: [1, 3] }, // (2, 0, 0), then (0, 0, 1) on C3, a cube
+    { id: 'b13', board: 'B3', clicks: [1] }, // (0, 1, 0), then (1, 1, 0) on B3, 24 vertices of three neighbours
+  ];
+  for (const { id, board, clicks } of elsewhere) {
+    const c = challenges.find((x) => x.for === id)!;
+    expect(c.check.name, id).toBe('fVector');
+    const start = TOOLS.find((t) => t.id === id)!.board;
+    expect(board, id).not.toBe(start);
+    const challenge = await challengeFor(page, id);
+    await hydrate(page, id);
+    await control(page, id, 'picker').selectOption(board);
+    await expect(out(page, id, 'boardName')).toHaveAttribute('data-name', board);
+    expect(await rings(tool(page, id)), id).toEqual(T(board).numbers_of_highest_root.map(String));
+    for (const label of clicks) await node(page, id, label).click();
+    await expect(out(page, id, 'fVector'), id).toHaveText(c.check.equals!);
+    await expect(challenge.locator('[data-challenge-result]'), id).toHaveText('Goal reached.');
+  }
 });
 
 test('glossary links resolve', async ({ page }) => {
@@ -848,6 +1042,55 @@ test('glossary links resolve', async ({ page }) => {
   expect(outsideLie).not.toContain('\\omega');
   expect(await page.locator('[data-anatomy="lie-theory"]').textContent()).toContain('ω');
   expect(norm(await proseText(page, '[data-anatomy="lie-theory"]'))).toContain('The fundamental position e_i is the fundamental weight \\omega_i, and the form value is the norm');
+});
+
+test('the Lie theory paragraph names the invariant form and the Euclidean embedding', async ({ page }) => {
+  await page.goto(ROUTE);
+  const lie = norm(await proseText(page, '[data-anatomy="lie-theory"]'));
+  // Instruction 5.12 lists these first: the invariant form B = DC and the Euclidean embedding E with E^T E = B.
+  expect(lie).toContain('The form is the invariant form B=DC');
+  expect(lie).toContain('E, with E^{\\mathsf T}E=B, is a Euclidean embedding of the root lattice');
+  expect(lie.indexOf('Euclidean embedding')).toBeLessThan(lie.indexOf('Wythoff'));
+});
+
+test('Cox35 and CKPS95 are cited only for what 2.14 gives them', async ({ page }) => {
+  await page.goto(ROUTE);
+  // SPEC 2.14: "This is Wythoff's construction in the language of weights ([Cox35], [CKPS95] [S2])", and
+  // "The rule is of the kind described in [CKPS95]" (the E7 wrap); 8.4 and instruction 5.9: Coxeter's
+  // account of the construction is [Cox35]. Each citation of the two keys must close one of these clauses,
+  // so that it never covers the site's own retelling "in the language of the game". The list of sources and
+  // its note are left out.
+  const before = await page.locator('article').evaluate((article) => {
+    const found: { key: string; text: string }[] = [];
+    for (const el of article.querySelectorAll('a.cite[data-cite="Cox35"], a.cite[data-cite="CKPS95"]')) {
+      if (el.closest('[data-anatomy="sources"]')) continue;
+      const block = el.closest('p, li, td, figcaption') ?? article;
+      const range = document.createRange();
+      range.setStart(block, 0);
+      range.setEndBefore(el);
+      const text = range
+        .toString()
+        .replace(/[‘’]/g, "'")
+        .replace(/\s+/g, ' ')
+        .replace(/(?:\s*\[[A-Za-z0-9]+\]\s*,?)+\s*$/, '')
+        .replace(/[\s,]+$/, '');
+      found.push({ key: el.getAttribute('data-cite') ?? '', text: text.split(/(?<=[.;:!?])\s/).pop() ?? '' });
+    }
+    return found;
+  });
+  expect(before.filter((b) => b.key === 'Cox35').length).toBeGreaterThanOrEqual(3);
+  expect(before.filter((b) => b.key === 'CKPS95').length).toBeGreaterThanOrEqual(3);
+  const granted: Record<string, RegExp> = {
+    Cox35: /(?:Wythoff's construction|in the language of weights|in Coxeter's account)$/,
+    CKPS95: /(?:Wythoff's construction|in the language of weights|of the kind described in)$/,
+  };
+  for (const { key, text } of before) {
+    expect(text, `[${key}] after: ${text}`).toMatch(granted[key]!);
+    expect(text, `[${key}] after: ${text}`).not.toMatch(/language of the game/);
+  }
+  // Beat 2 keeps its point: the construction is cited, and the game is the site's way of telling it.
+  const beat2 = norm(await proseText(page, '[data-beat="2"]'));
+  expect(beat2).toContain("This is Wythoff's construction [Cox35], [CKPS95], told here in the language of the game.");
 });
 
 test('beat 8 is a released:false placeholder', async ({ page }) => {
