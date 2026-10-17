@@ -257,19 +257,9 @@ function startVector(board: Board<unknown>, start: readonly (number | string)[])
 
 const needsBig = (start: readonly (number | string)[]): boolean => start.some((x) => typeof integerOut(x) === 'string');
 
-/**
- * Both final positions of a play (positions order, in the board's arithmetic): the big board plays the
- * expanded word, the folded board the word read through the orbit map, each by applyWord on its own
- * matrix. `moves` are labels of the big board; `start` is in label order and symmetric.
- */
-export function replay(ctx: FoldContext, start: readonly (number | string)[], moves: readonly number[], game: Game): { big: unknown[]; small: unknown[] } {
-  if (ctx.folded === null) throw new RangeError('the board does not fold by this symmetry');
-  const big = (needsBig(start) ? bigBoard(ctx.board) : ctx.board) as Board<unknown>;
-  const folded = (needsBig(start) ? bigBoard(ctx.folded) : ctx.folded) as Board<unknown>;
-  const v0 = startVector(big, start);
-  const f0 = ctx.orbits.map((o) => v0[o[0]!]);
-  return { big: applyWord(big, v0, bigWord(ctx, moves), game), small: applyWord(folded, f0, foldedWord(ctx, moves), game) };
-}
+// The play of both boards lives in one place, FoldBench below (advance: one applyWord per board per
+// symmetric move): a click, a link replayed on the main thread and the unit test of SPEC 4 T11's random
+// plays all go through it. There is no second replay function beside it (repair of the wave 4.2 review).
 
 // ---------------------------------------------------------------------------------------------
 // Worker hints (E-9)

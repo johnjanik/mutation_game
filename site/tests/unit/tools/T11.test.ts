@@ -47,7 +47,6 @@ import {
   orbitsInBourbakiOrder,
   orbitsInLabels,
   playHint,
-  replay,
   rootCount,
   symmetryText,
   symmetryToLabels,
@@ -105,32 +104,66 @@ describe('T11 acceptance over the golden key folding (SPEC 4 T11)', () => {
     expect(foldingRows).toHaveLength(8);
   });
 
+  // The plays go through the tool's own play path, FoldBench, exactly as T11FoldingBench.svelte drives it:
+  // a click on big node at position p is bench.act(ctx.orbitOf[p]), a click on folded node s is
+  // bench.act(s), and a link is new FoldBench({ ..., moves }, { defer: true }) then replaySync (the main
+  // thread; a word of at most 12 symmetric moves never reaches the worker). The values compared are the
+  // ones the boards draw: bigValues() by big position and foldedValues() by folded position (orbit index).
   it('for every folding row with a folded board, 200 random symmetric plays agree between the two boards in both games', () => {
     const next = rng(SEED);
     const int = (lo: number, hi: number): number => lo + Math.floor(next() * (hi - lo + 1));
+    /** The bench's decimal text as an integer, so that intEq compares it (rule 1). */
+    const big = (texts: readonly string[]): bigint[] => texts.map((t) => BigInt(t));
     let checked = 0;
     for (const row of foldingRows) {
       const board = named(row.type) as Board<number>;
       const ctx = foldContext(board, row.symmetry);
       const folded = ctx.folded!;
       expect(folded).not.toBeNull();
-      for (const game of ['mutation', 'firing'] as const) {
+      for (const view of ['populations', 'numbers'] as const) {
+        const game = view === 'numbers' ? 'firing' : 'mutation';
         for (let k = 0; k < PLAYS_PER_ROW_AND_GAME; k++) {
           // A symmetric start: one entry in [-9, 9] per orbit, in label order; a word of 1 to 12 orbits.
           const perOrbit = ctx.orbits.map(() => int(-9, 9));
           const start = [...board.labels].sort((a, b) => a - b).map((l) => perOrbit[orbitOfLabel(ctx, l)]!);
+          const bench = new FoldBench({ board: row.type, view, symmetry: row.symmetry, start });
+          expect(bench.game).toBe(game);
+          expect(bench.ctx.orbits).toEqual(ctx.orbits);
           const length = int(1, 12);
-          const moves: number[] = [];
-          for (let j = 0; j < length; j++) moves.push(Math.min(...harnessLabels(board, ctx.orbits[int(0, ctx.orbits.length - 1)]!)));
-          const { big, small } = replay(ctx, start, moves, game);
-          const message = `${row.type} symmetry ${row.symmetry.join('.')} ${game} start ${start.join(',')} word ${moves.join('.')}`;
-          // Every node of every orbit equals the folded board's value on that orbit (2.13(a), [V]).
-          for (let s = 0; s < ctx.orbits.length; s++) {
-            for (const p of ctx.orbits[s]!) intEq(big[p], small[s], message);
+          const word: number[] = [];
+          const clicks: string[] = [];
+          const message = (): string => `${row.type} symmetry ${row.symmetry.join('.')} ${game} start ${start.join(',')} clicks ${clicks.join(' ')}`;
+          for (let j = 0; j < length; j++) {
+            // A click on any node of either board: a big node names the orbit containing it.
+            const onBig = int(0, 1) === 0;
+            const p = int(0, onBig ? board.n - 1 : ctx.orbits.length - 1);
+            const s = onBig ? ctx.orbitOf[p]! : p;
+            clicks.push(`${onBig ? 'big' : 'folded'}:${p}`);
+            const r = bench.act(s);
+            expect(r, message()).not.toBeNull();
+            expect(r!.orbit, message()).toBe(s);
+            word.push(s);
+            // After every symmetric move, every node of every orbit equals the folded board's value on
+            // that orbit (2.13(a), [V]), as the two boards draw them.
+            const bigNow = big(bench.bigValues());
+            const foldedNow = big(bench.foldedValues());
+            for (let t = 0; t < ctx.orbits.length; t++) {
+              for (const q of ctx.orbits[t]!) intEq(bigNow[q], foldedNow[t], message());
+            }
           }
+          expect(bench.cursor).toBe(length);
+          expect(bench.state().moves).toEqual(word.map((s) => Math.min(...harnessLabels(board, ctx.orbits[s]!))));
           // The folded board was played by the engine on its own Cartan matrix: the same word read
           // through the orbit map (folded position s is orbit s), never a copy of the big board's values.
-          intEq(small, applyWord(folded, perOrbit, foldedWord(ctx, moves), game), message);
+          intEq(applyWord(folded, perOrbit, word, game), bench.foldedValues(), message());
+          // The same moves read from a link (one entry per symmetric move) give the same positions.
+          const link = new FoldBench({ board: row.type, view, symmetry: row.symmetry, start, moves: bench.state().moves }, { defer: true });
+          expect(link.needsWorker()).toBe(false);
+          link.replaySync();
+          for (let j = 0; j <= length; j++) {
+            intEq(big(link.bigValues(j)), bench.bigValues(j), message());
+            intEq(big(link.foldedValues(j)), bench.foldedValues(j), message());
+          }
           checked++;
         }
       }
