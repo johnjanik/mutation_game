@@ -163,14 +163,17 @@
     emit(moveNode(edit, k, x + dx, y + dy), 'move');
   }
 
-  function setOut(count: number): void {
-    if (other < 0) return;
-    emit(setRoads(edit, subject, other, count, roads.back, roadCap), 'roads');
+  // A board from a link may hold more than roadCap roads one way (5.6: the engine accepts any count, the
+  // editor refuses more). The selects show the count held, as an option the reader cannot choose; a
+  // change the editor refuses (setRoads checks both counts) puts the select back on the count held.
+  function setOut(event: Event): void {
+    const el = event.currentTarget as HTMLSelectElement;
+    if (other < 0 || !emit(setRoads(edit, subject, other, Number(el.value), roads.back, roadCap), 'roads')) el.value = String(roads.out);
   }
 
-  function setBack(count: number): void {
-    if (other < 0) return;
-    emit(setRoads(edit, subject, other, roads.out, count, roadCap), 'roads');
+  function setBack(event: Event): void {
+    const el = event.currentTarget as HTMLSelectElement;
+    if (other < 0 || !emit(setRoads(edit, subject, other, roads.out, Number(el.value), roadCap), 'roads')) el.value = String(roads.back);
   }
 
   function loadPreset(): void {
@@ -389,18 +392,24 @@
         </label>
         <label class="setting">
           <span>from {subjectLabel} to {otherLabel}</span>
-          <select data-control="roadsOut" disabled={off} value={roads.out} onchange={(e) => setOut(Number((e.currentTarget as HTMLSelectElement).value))}>
+          <select data-control="roadsOut" disabled={off} value={roads.out} onchange={setOut}>
             {#each roadChoices as c (c)}
               <option value={c}>{c}</option>
             {/each}
+            {#if roads.out > roadCap}
+              <option value={roads.out} disabled>{roads.out}</option>
+            {/if}
           </select>
         </label>
         <label class="setting">
           <span>from {otherLabel} to {subjectLabel}</span>
-          <select data-control="roadsBack" disabled={off} value={roads.back} onchange={(e) => setBack(Number((e.currentTarget as HTMLSelectElement).value))}>
+          <select data-control="roadsBack" disabled={off} value={roads.back} onchange={setBack}>
             {#each roadChoices as c (c)}
               <option value={c}>{c}</option>
             {/each}
+            {#if roads.back > roadCap}
+              <option value={roads.back} disabled>{roads.back}</option>
+            {/if}
           </select>
         </label>
       </div>
