@@ -695,15 +695,15 @@ test.describe('regressions', () => {
     expect(quoted.length, 'beat 7 cites [DE08]').toBe(1);
     const sentence = quoted[0]!;
     expect(sentence, 'M3 beat 7 must not quote [DE08] with "a suitable start"').not.toMatch(/suitable start/);
-    expect(sentence, `M3 beat 7: "${sentence}" must name a start with no negative number`).toMatch(/no negative number/);
-    expect(sentence, `M3 beat 7: "${sentence}" must exclude the start of all zeros`).toMatch(/not all zeros/);
+    expect(sentence, `M3 beat 7: "${sentence}" must name a start with no negative number`).toMatch(/no negative (number|one)/);
+    expect(sentence, `M3 beat 7: "${sentence}" must exclude the start of all zeros`).toMatch(/start with a positive number/);
     expect(sentence, `M3 beat 7: "${sentence}" must speak of boards with roads both ways`).toMatch(/connected board with roads both ways/);
     expect(sentence).toMatch(/finite type/);
     // The built page prints the same hypotheses.
     await page.goto(ROUTE);
     const printed = (await proseSentences(page, '[data-beat="7"]')).filter((s) => s.includes('Donnelly and Eriksson'));
     expect(printed.length).toBe(1);
-    expect(printed[0]).toMatch(/connected board with roads both ways .*no negative number and is not all zeros/);
+    expect(printed[0]).toMatch(/connected board with roads both ways .*start with a positive number and no negative one/);
   });
 
   // Adopted from site/tests/unit/redteam-RT-08-computation-range.test.ts (lens RT-08), M3 part (the
