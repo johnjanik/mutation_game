@@ -415,4 +415,23 @@ test.describe('regressions', () => {
     await control(page, 'importBoard').click();
     await expect(root(page).locator('[data-live]')).toHaveText(/^The board could not be read: the text is not JSON\./);
   });
+
+  // SPEC 5.6: "Roads between two nodes, each way (editor only; the engine accepts any count) | 4 | editor
+  // refuses more"; 6.2: on a one-way board every road is drawn as its own arrow. An import with 2^53 - 1
+  // roads must not hang the page. Adopted from the red team's reproducer (RT-03 attacks 15 and 30).
+  // regression: P3-RT-03-01
+  test('a one-way board with 9007199254740991 roads from an import does not hang the page', async ({ page }) => {
+    test.setTimeout(60_000);
+    await open(page);
+    await control(page, 'importText').fill('{"cartan": [[2, -9007199254740991], [0, 2]]}');
+    const t0 = Date.now();
+    await control(page, 'importBoard').click({ timeout: 20_000 });
+    // Either refused, or imported and drawn: the page must answer within 20 seconds.
+    await expect(out(page, 'importStatus')).not.toBeEmpty({ timeout: 20_000 });
+    const answered = await Promise.race([
+      page.evaluate(() => document.querySelectorAll('[data-tool="sandbox"] [data-node]').length).then((n) => ({ n })),
+      new Promise<{ n: number }>((resolve) => setTimeout(() => resolve({ n: -1 }), 20_000)),
+    ]);
+    expect(answered.n, `page answered after ${Date.now() - t0} ms`).toBeGreaterThan(0);
+  });
 });
