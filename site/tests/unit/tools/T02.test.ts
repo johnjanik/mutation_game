@@ -7,6 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   CAPS,
+  EngineOverflow,
   applyWord,
   boardFromName,
   mutate,
@@ -693,6 +694,19 @@ describe('regressions', () => {
         expect(total, `${name} node ${node}: the counter's total`).toEqual({ kind: 'number', value: expected });
       });
     }
+  });
+
+  // The same fix, where orbitSize cannot answer: on A20 (a named board a link may give) the order of the
+  // group, 21!, is beyond the safe integers, so orbitSize throws EngineOverflow and the counter says what
+  // the bounded search says (decisions/RT-FIX-P3-garden-follow.md).
+  it('the orbit total falls back to the bounded search when orbitSize overflows', () => {
+    const board = boardFromName('A20');
+    const ones = Array.from({ length: 20 }, () => 1);
+    expect(() => orbitSize(board, ones)).toThrow(EngineOverflow);
+    expect(gardenTotal({ board, grows: 'orbit', seed: ones, game: 'firing' }, gardenLayersBound(board))).toEqual({ kind: 'more', text: MORE_THAN });
+    // The orbit of the fundamental weight of node 1 has 21 positions, which the bounded search completes.
+    const omega1 = Array.from({ length: 20 }, (_, k) => (k === 0 ? 1 : 0));
+    expect(gardenTotal({ board, grows: 'orbit', seed: omega1, game: 'firing' }, gardenLayersBound(board))).toEqual({ kind: 'number', value: 21 });
   });
 
   // SPEC 7.4: "While a tool runs it keeps the list of positions of the current play in memory and
