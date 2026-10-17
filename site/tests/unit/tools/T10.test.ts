@@ -30,6 +30,7 @@ import type { Board } from '@engine';
 import T10 from '../../../src/tools/registry/T10';
 import { T10_BOARDS, T10_OUTS, T10_PRESETS, T10_PRESET_IDS, defaultProjectionText } from '../../../src/components/tools/t10/config';
 import {
+  clampRing,
   classifiedBoard,
   computeOrbit,
   countsOf,
@@ -43,6 +44,7 @@ import {
   fromGraph,
   fromPresetFile,
   isClassified,
+  RING_CAP_TEXT,
   RING_MAX,
   refusalText,
   rootPolytopeRings,
@@ -69,6 +71,7 @@ import {
   figureText,
   forgetCore,
   limitTexts,
+  linkNotice,
   loadPlan,
   otherFacts,
   pictureOf,
@@ -886,6 +889,47 @@ describe('links', () => {
     expect(Object.keys(stateOf(configOf('A3', [1, 0, 1]))).sort()).toEqual(['board', 'graph', 'projection', 'rings', 'schema', 'tool']);
   });
 
+  it('a ring asked for beyond the cap is held to it and said; the cap is stated in words (4.0 Stated limits)', () => {
+    // The cap in words, with its number (the line beside the ring fields).
+    expect(RING_CAP_TEXT).toContain(`0 to ${RING_MAX}`);
+    // Inside the range nothing is held and nothing is said.
+    expect(clampRing(3, 2)).toEqual({ value: 2, held: null });
+    expect(clampRing(3, 0)).toEqual({ value: 0, held: null });
+    expect(clampRing(3, RING_MAX)).toEqual({ value: RING_MAX, held: null });
+    // Above it: the ring is the cap, and the sentence names the node and the cap.
+    for (const asked of [RING_MAX + 1, 10 ** 12, Number.MAX_SAFE_INTEGER]) {
+      const r = clampRing(3, asked);
+      expect(r.value, String(asked)).toBe(RING_MAX);
+      expect(r.held, String(asked)).toContain(`Node 3 held at ${RING_MAX}`);
+      expect(r.held, String(asked)).toContain(`0 to ${RING_MAX}`);
+    }
+    // Below 0 (a typed minus sign, or Ring down on an unringed node): held at 0, and said.
+    const under = clampRing(2, -1);
+    expect(under.value).toBe(0);
+    expect(under.held).toContain('Node 2 held at 0');
+    // The ring held to is one the tool shows; the one asked for is not.
+    expect(admit({ board: 'A3', rings: [1, 0, clampRing(3, RING_MAX + 1).value] }, true)).not.toBeNull();
+    expect(admit({ board: 'A3', rings: [1, 0, RING_MAX + 1] }, true)).toBeNull();
+  });
+
+  it('a link with a ring above the cap says why it fell back (6.6 notice; 4.0 Stated limits)', () => {
+    const defaults = presetState('default');
+    // The codec reads the link (a safe integer); the tool refuses it before any engine call.
+    const { state, notice } = decodeState(`g=A3&r=1.0.${RING_MAX + 1}`, 'geometry', defaults);
+    expect(notice).toBeNull();
+    expect(admit(state, false)).toBeNull();
+    const text = linkNotice(state);
+    // The sentence of 6.6 first, then the reason, with the ring asked for and the cap.
+    expect(text.startsWith(LINK_NOTICE)).toBe(true);
+    expect(text.length).toBeGreaterThan(LINK_NOTICE.length);
+    expect(text).toContain(String(RING_MAX + 1));
+    expect(text).toContain(String(RING_MAX));
+    // Every other refusal keeps the codec's sentence alone (the reason there is not the cap).
+    expect(linkNotice({ board: 'A3', rings: [1, 0, RING_MAX] })).toBe(LINK_NOTICE);
+    expect(linkNotice({ board: 'A4~', rings: [1, 0, 0, 0, RING_MAX + 1] })).toBe(LINK_NOTICE);
+    expect(linkNotice({ board: 'A3', rings: undefined })).toBe(LINK_NOTICE);
+  });
+
   it('the move graph builder works in slices and gives the same edges', () => {
     const board = B('E8');
     const data = fromPresetFile(board, fileOf('E8-r0.0.0.0.0.0.0.1.json'));
@@ -967,6 +1011,27 @@ describe('server rendering', () => {
     }
     // Ring board hooks.
     expect((body.match(/data-board="numbers"/g) ?? []).length).toBe(3);
+  }, 60000);
+
+  it('the ring fields state the cap in words beside them (4.0 Stated limits)', () => {
+    const body = loader.render(T10C.default, { id: '', preset: 'default' });
+    const table = body.slice(body.indexOf('data-table="rings"'));
+    const fields = [...table.matchAll(/<input\b[^>]*data-table-ring="(\d+)"[^>]*>/g)];
+    expect(fields.length).toBe(3);
+    // The line right after the ring fields, before any other table, states the cap with its number.
+    const m = /<p\b[^>]*data-out="ringLimit"[^>]*>([^]*?)<\/p>/.exec(table);
+    expect(m).not.toBeNull();
+    const at = table.indexOf(m![0]);
+    expect(at).toBeGreaterThan(table.indexOf(fields.at(-1)![0]));
+    expect(table.slice(0, at).match(/<table\b/g) ?? []).toHaveLength(0);
+    expect(m![1]!.replace(/<[^>]+>/g, '')).toContain(RING_CAP_TEXT);
+    // Each field names the line as its description, and carries the cap as its maximum.
+    const id = /\bid="([^"]+)"/.exec(m![0])?.[1];
+    expect(id).toBeDefined();
+    for (const [field] of fields) {
+      expect(field).toContain(`aria-describedby="${id}"`);
+      expect(field).toContain(`max="${RING_MAX}"`);
+    }
   }, 60000);
 
   it('a root-polytope figure placed on another board shows that board s root polytope; a move-graph figure labels its edges', () => {

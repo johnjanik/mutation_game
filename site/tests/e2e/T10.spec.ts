@@ -23,7 +23,8 @@
 //   first; radii in data-radii), distinctDots, sharedEdges, graph, projection (the j value), turn (the
 //   three angles), uniform, edgeLengths (distinct squared base-edge lengths; data-count), shortRoots,
 //   limitMessage, refused, busy, source ("preset" | "computed"), drawMs, edits (ring and board edits; see
-//   the decisions fragment on data-moves), legend
+//   the decisions fragment on data-moves), legend, ringLimit (the cap of the rings in words, beside the
+//   ring fields of the table view, and the sentence when a ring asked for is held to it)
 // data-control names: picker, rootPolytope, ringUp, ringDown, shortRoots, uniform, graphPolytope,
 //   graphMoves, viewCoxeter, viewXyz, axis1 to axis3, turnGroup, turnUp, turnDown, turnLeft, turnRight,
 //   turnCounter, turnClock, planeGroup, planeA, planeB, rotatePlus, rotateMinus, rotateReset, drawOrbit;
@@ -36,6 +37,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CAPS, boardFromName, toPositions, wythoffFVector } from '../../../packages/engine/src/index';
+import type { AnyBoard } from '../../../packages/engine/src/index';
+import { RING_MAX } from '../../src/components/tools/t10/scene';
 
 interface WythoffRecord {
   type: string;
@@ -59,6 +62,14 @@ const record = (type: string, rings: number[]): WythoffRecord => {
 };
 const ringCounts = (type: string): number[] => golden.types[type]!.coxeter_plane!.rings.map(([, c]) => c);
 const sum = (xs: number[]): number => xs.reduce((s, x) => s + x, 0);
+/** A vector in label order (the rings of a link) as the engine takes it, in positions (E-7: through toPositions). */
+const inPositions = (board: AnyBoard, v: readonly number[]): number[] => {
+  const p = new Array<number>(board.n).fill(0);
+  [...board.labels].sort((a, b) => a - b).forEach((label, k) => {
+    p[toPositions(board, [label])[0]!] = v[k]!;
+  });
+  return p;
+};
 
 const ROUTE = 'tools/geometry/';
 const NOTICE = 'The link could not be read, so the tool shows its default state.';
@@ -294,6 +305,8 @@ test('an orbit above 20000 vertices is refused with its size', async ({ page }) 
 test('the four-shell links of M7 beat 7 open without the worker', async ({ page }) => {
   test.setTimeout(180000);
   const sizes = golden.types.E8!.fundamental_orbit_sizes;
+  const E8 = boardFromName('E8');
+  const sides = new Set<boolean>();
   for (const link of [
     'g=E8&r=0.0.0.0.0.0.0.1&j=coxeter',
     'g=E8&r=1.0.0.0.0.0.0.0&j=coxeter',
@@ -304,17 +317,24 @@ test('the four-shell links of M7 beat 7 open without the worker', async ({ page 
     const seen = watch(page);
     const rings = /r=([\d.]+)/.exec(link)![1]!.split('.').map(Number);
     const ringed = rings.findIndex((x) => x !== 0);
+    // The edges of the polytope from the engine, never from the page: whether the limit message must appear
+    // is decided by the exact count (5.9), and the page must show that count.
+    const edges = wythoffFVector(E8, inPositions(E8, rings))[1]!;
+    const above = edges > BigInt(CAPS.edgesAtRest);
+    sides.add(above);
     await open(page, link);
     await expect(out(page, 'vertexCount'), link).toHaveText(String(sizes[ringed]));
+    await expect(out(page, 'edgeCount'), link).toHaveText(String(edges));
     await expect(out(page, 'faceTable')).toHaveCount(1);
-    const edges = Number(await out(page, 'edgeCount').innerText());
-    if (edges > CAPS.edgesAtRest) await expect(out(page, 'limitMessage'), link).toContainText(String(edges));
+    if (above) await expect(out(page, 'limitMessage'), link).toContainText(String(edges));
     else await expect(out(page, 'limitMessage'), link).toHaveText('');
     await page.waitForLoadState('networkidle');
     expect(seen.worker, link).toEqual([]);
     page.removeAllListeners('request');
     page.removeAllListeners('worker');
   }
+  // The shells cover both sides of the cap: some with every edge, some vertices only.
+  expect([...sides].sort()).toEqual([false, true]);
   // 2_41: the reader presses "Draw the orbit"; the worker draws every edge at rest, with no limit message.
   const r = record('E8', [1, 0, 0, 0, 0, 0, 0, 0]);
   const seen = watch(page);
@@ -649,6 +669,62 @@ test('picker resets rings; unsupported boards and projections load the default w
     expect(await valuesOf(page), query).toEqual(golden.types.A3!.numbers_of_highest_root.map(String));
     await expect(root(page).locator('button[data-node]')).toHaveCount(3);
   }
+});
+
+test('the ring cap is stated beside the ring fields, and a ring held to it is said', async ({ page }) => {
+  await open(page, 'g=A3&r=1.0.0');
+  await root(page).locator('summary', { hasText: 'Show as table' }).click();
+  const field = root(page).locator('[data-table-ring="3"]');
+  const limit = out(page, 'ringLimit');
+  // Stated in words beside the fields, with the number; each field is described by that line.
+  await expect(limit).toBeVisible();
+  await expect(limit).toContainText(`0 to ${RING_MAX}`);
+  await expect(field).toHaveAttribute('max', String(RING_MAX));
+  const described = await field.getAttribute('aria-describedby');
+  expect(described).toBeTruthy();
+  await expect(limit).toHaveAttribute('id', described!);
+  // A typed value above the cap: the ring is held to it, the field shows the ring, and both the line
+  // beside the fields and the live region say so.
+  await field.fill(String(RING_MAX + 1));
+  await field.press('Enter');
+  await field.blur();
+  await expect(node(page, 3)).toHaveAttribute('data-value', String(RING_MAX));
+  await expect(field).toHaveValue(String(RING_MAX));
+  await expect(limit).toContainText(`Node 3 held at ${RING_MAX}`);
+  await expect(live(page)).toContainText(`Node 3 held at ${RING_MAX}`);
+  await expect(out(page, 'edits')).toHaveText('1');
+  // A ring inside the range clears the sentence.
+  await field.fill('2');
+  await field.press('Enter');
+  await field.blur();
+  await expect(node(page, 3)).toHaveAttribute('data-value', '2');
+  await expect(limit).not.toContainText('held at');
+  // Typed above the cap while the ring is the cap already: nothing changes, the field shows the ring
+  // (not the typed value), and the sentence is said again.
+  await field.fill(String(RING_MAX));
+  await field.press('Enter');
+  await field.blur();
+  await expect(node(page, 3)).toHaveAttribute('data-value', String(RING_MAX));
+  await field.fill(String(RING_MAX + 5));
+  await field.press('Enter');
+  await field.blur();
+  await expect(field).toHaveValue(String(RING_MAX));
+  await expect(limit).toContainText(`Node 3 held at ${RING_MAX}`);
+  await expect(live(page)).toContainText(`Node 3 held at ${RING_MAX}`);
+  await expect(out(page, 'edits')).toHaveText('3');
+});
+
+test('a link with a ring above the cap loads the default and says why', async ({ page }) => {
+  await open(page, `g=A3&r=1.0.${RING_MAX + 1}`);
+  const notice = out(page, 'notice');
+  await expect(notice).toContainText(NOTICE);
+  await expect(notice).toContainText(String(RING_MAX + 1));
+  await expect(notice).toContainText(String(RING_MAX));
+  expect(await valuesOf(page)).toEqual(golden.types.A3!.numbers_of_highest_root.map(String));
+  // At the cap itself the link is read.
+  await open(page, `g=A3&r=1.0.${RING_MAX}`);
+  await expect(out(page, 'notice')).toHaveCount(0);
+  expect(await valuesOf(page)).toEqual(['1', '0', String(RING_MAX)]);
 });
 
 test('hooks are present', async ({ page }) => {
