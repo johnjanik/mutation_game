@@ -7,7 +7,7 @@
 // position j = -C[j][i] (SPEC 2.1). Two nodes are joined when A[i][j] > 0 or A[j][i] > 0.
 // The package name is imported (it is what the site alias @engine points at) because the unit-test
 // project of the root Vitest configuration does not resolve the alias.
-import { adjacency } from '@two-games/engine';
+import { CAPS, adjacency } from '@two-games/engine';
 import type { AnyBoard } from '@two-games/engine';
 import type { RoadStyle } from '../board/types';
 
@@ -23,25 +23,34 @@ export type RoadGlyph =
   /** A pair with A_ij A_ji >= 4: a thick line, with the roads leaving each end written beside it (plan). */
   | { kind: 'thick'; from: number; to: number; countAtFrom: number; countAtTo: number }
   /** One road from `from` to `to`, the `index`-th of `of` in that direction. */
-  | { kind: 'arrow'; from: number; to: number; index: number; of: number };
+  | { kind: 'arrow'; from: number; to: number; index: number; of: number }
+  /** More than CAPS.roadsEachWay roads from `from` to `to`: one arrow with the count written beside it (plan). */
+  | { kind: 'counted'; from: number; to: number; count: number };
 
 /**
  * The glyphs of a board in a style, by joined position pair i < j in increasing (i, j) order.
  * `dynkin`: with m = A_ij and m' = A_ji, lines when m m' <= 3 (count max(m, m'), the chevron
  * towards the end that receives the extra roads, from the long node to the short node), a thick
- * line when m m' >= 4. `roads`: one arrow per road, first i to j, then j to i.
+ * line when m m' >= 4. `roads`: one arrow per road, first i to j, then j to i, up to the editor's
+ * CAPS.roadsEachWay roads in a direction (5.6); a direction with more roads, which only a board
+ * from outside the editor can have, is one arrow with its count written beside it, as the thick
+ * line of `dynkin` writes its counts. So a pair has at most 2 CAPS.roadsEachWay glyphs.
  */
 export function roadGlyphs(board: AnyBoard, style: RoadStyle): RoadGlyph[] {
   const A = adjacency(board);
   const out: RoadGlyph[] = [];
+  const arrows = (from: number, to: number, m: number): void => {
+    if (m > CAPS.roadsEachWay) out.push({ kind: 'counted', from, to, count: m });
+    else for (let k = 0; k < m; k++) out.push({ kind: 'arrow', from, to, index: k, of: m });
+  };
   for (let i = 0; i < board.n; i++) {
     for (let j = i + 1; j < board.n; j++) {
       const m = A[i]![j]!;
       const mm = A[j]![i]!;
       if (m <= 0 && mm <= 0) continue;
       if (style === 'roads') {
-        for (let k = 0; k < m; k++) out.push({ kind: 'arrow', from: i, to: j, index: k, of: m });
-        for (let k = 0; k < mm; k++) out.push({ kind: 'arrow', from: j, to: i, index: k, of: mm });
+        arrows(i, j, m);
+        arrows(j, i, mm);
       } else if (m * mm >= 4) {
         out.push({ kind: 'thick', from: i, to: j, countAtFrom: m, countAtTo: mm });
       } else {
@@ -81,11 +90,25 @@ const perp = (a: V): V => [-a[1], a[0]];
 /** Fixed precision, so the server render and the hydrated render print the same text. */
 const f = (v: number): string => String(Math.round(v * 1e4) / 1e4 + 0);
 const pt = (p: V): string => `${f(p[0])},${f(p[1])}`;
+/** A road count written at a point, in var(--text). */
+const countText = (at: V, count: number, unit: number): RoadElement => ({
+  tag: 'text',
+  attrs: {
+    class: 'road-count',
+    x: f(at[0]),
+    y: f(at[1]),
+    'font-size': f(COUNT_SIZE * unit),
+    'text-anchor': 'middle',
+    'dominant-baseline': 'central',
+    fill: 'var(--text)',
+  },
+  text: String(count),
+});
 
 /**
  * The SVG elements of the glyphs, given node centres in the drawing's coordinates (y down) and the
  * size of one grid unit there. Lines and arrows are stroked in var(--road); chevrons and arrowheads
- * in var(--arrow); the counts of a thick line are text filled with var(--text). No hex literal.
+ * in var(--arrow); the counts of a thick line and of a counted arrow are text filled with var(--text). No hex literal.
  * A pair whose centres are closer than two insets is skipped (nothing to draw between them).
  */
 export function roadElements(glyphs: readonly RoadGlyph[], centres: readonly (readonly [number, number])[], unit = 1): RoadElement[] {
@@ -124,25 +147,14 @@ export function roadElements(glyphs: readonly RoadGlyph[], centres: readonly (re
       const across = mul(n, COUNT_ACROSS * unit);
       const atFrom = add(add(a, mul(u, COUNT_ALONG * unit)), across);
       const atTo = add(sub(b, mul(u, COUNT_ALONG * unit)), across);
-      const text = (at: V, count: number): RoadElement => ({
-        tag: 'text',
-        attrs: {
-          class: 'road-count',
-          x: f(at[0]),
-          y: f(at[1]),
-          'font-size': f(COUNT_SIZE * unit),
-          'text-anchor': 'middle',
-          'dominant-baseline': 'central',
-          fill: 'var(--text)',
-        },
-        text: String(count),
-      });
-      out.push(text(atFrom, g.countAtFrom), text(atTo, g.countAtTo));
+      out.push(countText(atFrom, g.countAtFrom, unit), countText(atTo, g.countAtTo, unit));
     } else {
       // Each road its own quadratic curve, bent to the left of its direction by (index + 1) steps:
       // the roads of one direction never coincide, and the two directions bend to opposite sides.
+      // A counted direction is drawn as the first curve, with its count written beyond the apex.
+      const index = g.kind === 'arrow' ? g.index : 0;
       const mid = mul(add(p, q), 0.5);
-      const control = add(mid, mul(n, 2 * BEND_STEP * unit * (g.index + 1)));
+      const control = add(mid, mul(n, 2 * BEND_STEP * unit * (index + 1)));
       const s = add(p, mul(unitOf(sub(control, p)), inset));
       const e = add(q, mul(unitOf(sub(control, q)), inset));
       out.push({ tag: 'path', attrs: { class: 'road arrow', d: `M${pt(s)}Q${pt(control)} ${pt(e)}`, stroke: 'var(--road)', fill: 'none' } });
@@ -150,6 +162,7 @@ export function roadElements(glyphs: readonly RoadGlyph[], centres: readonly (re
       const base = sub(e, mul(t, HEAD_LENGTH * unit));
       const hw = mul(perp(t), HEAD_HALF_WIDTH * unit);
       out.push({ tag: 'polygon', attrs: { class: 'arrowhead', points: `${pt(e)} ${pt(add(base, hw))} ${pt(sub(base, hw))}`, fill: 'var(--arrow)' } });
+      if (g.kind === 'counted') out.push(countText(add(mid, mul(n, (BEND_STEP + COUNT_ACROSS) * unit)), g.count, unit));
     }
   }
   return out;
