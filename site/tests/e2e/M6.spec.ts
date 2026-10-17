@@ -13,8 +13,8 @@
 //     predictResult; data-control next, predictAnswer, predictCheck, predictShow; data-view (linked check)
 //   T2, registry site/src/tools/registry/T02.ts: found, total, stopMessage, layersGrown, vertex;
 //     data-control showTotal
-//   T3, registry site/src/tools/registry/T03.ts (T03_OUTS): testVerdict; data-control weightField
-//     (data-weight, data-weight-index), test
+//   T3, registry site/src/tools/registry/T03.ts (T03_OUTS): testVerdict, meterNote; data-control weightField
+//     (data-weight, data-weight-index), test, picker (absent on b13, which follows b11); data-table-value
 //   T7, registry site/src/tools/registry/T07.ts (T07_OUTS): firedForms (li data-form), rootRow
 //     (data-root, data-used)
 //   T11, registry site/src/tools/registry/T11.ts (T11_OUTS): big-board, folded-board, folded-name
@@ -697,6 +697,28 @@ test('unverified wraps', async ({ page }) => {
   }
 });
 
+test('the fixed-subalgebra sentence names its four patterns', async ({ page }) => {
+  // SPEC 2.13: the averaged roots are the roots of the fixed subalgebra for A_{2n-1}, D_{n+1}, E_6 and
+  // D_4 with its rotation ([FSS96]); for A_{2n} this fails (E16, wrapped). Beat 6 lists the patterns in
+  // another order (A_{2n} third), so an ordinal such as "the first four patterns" would read wrongly
+  // (repair of wave 4.3): the sentence names the four.
+  await page.goto(ROUTE);
+  const lie = sentences(await proseText(page, '[data-anatomy="lie-theory"]'));
+  const fixed = lie.filter((s) => s.includes('the roots of the fixed subalgebra'));
+  expect(fixed, 'one sentence on the fixed subalgebra outside the wrap').toHaveLength(1);
+  const s = fixed[0]!;
+  for (const name of ['A_{2n-1}', 'D_{n+1}', 'E_6', 'D_4']) expect(s, name).toContain(name);
+  expect(s.replaceAll('A_{2n-1}', ''), 'A with an even index is not among them').not.toContain('A_{2n}');
+  expect(s).not.toMatch(/\b(?:first|last|other) (?:two|three|four|five) patterns\b/i);
+  expect(norm(await proseText(page, '[data-anatomy="lie-theory"]'))).not.toMatch(/\b(?:first|last) (?:two|three|four|five) patterns\b/i);
+  // The A_{2n} sentence stays inside the E16 wrap.
+  expect(norm(await page.locator('[data-anatomy="lie-theory"] [data-unverified="E16"]').evaluate((el) => {
+    const copy = el.cloneNode(true) as HTMLElement;
+    for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(k.querySelector('annotation')?.textContent ?? ''));
+    return copy.textContent ?? '';
+  }))).toContain('A_{2n}');
+});
+
 test('challenge: reach the highest root of G2 from city 2', async ({ page }) => {
   await page.goto(ROUTE);
   const challenge = await challengeFor(page, 'b11');
@@ -753,6 +775,20 @@ test('challenge: weights on G2 that the builder accepts', async ({ page }) => {
     for (const [k, w] of city.entries()) await expect(field('city', k)).toHaveValue(String(w));
     await control(page, 'b13', 'test').click();
   };
+  // The check reads only the verdict, so the builder must stay on G2 (repair of wave 4.3: with a board
+  // picker, A2 and its starting weights 1, 1, 1 passed and reported the goal). The reader can reach no
+  // other board: b13 has no picker, and its meter follows b11, the G2 board of the first challenge,
+  // which has none either.
+  await expect(tool(page, 'b13').locator('select, [data-control="picker"]')).toHaveCount(0);
+  await expect(tool(page, 'b11').locator('select, [data-control="picker"]')).toHaveCount(0);
+  await expect(tool(page, 'b11').locator('button[data-board="populations"][data-node]')).toHaveCount(T('G2').cartan.length);
+  // The starting weights, every weight 1, are those that pass on A2: here they fail.
+  for (const k of [0, 1]) await expect(field('city', k)).toHaveValue('1');
+  await expect(field('road', 0)).toHaveValue('1');
+  await control(page, 'b13', 'test').click();
+  await expect(out(page, 'b13', 'testVerdict')).toHaveText('Fails: some mutation changes this form.');
+  await page.waitForTimeout(200);
+  await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
   // Equal weights, as on a board with single roads, fail.
   await set([2, 2], [2]);
   await expect(out(page, 'b13', 'testVerdict')).toHaveText('Fails: some mutation changes this form.');
@@ -764,6 +800,12 @@ test('challenge: weights on G2 that the builder accepts', async ({ page }) => {
   await set(d.map((x) => 2 * x), [2 * d[0]! * A21]);
   await expect(out(page, 'b13', 'testVerdict')).toHaveText('Passes: every mutation preserves this form.');
   await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
+  // The caption's claim: the meter of b13 reads b11. After a move on b11, the table of b13 shows its population.
+  await expect(out(page, 'b13', 'meterNote')).toHaveCount(1);
+  await hydrate(page, 'b11');
+  await node(page, 'b11', 'populations', 1).click();
+  await expect(tool(page, 'b11')).toHaveAttribute('data-moves', '1');
+  await expect(tool(page, 'b13').locator('[data-table-value="population"]')).toHaveText(text(along('G2', 'mutation', [0, 1], [1]).at(-1)!));
 });
 
 test('challenge: a board and a symmetry that fold to C3', async ({ page }) => {
