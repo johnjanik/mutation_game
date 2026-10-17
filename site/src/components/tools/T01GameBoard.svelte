@@ -170,6 +170,8 @@
   let busy = $state(false);
   let scriptBase = $state(initialGame.cursor);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /** The prediction was withdrawn because a state other than the configured one was loaded first (loadFromOutside). */
+  let predictionWithdrawn = $state(false);
   let goalWasMet = $state(false);
 
   const touch = (): void => {
@@ -243,19 +245,34 @@
     touch();
   }
 
+  /**
+   * A state that reaches the instance from outside its own controls: a link, the back button, a jump a
+   * linked tool publishes. The prediction is a question about the configured state (SPEC 4.0 Predict: its
+   * answer is computed for that state, and the board is frozen until the reader commits). While it is
+   * open, any other state withdraws it, so that no question stands over a board it does not describe and
+   * the board never shows the answer under an open question; the board then plays as without a prediction.
+   */
+  function loadFromOutside(s: ToolState): void {
+    if (!predictionResolved && encodeState(s) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(s);
+  }
+
   // Hydration: read the URL once with the instance prefix (6.6); follow jumps published under this id.
   $effect(() => {
     return untrack(() => {
       try {
         const { state: decoded, notice: n } = decodeState(window.location.search, 'board', defaults, { prefix: instanceId });
         if (n !== null) notice = n;
-        if (encodeState(decoded) !== encodeState(defaults)) load(decoded);
+        if (encodeState(decoded) !== encodeState(defaults)) loadFromOutside(decoded);
       } catch {
         // decodeState never throws on a bad link; a failure here leaves the default state.
       }
       return followJumps(instanceId, () => game.state(), (moves) => {
         try {
-          load({ ...game.state(), moves });
+          loadFromOutside({ ...game.state(), moves });
         } catch {
           // a jump that is not a play of this board is ignored
         }
@@ -460,7 +477,7 @@
       <p class="line" data-out="goalMet">{goalNow ? GOAL_MET_TEXT : ''}</p>
       <p class="line" data-out="goalNote">{goalNoteText ?? ''}</p>
     {/if}
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     {#if shown.populations !== null}
@@ -680,7 +697,7 @@
     {figureLabel}
     derivedForExport={() => ({ ...game.derived(), ...phase2Derived() })}
     onPopState={(s, n) => {
-      load(s);
+      loadFromOutside(s);
       notice = n;
     }}
     {figure}
