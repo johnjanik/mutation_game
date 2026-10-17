@@ -18,6 +18,7 @@
   import { onMount, tick } from 'svelte';
   import type { Snippet } from 'svelte';
   import { boardFromName, euclideanBasis, toPopulation } from '@engine';
+  import type { Board } from '@engine';
   import { buildScene, frameFor, project, roundTo, toEuclideanPopulation, type Point3 } from './projector';
   import { drawScene } from './canvasScene';
   import { MANIFEST_FILE, PRESET_DIR, type PresetData, type PresetManifest } from './presetsT10';
@@ -61,7 +62,8 @@
     const entry = manifest.files.find((f) => f.presets.includes('showpiece'));
     if (entry === undefined) throw new Error('the manifest has no showpiece file');
     const data = await fetchJson<PresetData>(entry.file);
-    const board = boardFromName(data.board);
+    // A named finite board has SafeInt arithmetic (CONTRACTS.md 2.4, boardFromName).
+    const board = boardFromName(data.board) as Board<number>;
     const { E } = euclideanBasis(board);
     const populations = data.vertices.map((a) => {
       const p = toPopulation(board, a);
@@ -116,25 +118,28 @@
   });
 </script>
 
-<figure class="probe" data-tool="geometry" data-moves="0" data-hydrated={done ? 'true' : undefined}>
-  <div class="box">
-    <div class="snapshot" hidden={drawn}>
-      {@render children?.()}
+<div class="probe" data-tool="geometry" data-moves="0" data-hydrated={done ? 'true' : undefined}>
+  <figure>
+    <div class="box">
+      <div class="snapshot" hidden={drawn}>
+        {@render children?.()}
+      </div>
+      <!-- The text alternative sits on the canvas's box: Svelte does not allow role="img" on a canvas. -->
+      <div
+        class="drawing"
+        hidden={!drawn}
+        role="img"
+        aria-label="The roots of E8 in the Coxeter plane, each joined to the roots at inner product 1, drawn on a canvas"
+      >
+        <canvas bind:this={canvas} width={BOX} height={BOX}></canvas>
+      </div>
     </div>
-    <canvas
-      bind:this={canvas}
-      hidden={!drawn}
-      width={BOX}
-      height={BOX}
-      role="img"
-      aria-label="The roots of E8 in the Coxeter plane, each joined to the roots at inner product 1, drawn on a canvas"
-    ></canvas>
-  </div>
-  <figcaption data-out="caption">
-    The root set of E8 projected to its Coxeter plane, with the edges of its root polytope. Without
-    JavaScript the picture is the SVG snapshot made at build time by the same drawing code; with it, the
-    canvas is drawn five times and timed.
-  </figcaption>
+    <figcaption data-out="caption">
+      The root set of E8 projected to its Coxeter plane, with the edges of its root polytope. Without
+      JavaScript the picture is the SVG snapshot made at build time by the same drawing code; with it, the
+      canvas is drawn five times and timed.
+    </figcaption>
+  </figure>
   <p class="nojs"><noscript><span data-out="noscript">The timing needs JavaScript; the picture above is the snapshot made at build time.</span></noscript></p>
   <dl class="results">
     <dt>Median drawing time of five, ms</dt>
@@ -152,11 +157,14 @@
     <dt>Error</dt>
     <dd data-out="error">{error}</dd>
   </dl>
-</figure>
+</div>
 
 <style>
   .probe {
     margin: 16px 0;
+  }
+  .probe figure {
+    margin: 0;
   }
   .box {
     width: 100%;
