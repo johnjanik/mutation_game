@@ -85,9 +85,10 @@ function ensureTypeStripping() {
     console.error('presets: this Node cannot strip TypeScript types, even with --experimental-strip-types');
     process.exit(1);
   }
+  const flags = process.execArgv.filter((a) => a !== '--no-experimental-strip-types');
   const result = spawnSync(
     process.execPath,
-    ['--experimental-strip-types', ...process.execArgv, fileURLToPath(import.meta.url), ...process.argv.slice(2)],
+    [...flags, '--experimental-strip-types', fileURLToPath(import.meta.url), ...process.argv.slice(2)],
     { stdio: 'inherit', env: { ...process.env, [REEXEC]: '1' } },
   );
   process.exit(result.status ?? 1);
