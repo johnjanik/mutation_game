@@ -210,6 +210,8 @@ describe('report.mjs', () => {
   const openItems = (mode: string) => ({
     mode,
     generatedAt: '2026-10-10T12:00:00.000Z',
+    // Written by the build-done hook of a release build that finished (RT-FIX P3-RT-12-06).
+    complete: true,
     items: [
       { id: 'E1', status: 'open', gate: 'G6', pages: ['/modules/m1-x/', '/modules/m2-y/'], fallbackShown: true },
       { id: 'E2', status: 'open', gate: 'G3', pages: ['/modules/m1-x/'], fallbackShown: false },

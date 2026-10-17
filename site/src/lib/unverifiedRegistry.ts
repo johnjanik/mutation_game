@@ -27,6 +27,12 @@ export interface OpenItemsReport {
   generatedAt: string;
   /** The build that wrote the file (set by the build-start hook); absent outside a build. */
   buildId?: string;
+  /**
+   * True only when the release build that wrote the file finished (written by the build-done hook).
+   * A build that stops part way leaves false, and npm run report refuses such a report (and one
+   * without the field, written before the field existed).
+   */
+  complete?: boolean;
   items: { id: string; status: UnverifiedStatus; gate: string; pages: string[]; fallbackShown: boolean }[];
   unknownItems: { item: string; pages: string[] }[];
 }
@@ -90,12 +96,13 @@ function markdownPath(): string {
   return join(reportsDir(), 'open-items-report.md');
 }
 
-function buildReport(map: ReadonlyMap<string, Usage>): OpenItemsReport {
+function buildReport(map: ReadonlyMap<string, Usage>, complete = false): OpenItemsReport {
   const buildId = process.env.OPEN_ITEMS_BUILD_ID;
   const report: OpenItemsReport = {
     mode: 'release',
     generatedAt: new Date().toISOString(),
     ...(buildId ? { buildId } : {}),
+    complete,
     items: ITEMS.map((item) => {
       const u = map.get(item.id);
       return { id: item.id, status: item.status, gate: item.gate, pages: u ? [...u.pages].sort() : [], fallbackShown: u ? u.fallbackShown : false };
@@ -150,6 +157,7 @@ function toMarkdown(r: OpenItemsReport): string {
     '',
     `Release build of ${r.generatedAt}. Every item of \`site/src/content/unverified.json\` (SPEC.md Appendix E), with the pages that wrap a sentence resting on it in \`<Unverified>\`. In this release an open item shows its fallback, or nothing where none is given.`,
     '',
+    ...(r.complete ? [] : ['**Incomplete:** the release build that wrote this report has not finished (or failed), so pages may be missing. Rerun `RELEASE=1 npm run build`.', '']),
     '| Item | Status | Gate | Pages | Fallback shown |',
     '|---|---|---|---|---|',
     ...r.items.map((it) => `| ${it.id} | ${it.status} | ${it.gate} | ${it.pages.length ? it.pages.map(cell).join(', ') : 'none'} | ${it.fallbackShown ? 'yes' : 'no'} |`),
@@ -205,6 +213,8 @@ export function registerUsage(item: string, page: string, hasFallback = false): 
  * The build-start hook (plan): in a release build it writes the report with no page listed, so
  * that both files exist and list every item even when no page uses <Unverified>. It also sets the
  * build id under which later registrations of the same build merge their pages into the file.
+ * The build-done hook rewrites the report, with the pages of the same build, marked complete; a
+ * build that fails never reaches it, so its report stays marked incomplete (RT-FIX P3-RT-12-06).
  */
 export function openItemsReportIntegration(): AstroIntegration {
   return {
@@ -214,6 +224,10 @@ export function openItemsReportIntegration(): AstroIntegration {
         if (!isReleaseBuild()) return;
         process.env.OPEN_ITEMS_BUILD_ID = `${Date.now()}-${process.pid}-${Math.random().toString(36).slice(2)}`;
         writeFiles(buildReport(new Map()));
+      },
+      'astro:build:done': () => {
+        if (!isReleaseBuild()) return;
+        writeFiles(buildReport(mergedWithFile(), true));
       },
     },
   };
