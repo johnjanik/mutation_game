@@ -162,9 +162,9 @@ Positions are weights in fundamental-weight coordinates. The explorer draws the 
 
 <T05NumbersGameLab client:visible id="b14" preset="dimension" board="A2" lambda={[1, 1]} caption={`The dimension calculator on A2, set to lambda (1, 1) and dimension ${fmt('weyl_dimension[type=A2;highest_weight=1,1].dimension')}; change lambda to reach the goal.`} />
 
-<Challenge client:visible for="b15" goal="Finish the tally game on B3 and read off its exponents." explanation={`B3 has double roads, so the numbers fired are heights of coroots, and a coroot and its root can have different heights. The game fires ${fmt('types.B3.fired_values', 'plain')}; read sideways, the tally gives the exponents ${fmt('types.B3.exponents', 'plain')}, and the product of the exponents plus one is ${fmt('types.B3.weyl_order')}, the order of the group.`} check={{ kind: 'out', name: 'exponents', equals: fmt('types.B3.exponents', 'plain') }} />
+<Challenge client:visible for="b15" goal="Finish the tally game on D4 and read off its exponents." explanation={`D4 has single roads, so it is its own reversed board and its coroots are its roots. The game fires ${fmt('types.D4.fired_values', 'plain')}; read sideways, the tally gives the exponents ${fmt('types.D4.exponents', 'plain')}, in which an exponent repeats, and the product of the exponents plus one is ${fmt('types.D4.weyl_order')}, the order of the group.`} check={{ kind: 'out', name: 'exponents', equals: fmt('types.D4.exponents', 'plain') }} />
 
-<T05NumbersGameLab client:visible id="b15" preset="tally" board="B3" caption="The tally game on B3 from all ones, before the first move." />
+<T05NumbersGameLab client:visible id="b15" preset="tally" board="D4" caption="The tally game on D4 from all ones, before the first move." />
 
 <ModuleLinks module={5} board="A3" />
 

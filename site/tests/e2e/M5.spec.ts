@@ -24,7 +24,9 @@
 //     question, draft, beat, figure, seen, lie-theory, links, sources; data-beat; data-provenance;
 //     data-challenge, data-met, data-challenge-result (text "Goal reached."); data-source;
 //     data-unverified and a.unverified-mark (P0-A4 Unverified)
-//   this lesson's own markup: data-seen-statement
+//   this lesson's own markup: data-seen-statement, data-seen-scope
+//   the figure of each tool root (role figure; its aria-label is the text alternative of A-10, which
+//     names the board the figure opens on), read by the regressions at the end of this file
 //
 // No linked view (both boards of T1 at once) is placed on this page, so the bridge sentence of 2.4(a)
 // has no test here (instruction 5.15 item 14).
@@ -71,6 +73,8 @@ const TOOLS: [string, Kind][] = [
 ];
 const BEAT_OF: Record<string, number> = { b1: 1, b2: 1, b3: 2, b4: 3, b5: 4, b6: 5, b7: 6, b8: 6, b9: 7, b10: 7, b11: 8 };
 const COUNTER_BOARDS = ['A2', 'A3', 'A4', 'B3', 'D4'];
+/** The board of the tally challenge b15: one with single roads, since multiple roads arrive in M6 (SPEC 8.1 P4). */
+const TALLY_BOARD = 'D4';
 
 interface TypeRecord {
   weyl_order: number;
@@ -642,18 +646,18 @@ test('challenge: a lambda of dimension 10 on A2', async ({ page }) => {
   await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
 });
 
-test('challenge: the exponents of B3', async ({ page }) => {
+test(`challenge: the exponents of ${TALLY_BOARD}`, async ({ page }) => {
   await page.goto(ROUTE);
   const challenge = await challengeFor(page, 'b15');
   await hydrate(page, 'b15');
-  const n = T('B3').n_positive_roots;
-  await playWord(page, 'b15', T('B3').longest_word.slice(0, n - 1));
+  const n = T(TALLY_BOARD).n_positive_roots;
+  await playWord(page, 'b15', T(TALLY_BOARD).longest_word.slice(0, n - 1));
   await expect(out(page, 'b15', 'exponents')).toHaveCount(0);
   await page.waitForTimeout(300);
   await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
   await control(page, 'b15', 'step').click();
   await expect(tool(page, 'b15')).toHaveAttribute('data-moves', String(n));
-  await expect(out(page, 'b15', 'exponents')).toHaveText(T('B3').exponents.join(', '));
+  await expect(out(page, 'b15', 'exponents')).toHaveText(T(TALLY_BOARD).exponents.join(', '));
   await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
 });
 
@@ -765,5 +769,20 @@ test.describe('regressions', () => {
     // verify.py checks the types of rank at most 8 (SPEC 2.7), not every board of that rank.
     const text = norm(await proseText(page, 'article'));
     expect(text).not.toMatch(/every board of rank at most/);
+  });
+
+  // regression: P3-RT-13-07
+  test('/modules/m5-weyl/: no figure opens on a multiply laced board', async ({ page }) => {
+    // Adopted from site/tests/e2e/redteam-RT-13-one-mechanic.spec.ts (lens RT-13), the case of this
+    // lesson. SPEC 8.1 P4: multiple roads arrive in M6. The figure's text alternative names its board.
+    await page.goto(ROUTE);
+    const roots = page.locator('[data-tool]');
+    const found: { id: string | null; tool: string | null; label: string }[] = [];
+    for (let k = 0; k < (await roots.count()); k++) {
+      const root = roots.nth(k);
+      const label = norm(await root.getByRole('figure').first().getAttribute('aria-label'));
+      if (/\b[BCFG][2-8]\b/.test(label)) found.push({ id: await root.getAttribute('data-instance'), tool: await root.getAttribute('data-tool'), label });
+    }
+    expect(found, JSON.stringify(found)).toEqual([]);
   });
 });
