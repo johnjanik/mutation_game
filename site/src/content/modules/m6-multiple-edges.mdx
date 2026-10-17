@@ -55,6 +55,7 @@ export const SEEN = 'verified by computation';
 export const B2L = sorted(boardFromName('B2'));
 export const asForm = (c) => c.map((x, i) => (x === 0 ? '' : `${x === 1 ? '' : x}x_${B2L[i]}`)).filter((t) => t !== '').join('+');
 export const COROOTS = gv('types.B2.positive_roots').map((r, k) => { const b = boardFromName('B2'); const c = inLabels(b, coroot(b, fromLabels(b, r))); return { k, c, j: gv('types.C2.positive_roots').findIndex((q) => q.join() === c.join()), differs: c.join() !== r.join() }; });
+export const DIFFERING = ['none', 'one', 'two', 'three', 'four'][COROOTS.filter((r) => r.differs).length];
 export const squaredLengths = (name) => { const b = boardFromName(name); return sorted(b).map((l) => ratToString(formValue(b, fromLabels(b, sorted(b).map((x) => (x === l ? 1 : 0)))))); };
 export const G2D = gv('types.G2.symmetrizer');
 export const G2_LENGTHS = squaredLengths('G2');
@@ -76,7 +77,7 @@ Until now every <Term a="roads">road</Term> had a road back, as on <Tex src="A_2
 
 Wildberger's rule is unchanged <Cite k="W20"/> ({'section 2'}): when city $i$ mutates, its Martians and anti-Martians change type, and every other city sends one copy of its population down each road into city $i$. So city {'1'} sends two copies into city {'2'}, and city {'2'} one copy into city {'1'}.
 
-The garden finds <G k="types.B2.n_roots"/> <Term a="root-population">root populations</Term>: <G k="types.B2.positive_roots[0]"/>, <G k="types.B2.positive_roots[1]"/>, <G k="types.B2.positive_roots[2]"/>, <G k="types.B2.positive_roots[3]"/> and their negatives, the highest being <G k="types.B2.highest_root"/>. The <Term a="form-value">form value</Term> in the panel shows two kinds: **long** ones <Tex src="\pm{{types.B2.positive_roots[1]}}"/>, <Tex src="\pm{{types.B2.positive_roots[3]}}"/> with value <Tex src="4"/>, **short** ones <Tex src="\pm{{types.B2.positive_roots[0]}}"/>, <Tex src="\pm{{types.B2.positive_roots[2]}}"/> with value <Tex src="2"/>. So <G k="types.B2.n_long_positive"/> positive ones are long, <G k="types.B2.n_short_positive"/> short, and the highest short one is <G k="types.B2.highest_short_root"/>.
+The garden finds <G k="types.B2.n_roots"/> <Term a="root-population">root populations</Term>, the highest being <G k="types.B2.highest_root"/>. The <Term a="form-value">form value</Term> in the panel shows two kinds: **long** ones <Tex src="\pm{{types.B2.positive_roots[1]}}"/>, <Tex src="\pm{{types.B2.positive_roots[3]}}"/> with value <Tex src="4"/>, **short** ones <Tex src="\pm{{types.B2.positive_roots[0]}}"/>, <Tex src="\pm{{types.B2.positive_roots[2]}}"/> with value <Tex src="2"/>. So <G k="types.B2.n_long_positive"/> positive ones are long, <G k="types.B2.n_short_positive"/> short, and the highest short one is <G k="types.B2.highest_short_root"/>.
 
 <T01GameBoard slot="figure" client:idle id="b1" board="B2" view="populations" mode="free" coords="populations" start={[1, 0]} roadStyle="roads" panels={['form', 'lengths']} prediction={{ question: 'City 2 holds nothing, and two roads lead into it from city 1, which holds one Martian. What will city 2 hold after it mutates?', answer: { type: 'number', value: B2_CITY_TWO[1] }, reveal: `${B2_CITY_TWO[1]}: city 2 has nothing to change, and one Martian arrives down each of the two roads from city 1. The population is now ${fmt('types.B2.highest_root')}, the highest root population of B2.` }} caption={`On B2, with two roads from city 1 to city 2 and one back, mutating city 2 turns one Martian in city 1 into ${fmt('types.B2.highest_root')}, the highest root population, and the form value stays 4.`} />
 <T02OrbitGarden slot="figure" client:visible id="b2" preset="explore" board="B2" grows="roots" growth="explore" grown={2} linkTo="b1" caption={`The garden of B2, grown from the two single Martians: ${fmt('types.B2.n_roots')} root populations, ${fmt('types.B2.positive_roots[0]')}, ${fmt('types.B2.positive_roots[1]')}, ${fmt('types.B2.positive_roots[2]')}, ${fmt('types.B2.positive_roots[3]')} and their negatives.`} />
@@ -84,7 +85,7 @@ The garden finds <G k="types.B2.n_roots"/> <Term a="root-population">root popula
 
 <Beat n={2}>
 
-A **round** is one mutation at each of two cities. With $A_{ij}$ roads from city $i$ to city $j$, the pair of moves returns after <Tex src="3"/>, <Tex src="4"/> or <Tex src="6"/> rounds when $A_{ij}A_{ji}$ is <Tex src="1"/>, <Tex src="2"/> or <Tex src="3"/>, as on <Tex src="A_2"/>, <Tex src="B_2"/> and <Tex src="G_2"/>, and never when it is <Tex src="4"/> or more or the roads run one way only <Cite k="W20"/> ({'Theorem 5.1'}). The finite cases are also verified by computation on every board of rank at most eight.
+A **round** is one mutation at each of two cities. With $A_{ij}$ roads from city $i$ to city $j$, the pair of moves returns after <Tex src="3"/>, <Tex src="4"/> or <Tex src="6"/> rounds when $A_{ij}A_{ji}$ is <Tex src="1"/>, <Tex src="2"/> or <Tex src="3"/>, as on <Tex src="A_2"/>, <Tex src="B_2"/> and <Tex src="G_2"/>, and never when it is <Tex src="4"/> or more or the roads run one way only <Cite k="W20"/> ({'Theorem 5.1'}). The finite cases are verified by computation up to rank eight.
 
 Press Next: <Tex src="B_2"/> is back at <Tex src="(2,1)"/> after eight moves, when the round counter reads <Tex src="4"/>. On <Tex src="G_2"/>, with three roads from city {'2'} to city {'1'}, answer the question first; there the return takes twelve moves. Some populations return sooner, as a mutation can leave one unchanged.
 
@@ -98,7 +99,7 @@ On <Tex src="B_2"/> the builder rejects the equal weights <Tex src="2,2,2"/> tha
 
 Half the city weights, <G k="types.B2.symmetrizer"/>, are the <Term a="weights">weights</Term> $d_i$. A board with positive weights such that $d_iA_{ji}=d_jA_{ij}$ is a <Term a="balanced-board">balanced board</Term>, and city $i$ has squared length <Tex src="(\alpha_i,\alpha_i)=2d_i"/>: <Tex src="4"/> and <Tex src="2"/> here. As $d_i/d_j=A_{ij}/A_{ji}$, more roads run from the long city to the short one. On <Tex src="G_2"/>, with weights <G k="types.G2.symmetrizer"/>, city {'2'} is long, with squared length <Tex src="6"/>: the ratio of squared lengths is <G k="types.G2.long_to_short_ratio"/>, against <G k="types.B2.long_to_short_ratio"/> on <Tex src="B_2"/>. On <Tex src="F_4"/> cities {'1'}, {'2'} are long and {'3'}, {'4'} short.
 
-A board has a form with positive city weights that no mutation changes exactly when it is balanced, unique up to a factor <Cite k="W20"/> ({'Theorems 8.4 and 8.7'}). Wildberger's definition, a condition on cycles, agrees when every road has a road back <Cite k="W20"/> ({'Corollary 8.5'}). A lone one-way road meets his condition but, lacking positive weights, is not balanced here.
+Exactly the balanced boards have a form with positive city weights that no mutation changes, unique up to a factor on a connected board <Cite k="W20"/> ({'Theorems 8.4, 8.7'}). Wildberger's definition, a condition on cycles, agrees on boards with roads both ways <Cite k="W20"/> ({'Corollary 8.5'}). A lone one-way road, lacking positive weights, is balanced only in his sense.
 
 <T03FormFinder slot="figure" client:visible id="b5" preset="builder" board="B2" cityWeights={[2, 2]} roadWeights={[{ pair: [1, 2], weight: 2 }]} caption="On B2 the test passes exactly when city 1 weighs twice city 2 and the road weight equals the weight of city 1, as with 4, 2 and 4; the weights 2, 2 and 2, which pass on A2, fail." />
 </Beat>
@@ -112,12 +113,12 @@ On <Tex src="B_2"/> the complete symbolic game fires <Tex src="x_1"/>, <Tex src=
 <T07SymbolicGame slot="figure" client:visible id="b6" preset="default" board="B2" moves={gv('types.B2.longest_word')} caption={`The complete legal game ${fmt('types.B2.longest_word', 'plain')} on B2 from all ones, played with letters, fires x1, 2x1 + x2, x1 + x2 and x2: the positive root populations of the reversed board C2.`} />
 <figure slot="figure" data-figure="roots-compared">
 <table>
-<thead><tr><th scope="col">Root of <Tex src="B_2"/></th><th scope="col">Its coroot, fired</th><th scope="col">In <Tex src="C_2"/></th></tr></thead>
+<thead><tr><th scope="col">Root</th><th scope="col">Coroot, fired</th><th scope="col">In <Tex src="C_2"/></th></tr></thead>
 <tbody>
 {COROOTS.map(({ k, c, j, differs }) => <tr data-row={k} data-differs={differs ? 'true' : undefined}><td><G k={`types.B2.positive_roots[${k}]`}/></td><td><Tex src={asForm(c)}/></td><td><G k={`types.C2.positive_roots[${j}]`}/></td></tr>)}
 </tbody>
 </table>
-<figcaption>Each root of <Tex src="B_2"/> beside its coroot, as fired and as a root of <Tex src="C_2"/>.</figcaption>
+<figcaption>The coroots of <Tex src="B_2"/> are the roots of <Tex src="C_2"/>; {DIFFERING} differ from their roots.</figcaption>
 </figure>
 </Beat>
 
@@ -142,8 +143,6 @@ On <Tex src="A_5"/> folding gives <G k={`${A5F}.folds_to`}/>, averaging <G k={`$
 </Beat>
 
 <Beat n={7}>
-
-Readers of Wildberger's texts need one warning.
 
 <aside id="wildberger-names" aria-labelledby="wildberger-names-title" data-warning="names">
 <h2 id="wildberger-names-title">Warning: Wildberger's names for B and C</h2>
@@ -182,7 +181,7 @@ Readers of Wildberger's texts need one warning.
 
 <ul data-seen-statements>
 <li data-seen-statement>The pair of moves returns after <Tex src="3"/>, <Tex src="4"/> or <Tex src="6"/> rounds when <Tex src="A_{ij}A_{ji}=1,2,3"/>, and never when the product is larger or the roads run one way. <Cite k="W20"/>, {'Theorem 5.1'}.</li>
-<li data-seen-statement>A board has a form with positive city weights that no mutation changes exactly when it is balanced (<Cite k="W20"/>, {'Theorems 8.4, 8.7'}); short roots have form value <Tex src="2"/>, long ones <Tex src="4"/> or <Tex src="6"/>, verified by computation.</li>
+<li data-seen-statement>Exactly the balanced boards have a form with positive city weights that no mutation changes (<Cite k="W20"/>, {'Theorems 8.4, 8.7'}); short roots have form value <Tex src="2"/>, long ones <Tex src="4"/> or <Tex src="6"/>, verified by computation.</li>
 <li data-seen-statement>Firing is mutation on the reversed board, transposed. Verified by computation; <Cite k="Don08"/>.</li>
 <li data-seen-statement>Symmetric play is play on the folded board; averaging the roots gives the dual type. Verified by computation; <Cite k="Ste08"/>, <Cite k="FSS96"/>.</li>
 <li data-seen-statement>For rank at least {'3'}, Wildberger's B and C are Bourbaki's C and B. Verified by computation.</li>

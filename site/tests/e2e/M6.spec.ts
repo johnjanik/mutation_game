@@ -138,12 +138,23 @@ function corootOf(name: string, root: readonly number[]): number[] {
   const half = formValue(name, root) / 2;
   return root.map((b, i) => (b * T(name).symmetrizer[i]!) / half);
 }
-/** The coefficients of a linear form written in TeX as x_1, 2x_1+x_2 and so on, in label order. */
-function coefficients(tex: string, n: number): number[] {
-  const out: number[] = new Array(n).fill(0);
-  for (const m of tex.replace(/\s+/g, '').matchAll(/(\d*)x_(\d)/g)) out[Number(m[2]) - 1] = m[1] === '' ? 1 : Number(m[1]);
+/**
+ * The coefficients of a linear form written in TeX as x_1, 2x_1+x_2 and so on, in the order of the
+ * board's labels (sorted). The index of x_k is the place of the label k in that list, never k - 1:
+ * labels are converted only through the board (E-7), and an affine board starts at label 0.
+ */
+function coefficients(tex: string, name: string): number[] {
+  const labels = [...boardFromName(name).labels].sort((a, b) => a - b);
+  const out: number[] = new Array(labels.length).fill(0);
+  for (const m of tex.replace(/\s+/g, '').matchAll(/(\d*)x_\{?(\d+)\}?/g)) {
+    const k = labels.indexOf(Number(m[2]));
+    if (k < 0) throw new Error(`x_${m[2]} is not a node of ${name} (labels ${labels.join(', ')})`);
+    out[k] = m[1] === '' ? 1 : Number(m[1]);
+  }
   return out;
 }
+/** Small counts as words, for captions that state a count in words. */
+const NUMBER_WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
 
 // ---------------------------------------------------------------------------------------------
 // The engine, for positions with no golden value
@@ -365,6 +376,10 @@ test('word count between 800 and 1800', async ({ page }) => {
   console.info(`M6 prose words: ${words}`);
   expect(words).toBeGreaterThanOrEqual(800);
   expect(words).toBeLessThanOrEqual(1800);
+  // The budget of the wave 4.5 polish (decisions/P4-A5.md): at most 1748 words, the length of the page
+  // before the wave 4.4 polish, counted with the links block as it now stands (sandbox and M7). The
+  // Atlas line adds five words to that block when the Atlas is released (phase 6).
+  expect(words, 'the budget of 1748 words').toBeLessThanOrEqual(1748);
 });
 
 test('no em-dash in the built text', async ({ page }) => {
@@ -611,16 +626,23 @@ test('balanced boards: a form with positive city weights, and the one-way remark
   await page.goto(ROUTE);
   const seen = sentences(await proseText(page, '[data-anatomy="seen"]')).filter((s) => s.includes('no mutation changes'));
   expect(seen, 'one Seen statement on invariant forms').toHaveLength(1);
-  expect(seen[0]).toContain('a form with positive city weights that no mutation changes exactly when it is balanced');
+  expect(seen[0]).toContain('Exactly the balanced boards have a form with positive city weights that no mutation changes');
   expect(seen[0]).toContain('[W20]');
   const beat3 = sentences(await proseText(page, '[data-beat="3"]'));
   const forms = beat3.filter((s) => s.includes('no mutation changes'));
   expect(forms).toHaveLength(1);
-  expect(forms[0]).toContain('a form with positive city weights that no mutation changes exactly when it is balanced');
+  expect(forms[0]).toContain('Exactly the balanced boards have a form with positive city weights that no mutation changes');
+  // SPEC 2.5: on a connected board the form is the only one up to a constant ([W20] Theorems 8.4, 8.7).
+  const unique = beat3.filter((s) => /\bunique\b/.test(s));
+  expect(unique, 'one sentence on uniqueness').toHaveLength(1);
+  expect(unique[0], 'uniqueness is stated for a connected board').toMatch(/unique up to a factor on a connected board/);
+  expect(unique[0]).toMatch(/\[W20\] \(Theorems 8\.4, 8\.7\)/);
   const oneWay = beat3.filter((s) => /one-way/.test(s));
   expect(oneWay, 'one sentence on the one-way road').toHaveLength(1);
   expect(oneWay[0], 'the one-way remark carries no citation').not.toMatch(/\[W20\]|Corollary/);
-  expect(oneWay[0]).toMatch(/not balanced here/);
+  // It meets Wildberger's condition on cycles but has no positive weights, so is not balanced here.
+  expect(oneWay[0]).toMatch(/lacking positive weights/);
+  expect(oneWay[0]).toMatch(/balanced only in his sense/);
   const corollary = beat3.filter((s) => s.includes('Corollary 8.5'));
   expect(corollary).toHaveLength(1);
   expect(corollary[0], 'Corollary 8.5 is not cited for the one-way road').not.toMatch(/one-way/);
@@ -648,17 +670,38 @@ test('beat 4: the symbolic game on B2 fires the roots of the reversed board', as
       els.map((e) => ({ text: (e.textContent ?? '').replace(/\u202f/g, ''), tex: e.querySelector('annotation')?.textContent ?? '' })),
     );
     expect(tds[0]!.text, `row ${k}: the root`).toContain(tuple(root));
-    expect(coefficients(tds[1]!.tex, root.length), `row ${k}: the form fired is the coroot of ${tuple(root)}`).toEqual(coroot);
+    expect(coefficients(tds[1]!.tex, 'B2'), `row ${k}: the form fired is the coroot of ${tuple(root)}`).toEqual(coroot);
     expect(tds[2]!.text, `row ${k}: the coroot as a root of C2`).toContain(tuple(coroot));
     expect(await table.nth(k).getAttribute('data-differs'), `row ${k}`).toBe(root.join() === coroot.join() ? null : 'true');
   }
   expect([...coroots].sort()).toEqual(T('C2').positive_roots.map((r) => r.join(',')).sort());
   expect([...coroots].sort()).toEqual([...forms].sort());
+  // SPEC 8.2 and P1: the caption states the table's result, in one sentence: the coroots of B2 are the
+  // roots of C2, and the number of rows in which a coroot differs from its root (counted here from the
+  // golden roots and the coroots computed above).
+  const differing = T('B2').positive_roots.filter((r) => corootOf('B2', r).join() !== r.join()).length;
+  expect(differing).toBeGreaterThan(0);
+  const caption = norm(await proseText(page, '[data-figure="roots-compared"] figcaption'));
+  expect(sentences(caption), caption).toHaveLength(1);
+  expect(caption).toContain('The coroots of B_2 are the roots of C_2');
+  expect(caption).toContain(`${NUMBER_WORDS[differing]} differ from their roots`);
   const beat4 = plain(await proseText(page, '[data-beat="4"]'));
   expect(beat4).toContain('heights of coroots');
   expect(beat4).toContain(`whose highest root is ${tuple(T('B2').highest_root_of_reversed_board)} where B_2 has ${tuple(T('B2').highest_root)}`);
   expect(beat4).toContain('B_2=C_2');
   expect(beat4).toMatch(/Mozes.*Proctor's earlier use of the same process.*Eriksson's development/);
+});
+
+test('the coefficient reader places each x_k through the board labels', () => {
+  // E-7: a label becomes an index only through the board. On B2 the labels are 1, 2; on the affine
+  // board C2~ they are 0, 1, 2, where a reader that subtracted 1 from the label would misplace every
+  // coefficient.
+  expect(coefficients('2x_1+x_2', 'B2')).toEqual([2, 1]);
+  expect(coefficients('x_2', 'B2')).toEqual([0, 1]);
+  const labels = [...boardFromName('C2~').labels].sort((a, b) => a - b);
+  expect(labels[0]).toBe(0);
+  expect(coefficients(labels.map((l, k) => `${k + 1}x_${l}`).join('+'), 'C2~')).toEqual(labels.map((_, k) => k + 1));
+  expect(() => coefficients('x_3', 'B2')).toThrow(/not a node of B2/);
 });
 
 test('the lesson leaves the form, the coroots and the squared lengths to the engine', () => {
@@ -801,7 +844,7 @@ test('no forbidden statement', async ({ page }) => {
   // 2.5: balanced on this site means that the weights exist; Wildberger's cycle condition is named beside it.
   expect(norm(all)).toMatch(/A board with positive weights such that .+? is a balanced board/);
   expect(all).toContain("Wildberger's definition, a condition on cycles");
-  expect(all).toContain('not balanced here');
+  expect(all).toContain('balanced only in his sense');
 });
 
 test('no linked view, so no bridge sentence to repeat', async ({ page }) => {
