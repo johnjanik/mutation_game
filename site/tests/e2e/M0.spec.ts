@@ -475,6 +475,23 @@ test('instance prefix: b3.w=2 opens beat 3 with node 2 fired', async ({ page }) 
 // ---------------------------------------------------------------------------------------------
 
 test.describe('regressions', () => {
+  // RT-08 attack 39: SPEC.md 8.1 P8, "Node i is always called "node i" or "city i", never both in
+  // one sentence." The bridge sentence of 2.4(a) is exempt. Every sentence of the source (prose and
+  // the caption, goal, question, reveal and explanation strings) is read; comments are dropped first.
+  // regression: P3-RT-08-11
+  test('the linked-board caption does not say city 2 and node 2 in one sentence, nor does any other sentence', () => {
+    const bridge = /The number on node <i>i<\/i> is the amount by which a mutation would lower city <i>i<\/i>\./g;
+    const src = readFileSync(LESSON, 'utf8').replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(bridge, ' ');
+    // Prose with inline <Tex src="2"/> written back as its digits, then split into sentences.
+    // Component tags are kept, so that their caption and other string properties are read too.
+    const text = src.replace(/<Tex src="([^"]*)"\s*\/>/g, '$1').replace(/<\/?(i|strong|em|p|li|ul|span|G|Cite)\b[^>]*>/g, ' ');
+    const hits = text
+      .split(/(?<=[.?!])\s+|\n\s*\n|['"`]\s*[,}]/)
+      .filter((s) => /\bnodes? (\d+|i|j)\b/.test(s) && /\bcit(y|ies) (\d+|i|j)\b/.test(s))
+      .map((s) => s.replace(/\s+/g, ' ').trim());
+    expect(hits, 'm0-start.mdx: sentences naming a node and a city').toEqual([]);
+  });
+
   // RT-13 attack 13: a term met before it is taught. SPEC 8.4 "Define every term on first use and
   // link later uses to a glossary entry"; 1.2. M0 opens the reader's path M0 to M5, so a term first
   // used here is first used on the path. A block is a prose paragraph or list item, or a figure's
