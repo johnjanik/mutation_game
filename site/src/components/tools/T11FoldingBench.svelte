@@ -16,6 +16,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import OrbitOverlay from './t11/OrbitOverlay.svelte';
   import { shortcutOf } from '../board/keyboard';
@@ -157,10 +158,11 @@
     return `${first}${second}${averaged !== null ? `; averaged roots ${averaged.name}` : ''}.`;
   });
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const b = cur();
     const noun = isNumbers ? 'numbers' : 'populations';
-    return Array.from({ length: b.moves.length + 1 }, (_, k) => `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${spokenList(b.bigInLabelOrder(k))}`);
+    return historyNames(b.moves.length, b.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${spokenList(b.bigInLabelOrder(k))}`);
   });
 
   // ------------------------------------------------------------------------------------------

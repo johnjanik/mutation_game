@@ -81,7 +81,10 @@ export interface HistoryProps {
   total: number;
   /** Moves applied. */
   cursor: number;
-  /** One short description per position 0..total, for the strip's buttons. */
+  /**
+   * One short description per position 0..total, for the strip's buttons; above 50 positions only the
+   * cursor's entry is read (by the slider), so tools fill only that one (historyNames.ts).
+   */
   positionNames: string[];
   hydrated: boolean;
   onUndo: () => void;

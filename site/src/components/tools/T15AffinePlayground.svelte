@@ -24,6 +24,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { displayValue } from '../board/sign';
@@ -265,11 +266,7 @@
     if (g === null) return [] as string[];
     const total = g.moves.length;
     const noun = isNumbers ? 'numbers' : 'populations';
-    const name = (k: number): string => `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${shownAt(g, k).map((v) => speak(v)).join(', ')}`;
-    if (total + 1 <= 50) return Array.from({ length: total + 1 }, (_, k) => name(k));
-    const sparse: string[] = new Array(total + 1).fill('');
-    sparse[g.cursor] = name(g.cursor);
-    return sparse;
+    return historyNames(total, g.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${shownAt(g, k).map((v) => speak(v)).join(', ')}`);
   });
 
   // ------------------------------------------------------------------------------------------
