@@ -89,7 +89,7 @@ A mutation is a reflection for this form. Pair a population $p$ with one Martian
 
 <Tex display src="S_i\,p \;=\; p-(p,e_i)\,e_i ,"/>
 
-which is the rule of module one. In linear algebra a reflection fixes a mirror and reverses the direction across it. Here the mirror holds the populations with <Tex src="(p,e_i)=0"/>, which the mutation leaves alone, and $e_i$ itself is sent to $-e_i$. On any board the formula reads <Tex src="S_ip=p-\frac{ 2(p,e_i) }{ (e_i,e_i) }\,e_i"/>; with single roads $(e_i,e_i)$ is <Tex src="2"/> and the fraction is $(p,e_i)$.
+which is the rule of module one. In linear algebra a reflection fixes a mirror and reverses the direction across it. Here the mirror holds the populations with <Tex src="(p,e_i)=0"/>, which the mutation leaves alone, and $e_i$ itself is sent to $-e_i$. A board is <Term a="balanced-board">**balanced**</Term> when its cities can be given positive weights so that such a form exists, one that every mutation preserves; every board with single roads is balanced. On a balanced board the formula reads <Tex src="S_ip=p-\frac{ 2(p,e_i) }{ (e_i,e_i) }\,e_i"/>; with single roads $(e_i,e_i)$ is <Tex src="2"/> and the fraction is $(p,e_i)$.
 
 <figure slot="figure" class="m2-static" data-figure="m2-matrix-a3" style={{ margin: '0 16px' }}>
 <svg viewBox="0 0 240 64" width="240" height="64" role="img" aria-label="The board A3: city 2 in the middle, joined to city 1 on its left and to city 3 on its right." style={{ maxWidth: '100%', height: 'auto' }}>
@@ -145,7 +145,7 @@ The statement is for boards of finite type only, and <ModuleThree /> says which 
 
 <LieTheory>
 
-The form value is the Tits form of the graph, equivalently the Killing form restricted to the root lattice, up to scale; Wildberger works with it under the name $Q$ <Cite k="W20"/> (section seven). In general the pairing is the invariant bilinear form $(\ ,\ )$ with <Tex src="(\alpha_i,\alpha_i)=2d_i"/>, and on a simply laced board every $d_i$ is <Tex src="1"/>. The matrix <Tex src="2I-A"/> is the Cartan matrix of a simply laced type, symmetric, in the convention $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$ of Kac and SageMath; Bourbaki prints its transpose, which here is the same matrix. A <Term a="mutate">mutation</Term> is the simple reflection <Tex src="s_i(\beta)=\beta-\frac{ 2(\beta,\alpha_i) }{ (\alpha_i,\alpha_i) }\alpha_i"/>, the <Term a="root-population">root populations</Term> are the roots, and on a simply laced finite type the roots are exactly the vectors of the root lattice of squared length <Tex src="2"/>.
+The form value is the Tits form of the graph, equivalently the Killing form restricted to the root lattice, up to scale; Wildberger works with it under the name $Q$ <Cite k="W20"/> (section seven). On a balanced board, whose Cartan matrix is symmetrizable, the pairing is the invariant bilinear form $(\ ,\ )$ with <Tex src="(\alpha_i,\alpha_i)=2d_i"/>, and on a simply laced board every $d_i$ is <Tex src="1"/>. The matrix <Tex src="2I-A"/> is the Cartan matrix of a simply laced type, symmetric, in the convention $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$ of Kac and SageMath; Bourbaki prints its transpose, which here is the same matrix. A <Term a="mutate">mutation</Term> is the simple reflection <Tex src="s_i(\beta)=\beta-\frac{ 2(\beta,\alpha_i) }{ (\alpha_i,\alpha_i) }\alpha_i"/>, the <Term a="root-population">root populations</Term> are the roots, and on a simply laced finite type the roots are exactly the vectors of the root lattice of squared length <Tex src="2"/>.
 
 </LieTheory>
 

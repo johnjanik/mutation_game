@@ -36,6 +36,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
+import { fromAdjacency, symmetrizer } from '../../../packages/engine/src/index';
+import type { Board } from '../../../packages/engine/src/index';
 import { distDir } from './routes';
 
 const ROUTE = 'modules/m2-form/';
@@ -699,4 +701,41 @@ test('every board the M2 beat 4 figure offers satisfies its caption', async ({ p
     expect.soft(Math.abs(ratio - 1), `${name}: caption "${B4_CLAIM}", but |alpha_1|/|alpha_2| = ${ratio.toFixed(4)}`).toBeLessThan(0.01);
     expect.soft(Math.abs(angle - 120), `${name}: caption "${B4_CLAIM}", but the angle is ${angle.toFixed(2)} degrees`).toBeLessThan(0.5);
   }
+});
+
+// regression: P3-RT-09-06
+test('M2 beat 3 states the reflection formula of the invariant form only on balanced boards', () => {
+  const source = readFileSync(LESSON_PATH, 'utf8');
+  // The one-way road (SPEC 2.11, C = [[2,0],[-1,2]]) and a triangle with two roads from 1 to 2 and one
+  // back (an unbalanced cycle) have no weights d, so no invariant form (SPEC 2.5).
+  const oneWay = fromAdjacency([
+    [0, 1],
+    [0, 0],
+  ]) as Board<unknown>;
+  const unbalanced = fromAdjacency([
+    [0, 2, 1],
+    [1, 0, 1],
+    [1, 1, 0],
+  ]) as Board<unknown>;
+  expect(symmetrizer(oneWay), 'the one-way road has no weights d').toBeNull();
+  expect(symmetrizer(unbalanced), 'this two-way board is not balanced').toBeNull();
+  // So the sentence that states the formula through the form names the balanced boards, not any board.
+  expect(source, 'M2 beat 3 says "On any board the formula reads ..."').not.toContain('On any board the formula reads');
+  const formula = '<Tex src="S_ip=p-\\frac{ 2(p,e_i) }{ (e_i,e_i) }\\,e_i"/>';
+  const at = source.indexOf(formula);
+  expect(at, 'the formula of beat 3').toBeGreaterThan(-1);
+  const clause = source.slice(source.lastIndexOf('. ', at) + 2, at);
+  expect(clause).toMatch(/\bbalanced board\b/);
+  expect(clause).not.toMatch(/\bany board\b/);
+});
+
+// regression: P3-RT-09-06 (sibling: the Lie theory paragraph gave the invariant form "in general")
+test('the Lie theory paragraph of M2 gives the invariant bilinear form only on balanced boards', () => {
+  const source = readFileSync(LESSON_PATH, 'utf8');
+  const lie = source.slice(source.indexOf('<LieTheory>'), source.indexOf('</LieTheory>'));
+  const at = lie.indexOf('the invariant bilinear form');
+  expect(at, 'the Lie theory paragraph names the invariant bilinear form').toBeGreaterThan(-1);
+  const clause = lie.slice(lie.lastIndexOf('. ', at) + 2, at);
+  expect(clause).not.toMatch(/\bIn general\b/);
+  expect(clause).toMatch(/\bbalanced board\b/);
 });
