@@ -219,31 +219,83 @@ function customBig(board: AnyBoard): Board<bigint> {
 }
 
 /**
+ * The boards resolveBoard has built in the current run of synchronous code, by spec (SPEC 5.6 last
+ * sentence, "by calling classify once when the board is loaded"; E-11). A tool loads its board in one
+ * such run (its script and its first render), so every resolveBoard of one spec in that load returns one
+ * frozen board object, and the verdict cache above, keyed by object, is hit: one classify per load. The
+ * map is emptied in a microtask at the end of the run, so it never grows across loads (plan).
+ */
+const resolvedThisRun = new Map<string, AnyBoard>();
+
+/**
+ * The key of a spec: its name, or its matrix as JSON (the layout `xy` does not change the board). Only
+ * a spec that builds is stored, and JSON tells the number 2 from the text "2", so a key never stands for
+ * a spec that would be refused. Null when the matrix cannot be written as JSON (it is refused anyway).
+ */
+function specKey(spec: BoardSpec): string | null {
+  if (typeof spec === 'string') return `name:${spec}`;
+  try {
+    return `matrix:${JSON.stringify(spec.cartan)}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The board of a BoardSpec (CONTRACTS 4). A name that boardFromName knows as a finite type gives that
  * Board<number> with SafeInt; every other board gives Big (E-2). A custom matrix is checked with
- * boardKind first (not-a-board throws NotABoard), then against the cap of 12 nodes (RangeError
- * "board has more than 12 nodes"). A custom board is Big even when its matrix equals a named type's,
+ * boardKind first (not-a-board throws NotABoard). Every board, named or custom, is checked against the
+ * cap of 12 nodes (RangeError "board has more than 12 nodes"; SPEC 6.6 Validation, 2.8 scope), a name
+ * before its matrix is built. A custom board is Big even when its matrix equals a named type's,
  * has no name, and has labels 1..n in order of creation (E-7). Its `cartan` holds the rows of C;
  * fromAdjacency takes A with A[i][j] = -C[j][i]. An unknown name throws NotABoard.
  * From phase 2 (P2-A7) every name of 6.6 resolves through boardFromName (finite types, `X~` with
  * `B2~` and `C2~`, the twisted names, `pentagon`, `square`, with the engine's labels, E-7), and the
  * board is classified once here (SPEC 5.6: "by calling classify once when the board is loaded"); the
- * records are kept for boardVerdict and isFiniteType. The returned board is the same object.
+ * records are kept for boardVerdict and isFiniteType. The returned board is the same object, and the
+ * same spec gives the same object again while the tool loads (resolvedThisRun), so a tool that resolves
+ * its board several times while loading still classifies it once.
  */
 export function resolveBoard(spec: BoardSpec): AnyBoard {
-  const board = buildBoard(spec);
+  const key = specKey(spec);
+  let board = key === null ? undefined : resolvedThisRun.get(key);
+  if (board === undefined) {
+    board = buildBoard(spec);
+    if (key !== null) {
+      if (resolvedThisRun.size === 0) queueMicrotask(() => resolvedThisRun.clear());
+      resolvedThisRun.set(key, board);
+    }
+  }
   verdictOf(board);
   return board;
 }
 
+/** RangeError above the cap of 12 nodes, which holds for every board a link or a property names. */
+function requireNodeCap(n: number): void {
+  if (n > CAPS.customNodes) throw new RangeError(`board has more than ${CAPS.customNodes} nodes`);
+}
+
+/**
+ * The board of a name, refused above 12 nodes. A finite name has as many nodes as its rank and an
+ * untwisted affine name one more, so those are refused from the text before boardFromName builds a
+ * matrix of any rank; every name is checked again on the board built.
+ */
+function namedBoard(name: string): AnyBoard {
+  const m = /^[A-G]([1-9]\d*)(~?)$/.exec(name);
+  if (m !== null) requireNodeCap(Number(m[1]) + (m[2] === '~' ? 1 : 0));
+  const board = boardFromName(name);
+  requireNodeCap(board.n);
+  return board;
+}
+
 function buildBoard(spec: BoardSpec): AnyBoard {
-  if (typeof spec === 'string') return boardFromName(spec);
+  if (typeof spec === 'string') return namedBoard(spec);
   if (spec === null || typeof spec !== 'object' || !Array.isArray(spec.cartan)) {
     throw new NotABoard('a custom board needs a cartan matrix');
   }
   const C = spec.cartan;
   if (boardKind(C) === 'not-a-board') throw new NotABoard('the matrix is not a board');
-  if (C.length > CAPS.customNodes) throw new RangeError(`board has more than ${CAPS.customNodes} nodes`);
+  requireNodeCap(C.length);
   const n = C.length;
   const A: number[][] = [];
   for (let i = 0; i < n; i++) {

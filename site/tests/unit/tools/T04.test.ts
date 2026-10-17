@@ -238,7 +238,7 @@ describe('T4 verdict', () => {
     }
   });
 
-  it('buildVerdict calls classify once per board object', () => {
+  it('buildVerdict calls classify once per board object', async () => {
     const counts = { classify: 0, symmetrizer: 0, spectralRadius: 0, smallestNonfiniteSubboard: 0 };
     const counting: VerdictEngine = {
       classify: (b) => (counts.classify++, ENGINE.classify(b)),
@@ -252,6 +252,9 @@ describe('T4 verdict', () => {
     // With the real engine the verdict is kept per board object: a second call returns the same verdict.
     const first = buildVerdict(board);
     expect(buildVerdict(board)).toBe(first);
+    // P3-RT-03-05: within one load resolveBoard gives one object per spec; a later load builds a new
+    // board object, which gets its own verdict.
+    await Promise.resolve();
     expect(buildVerdict(resolveBoard({ cartan: testCartan('star with five arms') }))).not.toBe(first);
     expect(verdictSummary(first)).toBe('indefinite');
     expect(verdictSummary(buildVerdict(resolveBoard('A3')))).toBe('finite A3');
