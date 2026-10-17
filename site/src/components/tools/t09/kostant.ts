@@ -132,6 +132,10 @@ export interface EndPanel {
   marked: number[];
   /** b_j = <beta^vee, alpha_j>, label order, when the end is named; null otherwise. */
   returnCounts: string[] | null;
+  /** The final number of each marked city, in the order of `marked` (read at its position, E-7). */
+  markedNumbers: string[];
+  /** The return count of each marked city, in the order of `marked`, when the end is named; null otherwise. */
+  markedReturnCounts: string[] | null;
 }
 
 /**
@@ -146,12 +150,13 @@ export function endPanel<T>(board: Board<T>, end: readonly T[], moves: number): 
   const name: EndName | null = same(data.highest) ? 'highest root' : same(data.highestShort) ? 'highest short root' : null;
   const a = toNumbers(board, end);
   let returnCounts: string[] | null = null;
+  let b: string[] | null = null; // by position
   if (name !== null) {
     // b = C^T beta^vee, that is b_j = sum_k beta^vee_k C_kj (SPEC 2.12).
     const coroot = name === 'highest root' ? data.corootOfHighest : data.corootOfHighestShort!;
     const cv = coroot.map((x) => BigInt(x));
     const C = board.cartan as readonly (readonly unknown[])[];
-    const b: string[] = [];
+    b = [];
     for (let j = 0; j < board.n; j++) {
       let s = 0n;
       for (let k = 0; k < board.n; k++) s += cv[k]! * BigInt(String(C[k]![j]));
@@ -160,6 +165,9 @@ export function endPanel<T>(board: Board<T>, end: readonly T[], moves: number): 
     returnCounts = inLabelOrder(board as AnyBoard, b);
   }
   const positive = a.map((x, k) => (board.arith.sign(x) > 0 ? k : -1)).filter((k) => k >= 0);
+  const marked = toLabels(board as AnyBoard, positive).sort((x, y) => x - y);
+  const markedAt = toPositions(board as AnyBoard, marked);
+  const counts = b;
   return {
     end: inLabelOrder(board as AnyBoard, endText),
     moves,
@@ -167,8 +175,10 @@ export function endPanel<T>(board: Board<T>, end: readonly T[], moves: number): 
     simplyLaced: data.highestShort === null,
     h: data.h,
     finalNumbers: inLabelOrder(board as AnyBoard, show(a)),
-    marked: toLabels(board as AnyBoard, positive).sort((x, y) => x - y),
+    marked,
     returnCounts,
+    markedNumbers: markedAt.map((p) => board.arith.show(a[p]!)),
+    markedReturnCounts: counts === null ? null : markedAt.map((p) => counts[p]!),
   };
 }
 
@@ -240,6 +250,8 @@ export function kostantSummary<T>(
       finalNumbers: [],
       marked: [],
       returnCounts: null,
+      markedNumbers: [],
+      markedReturnCounts: null,
     };
   }
   return { status: 'ended', word, ...endPanel(board, result.position, total) };
@@ -343,15 +355,13 @@ export function cityList(labels: readonly number[]): string {
 
 /** The phase-1 caption of SPEC 2.12, without the name of the affine board (P2-A7 adds it). */
 export function affineCaptionParts(panel: EndPanel): { cities: string; sends: string; receives: string; equal: boolean } | null {
-  if (panel.returnCounts === null || panel.marked.length === 0) return null;
-  const at = (labels: readonly number[], values: readonly string[]): string =>
-    labels.map((l) => `${values[l - 1]} to city ${l}`).join(', ');
-  const back = (labels: readonly number[], values: readonly string[]): string =>
-    labels.map((l) => `${values[l - 1]} from city ${l}`).join(', ');
+  const back = panel.markedReturnCounts;
+  if (back === null || panel.marked.length === 0) return null;
+  // The values of the marked cities were read at their positions by endPanel (E-7: no label arithmetic).
   return {
     cities: cityList(panel.marked),
-    sends: at(panel.marked, panel.finalNumbers),
-    receives: back(panel.marked, panel.returnCounts),
+    sends: panel.marked.map((l, k) => `${panel.markedNumbers[k]} to city ${l}`).join(', '),
+    receives: panel.marked.map((l, k) => `${back[k]} from city ${l}`).join(', '),
     equal: panel.simplyLaced,
   };
 }
