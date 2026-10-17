@@ -3,6 +3,7 @@
 // into site/dist-basepath (OUT_DIR) and serves it under /sub/path/ through playwright.config.ts.
 // Not a tool test: it reads attributes and network traffic, no data-out hooks.
 import { expect, test, type Page } from '@playwright/test';
+import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { outDirFrom } from '../../astro.config.mjs';
 import { routesOf } from '../../../scripts/size.mjs';
@@ -110,10 +111,12 @@ async function checkRoute(page: Page, url: string, routePath: string): Promise<n
   return checked.size;
 }
 
+/** The routes of the BASE_PATH build, read when the file is loaded; none when the build is missing. */
 function builtRoutes(): string[] {
   const distDir = resolve(SITE_DIR, outDirFrom(process.env));
-  return routesOf(distDir).map((r) => r.route);
+  return existsSync(distDir) ? routesOf(distDir).map((r) => r.route) : [];
 }
+const ROUTES = builtRoutes();
 
 test('every internal link and asset of the index page lives under /sub/path/ and resolves', async ({ page, baseURL }) => {
   const base = requirePrecondition(baseURL);
@@ -122,18 +125,19 @@ test('every internal link and asset of the index page lives under /sub/path/ and
   expect(urls).toBeGreaterThan(0);
 });
 
-test('every other route does too', async ({ browser, baseURL }) => {
-  const base = requirePrecondition(baseURL);
-  const routes = builtRoutes();
-  expect(routes, `no index.html in ${join('site', outDirFrom(process.env))}`).toContain('/');
-  let urls = 0;
-  for (const route of routes.filter((r) => r !== '/')) {
-    const page = await browser.newPage();
-    try {
-      urls += await checkRoute(page, base + route.replace(/^\//, ''), route);
-    } finally {
-      await page.close();
-    }
-  }
-  test.info().annotations.push({ type: 'routesChecked', description: String(routes.length - 1) }, { type: 'urlsChecked', description: String(urls) });
+test('the build holds the index page and other routes', async ({ baseURL }) => {
+  requirePrecondition(baseURL);
+  expect(ROUTES, `no index.html in ${join('site', outDirFrom(process.env))}`).toContain('/');
+  expect(ROUTES.length).toBeGreaterThan(1);
 });
+
+// One test per route, so that no test grows with the number of routes against the fixed test
+// timeout (the single test over every route took 29 to 34 s of its 30 s at 26 routes).
+for (const route of ROUTES.filter((r) => r !== '/')) {
+  // regression: P3-RT-12-04
+  test(`every other route does too: ${route}`, async ({ page, baseURL }) => {
+    const base = requirePrecondition(baseURL);
+    const urls = await checkRoute(page, base + route.replace(/^\//, ''), route);
+    test.info().annotations.push({ type: 'urlsChecked', description: String(urls) });
+  });
+}
