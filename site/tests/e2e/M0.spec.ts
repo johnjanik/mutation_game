@@ -467,3 +467,69 @@ test('instance prefix: b3.w=2 opens beat 3 with node 2 fired', async ({ page }) 
   await expect(tool(page, 'b1')).toHaveAttribute('data-hydrated', 'true');
   await expect(tool(page, 'b1')).toHaveAttribute('data-moves', '0');
 });
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red team round 1, phases 0 to 3), adopted from the lens branches for M0 only:
+// the other lessons that the same findings name are checked by their own files.
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // RT-13 attack 13: a term met before it is taught. SPEC 8.4 "Define every term on first use and
+  // link later uses to a glossary entry"; 1.2. M0 opens the reader's path M0 to M5, so a term first
+  // used here is first used on the path. A block is a prose paragraph or list item, or a figure's
+  // visible caption and outputs, in document order; the first block that uses the term must define
+  // it (that block or the next), or link the glossary.
+  const TERMS: { term: string; use: RegExp; definition: RegExp }[] = [
+    { term: 'finite (finite type)', use: /\bfinite type\b/, definition: /closes up when it has finitely many root populations/ },
+    { term: 'affine', use: /\baffine\b/, definition: /the site calls them affine/ },
+    { term: 'highest root', use: /\bhighest root\b/, definition: /This end is the highest root of the board/ },
+  ];
+
+  interface Block { text: string; glossary: boolean }
+
+  /** The blocks of the lesson; the seven statements of beat 5 are left out unless `statements`. */
+  async function termBlocks(page: Page, statements: boolean): Promise<Block[]> {
+    await page.goto(ROUTE);
+    return page.evaluate((statements) => {
+      const out: { text: string; glossary: boolean }[] = [];
+      const visible = (el: Element) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden' && !el.closest('details:not([open])');
+      const text = (el: Element) => { const c = el.cloneNode(true) as Element; c.querySelectorAll('.katex-mathml, details, [data-live], .visually-hidden').forEach((x) => x.remove()); return (c.textContent ?? '').replace(/\s+/g, ' ').trim(); };
+      const skip = statements ? '[data-anatomy="lie-theory"], [data-anatomy="sources"]' : '[data-anatomy="lie-theory"], [data-anatomy="sources"], [data-statements]';
+      for (const el of document.querySelectorAll('article p, article li, article figcaption, article [data-out]')) {
+        if (!visible(el)) continue;
+        if (el.matches('p, li') && el.querySelector('p, li')) continue;
+        if (el.closest(skip)) continue; // beat 5 says its statements use names a later module explains
+        const t = text(el);
+        if (t) out.push({ text: t, glossary: !!el.querySelector('a[href*="glossary"]') });
+      }
+      return out;
+    }, statements);
+  }
+
+  function undefinedTerms(all: Block[]): string[] {
+    const problems: string[] = [];
+    for (const { term, use, definition } of TERMS) {
+      const first = all.findIndex((b) => use.test(b.text));
+      const def = all.findIndex((b) => definition.test(b.text));
+      if (first < 0) continue;
+      const ok = all[first]!.glossary || def === first || def === first + 1;
+      if (!ok) problems.push(`${term}: first used on /${ROUTE} in "${all[first]!.text.slice(0, 160)}"; ${def < 0 ? 'not defined in M0' : `defined in "${all[def]!.text.slice(0, 100)}"`}`);
+    }
+    return problems;
+  }
+
+  // regression: P3-RT-13-06
+  test('finite type and highest root are defined or linked at their first occurrence in M0', async ({ page }) => {
+    const problems = undefinedTerms(await termBlocks(page, false));
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  // The same rule with the seven statements of beat 5 read too: their list of names that a later
+  // module explains does not name "affine", so its first use, in statement five, needs the link.
+  // regression: P3-RT-13-06 (sibling)
+  test('affine is linked at its first occurrence in M0, in the seven statements', async ({ page }) => {
+    const problems = undefinedTerms(await termBlocks(page, true));
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+});
