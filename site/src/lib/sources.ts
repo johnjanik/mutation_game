@@ -109,13 +109,77 @@ function stripMarkdown(s: string): string {
 }
 
 /**
- * The link title of <Cite>: the entry's first line without its key marker, with **bold** and
+ * A status label of SOURCES.md 11.0 (the labels of SPEC.md 0.3) in raw Markdown: the token S, S2,
+ * V, U or D directly after `[` and directly before `]`, `,`, `;`, `:` or a space, the token rule the
+ * sources page uses when it spells the labels out.
+ */
+const STATUS_LABEL = /\[(?:S2|S|V|U|D)(?=[\],;: ])/;
+/** A sentence that gives the reading status in words, without a label ("Not read.", "Not opened ..."). */
+const READING_STATUS = /^Not (?:read|opened)\b/;
+
+/**
+ * The indexes at which the sentences of a line begin. A full stop followed by spaces and a capital,
+ * `[`, `*` or a backtick ends a sentence, unless the word before it is a single letter (an initial,
+ * "N. J. Wildberger") or a capitalised word of letters (an abbreviation, "Amer. Math. Soc.").
+ */
+function sentenceStarts(line: string): number[] {
+  const starts = [0];
+  for (const m of line.matchAll(/\.\s+(?=[\p{Lu}[*`])/gu)) {
+    const word = /(\S*)$/.exec(line.slice(0, m.index))![1]!.replace(/^[("'*_]+|[*_]+$/g, '');
+    if (/^\p{L}$/u.test(word) || /^\p{Lu}\p{Ll}+$/u.test(word)) continue;
+    starts.push(m.index + m[0].length);
+  }
+  return starts;
+}
+
+/**
+ * The citation part of an entry's first line (SOURCES.md 11.0: "Each entry gives the citation, where
+ * a copy can be read, a status, and its role on the site"): the line up to the first sentence that
+ * carries a status label or states the reading status, so that the research record after it (the
+ * labels, the notes on what was read, the role) is left to the sources page. When the label stands
+ * in the first sentence, the cut falls before the bracket the cut would leave unclosed, or else
+ * before the clause, after the last semicolon, that holds the label.
+ */
+function citationPart(line: string): string {
+  const starts = sentenceStarts(line);
+  let cut = line.length;
+  for (let s = 0; s < starts.length; s++) {
+    const sentence = line.slice(starts[s], starts[s + 1] ?? line.length);
+    const label = STATUS_LABEL.exec(sentence);
+    if (s > 0 && (label || READING_STATUS.test(sentence))) {
+      cut = starts[s]!;
+      break;
+    }
+    if (s === 0 && label) {
+      cut = label.index;
+      let depth = 0;
+      let open = -1;
+      let semicolon = -1;
+      for (let i = 0; i < cut; i++) {
+        if (line[i] === '(') {
+          if (depth === 0) open = i;
+          depth++;
+        } else if (line[i] === ')' && depth > 0) depth--;
+        else if (line[i] === ';' && depth === 0) semicolon = i;
+      }
+      if (depth > 0) cut = open;
+      else if (semicolon >= 0) cut = semicolon;
+      break;
+    }
+  }
+  const part = line.slice(0, cut).replace(/[\s,;:]+$/, '');
+  return part === '' ? line : part;
+}
+
+/**
+ * The link title of <Cite>, and the text the Sources list of a lesson prints after the key: the
+ * citation part of the entry's first line (citationPart) without its key marker, with **bold** and
  * *italic* emphasis removed, [text](url) links reduced to text, <url> autolinks removed, and
  * $...$ mathematics left as it stands.
  */
 export function citeTitle(k: string): string {
   const e = entry(k);
-  const line = e.firstLine.replace(/^\*\*\[[^\]]*\]\*\*\s*/, '');
+  const line = citationPart(e.firstLine.replace(/^\*\*\[[^\]]*\]\*\*\s*/, ''));
   // Odd-numbered pieces lie between dollar signs and are mathematics: left untouched.
   const pieces = line.split('$').map((piece, i) => (i % 2 === 1 ? piece : stripMarkdown(piece)));
   return pieces.join('$').replace(/\s+/g, ' ').trim();
