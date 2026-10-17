@@ -7,10 +7,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   CAPS,
+  EngineOverflow,
   applyWord,
   boardFromName,
   mutate,
   orbitGraph,
+  orbitSize,
   roots,
   subBoard,
   toLabels,
@@ -51,8 +53,9 @@ import {
   type Vector,
 } from '../../../src/components/tools/t02/garden';
 import { followStopMessage, layersGrownText, stopMessage } from '../../../src/components/tools/t02/limits';
+import { gardenLayersBound, gardenTotal } from '../../../src/components/tools/t02/phase2';
 import { layeredEntries, positiveView } from '../../../src/components/tools/t02/poset';
-import { followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
+import { extendPlay, followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
 import { exactText, shortNumber, vertexText } from '../../../src/components/tools/t02/numbers';
 import { PICKER_TYPES, PRESETS, pickedState, pickerGroups, presetOf } from '../../../src/components/tools/t02/presets';
 import { drawGarden, nextVertex } from '../../../src/components/tools/t02/drawing';
@@ -638,5 +641,110 @@ describe('T2 server render', () => {
     expect(outText(html, 'total')).toBe('');
     const grow_ = /<button[^>]*data-control="grow"[^>]*>/.exec(html)?.[0] ?? '';
     expect(grow_).not.toBe('');
+  });
+});
+
+describe('regressions', () => {
+  // SPEC.md 4 T2 Interactions: "In `orbit` mode the total is known when the enumeration completes within
+  // the garden's bound; otherwise the counter says "more than 2000", and from phase 3 on a finite-type
+  // board it gives the exact size from `orbitSize`." Expected values from the engine's own orbitSize,
+  // which equals the oracle's orbit_size(C, -end) (the oracle gives orbit_size(cartan('A', 6), (1,)*6) =
+  // 5040, orbit_size(cartan('B', 5), (1,)*5) = 3840, orbit_size(cartan('E', 6), (1,)*6) = 51840, and for
+  // the A6 population (2, 1, 5, 1, 3, 8), whose numbers are (3, -5, 8, -6, -3, 13), orbit_size(C, -end) =
+  // 2520; orbitSize gives the same four values).
+  describe('T2 orbit counter on finite-type boards (phase 3: the exact size from orbitSize)', () => {
+    const cases: [string, number[], 'firing' | 'mutation', number][] = [
+      ['A6', [1, 1, 1, 1, 1, 1], 'firing', 5040], // the orbit of rho: |W(A6)|
+      ['B5', [1, 1, 1, 1, 1], 'firing', 3840], // |W(B5)|
+      ['E6', [1, 1, 1, 1, 1, 1], 'firing', 51840], // |W(E6)|
+      ['A6', [2, 1, 5, 1, 3, 8], 'mutation', 2520], // a population of A6 in the mutation game
+    ];
+    for (const [name, seed, game, oracle] of cases) {
+      // regression: P3-RT-01-02
+      it(`${name} ${game} from ${JSON.stringify(seed)}`, () => {
+        const board = boardFromName(name) as AnyBoard;
+        const spec: GardenSpec = { board, grows: 'orbit', seed, game };
+        const numbers = game === 'firing' ? seed : (board.cartan as number[][]).map((row) => row.reduce((s, c, j) => s + c * seed[j]!, 0));
+        const exact = orbitSize(board as Board<number>, numbers);
+        expect(exact).toBe(oracle);
+        expect(exact).toBeGreaterThan(2000);
+        expect(totalText(gardenTotal(spec, gardenLayersBound(board)))).toBe(String(exact));
+      });
+    }
+  });
+
+  // The same rule on the fundamental weights (golden types.E8.fundamental_orbit_sizes and
+  // types.E7.fundamental_orbit_sizes). The component computes the total with gardenTotal
+  // (T02OrbitGarden.svelte, the `total` derived value and revealTotal).
+  describe('T2 orbit total on a finite-type board above the garden bound (phase 3: orbitSize)', () => {
+    const goldenTypes = (golden as unknown as { types: Record<string, { fundamental_orbit_sizes: number[] }> }).types;
+    /** The fundamental weight of the node with Bourbaki label k (positions follow Bourbaki on named boards). */
+    function omega(board: AnyBoard, k: number): number[] {
+      return Array.from({ length: board.n }, (_, i) => (i === k - 1 ? 1 : 0));
+    }
+    for (const [name, node] of [['E8', 1], ['E7', 3], ['E7', 5]] as const) {
+      // regression: P3-RT-06-01
+      it(`${name}, orbit of the fundamental weight of node ${node}`, () => {
+        const board = boardFromName(name);
+        const expected = goldenTypes[name]!.fundamental_orbit_sizes[node - 1]!;
+        expect(expected).toBeGreaterThan(2000);
+        expect(orbitSize(board, omega(board, node))).toBe(expected);
+        const spec = { board, grows: 'orbit' as const, seed: omega(board, node), game: 'firing' as const };
+        const total = gardenTotal(spec, gardenLayersBound(board));
+        expect(total, `${name} node ${node}: the counter's total`).toEqual({ kind: 'number', value: expected });
+      });
+    }
+  });
+
+  // The same fix, where orbitSize cannot answer: on A20 (a named board a link may give) the order of the
+  // group, 21!, is beyond the safe integers, so orbitSize throws EngineOverflow and the counter says what
+  // the bounded search says (decisions/RT-FIX-P3-garden-follow.md).
+  it('the orbit total falls back to the bounded search when orbitSize overflows', () => {
+    const board = boardFromName('A20');
+    const ones = Array.from({ length: 20 }, () => 1);
+    expect(() => orbitSize(board, ones)).toThrow(EngineOverflow);
+    expect(gardenTotal({ board, grows: 'orbit', seed: ones, game: 'firing' }, gardenLayersBound(board))).toEqual({ kind: 'more', text: MORE_THAN });
+    // The orbit of the fundamental weight of node 1 has 21 positions, which the bounded search completes.
+    const omega1 = Array.from({ length: 20 }, (_, k) => (k === 0 ? 1 : 0));
+    expect(gardenTotal({ board, grows: 'orbit', seed: omega1, game: 'firing' }, gardenLayersBound(board))).toEqual({ kind: 'number', value: 21 });
+  });
+
+  // SPEC 7.4: "While a tool runs it keeps the list of positions of the current play in memory and
+  // extends it by one position per move, so a move costs one engine call however long the play is."
+  // The garden following a T1 replayed the whole play from the start on every state the T1 published;
+  // it now extends the positions it holds (extendPlay, called from the followToolState callback).
+  // regression: P3-RT-04-04
+  it('a follower extends the play it holds: one engine call per new move, none for an undo', () => {
+    const board = named('A2');
+    const start = startVector(board, [1, 0]).v;
+    let calls = 0;
+    const apply = (v: Vector, label: number): Vector => {
+      calls++;
+      return mutate(board as Board<unknown>, v, toPositions(board, [label])[0]!);
+    };
+    const long = Array.from({ length: 20000 }, (_, k) => (k % 2) + 1);
+    const held = extendPlay([start], [], long, apply);
+    expect(calls).toBe(long.length);
+    expect(held).toHaveLength(long.length + 1);
+    expect(keyOf(board, held[long.length]!)).toBe(keyOf(board, applyWord(board as Board<unknown>, start, toPositions(board, long), 'mutation')));
+    // One more move: one engine call, every position held kept.
+    calls = 0;
+    const next = extendPlay(held, long, [...long, 1], apply);
+    expect(calls).toBe(1);
+    expect(next).toHaveLength(long.length + 2);
+    for (const k of [0, 1, 9999, long.length]) expect(next[k]).toBe(held[k]);
+    expect(keyOf(board, next[long.length + 1]!)).toBe(keyOf(board, mutate(board as Board<unknown>, held[long.length]!, 0)));
+    // An undo: no engine call.
+    calls = 0;
+    const undo = extendPlay(next, [...long, 1], long, apply);
+    expect(calls).toBe(0);
+    expect(undo).toHaveLength(long.length + 1);
+    // A different last move: the shared moves are kept and only the moves after them are applied.
+    calls = 0;
+    const changed = extendPlay(next, [...long, 1], [...long.slice(0, -1), 1, 2], apply);
+    expect(calls).toBe(2);
+    expect(changed[long.length - 1]).toBe(held[long.length - 1]);
+    // The held list is not changed.
+    expect(held).toHaveLength(long.length + 1);
   });
 });

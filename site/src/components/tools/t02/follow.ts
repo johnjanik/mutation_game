@@ -82,6 +82,23 @@ export function followStep(model: FollowModel, board: AnyBoard, from: Vector | n
 }
 
 /**
+ * The positions of the play `moves`, from the positions `held` of the play `heldMoves` (held[k] is the
+ * position after the first k moves). SPEC 7.4: "while a tool runs it keeps the list of positions of the
+ * current play in memory and extends it by one position per move, so a move costs one engine call
+ * however long the play is". The positions of the moves the two lists share are kept, and `apply` (one
+ * engine call: the move by the node with that label) is called once for each move after them, so a
+ * followed T1's new move costs one call and its undo none. Returns a new array; `held` is not changed.
+ */
+export function extendPlay<V>(held: readonly V[], heldMoves: readonly number[], moves: readonly number[], apply: (v: V, label: number) => V): V[] {
+  const shared = Math.min(heldMoves.length, moves.length, held.length - 1);
+  let k = 0;
+  while (k < shared && heldMoves[k] === moves[k]) k++;
+  const out = held.slice(0, k + 1);
+  for (let j = k; j < moves.length; j++) out.push(apply(out[j]!, moves[j]!));
+  return out;
+}
+
+/**
  * Whether a change of the move list from `before` to `after` is one move made by the reader: `after`
  * is a prefix of `before` (cut at the cursor) followed by one move, and not itself a prefix of
  * `before` (that would be an undo, or a redo of a move already followed). Returns the label of that

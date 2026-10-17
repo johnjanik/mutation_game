@@ -40,7 +40,7 @@ import {
   witnessSentence,
 } from '../../../src/components/tools/t03/weights';
 import { MAX_DIGITS, digitNotice, entryAllowed, entryValue, offerEntry } from '../../../src/components/tools/t03/digits';
-import { FORM_TEXT, byPosition, defaultRows, formText, judgeRow, meterModel, rootVerdict, verdictText } from '../../../src/components/tools/t03/model';
+import { FORM_TEXT, byPosition, defaultRows, followPlay, formText, judgeRow, meterModel, rootVerdict, verdictText } from '../../../src/components/tools/t03/model';
 import { FORM_PRESETS, partsInOrder } from '../../../src/components/tools/t03/presets';
 import { T1Game } from '../../../src/components/tools/t01/model';
 import { clearPublishedStates, followToolState, positionsOf, publishToolState, resolveBoard, type ToolState } from '../../../src/lib/state';
@@ -577,3 +577,41 @@ describe('T3 server render', () => {
 });
 
 const FORM_TEXTS_UNTESTED = 'Press Test to ask the engine about these weights.';
+
+describe('regressions', () => {
+  // SPEC 7.4: "While a tool runs it keeps the list of positions of the current play in memory and
+  // extends it by one position per move, so a move costs one engine call however long the play is."
+  // The linked meter replayed the whole followed play (positionsOf) on every state the T1 published.
+  // A position kept from the play held is the same array object; a replay would build a new one.
+  // regression: P3-RT-04-04
+  it('the linked meter extends the followed play instead of replaying it from the start', () => {
+    const t1: ToolState = { schema: 1, tool: 'board', board: 'A3', view: 'linked', mode: 'free', coords: 'populations', start: [1, 0, 0], moves: [] };
+    const own = { board: named('A3'), population: ['1', '0', '1'] };
+    const long = Array.from({ length: 20000 }, (_, k) => (k % 3) + 1);
+    const reading = (m: { population: string[]; value: string | null }) => ({ population: m.population, value: m.value });
+    const held = followPlay(null, { ...t1, moves: long });
+    expect(held.positions).toHaveLength(long.length + 1);
+    expect(reading(meterModel('b1', held.state, own, held))).toEqual(reading(meterModel('b1', held.state, own)));
+    // One more move: every position held is kept, the board is not resolved again, one position is added.
+    const next = followPlay(held, { ...t1, moves: [...long, 2] });
+    expect(next.board).toBe(held.board);
+    expect(next.positions).toHaveLength(long.length + 2);
+    for (const k of [0, 1, 9999, long.length]) expect(next.positions[k]).toBe(held.positions[k]);
+    const all = positionsOf(next.state);
+    expect(meterModel('b1', next.state, own, next).population).toEqual(all[all.length - 1]!.map(String));
+    // An undo keeps the positions and computes none.
+    const undo = followPlay(next, { ...t1, moves: long });
+    expect(undo.positions).toHaveLength(long.length + 1);
+    expect(undo.positions[long.length]).toBe(held.positions[long.length]);
+    // Another start is a load.
+    const other = followPlay(undo, { ...t1, start: [0, 1, 0], moves: [1] });
+    expect(other.positions).toHaveLength(2);
+    expect(meterModel('b1', other.state, own, other).population).toEqual(positionsOf(other.state)[1]!.map(String));
+    // A move that leaves the safe range is replayed with Big, as positionsOf does.
+    const max = Number.MAX_SAFE_INTEGER;
+    const near = followPlay(null, { ...t1, start: [max, 0, max], moves: [] });
+    const over = followPlay(near, { ...t1, start: [max, 0, max], moves: [2] });
+    expect(meterModel('b1', over.state, own, over).population).toEqual(positionsOf(over.state)[1]!.map(String));
+    expect(meterModel('b1', over.state, own, over).population).toEqual([String(max), String(2n * BigInt(max)), String(max)]);
+  });
+});

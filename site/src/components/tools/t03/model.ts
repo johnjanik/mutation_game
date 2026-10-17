@@ -1,11 +1,12 @@
 // The meter and small values of T3 (SPEC.md 4 T3, 2.5, 2.7 F2, 2.11, 5.4 to 5.6; P2-A2 instruction
 // 5.3 and 5.5). Pure, no DOM. Every number comes from the engine: the form value from `formValue`
 // (shown with `ratToString`), the root verdict from `isRootPopulation` at its default cap
-// (CAPS.rootTestSteps), the population of a linked T1 from `positionsOf` of the state it published.
+// (CAPS.rootTestSteps), the population of a linked T1 from the play kept for the states it published
+// (`followPlay`, extended move by move, 7.4; `positionsOf` when no play is held).
 // Nothing here evaluates a form by hand (SPEC 7.3).
-import { formValue, isRootPopulation, ratToString, toPositions } from '@two-games/engine';
+import { EngineOverflow, fire, formValue, isRootPopulation, mutate, ratToString, toPositions } from '@two-games/engine';
 import type { AnyBoard, Board } from '@two-games/engine';
-import { positionsOf, resolveBoard, type ToolState } from '../../../lib/state';
+import { bigBoard, defaultStart, positionsOf, resolveBoard, type ToolState } from '../../../lib/state';
 import { entryValue } from './digits';
 
 /** Words of the tool (plan wording; recorded in decisions/P2-A2.md). */
@@ -101,22 +102,88 @@ export interface MeterModel {
   message: string | null;
 }
 
+/** The play of a followed instance as T3 keeps it between the states it publishes (SPEC 7.4). */
+export interface FollowedPlay {
+  /** The last state the followed instance published. */
+  state: ToolState;
+  /** Its board, resolved once per board (its Big copy after an overflow, E-2). */
+  board: AnyBoard;
+  /** The start and the position after each move, by position, in the board's arithmetic. */
+  positions: readonly (readonly unknown[])[];
+}
+
+const sameJson = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+/** The positions of `state`'s moves from `held`, the positions of `heldMoves`: one engine call per move they do not share. */
+function extendFrom(board: AnyBoard, state: ToolState, held: readonly (readonly unknown[])[], heldMoves: readonly number[]): (readonly unknown[])[] {
+  const b = board as Board<unknown>;
+  const move = (state.coords ?? 'populations') === 'numbers' ? fire : mutate;
+  const moves = state.moves ?? [];
+  const shared = Math.min(heldMoves.length, moves.length, held.length - 1);
+  let k = 0;
+  while (k < shared && heldMoves[k] === moves[k]) k++;
+  const out = held.slice(0, k + 1);
+  for (let j = k; j < moves.length; j++) out.push(move(b, out[j]!, toPositions(board, [moves[j]!])[0]!));
+  return out;
+}
+
+/**
+ * The play after the followed instance published `next`, from the play kept for its last state. SPEC
+ * 7.4: "while a tool runs it keeps the list of positions of the current play in memory and extends it
+ * by one position per move, so a move costs one engine call however long the play is". With the same
+ * board, coords and start, the positions of the moves both lists share are kept and only the moves
+ * after them are applied; the first state, another board, coords or start, and an overflow are loads,
+ * replayed from the start (with Big after an overflow, as positionsOf does).
+ */
+export function followPlay(held: FollowedPlay | null, next: ToolState): FollowedPlay {
+  const sameBoard = held !== null && sameJson(held.state.board, next.board);
+  if (held !== null && sameBoard && (held.state.coords ?? 'populations') === (next.coords ?? 'populations') && sameJson(held.state.start, next.start)) {
+    try {
+      return { state: next, board: held.board, positions: extendFrom(held.board, next, held.positions, held.state.moves ?? []) };
+    } catch (e) {
+      if (!(e instanceof EngineOverflow)) throw e;
+    }
+  }
+  const board = sameBoard ? held!.board : resolveBoard(next.board);
+  const start = next.start ?? defaultStart(board, next.coords ?? 'populations');
+  try {
+    return { state: next, board, positions: extendFrom(board, next, [byPosition(board, start)], []) };
+  } catch (e) {
+    if (!(e instanceof EngineOverflow)) throw e;
+  }
+  const big = bigBoard(board);
+  return { state: next, board: big, positions: extendFrom(big, next, [byPosition(big, start)], []) };
+}
+
 /**
  * The meter of a T3. Without `linkTo` it reads its own current population (`own`: the board and the
  * population in label order, from the engine's replay). With `linkTo`, it reads the last state the
- * followed instance published, replayed by `positionsOf`, and draws no board of its own; before the
+ * followed instance published and draws no board of its own: from `held`, the play the component keeps
+ * for that state with `followPlay` (7.4), or, without it, replayed by `positionsOf`. Before the
  * followed instance has published (the build, or a T1 not yet hydrated) it reads its own configured
  * state, which the page sets to the T1's.
  */
-export function meterModel(linkTo: string | undefined, followed: ToolState | null, own: { board: AnyBoard; population: readonly string[] }): MeterModel {
+export function meterModel(
+  linkTo: string | undefined,
+  followed: ToolState | null,
+  own: { board: AnyBoard; population: readonly string[] },
+  held: FollowedPlay | null = null,
+): MeterModel {
   const ownBoard = linkTo === undefined;
   if (!ownBoard && followed !== null) {
-    const board = resolveBoard(followed.board);
+    const board = held !== null ? held.board : resolveBoard(followed.board);
     if ((followed.coords ?? 'populations') === 'numbers') {
       return { board, population: [], value: null, ownBoard, message: FORM_TEXT.numbersLink };
     }
-    const all = positionsOf(followed);
-    const population = all[all.length - 1]!.map(String);
+    let population: string[];
+    if (held !== null) {
+      const last = held.positions[held.positions.length - 1]!;
+      const show = (board as Board<unknown>).arith.show;
+      population = toPositions(board, [...board.labels].sort((x, y) => x - y)).map((p) => show(last[p]));
+    } else {
+      const all = positionsOf(followed);
+      population = all[all.length - 1]!.map(String);
+    }
     return { board, population, value: valueOf(board, population), ownBoard, message: null };
   }
   const population = [...own.population];

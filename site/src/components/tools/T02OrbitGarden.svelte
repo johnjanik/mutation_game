@@ -52,7 +52,7 @@
   } from './t02/garden';
   import { followStopMessage, layersGrownText, stopMessage } from './t02/limits';
   import { positiveView } from './t02/poset';
-  import { followStart, followStep, moveMade, type FollowModel } from './t02/follow';
+  import { extendPlay, followStart, followStep, moveMade, type FollowModel } from './t02/follow';
   import { exactText, vertexText } from './t02/numbers';
   import { pickedState, pickerGroups, presetOf } from './t02/presets';
   import { drawGarden } from './t02/drawing';
@@ -167,6 +167,20 @@
     }
   }
   let positions = $state.raw<Vector[]>(untrack(() => safeReplay(allMoves)));
+  /**
+   * The positions of `moves` from those held for `allMoves`, for a followed T1's new state: one engine
+   * call per move the two lists do not share (7.4), never a replay from the start. After an overflow
+   * the whole play is replayed once, with Big (E-2).
+   */
+  function safeExtend(moves: readonly number[]): Vector[] {
+    const move = coords === 'numbers' ? fire : mutate;
+    try {
+      return extendPlay(positions, allMoves, moves, (v, label) => move(gb as EngineBoard<unknown>, v, toPositions(gb, [label])[0]!));
+    } catch (e) {
+      if (!(e instanceof EngineOverflow)) throw e;
+      return safeReplay(moves);
+    }
+  }
   const current = $derived(positions[cursor] ?? positions[positions.length - 1]!);
   const boardGame = $derived(coords === 'numbers' ? 'firing' : 'mutation');
 
@@ -458,10 +472,13 @@
     load(s);
   }
 
+  // The subscription is untracked: followToolState calls back at once with the state already published,
+  // and that call reads and writes the play; tracked, it would make this effect depend on what it writes
+  // and run again on every move (Svelte stops it after 1000 runs, effect_update_depth_exceeded).
   $effect(() => {
     const id = config.linkTo;
     if (id === undefined) return;
-    return followToolState(id, (s) => {
+    return untrack(() => followToolState(id, (s) => {
       const before = followed;
       followed = s;
       const sameBase =
@@ -474,14 +491,14 @@
       const newMoves = s.moves ?? [];
       const made = moveMade(oldMoves, newMoves);
       const prev = positions[Math.max(0, newMoves.length - 1)] ?? null;
+      positions = safeExtend(newMoves);
       allMoves = [...newMoves];
       cursor = newMoves.length;
-      positions = safeReplay(allMoves);
       if (growth === 'follow') {
         const node = made === null ? null : toPositions(gb, [made])[0]!;
         followModel = followStep(fm(), gb, made === null ? null : prev, positions[cursor]!, node);
       }
-    });
+    }));
   });
 
   // ------------------------------------------------------------------------------------------
