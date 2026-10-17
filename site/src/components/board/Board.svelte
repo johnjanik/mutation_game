@@ -3,7 +3,10 @@
   // component: it holds no game state. The parent passes `values` and `canAct`, indexed by
   // position, and reacts to `onAct(position)`. Two layers: the drawing (aria-hidden) and, over it,
   // a group of real <button> elements, one per node, with a roving tabindex and the arrow keys of
-  // A-1. Buttons are rendered disabled and enabled when the island hydrates (7.4).
+  // A-1. Buttons are rendered disabled and enabled when the island hydrates (7.4). After hydration the
+  // `disabled` prop (a board frozen by a prediction, or busy) never sets the HTML disabled attribute,
+  // which would leave the board with no tab stop (A-1, 4.0 "Each board is one tab stop"): the buttons
+  // stay focusable with aria-disabled="true" and activating one calls no onAct.
   // The `u` and `r` shortcuts are left to the parent: it listens for keydown on an element around
   // the board and asks keyboard.ts `shortcutOf`, which accepts only keys pressed inside this group
   // (marked `data-board-group`), so the contract's prop list stays as it is.
@@ -135,6 +138,7 @@
 
   function act(k: number): void {
     focused = k;
+    if (disabled) return;
     onAct(k);
   }
 
@@ -177,7 +181,8 @@
         class:can-act={canAct[k] ?? false}
         style="left: {(centres[k]![0] / viewW) * 100}%; top: {(centres[k]![1] / viewH) * 100}%;"
         tabindex={k === tabStop ? 0 : -1}
-        disabled={!hydrated || disabled}
+        disabled={!hydrated}
+        aria-disabled={hydrated && disabled ? 'true' : undefined}
         aria-label={names[k]}
         title={hintFor?.(k) ?? undefined}
         data-node={board.labels[k]}
@@ -268,7 +273,7 @@
     width: 44px;
     height: 44px;
   }
-  .hit.can-act:not(:disabled) {
+  .hit.can-act:not(:disabled):not([aria-disabled='true']) {
     cursor: pointer;
   }
   .hit:focus-visible {
