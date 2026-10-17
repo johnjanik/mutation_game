@@ -26,8 +26,9 @@ jobs:
         run: npm ci
       - name: Type-check and test
         run: npm run check
-      # P4-X2 (MERGE, P4 wave 4.4): the timing checks run alone, one file at a time: the 25 ms orbit
-      # benchmark of SPEC.md 7.6 and the site's main-thread medians of site/tests/timing.
+      # P4-X2 (MERGE, P4 waves 4.4 and 4.5): the timing checks run alone, one file at a time: those of
+      # packages/engine/test/bench (the 25 ms orbit benchmark of SPEC.md 7.6, the E8 dimension of the
+      # phase-3 roster in under a second) and the site's main-thread medians of site/tests/timing.
       - name: Timing checks, run alone
         run: npm run bench
       - name: Release build
