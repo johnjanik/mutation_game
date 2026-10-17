@@ -31,6 +31,7 @@
     admitLink,
     announceSymmetric,
     averagedOf,
+    captionFor,
     defaultSymmetry,
     exportData,
     foldContext,
@@ -64,7 +65,8 @@
   // The author's configuration is read once (CONTRACTS 5.2): props over the preset's fields.
   const instanceId = untrack(() => id);
   const presetFields = untrack(() => T11_PRESETS[preset === 'average' || preset === 'fold' ? preset : 'default']);
-  const captionText = untrack(() => caption ?? presetFields.caption);
+  /** An author's own caption stays; the preset's caption (the tool route passes the registry's) follows the state. */
+  const fixedCaption = untrack(() => (caption !== undefined && caption !== presetFields.caption ? caption : null));
   const authorConfig: BenchConfig = untrack(() => {
     const board = boardProp ?? presetFields.board;
     const view = viewProp ?? coordsProp ?? presetFields.view;
@@ -132,6 +134,10 @@
       .sort((a, b) => a.colour - b.colour),
   );
   const averaged = $derived(tab === 'average' ? averagedOf(ctx) : null);
+  const captionText = $derived(
+    fixedCaption ??
+      (spec === presetFields.board && ctx.images.join('.') === presetFields.symmetry.join('.') && tab === presetFields.tab ? presetFields.caption : captionFor(ctx, tab)),
+  );
   const symmetryOptions = $derived(offeredSymmetries(ctx.board).map((s) => symmetryToLabels(ctx.board, s)));
   const symmetryValue = $derived(ctx.images.join('.'));
   const tabs = T11_TABS.filter((t) => t.released);
@@ -689,14 +695,20 @@
   .values caption {
     text-align: start;
   }
+  /* A picker never widens the page at 320 pixels (A-11): the label wraps and the select shrinks, so a long
+     symmetry ({1} {2} {3} {4} {5} {6} {7, 8} on D8) is cut inside its own box. */
   .setting {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
+    max-width: 100%;
+    min-width: 0;
   }
   select {
     min-height: 44px;
     max-width: 100%;
+    min-width: 0;
     font: inherit;
     color: var(--text);
     background: var(--page);

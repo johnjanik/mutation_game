@@ -7,6 +7,7 @@
   // Board.svelte (the size rule of 6.1, as T9's overlay), placed BEFORE the board in the page so that the
   // board's buttons and their focus ring are painted over it (A-2). aria-hidden: the legend and the node
   // names carry the same information as text.
+  import { adjacency } from '@two-games/engine';
   import type { AnyBoard } from '@two-games/engine';
   import { nodePositions } from '../../draw/layouts';
   import { MARGIN, toPixels } from '../../draw/geometry';
@@ -27,6 +28,29 @@
   const px = $derived(toPixels(layout, 2 * MARGIN + layout.columns * REF_UNIT));
   const centres = $derived(px.centres.map(([x, y]) => [(x - MARGIN) / REF_UNIT, (y - MARGIN) / REF_UNIT] as const));
   const r2 = (v: number): number => Math.round(v * 1000) / 1000;
+
+  /**
+   * The corner of each node where its badge goes (plan): bottom right, else bottom left, else top left
+   * (the top right holds the node's label), the first that no road leaving the node points into (an angle
+   * of more than 35 degrees from every road), so that a road never runs through a badge (the fork of D_n).
+   */
+  const corners = $derived.by(() => {
+    const A = adjacency(board);
+    const options: [number, number][] = [
+      [1, 1],
+      [-1, 1],
+      [-1, -1],
+    ];
+    return centres.map(([x, y], k) => {
+      const roads: [number, number][] = [];
+      centres.forEach(([u, v], j) => {
+        if (j === k || (A[k]![j]! <= 0 && A[j]![k]! <= 0)) return;
+        const d = Math.hypot(u - x, v - y);
+        roads.push([(u - x) / d, (v - y) / d]);
+      });
+      return options.find(([cx, cy]) => roads.every(([rx, ry]) => (cx * rx + cy * ry) / Math.SQRT2 < Math.cos((35 * Math.PI) / 180))) ?? options[0]!;
+    });
+  });
 </script>
 
 <div class="overlay" style="--k: {layout.columns}; --rows: {layout.rows};" aria-hidden="true">
@@ -35,8 +59,9 @@
       <g data-ring-node={board.labels[k]} data-orbit-ring={colours[k]}>
         <circle class="orbit-ring" cx={r2(x)} cy={r2(y)} r="0.41" style="stroke: var(--edge-{colours[k]})" />
         {#if badges !== null && badges[k] !== null && badges[k] !== undefined}
-          <rect class="badge" x={r2(x + 0.23)} y={r2(y + 0.2)} width="0.24" height="0.24" rx="0.05" style="stroke: var(--edge-{colours[k]})" />
-          <text class="badge-text" x={r2(x + 0.35)} y={r2(y + 0.325)} font-size="0.17" text-anchor="middle" dominant-baseline="central">{badges[k]}</text>
+          {@const [cx, cy] = corners[k]!}
+          <rect class="badge" x={r2(x + 0.35 * cx - 0.12)} y={r2(y + 0.32 * cy - 0.12)} width="0.24" height="0.24" rx="0.05" style="stroke: var(--edge-{colours[k]})" />
+          <text class="badge-text" x={r2(x + 0.35 * cx)} y={r2(y + 0.32 * cy + 0.005)} font-size="0.17" text-anchor="middle" dominant-baseline="central">{badges[k]}</text>
         {/if}
       </g>
     {/each}

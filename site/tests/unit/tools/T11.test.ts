@@ -32,6 +32,7 @@ import {
   announceSymmetric,
   averagedHint,
   averagedOf,
+  captionFor,
   defaultStart,
   defaultSymmetry,
   expandMove,
@@ -558,7 +559,7 @@ afterAll(async () => {
 });
 
 const outText = (body: string, name: string): string[] =>
-  [...body.matchAll(new RegExp(`data-out="${name}"[^>]*>([^]*?)</(?:p|span|div|li|ul|strong)>`, 'g'))].map((m) => m[1]!.replace(/<[^>]+>/g, '').replace(/<!--[^]*?-->/g, '').trim());
+  [...body.matchAll(new RegExp(`data-out="${name}"[^>]*>([^]*?)</(?:p|span|div|li|ul|strong|figcaption)>`, 'g'))].map((m) => m[1]!.replace(/<[^>]+>/g, '').replace(/<!--[^]*?-->/g, '').trim());
 
 describe('T11 server render', () => {
   it('default state: A3 folded to B2 with both boards, the orbits, the construction, disabled controls and the table', () => {
@@ -650,6 +651,21 @@ describe('T11 server render', () => {
     const big = body.slice(body.indexOf('data-out="big-board"'), body.indexOf('data-out="folded-board"'));
     for (const l of [1, 3, 4]) expect(big).toMatch(new RegExp(`data-ring-node="${l}" data-orbit-ring="2"`));
     expect(big).toMatch(/data-ring-node="2" data-orbit-ring="1"/);
+  });
+
+  it('the caption states what the figure shows: the preset\'s caption for its state, else the engine\'s names', () => {
+    const caption = (body: string): string => outText(body, 'caption')[0] ?? '';
+    expect(caption(loader.render(T11C.default, { id: '', caption: FOLD_CAPTION, preset: 'default' }))).toBe(FOLD_CAPTION);
+    expect(caption(loader.render(T11C.default, { id: 'c1', preset: 'average' }))).toBe(AVERAGE_CAPTION);
+    expect(caption(loader.render(T11C.default, { id: 'c2', caption: 'An author caption.', board: 'E6' }))).toBe('An author caption.');
+    const d4 = foldContext(named('D4'), [3, 2, 4, 1]);
+    expect(caption(loader.render(T11C.default, { id: 'c3', board: 'D4', symmetry: [3, 2, 4, 1] }))).toBe(captionFor(d4, 'fold'));
+    expect(captionFor(d4, 'fold')).toContain('gives the board G2.');
+    const a4 = foldContext(named('A4'), [4, 3, 2, 1]);
+    expect(captionFor(a4, 'fold')).toContain('an orbit contains an edge');
+    expect(captionFor(a4, 'average')).toContain('of type BC2.');
+    expect(captionFor(foldContext(named('A3'), [3, 2, 1]), 'average')).toContain('of type B2 = C2, while folding the board by the same symmetry gives B2 = C2');
+    expect(caption(loader.render(T11C.default, { id: 'c4', board: 'A5', symmetry: [5, 4, 3, 2, 1], preset: 'fold' }))).toContain('gives the board B3.');
   });
 
   it('authoring errors fail the build naming the instance', () => {

@@ -560,6 +560,27 @@ export class FoldBench {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Captions (4.0 "Starts meaningful": the caption states the result the figure shows)
+// ---------------------------------------------------------------------------------------------
+
+/** A name recognised from a board's shape, with the D19 note on rank 2: "B2 = C2". */
+export const nameWithNote = (name: string): string => (name === 'B2' ? 'B2 = C2' : name);
+
+/**
+ * The caption of a state that is not a preset's (plan): what the tab in force shows on this board and
+ * symmetry, in the words of 2.13, every name from the engine. A preset's own caption is used for its state.
+ */
+export function captionFor(ctx: FoldContext, tab: 'fold' | 'average'): string {
+  const board = ctx.board.name ?? '';
+  if (tab === 'average') {
+    const tail = ctx.foldedName === null ? '' : `, while folding the board by the same symmetry gives ${nameWithNote(ctx.foldedName)}: the two constructions give dual answers`;
+    return `Averaging the roots of ${board} over this symmetry gives a root system of type ${nameWithNote(averagedOf(ctx).name)}${tail}.`;
+  }
+  if (ctx.foldedName === null) return `${board} does not fold by this symmetry: ${ORBIT_EDGE_PHRASE}. The average tab names the type of the averaged roots.`;
+  return `Folding ${board} by this symmetry gives the board ${nameWithNote(ctx.foldedName)}. One click acts on a whole orbit of the big board, and the folded board, played on its own Cartan matrix, shows the same numbers.`;
+}
+
+// ---------------------------------------------------------------------------------------------
 // Announcements (A-4 punctuation; the wording for several nodes is the plan's, instruction 5.6)
 // ---------------------------------------------------------------------------------------------
 
