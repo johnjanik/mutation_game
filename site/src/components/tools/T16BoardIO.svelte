@@ -38,8 +38,9 @@
       try {
         const b = resolveBoard(value);
         return { ok: true, spec: value, nodes: b.n };
-      } catch {
-        return refuse(`no board is named ${JSON.stringify(value)}`);
+      } catch (e) {
+        // resolveBoard refuses a known name above 12 nodes with a RangeError (6.6, as for a matrix).
+        return refuse(e instanceof RangeError ? e.message : `no board is named ${JSON.stringify(value)}`);
       }
     }
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return refuse('it is neither a board name nor an object with a cartan matrix');
