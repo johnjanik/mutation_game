@@ -75,10 +75,6 @@ const draft = data.draft !== false;
     font-size: 1.125rem;
     font-style: italic;
   }
-  .lesson :global(.katex-display) {
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
   /* RT-FIX P3-RT-05-01: a figure that holds a tool (a ToolFrame, hook data-frame) is not moved here,
      because ToolFrame already runs its own <figure> from edge to edge below 400 pixels (negative
      margins equal to the page gutter); moving both put the board at [-16, viewport + 16]. */
