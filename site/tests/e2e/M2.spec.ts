@@ -21,7 +21,9 @@
 //     data-challenge, data-kind, data-met, data-challenge-result (text "Goal reached."); data-source
 //   T6, registry site/src/tools/registry/T06.ts (decisions/P3-A4.md): data-tool "mirror"; data-out
 //     caption, noscript, root (data-value: the root in label order; one per arrow of the roots
-//     overlay), bridge; node buttons with data-board="numbers"
+//     overlay), bridge, boardName (data-name), simpleRoot (data-node; the arrow of alpha_i, whose
+//     shaft starts at the origin and whose head's first point is its tip); data-control picker,
+//     overlay-roots; node buttons with data-board="numbers"
 //   this lesson's own markup: data-figure ("m2-matrix-a3"), data-figure-text (the text alternative
 //     of the static figure), data-seen-statement. The static roots figure of beat 4
 //     (data-figure "m2-roots-a2", phase 2) was replaced by the T6 instance b4 (P3-X1).
@@ -453,6 +455,8 @@ test('the Kaleidoscope of beat 4 draws the six roots of A2', async ({ page }) =>
   await expect(out(page, 'b4', 'caption')).toHaveText(
     'Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its six roots, which you can play on.',
   );
+  // The picker stays on A2, the board the caption describes (P3-RT-09-04).
+  expect(await control(page, 'b4', 'picker').locator('option').allTextContents()).toEqual(['A2']);
   // One arrow per root of A2 (T6's roots overlay, switched on by the lesson), after hydration.
   await expect(out(page, 'b4', 'root')).toHaveCount(A2.n_roots);
   const arrows = await out(page, 'b4', 'root').evaluateAll((els) => els.map((e) => e.getAttribute('data-value')));
@@ -649,4 +653,50 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red team round 1, phase 3; adopted from the lens branches of RT-08 and RT-09)
+// ---------------------------------------------------------------------------------------------
+
+/** The claim of b4's caption: the simply laced angle and length (SPEC 3 M2 beat 4). */
+const B4_CLAIM = 'Joined cities are vectors of the same length at 120 degrees';
+
+/** Length ratio |alpha_1| / |alpha_2| and the angle between the two simple-root arrows, in degrees. */
+async function simpleRoots(root: Locator): Promise<{ ratio: number; angle: number }> {
+  return root.evaluate((el) => {
+    const v = [...el.querySelectorAll('[data-out="simpleRoot"]')]
+      .sort((a, b) => Number(a.getAttribute('data-node')) - Number(b.getAttribute('data-node')))
+      .map((g) => {
+        // The shaft starts at the origin; the first point of the head is the tip of the arrow.
+        const shaft = g.querySelector('line')!;
+        const ox = Number(shaft.getAttribute('x1'));
+        const oy = Number(shaft.getAttribute('y1'));
+        const tip = g.querySelector('polygon')!.getAttribute('points')!.split(' ')[0]!.split(',').map(Number);
+        return [tip[0]! - ox, -(tip[1]! - oy)] as [number, number];
+      });
+    const len = v.map(([x, y]) => Math.hypot(x, y));
+    const cos = (v[0]![0] * v[1]![0] + v[0]![1] * v[1]![1]) / (len[0]! * len[1]!);
+    return { ratio: len[0]! / len[1]!, angle: (Math.acos(cos) * 180) / Math.PI };
+  });
+}
+
+// regression: P3-RT-09-04
+test('every board the M2 beat 4 figure offers satisfies its caption', async ({ page }) => {
+  await page.goto(ROUTE);
+  const b4 = tool(page, 'b4');
+  await b4.scrollIntoViewIfNeeded();
+  await expect(b4).toHaveAttribute('data-hydrated', 'true');
+  await expect(b4.locator('[data-out="caption"]')).toContainText(B4_CLAIM);
+  const picker = b4.locator('select[data-control="picker"]');
+  const offered = await picker.locator('option').allTextContents();
+  // The figure offers at least the board its caption names; every board it offers is checked.
+  expect(offered).toContain('A2');
+  for (const name of offered) {
+    await picker.selectOption(name);
+    await expect(b4.locator('[data-out="boardName"]')).toHaveAttribute('data-name', name);
+    const { ratio, angle } = await simpleRoots(b4);
+    expect.soft(Math.abs(ratio - 1), `${name}: caption "${B4_CLAIM}", but |alpha_1|/|alpha_2| = ${ratio.toFixed(4)}`).toBeLessThan(0.01);
+    expect.soft(Math.abs(angle - 120), `${name}: caption "${B4_CLAIM}", but the angle is ${angle.toFixed(2)} degrees`).toBeLessThan(0.5);
+  }
 });
