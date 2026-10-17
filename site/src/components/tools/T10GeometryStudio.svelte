@@ -27,7 +27,7 @@
   import Board from '../board/Board.svelte';
   import type PredictType from '../board/Predict.svelte';
   import { predictionAnswerText } from './t01/interop';
-  import { decodeState, LINK_NOTICE } from '../../lib/urlCodec';
+  import { decodeState } from '../../lib/urlCodec';
   import { engineCall, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
   import type { ToolState } from '../../lib/state';
@@ -44,6 +44,7 @@
     figureText,
     fVectorText,
     isPlanePicture,
+    linkNotice,
     loadPlan,
     nextTask,
     orbitKey,
@@ -56,6 +57,7 @@
     type StudioFacts,
   } from './t10/studio';
   import {
+    clampRing,
     drawingMatrixOf,
     edgeLimitText,
     enumerationHint,
@@ -67,6 +69,7 @@
     labelOrder,
     plural,
     positionOf,
+    RING_CAP_TEXT,
     RING_MAX,
     refusalText,
     rootPolytopeRings,
@@ -154,6 +157,8 @@
     });
   });
   let ringFocus = $state(0);
+  /** The sentence of the last ring held to 0..RING_MAX (clampRing), beside the ring fields; '' after any other change. */
+  let ringHeld = $state('');
   let planeA = $state(1);
   let planeB = $state(2);
 
@@ -411,6 +416,7 @@
    */
   function request(next: StudioConfig, origin: 'load' | 'reader', announce: ((t: string) => void) | undefined, committed?: (f: CoreFacts) => void): void {
     target = next;
+    ringHeld = '';
     const my = ++commitToken;
     loadToken++; // the load of the configuration shown is no longer wanted
     busyText = '';
@@ -490,7 +496,7 @@
       next = configured.config;
     } else {
       const admitted = admit(decoded, false);
-      notice = admitted === null ? LINK_NOTICE : null;
+      notice = admitted === null ? linkNotice(decoded) : null;
       next = admitted ?? configured.config;
     }
     if (orbitKey(next.board, next.rings) !== orbitKey(target.board, target.rings)) {
@@ -557,17 +563,19 @@
   }
 
   // The ring board's edits read the configuration asked for (`target`, on `ringBoard`), so that two quick
-  // edits both count even when the first is not shown yet.
-  function setRing(position: number, value: number, announce: (t: string) => void): void {
-    if (!Number.isFinite(value)) return;
+  // edits both count even when the first is not shown yet. A ring asked for outside 0..RING_MAX is held to
+  // it, and that is said beside the ring fields and in the live region (4.0 Stated limits; clampRing).
+  function setRing(position: number, asked: number, announce: (t: string) => void): void {
+    if (frozen || !Number.isFinite(asked)) return;
     const b = ringBoard;
-    const v = Math.max(0, Math.min(RING_MAX, Math.round(value)));
-    const rings = toPositionVector(b, target.rings);
-    if (rings[position] === v) return;
-    rings[position] = v;
     const label = labelOf(b, position);
-    const said = v === 0 ? `Node ${label} not ringed.` : `Node ${label} ring ${v}.`;
-    edit({ ...target, rings: toLabelVector(b, rings) }, announce, said);
+    const { value: v, held } = clampRing(label, asked);
+    const rings = toPositionVector(b, target.rings);
+    if (rings[position] !== v) {
+      rings[position] = v;
+      edit({ ...target, rings: toLabelVector(b, rings) }, announce, held ?? (v === 0 ? `Node ${label} not ringed.` : `Node ${label} ring ${v}.`));
+    } else if (held !== null) announce(held);
+    if (held !== null) ringHeld = held;
   }
 
   function toggleRing(position: number, announce: (t: string) => void): void {
@@ -1202,15 +1210,22 @@
               class="ring-input"
               data-table-ring={l}
               aria-label="Ring of node {l}"
+              aria-describedby="{svgId}-cap"
               value={target.rings[j]}
               disabled={!api.hydrated || frozen}
-              onchange={(e) => setRing(positionOf(ringBoard, l), Number((e.currentTarget as HTMLInputElement).value), api.announce)}
+              onchange={(e) => {
+                const field = e.currentTarget as HTMLInputElement;
+                setRing(positionOf(ringBoard, l), Number(field.value), api.announce);
+                field.value = String(target.rings[j]); // the ring itself, also when a typed value was held and nothing changed
+              }}
             /></td
           >
         </tr>
       {/each}
     </tbody>
   </table>
+  <!-- The cap of the rings beside their fields, and the sentence when a ring asked for is held to it (4.0 Stated limits). -->
+  <p class="ring-cap" id="{svgId}-cap" data-out="ringLimit">{RING_CAP_TEXT}{ringHeld ? ` ${ringHeld}` : ''}</p>
   {#if data !== null && ys !== null}
     <table class="values" data-table="vertices">
       <caption>Vertices: {data.vertices.length}{data.vertices.length > VERTEX_ROWS ? ` (the first ${VERTEX_ROWS} listed)` : ''}. Position in the numbers game and Euclidean coordinates to three decimals.</caption>

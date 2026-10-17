@@ -125,6 +125,8 @@ export const T10_OUTS = [
   'drawMs',
   'edits',
   'legend',
+  // T10: the table view
+  'ringLimit',
 ] as const;
 
 export type T10Out = (typeof T10_OUTS)[number];
