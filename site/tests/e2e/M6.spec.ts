@@ -661,6 +661,47 @@ test('beat 4: the symbolic game on B2 fires the roots of the reversed board', as
   expect(beat4).toMatch(/Mozes.*Proctor's earlier use of the same process.*Eriksson's development/);
 });
 
+test('the lesson leaves the form, the coroots and the squared lengths to the engine', () => {
+  // CLAUDE.md, Rules: mathematics lives only in packages/engine, and the pages call it. The lesson reads
+  // golden values and calls the engine (coroot, formValue); it writes no invariant form, coroot or
+  // squared length of its own (adversarial review of wave 4.4).
+  const source = readFileSync(LESSON_PATH, 'utf8');
+  const exports = source.split('\n').filter((l) => l.startsWith('export const '));
+  // The invariant form p^T D C p written by hand is a double sum.
+  for (const l of exports) expect(l, 'a sum written in the lesson').not.toMatch(/\.reduce\(/);
+  // The board's matrices are the engine's (boardFromName): the lesson reads no golden Cartan matrix or
+  // adjacency to compute with.
+  expect(source.match(/(?:gv|resolveGoldenPath)\('types\.\w+\.(?:cartan|adjacency)'\)/g) ?? []).toEqual([]);
+  // The weights d_i are printed, never multiplied or divided: (alpha_i, alpha_i) = 2 d_i is formValue's.
+  expect(source).not.toMatch(/gv\('types\.\w+\.symmetrizer'\)(?:\[\d+\])?\s*[*/]/);
+  const weights = [...source.matchAll(/^export const (\w+) = gv\('types\.\w+\.symmetrizer'\);$/gm)].map((m) => m[1]!);
+  for (const w of weights) {
+    expect(source, `the weights ${w} in a product or a quotient`).not.toMatch(new RegExp(`[*/]\\s*${w}\\b|\\b${w}(?:\\[\\d+\\])?\\s*[*/]`));
+  }
+  // The coroots of the table of beat 4 come from the engine's coroot, the squared lengths of the G2
+  // challenge from its formValue.
+  const engineImport = /^import \{([^}]*)\} from '@engine';$/m.exec(source)?.[1] ?? '';
+  expect(engineImport.split(',').map((s) => s.trim())).toEqual(expect.arrayContaining(['coroot', 'formValue']));
+  const definition = (name: string): string => exports.find((l) => l.startsWith(`export const ${name} =`)) ?? '';
+  expect(definition('COROOTS'), 'the coroot table').toMatch(/\bcoroot\(/);
+  // The exports that rest on formValue, directly or through another export; the b13 explanation uses one.
+  const names = exports.map((l) => /^export const (\w+)/.exec(l)![1]!);
+  const fromForm = new Set<string>();
+  for (let grown = true; grown; ) {
+    grown = false;
+    for (const name of names) {
+      if (fromForm.has(name)) continue;
+      const body = definition(name).replace(/^export const \w+ =/, '');
+      if (/\bformValue\(/.test(body) || [...fromForm].some((f) => new RegExp(`\\b${f}\\b`).test(body))) {
+        fromForm.add(name);
+        grown = true;
+      }
+    }
+  }
+  const b13 = /<Challenge\b[^\n]*\bfor="b13"[^\n]*\bexplanation=\{`([^`]*)`\}/.exec(source)?.[1] ?? '';
+  expect([...fromForm].filter((name) => new RegExp(`\\$\\{${name}\\b`).test(b13)), 'the squared lengths of the G2 challenge').not.toEqual([]);
+});
+
 test('anatomy', async ({ page }) => {
   await page.goto(ROUTE);
   const article = page.locator('article');
