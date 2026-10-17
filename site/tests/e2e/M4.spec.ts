@@ -25,7 +25,8 @@
 //     question, draft, beat, figure, seen, lie-theory, links, sources; data-beat; data-provenance;
 //     data-challenge, data-met, data-challenge-result (text "Goal reached."); data-source;
 //     data-unverified and a.unverified-mark (P0-A4 Unverified)
-//   this lesson's own markup: data-bridge-prose, data-seen-statement, data-fate-table
+//   this lesson's own markup: data-bridge-prose, data-seen-statement, data-fate-table, data-view-word
+//     (the view words of SPEC 8.3, each with its icon and its accent underline)
 //
 // Word-counting rule (as M0.spec.ts and M3.spec.ts): the words of the <article> after removing every
 // tool root ([data-tool]), every <details>, every live or status region, the draft mark and the list
@@ -692,4 +693,48 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red team, round 1)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // RT-13, attack 27: the colours and icons of the two views. SPEC 8.1 P8 ("Populations and Numbers
+  // have fixed colours and icons in prose, figures and formulas"); 8.3 ("They mark the borders and
+  // icons of panels and the underlines of the two words, never text and never the fill of a node";
+  // "Icons: a small city for Populations, a small numbered disc for Numbers, used wherever the view
+  // is named"). The cases of this lesson; M0's are its own spec's.
+  async function loadAll(page: Page, route: string): Promise<void> {
+    await page.goto(route);
+    await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 30)); } });
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-tool]')].every((t) => t.getAttribute('data-hydrated') === 'true'), null, { timeout: 60000 });
+  }
+
+  // regression: P3-RT-13-08
+  test('the words Populations and Numbers in lesson prose carry the accent underline and the icon of their view', async ({ page }) => {
+    test.setTimeout(120000);
+    const cases: [string, string][] = [['modules/m4-numbers/', 'Numbers'], ['modules/m4-numbers/', 'Populations']];
+    const problems: string[] = [];
+    for (const [route, word] of cases) {
+      await loadAll(page, route);
+      const found = await page.evaluate((word) => {
+        const res: { text: string; underline: string; colour: string; icon: boolean }[] = [];
+        const walker = document.createTreeWalker(document.querySelector('article')!, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          const el = n.parentElement!;
+          if (el.closest('[data-tool], details, .katex')) continue;
+          if (!new RegExp(`\\b${word}\\b`).test(n.textContent ?? '')) continue;
+          const cs = getComputedStyle(el);
+          const icon = !!(el.querySelector('svg') || el.previousElementSibling?.matches('svg, img') || el.closest('[data-view-word]')?.querySelector('svg'));
+          res.push({ text: (n.textContent ?? '').trim().slice(0, 60), underline: cs.textDecorationLine, colour: cs.textDecorationColor, icon });
+        }
+        return res;
+      }, word);
+      const accent = word === 'Populations' ? 'rgb(0, 158, 115)' : 'rgb(204, 121, 167)';
+      if (found.length === 0) problems.push(`${route}: the word ${word} not found in prose`);
+      for (const f of found) if (!f.underline.includes('underline') || f.colour !== accent || !f.icon) problems.push(`${route}: "${f.text}" underline=${f.underline} colour=${f.colour} icon=${f.icon}`);
+    }
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
 });
