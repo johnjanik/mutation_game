@@ -202,6 +202,7 @@ test('dimension on A2 with lambda (1, 1) gives 8', async ({ page }) => {
   await expect(r2.locator('[data-control="lambda"][data-lambda-node="1"]')).toHaveValue('1');
 });
 
+// regression: P3-RT-11-08
 test('E8 play to the end shows the tally, the exponents and 696729600', async ({ page }) => {
   const r = await open(page, 'g=E8');
   const recorded = await recordLive(r);
@@ -215,7 +216,9 @@ test('E8 play to the end shows the tally, the exponents and 696729600', async ({
   await page.waitForTimeout(1200);
   const said = await recorded();
   expect(said).toHaveLength(1);
-  expect(said[0]).toMatch(/^Played 120 moves to the end\. Numbers now /);
+  // A-4, the whole sentence (SPEC 7.5): every complete game on E8 ends at minus rho, minus 1 on each node.
+  const ends = Array.from({ length: 8 }, () => 'minus 1').join(', ');
+  expect(said[0]).toBe(`Played ${T.E8!.longest_word.length} moves to the end. Numbers now ${ends}.`);
 });
 
 test('E8 play to the end makes no long task and fetches no worker', async ({ page }) => {
