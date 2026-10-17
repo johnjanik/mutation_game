@@ -20,6 +20,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { engineMoves } from './engineMoves';
 
 interface LayerGrowth {
   label: string;
@@ -602,6 +603,44 @@ test.describe('regressions', () => {
       // is the following garden. The lens's margin for a replay is a ratio of 10 (plan).
       expect(t2 / plain, `T2 follower page ${t2.toFixed(1)} ms against the plain tool ${plain.toFixed(1)} ms`).toBeLessThan(10);
     });
+  });
+
+  // SPEC 7.4 "extends it by one position per move, so a move costs one engine call however long the play
+  // is", for the followers of a Game Board: T2 on M1 b2 and T3 on M2 b2, both with linkTo="b1". The
+  // engine's moves made by one move of b1 are counted (engineMoves.ts) after a link of 1 move and after
+  // a link of 600 moves; they must be equal. The timing test above did not see a follower that replays
+  // the play on every move once its effect no longer looped (a component that stopped calling extendPlay
+  // or followPlay passed it); this count does: such a follower makes 600 more moves.
+  test.describe('engine moves of one move of the leader do not grow with the play', () => {
+    const word = (n: number, labels: readonly number[]): string => Array.from({ length: n }, (_, k) => labels[k % labels.length]).join('.');
+    for (const [route, what, labels] of [
+      ['modules/m1-mutation/', 'T2 garden b2', [1, 2]],
+      ['modules/m2-form/', 'T3 meter b2', [1, 2, 3]],
+    ] as const) {
+      // regression: P3-RT-04-04
+      test(`${route}: ${what} following b1`, async ({ page }) => {
+        const counts: number[] = [];
+        for (const n of [1, 600]) {
+          await page.goto(`${route}?b1.w=${word(n, labels)}`);
+          const leader = page.locator('[data-tool][data-instance="b1"]');
+          const follower = page.locator('[data-tool][data-instance="b2"]');
+          await follower.scrollIntoViewIfNeeded();
+          await expect(follower).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+          await leader.scrollIntoViewIfNeeded();
+          await expect(leader).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+          await expect(leader).toHaveAttribute('data-moves', String(n));
+          counts.push(
+            await engineMoves(page, async () => {
+              await leader.locator('button[data-board="populations"][data-node="1"]').click();
+              await expect(leader).toHaveAttribute('data-moves', String(n + 1));
+              await page.waitForTimeout(300);
+            }),
+          );
+        }
+        expect(counts[0], 'engine moves of one move of b1 after a link of 1 move').toBeGreaterThan(0);
+        expect(counts[1], `engine moves of one move of b1 after a link of 600 moves (after 1 move: ${counts[0]})`).toBe(counts[0]);
+      });
+    }
   });
 
   // RT-13 (reader playtest), attack 9, adopted from its reproducer: M1 beat 1 says "the garden below it
