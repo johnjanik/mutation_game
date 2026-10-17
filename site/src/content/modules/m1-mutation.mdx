@@ -25,6 +25,7 @@ export const fmt = (k) => formatGoldenValue(resolveGoldenPath(k));
 export const TRI = 'layer_growth_examples[label=triangle]';
 export const triangle = { cartan: resolveGoldenPath('layer_growth_examples[label=triangle].cartan') };
 export const frozen = resolveGoldenPath('affine.A2.marks');
+export const triangleName = resolveGoldenPath('affine.A2.constructor_name');
 export const SEEN_RANK = 'verified by computation on every board of finite type of rank at most eight';
 export const SEEN_STARTS = 'verified by computation on every board of finite type of rank at most eight, with random plays from every starting city';
 
@@ -122,7 +123,7 @@ A <Term a="population">population</Term> $p$ stands for the element $\sum_i p_i\
 
 ## Challenges
 
-Each challenge watches the board just below it and says when its goal is reached.
+Each challenge has a board just below it and says when its goal is reached.
 
 <Challenge client:visible for="b9" goal={`Starting from one Martian in city 1 of A3, visit all ${fmt('types.A3.n_roots')} root populations in one play.`} explanation="A mutation done twice in a row is undone, so a play can go out and come back. Mutating a city that holds a lone Martian, with empty neighbours, turns it into a lone anti-Martian, and from there the negative root populations follow by the same moves that gave the positive ones." check={{ kind: 'distinct', board: 'populations', count: gv('types.A3.n_roots') }} />
 
@@ -132,9 +133,9 @@ Each challenge watches the board just below it and says when its goal is reached
 
 <T09Kostant client:visible id="b10" board="E6" start={[1, 0, 0, 0, 0, 0]} boardChoices={['E6']} caption={`Raising moves on E6 from one Martian end at the highest root ${fmt('types.E6.highest_root')}, from whichever city they start.`} />
 
-<Challenge client:visible for="b11" goal="On the triangle, find the population with no anti-Martians and at most one Martian in each city, other than the empty one, that no single mutation changes. Type it into the boxes of the board below." explanation="A population that no mutation changes needs every city to receive exactly twice what it holds. On the triangle each city has two neighbours, so equal populations everywhere work: one Martian in every city, and every multiple of it, negative multiples included. On a board of finite type no population other than the empty one has this property." check={{ kind: 'out', name: 'predictResult', equals: `Right: (${frozen.join(', ')}).` }} />
+<Challenge client:visible for="b11" goal="On the triangle, find a population other than the empty one that no single mutation changes, and type it in the box below." explanation="A population that no mutation changes needs every city to receive exactly twice what it holds. On the triangle each city has two neighbours, so equal populations everywhere work: one Martian in every city, and every multiple of it, negative multiples included. On a board of finite type no population other than the empty one has this property." check={{ kind: 'input', predicate: 'fixed-by-every-mutation', board: triangleName }} />
 
-<T01GameBoard client:visible id="b11" board={triangle} view="populations" mode="free" coords="populations" start={[1, 0, 0]} prediction={{ question: 'Which population, with no anti-Martians, at most one Martian in each city and not empty, does no single mutation change?', answer: { type: 'position', value: frozen }, reveal: 'Each city receives one Martian from each of its two neighbours, twice what it holds, so a mutation gives back exactly what was there. Every multiple of this population works too.' }} caption="On the triangle exactly one population of this kind is changed by no mutation; the challenge above asks for it." />
+<T01GameBoard client:visible id="b11" board={triangle} view="populations" mode="free" coords="populations" start={[1, 0, 0]} caption="On the triangle a mutation leaves its city unchanged exactly when the city receives twice what it holds; try it here before answering the challenge above." />
 
 <ModuleLinks module={1} board="A2" />
 

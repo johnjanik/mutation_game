@@ -19,6 +19,9 @@
 //     question, draft, beat, figure, seen, lie-theory, links, sources; data-beat; data-provenance;
 //     data-challenge, data-kind, data-met, data-challenge-result (text "Goal reached."); data-source;
 //     data-unverified and a.unverified-mark (P0-A4 Unverified); data-item on the open-items page
+//   Challenge of the input kind (challenge 3; P1-A4 Challenge.svelte, a lesson component, not a
+//     tool): its text box and button, read by role and accessible name ("Your population, entries
+//     in label order", "Check"), and its retry note "Not this one. Try another population."
 //   this lesson's own markup: data-seen-statement
 //
 // Word-counting rule (test 4, as M0.spec.ts): the words of the <article> after removing every tool
@@ -71,8 +74,8 @@ interface KostantRecord {
 interface Golden {
   types: Record<string, TypeRecord>;
   kostant: Record<string, KostantRecord>;
-  layer_growth_examples: { label: string; layers: number; root_populations_found: number; new_per_layer: number[] }[];
-  affine: Record<string, { marks: number[] }>;
+  layer_growth_examples: { label: string; layers: number; root_populations_found: number; new_per_layer: number[]; cartan: number[][] }[];
+  affine: Record<string, { marks: number[]; constructor_name: string; cartan_node0_first: number[][] }>;
 }
 const GOLDEN = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8')) as Golden;
 const TRIANGLE = GOLDEN.layer_growth_examples.find((r) => r.label === 'triangle')!;
@@ -150,6 +153,12 @@ async function proseSentences(page: Page): Promise<string[]> {
     .filter((s) => s.length > 1);
 }
 
+/** Types a population into a challenge of the input kind and presses its Check button. */
+async function typeIntoChallenge(challenge: Locator, text: string): Promise<void> {
+  await challenge.getByRole('textbox', { name: 'Your population, entries in label order' }).fill(text);
+  await challenge.getByRole('button', { name: 'Check' }).click();
+}
+
 /** Answers a tool's prediction with "show me", so that the board is free. */
 async function showMe(page: Page, id: string): Promise<void> {
   await control(page, id, 'predictShow').click();
@@ -206,8 +215,11 @@ test.describe('without JavaScript', () => {
     const expected: Record<string, string> = {
       b1: String(GOLDEN.types.A2!.n_roots),
       b5: 'No, every start ends at the same population.',
-      b11: `(${FROZEN.join(', ')})`,
     };
+    // These are all the predictions of the page (RT-FIX P3-RT-13-09: b11 no longer carries one;
+    // challenge 3 reads the population typed into its own box).
+    const withPrediction = await page.locator('[data-tool]').evaluateAll((els) => els.filter((e) => e.querySelector('[data-prediction]') !== null).map((e) => e.getAttribute('data-instance')));
+    expect(withPrediction).toEqual(Object.keys(expected));
     for (const [id, answer] of Object.entries(expected)) {
       const block = tool(page, id).locator('[data-prediction]');
       await expect(block, id).toHaveCount(1);
@@ -404,30 +416,34 @@ test('challenge: E6 is not met by a play started at the highest root', async ({ 
 });
 
 test('challenge: a population no mutation changes', async ({ page }) => {
-  await page.goto(ROUTE);
-  const challenge = await challengeFor(page, 'b11');
-  await hydrate(page, 'b11');
-  await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
-  const boxes = control(page, 'b11', 'predictAnswer');
-  await expect(boxes).toHaveCount(FROZEN.length);
-  for (const [k, v] of FROZEN.entries()) await boxes.nth(k).fill(String(v));
-  await control(page, 'b11', 'predictCheck').click();
-  await expect(out(page, 'b11', 'predictResult')).toHaveText(/^Right/);
-  await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
-  await expect(challenge).toHaveAttribute('data-met', 'true');
+  // The check reads the population typed into the challenge's own box, on the board named by
+  // affine.A2.constructor_name, whose matrix is the lesson's triangle.
+  expect(GOLDEN.affine.A2!.cartan_node0_first).toEqual(TRIANGLE.cartan);
+  // (1, 1, 1) and its multiples, a negative one included (SPEC 3 M1), each meet the goal.
+  for (const k of [1, 2, -1]) {
+    await page.goto(ROUTE);
+    const challenge = await challengeFor(page, 'b11');
+    await expect(challenge).toHaveAttribute('data-kind', 'input');
+    await hydrate(page, 'b11');
+    await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
+    await typeIntoChallenge(challenge, FROZEN.map((v) => v * k).join(', '));
+    await expect(challenge.locator('[data-challenge-result]'), `${k} times (${FROZEN.join(', ')})`).toHaveText('Goal reached.');
+    await expect(challenge).toHaveAttribute('data-met', 'true');
+  }
 });
 
 test('challenge: a wrong population is not accepted', async ({ page }) => {
   await page.goto(ROUTE);
   const challenge = await challengeFor(page, 'b11');
   await hydrate(page, 'b11');
-  const boxes = control(page, 'b11', 'predictAnswer');
   const wrong = FROZEN.map((v, k) => (k === 0 ? v : 0));
-  for (const [k, v] of wrong.entries()) await boxes.nth(k).fill(String(v));
-  await control(page, 'b11', 'predictCheck').click();
-  await expect(out(page, 'b11', 'predictResult')).toHaveText(/^Not quite/);
-  await page.waitForTimeout(300);
-  await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
+  for (const typed of [wrong, FROZEN.map(() => 0)]) {
+    await typeIntoChallenge(challenge, typed.join(', '));
+    await expect(challenge).toContainText('Not this one. Try another population.');
+    await page.waitForTimeout(300);
+    await expect(challenge.locator('[data-challenge-result]'), typed.join(', ')).toHaveCount(0);
+    await expect(challenge).not.toHaveAttribute('data-met', 'true');
+  }
 });
 
 test('anatomy', async ({ page }) => {
@@ -691,5 +707,23 @@ test.describe('regressions', () => {
     const nodes = await r.locator('button[data-node][data-board="populations"], button[data-node][data-board="numbers"]').evaluateAll((els) => new Set(els.map((e) => (e as HTMLElement).dataset.node)).size);
     if (!label.includes(` ${boardName}`) || nodes !== n) problems.push(`sandbox opens "${label.slice(0, 80)}" with ${nodes} nodes; the module's board is ${boardName} with ${n}`);
     expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  // Adopted from site/tests/e2e/redteam-RT-13-challenges.spec.ts (lens RT-13, attack 11), the M1
+  // case. The reproducer typed into the prediction boxes of b11, which a first answer disables for
+  // good; challenge 3 is now graded by its own box (Challenge's input kind), and the same steps are
+  // taken there: a wrong population, then the right one.
+  // regression: P3-RT-13-09
+  test('challenge 3: after one wrong try the reader can still type (1, 1, 1) and meet the goal', async ({ page }) => {
+    await page.goto(ROUTE);
+    const challenge = await challengeFor(page, 'b11');
+    await hydrate(page, 'b11');
+    await typeIntoChallenge(challenge, '1, 1, 0');
+    await expect(challenge).toContainText('Not this one');
+    await expect(challenge).not.toHaveAttribute('data-met', 'true');
+    // The goal asks the reader to type the population: try again with the right one.
+    await expect(challenge.getByRole('textbox', { name: 'Your population, entries in label order' })).toBeEnabled({ timeout: 2000 });
+    await typeIntoChallenge(challenge, '1, 1, 1');
+    await expect(challenge).toHaveAttribute('data-met', 'true');
   });
 });
