@@ -534,4 +534,19 @@ describe('regressions', () => {
     );
     expect(reads, JSON.stringify(reads)).toEqual([]);
   });
+
+  // E-7 and CLAUDE.md: "only toLabels / toPositions convert". T9 turned labels into positions with
+  // labels.indexOf (the marked overlay and the table's city buttons).
+  // regression: residual of P3-RT-10-05 (T09Kostant.svelte converted labels with labels.indexOf)
+  it('T9 converts labels to positions only through toPositions', () => {
+    const dir = new URL('../../../src/components/tools/', import.meta.url);
+    const files = ['T09Kostant.svelte', 't09/kostant.ts', 't09/phase2.ts', 't09/playOn.ts'];
+    const hand = files.flatMap((f) =>
+      readFileSync(fileURLToPath(new URL(f, dir)), 'utf8')
+        .split('\n')
+        .map((l, k) => ({ file: f, line: k + 1, text: l.trim() }))
+        .filter(({ text }) => !text.startsWith('//') && /labels\.(indexOf|findIndex|lastIndexOf)\(/.test(text)),
+    );
+    expect(hand, JSON.stringify(hand)).toEqual([]);
+  });
 });

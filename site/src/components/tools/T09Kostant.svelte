@@ -13,7 +13,7 @@
   // layers (ignored: T9 grows no set, 4.0 "Growth off the finite types" does not bind it), and the plan
   // property boardChoices (limits the picker; M1 row 3 passes ['A3', 'D4', 'E8']).
   import { untrack } from 'svelte';
-  import { CAPS, EngineOverflow } from '@two-games/engine';
+  import { CAPS, EngineOverflow, toPositions } from '@two-games/engine';
   import type { AnyBoard, Board as EngineBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -185,7 +185,7 @@
   const layout = $derived(nodePositions(anyBoard));
   const px = $derived(toPixels(layout, 2 * MARGIN + layout.columns * REF_UNIT));
   const centres = $derived(px.centres.map(([x, y]) => [(x - MARGIN) / REF_UNIT, (y - MARGIN) / REF_UNIT] as [number, number]));
-  const markedPositions = $derived(new Set(panel === null ? [] : panel.marked.map((l) => anyBoard.labels.indexOf(l))));
+  const markedPositions = $derived(new Set(panel === null ? [] : toPositions(anyBoard, panel.marked)));
 
   // ------------------------------------------------------------------------------------------
   // Loading a state (a link, the back button, a picker, the start city)
@@ -573,7 +573,7 @@
               data-table-node={l}
               disabled={!api.hydrated || frozen}
               aria-label="Mutate city {l}, population {spokenValue(popsInOrder[j]!)}, {MOOD_STATE[moodsInOrder[j]!]}"
-              onclick={() => act(anyBoard.labels.indexOf(l), api.announce)}>City {l}</button
+              onclick={() => act(toPositions(anyBoard, [l])[0]!, api.announce)}>City {l}</button
             >
           </th>
           <td class="numeral" data-table-value="population">{display(popsInOrder[j]!)}</td>
