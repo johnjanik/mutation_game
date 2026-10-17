@@ -39,6 +39,7 @@ import { followJumps, highlightMatches, predictionCorrect, predictionAnswerText 
 import { createAnnouncer } from '../../../src/lib/a11y';
 import { bigBoard, clearPublishedStates, followToolState, publishToolState } from '../../../src/lib/state';
 import type { Prediction } from '../../../src/tools/types';
+import { T01_OUTS, T01_PROP_ONLY_OUTS } from '../../../src/tools/registry/T01';
 import { createServer, type ViteDevServer } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { tmpdir } from 'node:os';
@@ -718,5 +719,27 @@ describe('T1 server render', () => {
     expect(buttons.map((b) => attr(b, 'data-ring'))).toEqual(['true', 'false', 'false']);
     expect(buttons.map((b) => attr(b, 'data-can-act'))).toEqual(['true', 'false', 'false']);
     expect(out(body, 'mode')).toBe('legal play');
+  });
+});
+
+describe('regressions', () => {
+  // regression: P3-RT-10-06 (sibling): the registry's outs hold every data-out name T1 renders, also
+  // those that only properties produce (CONTRACTS 5.2 "every data-out name the tool renders").
+  it('every data-out name a property can make T1 render is in the registry outs, as a property-only out', () => {
+    const prediction: Prediction = { question: 'What will city 2 hold after it mutates?', answer: { type: 'number', value: 0 }, reveal: 'It holds 0.' };
+    const bodies = [
+      render({ board: 'A3', panels: ['form', 'level', 'colours', 'lengths'] }),
+      render({ board: 'A3', view: 'populations', mode: 'free', start: [1, 0, 0], script: [{ move: 1, caption: 'First.' }], rounds: 2 }),
+      render({ board: 'A3', view: 'populations', start: [0, 1, 0], goal: { kind: 'predicate', name: 'mixed-signs', giveUpAfter: 20 } }),
+      render({ board: 'A3', view: 'populations', start: [1, 1, 0], prediction }),
+      render({ board: 'A2~', view: 'numbers', mode: 'legal', coords: 'numbers', start: [1, 1, 1] }),
+    ];
+    const plain = render({ board: 'A3' });
+    const names = (body: string): Set<string> => new Set([...body.matchAll(/data-out="([^"]+)"/g)].map((m) => m[1]!));
+    const rendered = new Set(bodies.flatMap((b) => [...names(b)]));
+    expect([...rendered].filter((n) => !(T01_OUTS as readonly string[]).includes(n))).toEqual([]);
+    // A name that the plain default state does not render is listed as a property-only out.
+    const propOnly = [...rendered].filter((n) => !names(plain).has(n) && n !== 'gameOver' && n !== 'limit');
+    expect(propOnly.filter((n) => !T01_PROP_ONLY_OUTS.includes(n))).toEqual([]);
   });
 });

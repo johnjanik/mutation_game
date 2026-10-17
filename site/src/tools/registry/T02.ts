@@ -28,6 +28,6 @@ export default {
     'triangle-40': fields('triangle-40'),
   },
   // Every data-out the tool renders: its own, then ToolFrame's.
-  outs: ['found', 'total', 'stopMessage', 'verdict', 'layersGrown', 'layerChart', 'vertex', 'edge', 'rise', 'tableRow', 'chartRow', 'strip', 'caption', 'notice', 'noscript'],
+  outs: ['found', 'total', 'stopMessage', 'verdict', 'layersGrown', 'layerChart', 'vertex', 'edge', 'rise', 'tableRow', 'chartRow', 'strip', 'caption', 'notice', 'noscript', 'exportNotice'],
   component: () => import('../../components/tools/T02OrbitGarden.svelte'),
 } satisfies ToolRegistryEntry;

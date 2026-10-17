@@ -51,6 +51,7 @@ import { boardFromName, fire, toPositions } from '../../../packages/engine/src/i
 import type { Board } from '../../../packages/engine/src/index';
 import { announceTemplates, nodeName, speak } from '../../src/lib/a11y';
 import { buildGraph, inLabelOrder, pathOfMoves, vertexDetails } from '../../src/components/tools/t08/graph';
+import { T08_OUTS } from '../../src/tools/registry/T08';
 
 const ROUTE = 'tools/weyl/';
 const NOTICE = 'The link could not be read, so the tool shows its default state.';
@@ -497,4 +498,21 @@ test('axe finds no violation on /tools/weyl', async ({ page }) => {
   await open(page);
   const result = await new AxeBuilder({ page }).include('[data-tool="weyl"]').analyze();
   expect(result.violations.map((v) => v.id)).toEqual([]);
+});
+
+test.describe('regressions', () => {
+  // regression: P3-RT-10-06 (sibling): the registry's outs hold every data-out name T8 renders, the
+  // drawing above 192 elements after hydration included (CONTRACTS 5.2 "every data-out name the tool renders").
+  test('every data-out name T8 renders, in the SVG and the canvas drawing, is in the registry outs', async ({ page }) => {
+    const present = new Set<string>();
+    const collect = async (): Promise<void> => {
+      for (const name of await root(page).evaluate((el) => [...el.querySelectorAll('[data-out]')].map((e) => e.getAttribute('data-out') ?? ''))) present.add(name);
+    };
+    await open(page);
+    await collect();
+    await pick(page, 'A5');
+    await expect(out(page, 'canvas')).toHaveAttribute('data-scale', /.+/);
+    await collect();
+    expect([...present].filter((n) => !(T08_OUTS as readonly string[]).includes(n))).toEqual([]);
+  });
 });

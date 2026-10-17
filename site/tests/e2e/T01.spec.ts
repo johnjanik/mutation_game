@@ -14,7 +14,8 @@
 //   live:    [data-live] (ToolFrame's polite live region)
 // data-out names (every one T1 renders; the registry's `outs`):
 //   caption, moveCounter, historyStrip, historyCounter, mode, gameOver, bridgeSentence, aCp, notice,
-//   limit, scriptCaption, roundCounter, goal, goalMet, goalNote, predictResult, predictReveal, noscript
+//   limit, scriptCaption, roundCounter, goal, goalMet, goalNote, predictResult, predictReveal, noscript,
+//   exportNotice (ToolFrame), colourClasses (property `panels`), formValue, level, lengths, fate
 //   (scriptCaption, roundCounter, goal, goalMet, goalNote, predictResult, predictReveal come only from
 //   properties, which a link cannot set; site/tests/unit/tools/T01.test.ts checks them by server render.)
 // data-control names: undo, redo, reset, step, playToEnd, next, picker, view, mode, predictAnswer,
