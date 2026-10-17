@@ -141,7 +141,7 @@ On <Tex src="A_5"/> folding gives <G k={`${A5F}.folds_to`}/>, averaging <G k={`$
 
 Readers of Wildberger's texts need one warning.
 
-<aside slot="figure" id="wildberger-names" aria-labelledby="wildberger-names-title" data-warning="names">
+<aside id="wildberger-names" aria-labelledby="wildberger-names-title" data-warning="names">
 <h2 id="wildberger-names-title">Warning: Wildberger's names for B and C</h2>
 <p data-warning-line="convention">This site uses Bourbaki's names and numbering. Comparing the printed lists of <Cite k="W20"/> ({'section 9'}) and <Cite k="W-MS"/> ({'pp. 23-29'}) with the computed ones in the checking script gives these translations. So for rank at least {'3'} the letters B and C are exchanged relative to Bourbaki: his “<Tex src="B_3"/>” is <G k="wildberger_lists.names.B3"/>.</p>
 <table data-table="names">
@@ -159,15 +159,15 @@ Readers of Wildberger's texts need one warning.
 <p data-warning-line="applet">The applet of {'2004'} on Wildberger's pages numbers D and E graphs the same way, with an extra vertex {'0'} joined to vertex {'2'} or {'3'}. The Python package mutation-game ({'0.1.5'}) states that it follows Wildberger's convention for B and C, but its <Tex src="B_3"/> is Bourbaki's <Tex src="B_3"/>.</p>
 <p data-warning-line="misprints">The lists also have misprints; the site prints only computed lists. An entry a/bcde is a over bcde, vertex {'0'} on top.</p>
 <table data-table="misprints">
-<thead><tr><th scope="col">Where</th><th scope="col">Printed</th><th scope="col">Should read</th><th scope="col">In</th></tr></thead>
+<thead><tr><th scope="col">Where</th><th scope="col">Printed</th><th scope="col">Should read</th></tr></thead>
 <tbody>
-<tr data-misprint="C4"><td>“<Tex src="C_4"/>” list</td><td><G k={`${MP}.C4[0]`} as="plain"/></td><td><G k={`${MP}.C4[1]`} as="plain"/></td><td>both texts</td></tr>
-<tr data-misprint="G2"><td>“<Tex src="G_2"/>” list</td><td><G k={`${MP}.G2[0]`} as="plain"/></td><td><G k={`${MP}.G2[1]`} as="plain"/></td><td>both texts</td></tr>
-<tr data-misprint="example"><td>Example {'8.6'} of <Cite k="W20"/>, p. {'20'} of <Cite k="W-MS"/></td><td><Tex src="\beta_{41}=60"/> and the term <Tex src="-60p_4p_1"/></td><td><Tex src="\beta_{42}"/> and <Tex src="-60p_4p_2"/>: the fourth edge joins <Tex src="x_4"/> to <Tex src="x_2"/>, and only the corrected form is invariant</td><td>both texts</td></tr>
-<tr data-misprint="A4"><td>“<Tex src="A_4"/>” list</td><td><G k={`${MM}.A4[0]`} as="plain"/> a second time</td><td><G k={`${MM}.A4[1]`} as="plain"/></td><td>manuscript only</td></tr>
-<tr data-misprint="D5"><td>“<Tex src="D_5"/>” list (p. {'27'})</td><td><G k={`${MM}.D5[0]`} as="plain"/>, each printed twice</td><td><G k={`${MM}.D5[1]`} as="plain"/> in place of the first copies</td><td>manuscript only</td></tr>
-<tr data-misprint="E6"><td>“<Tex src="E_6"/>” list (p. {'28'})</td><td><G k={`${MM}.E6[0]`} as="plain"/>, each printed twice</td><td><G k={`${MM}.E6[1]`} as="plain"/></td><td>manuscript only</td></tr>
-<tr data-misprint="E6-diagram"><td>“<Tex src="E_6"/>” diagram (p. {'28'})</td><td>vertex {'0'} drawn above vertex {'2'}</td><td>above vertex {'3'}, as the root lists on the same page require</td><td>manuscript only</td></tr>
+<tr data-misprint="C4"><td>“<Tex src="C_4"/>” list, both texts</td><td><G k={`${MP}.C4[0]`} as="plain"/></td><td><G k={`${MP}.C4[1]`} as="plain"/></td></tr>
+<tr data-misprint="G2"><td>“<Tex src="G_2"/>” list, both texts</td><td><G k={`${MP}.G2[0]`} as="plain"/></td><td><G k={`${MP}.G2[1]`} as="plain"/></td></tr>
+<tr data-misprint="example"><td>Example {'8.6'} of <Cite k="W20"/>, p. {'20'} of <Cite k="W-MS"/>, both texts</td><td><Tex src="\beta_{41}=60"/> and the term <Tex src="-60p_4p_1"/></td><td><Tex src="\beta_{42}"/> and <Tex src="-60p_4p_2"/>: the fourth edge joins <Tex src="x_4"/> to <Tex src="x_2"/>, and only the corrected form is invariant</td></tr>
+<tr data-misprint="A4"><td>“<Tex src="A_4"/>” list, manuscript only</td><td><G k={`${MM}.A4[0]`} as="plain"/> a second time</td><td><G k={`${MM}.A4[1]`} as="plain"/></td></tr>
+<tr data-misprint="D5"><td>“<Tex src="D_5"/>” list (p. {'27'}), manuscript only</td><td><G k={`${MM}.D5[0]`} as="plain"/>, each printed twice</td><td><G k={`${MM}.D5[1]`} as="plain"/> in place of the first copies</td></tr>
+<tr data-misprint="E6"><td>“<Tex src="E_6"/>” list (p. {'28'}), manuscript only</td><td><G k={`${MM}.E6[0]`} as="plain"/>, each printed twice</td><td><G k={`${MM}.E6[1]`} as="plain"/></td></tr>
+<tr data-misprint="E6-diagram"><td>“<Tex src="E_6"/>” diagram (p. {'28'}), manuscript only</td><td>vertex {'0'} drawn above vertex {'2'}</td><td>above vertex {'3'}, as the root lists on the same page require</td></tr>
 </tbody>
 </table>
 <p data-warning-line="provenance">The paper corrects the <Tex src="A_4"/>, <Tex src="D_5"/>, <Tex src="E_6"/> lists. Verified by computation, except the <Tex src="E_6"/> diagram (page image) and the package statement (its documentation).</p>
