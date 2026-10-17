@@ -134,6 +134,12 @@
   let fundamentalChoice = $state(0);
   let version = $state(0);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
 
   const touch = (): void => {
     version++;
@@ -253,6 +259,10 @@
     if (encodeState(admitted.state) === encodeState(toolState)) return;
     const s = admitted.state;
     const sameAsAuthor = encodeState(s) === encodeState(defaults);
+    if (!sameAsAuthor && !predictionResolved) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
     load({ board: String(s.board), start: s.start ?? [], moves: s.moves ?? [], lambda: s.lambda }, sameAsAuthor ? author.second : []);
   }
 
@@ -536,7 +546,7 @@
 {#snippet figure(api: FrameApi)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="t05" data-board-name={title} onkeydown={(e) => onKeydown(e, api.announce)}>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     <p class="line" data-out="startKind" data-kind={startKindOf(cur().start)}>

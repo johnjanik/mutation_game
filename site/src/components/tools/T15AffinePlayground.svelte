@@ -149,6 +149,12 @@
   let busy = $state(false);
   let martianCity = $state<number | null>(null);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
   let loadToken = 0;
 
   const touch = (): void => {
@@ -366,12 +372,19 @@
       return;
     }
     const token = ++loadToken;
+    // A state other than the configured one withdraws a prediction still open (SPEC 4.0 Predict; as T1).
+    const withdraw = (): void => {
+      if (predictionResolved || encodeState(s) === encodeState(defaults)) return;
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    };
     try {
       const name = typeof s.board === 'string' ? s.board : '';
       const nextTab = tabForState(s);
       const b = info(name).board;
       if (nextTab === 'marks-comarks') {
         notice = null;
+        withdraw();
         commit(nextTab, name, null);
         return;
       }
@@ -399,6 +412,7 @@
       if (token !== loadToken) return;
       notice = null;
       convention = nextTab === 'pentagon' ? 'olympiad' : 'site';
+      withdraw();
       commit(nextTab, name, g);
     } catch {
       if (token !== loadToken) return;
@@ -571,7 +585,7 @@
     <p class="line">
       Board <span data-out="boardName">{boardName}</span>: <span data-out="verdict">{inf.verdict}</span>.
     </p>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     {#if tab === 'marks-comarks'}

@@ -147,6 +147,12 @@
   let rotation = $state.raw<FloatMatrix | null>(null);
   let turning = $state(false);
   let predictionResolved = $state(prediction === undefined);
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a figure it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
   // Predict.svelte is fetched only where a prediction is configured (lesson pages), so that the tool's own
   // route does not carry it (7.6: 90 kB); until it arrives the static question and its <details> stand.
   let PredictComponent = $state.raw<typeof PredictType | null>(null);
@@ -498,6 +504,10 @@
       const admitted = admit(decoded, false);
       notice = admitted === null ? linkNotice(decoded) : null;
       next = admitted ?? configured.config;
+    }
+    if (!predictionResolved && !sameConfig(next, configured.config)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
     }
     if (orbitKey(next.board, next.rings) !== orbitKey(target.board, target.rings)) {
       rotation = null;
@@ -1033,7 +1043,7 @@
         >
       {/if}
     </div>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       {#if PredictComponent}
         <PredictComponent {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
       {:else}

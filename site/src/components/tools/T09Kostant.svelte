@@ -123,6 +123,12 @@
   /** Phase 2: a "play on" is running (in the worker); the board waits for it. */
   let busy = $state(false);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
 
   const touch = (): void => {
     version++;
@@ -225,7 +231,12 @@
       return;
     }
     notice = n;
-    if (encodeState(admitted) !== encodeState(toState(game))) load(admitted);
+    if (encodeState(admitted) === encodeState(toState(game))) return;
+    if (!predictionResolved && encodeState(admitted) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(admitted);
   }
 
   // Hydration: read the URL once with the instance prefix (6.6). Never a move by itself (4.0).
@@ -414,7 +425,7 @@
   <div class="t09" data-board-name={title} onkeydown={(e) => onKeydown(e, api.announce)}>
     <p class="line" data-out="goal" data-met={goalMet ? 'true' : 'false'}>Goal: make no city unhappy.</p>
     <p class="line" data-out="goalMet">{goalMet ? 'Goal reached.' : ''}</p>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     <div class="board-host">
