@@ -269,22 +269,8 @@ describe('T7 state, links and Big', () => {
     expect(T7.symbolicView(ST.resolveBoard(String(r.state.board)), r.state.moves as number[]).fired).toEqual(fromOnes);
   });
 
-  it('recomputation after a move stays under the long-task budget', () => {
-    const E8 = ST.resolveBoard('E8');
-    const moves = golden.types.E8!.longest_word;
-    expect(moves).toHaveLength(golden.types.E8!.n_positive_roots);
-    const times: number[] = [];
-    for (let run = 0; run < 7; run++) {
-      const t0 = performance.now();
-      const view = T7.symbolicView(E8, moves);
-      times.push(performance.now() - t0);
-      expect(view.rows.every((r) => r.move !== null)).toBe(true);
-    }
-    times.sort((a, b) => a - b);
-    const median = times[3]!;
-    process.stdout.write(`T7 recomputation on E8 along longest_word: median ${median.toFixed(2)} ms of [${times.map((t) => t.toFixed(2)).join(', ')}]\n`);
-    expect(median).toBeLessThan(25);
-  });
+  // The timing test 'recomputation after a move stays under the long-task budget' runs alone, in
+  // site/tests/timing/T07.timing.test.ts, through `npm run bench` (P4-X2, MERGE P4 wave 4.4).
 });
 
 describe('LinearForm helpers', () => {
