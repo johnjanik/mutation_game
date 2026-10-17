@@ -641,4 +641,23 @@ test.describe('regressions', () => {
       expect(clause).toMatch(/every starting city/);
     }
   });
+
+  // Adopted from site/tests/unit/redteam-RT-09-03-lie-theory-kostant.test.ts (lens RT-09), M1 part.
+  // The reproducer held the page's sentence against the engine on B2; here the oracle's B2 play is
+  // the counterexample, and the sentence must carry the hypotheses of F13 that exclude it.
+  // regression: P3-RT-09-03
+  test("the Lie theory paragraph states Kostant's game with the hypotheses of F13", () => {
+    // oracle: python3 -c "import sys; sys.path.insert(0, 'reference'); import lie_games as L; print(L.kostant_play(L.cartan('B', 2), 0))"
+    // gives ((1, 2), [1]): on B2 from city 1 the one raising move adds two copies of the simple root
+    // of city 2 (SPEC 2.7 F13: exactly one only on a simply laced board). Golden kostant.B2 agrees.
+    expect(GOLDEN.kostant.B2!.end_from_node[0]).toEqual([1, 2]);
+    expect(GOLDEN.kostant.B2!.moves_from_node[0]).toBe(1);
+    const lie = /<LieTheory>([\s\S]*?)<\/LieTheory>/.exec(readFileSync(LESSON_PATH, 'utf8'))?.[1] ?? '';
+    const sentences = lie.split(/(?<=\.)\s+/).filter((s) => /Kostant's game/.test(s));
+    expect(sentences.length, "the Lie theory paragraph names Kostant's game").toBeGreaterThan(0);
+    for (const s of sentences) {
+      expect(s, `M1 Lie theory: "${s}" (SPEC 2.7 F13 holds on simply laced boards of finite type)`).toMatch(/simply laced/);
+      expect(s).toMatch(/finite type/);
+    }
+  });
 });
