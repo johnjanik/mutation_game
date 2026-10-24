@@ -231,9 +231,13 @@
 </section>
 
 <style>
+  /* RT-FIX P4-RT-05-02: one column no wider than the frame. With the implicit auto column a child's
+     min-content width (an open "Show as table" view) set the width of the whole frame at 320 pixels;
+     now the table scrolls inside its own box (.bare), and prose and controls reflow (A-11). */
   .tool-frame {
     position: relative;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
     margin: 24px 0;
     container-type: inline-size;
