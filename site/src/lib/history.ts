@@ -10,12 +10,15 @@
 // as they are; the pathname and the hash are kept, so the base path is never re-typed.
 //
 // A link is applied by its tool after ToolFrame has registered the instance (a task after hydration
-// for some tools), so its state arrives through stateChanged like a move. An instance whose keys are
-// in the bar when it registers is therefore opened from a link: its changes are recorded without a
-// write until the reader acts inside its frame (a press, a key, an input, read from the events that
-// reach the frame's [data-frame][data-instance] element), and while such a link waits for the reader,
-// a change of an instance the reader has not acted on (a follower of the linked tool) is the link's
-// too. RT-FIX P4-RT-04-03.
+// for some tools), and a follower (linkTo) takes the linked state when it registers, so on a page
+// opened from a link (some instance's keys are in the bar when it registers) the link's state arrives
+// through stateChanged like a move. There a change of an instance is the reader's only when the reader
+// has acted since that instance registered: a press, a key or an input anywhere inside a tool frame
+// ([data-frame], ToolFrame's root), or an example loaded. Until then it is the instance's load,
+// recorded and not written. The reader's action counts for every instance, whichever frame it was in,
+// so a leader moved from its follower's table and a follower moved by its leader are both written. A
+// page opened without a link has nothing to apply: every change is written, as a move. RT-FIX
+// P4-RT-04-03.
 import { decodeState, encodeState, normalisePrefix } from './urlCodec';
 import { cloneState, type ToolState } from './state';
 
@@ -31,10 +34,8 @@ interface Instance {
   defaults: ToolState;
   current: ToolState;
   onPopState?: (state: ToolState, notice: string | null) => void;
-  /** The bar held this instance's keys when it registered: a link its tool applies after hydration. */
-  fromLink: boolean;
-  /** The reader has acted inside the instance's frame, or loaded an example into it. */
-  acted: boolean;
+  /** The number of the reader's actions on the page when the instance registered. */
+  registeredAt: number;
   /** The reader has changed the instance: only such instances are written (6.6). */
   changed: boolean;
 }
@@ -42,6 +43,10 @@ interface Instance {
 const instances = new Map<string, Instance>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 let listening = false;
+/** The reader's actions on the page so far: presses, keys and inputs inside a tool frame, examples loaded. */
+let actions = 0;
+/** Some instance registered while the bar held its keys: the page was opened from a link. */
+let openedFromLink = false;
 
 interface BrowserLike {
   location: { pathname: string; search: string; hash: string; origin: string };
@@ -58,8 +63,8 @@ function browser(): BrowserLike | null {
  * Registers an instance with the defaults its author configured (6.6: an instance id is unique on
  * the page; a second registration of the same id throws). `initial` is the state it shows now, when
  * a link changed it (default: the defaults). `onPopState` receives the state re-read from the URL
- * after the back button (plan). Registering writes nothing, and when the bar holds the instance's
- * keys (a link), neither does the link's state reaching stateChanged before the reader acts.
+ * after the back button (plan). Registering writes nothing, and on a page opened from a link neither
+ * does a change that reaches stateChanged before the reader acts (see the head of this file).
  */
 export function registerInstance(
   instanceId: string,
@@ -69,8 +74,8 @@ export function registerInstance(
 ): void {
   if (instances.has(instanceId)) throw new Error(`duplicate instance id ${instanceId}`);
   const b = browser();
-  const fromLink = b !== null && hasKeysOf(b.location.search, instanceId);
-  const entry: Instance = { defaults: cloneState(defaults), current: cloneState(initial ?? defaults), fromLink, acted: false, changed: false };
+  if (b !== null && hasKeysOf(b.location.search, instanceId)) openedFromLink = true;
+  const entry: Instance = { defaults: cloneState(defaults), current: cloneState(initial ?? defaults), registeredAt: actions, changed: false };
   if (onPopState) entry.onPopState = onPopState;
   instances.set(instanceId, entry);
   if (!listening && b?.addEventListener) {
@@ -94,7 +99,7 @@ export function stateChanged(instanceId: string, state: ToolState): void {
   if (!entry) return;
   if (encodeState(state) === encodeState(entry.current)) return;
   entry.current = cloneState(state);
-  if (!entry.acted && linkWaiting()) return;
+  if (openedFromLink && entry.registeredAt === actions) return;
   entry.changed = true;
   if (timer !== null) clearTimeout(timer);
   timer = setTimeout(() => {
@@ -108,19 +113,13 @@ export function exampleLoaded(instanceId: string, state: ToolState): void {
   const entry = instances.get(instanceId);
   if (!entry) return;
   entry.current = cloneState(state);
-  entry.acted = true;
+  actions += 1;
   entry.changed = true;
   if (timer !== null) {
     clearTimeout(timer);
     timer = null;
   }
   write('push');
-}
-
-/** Some instance was opened from a link and the reader has not acted on it yet. */
-function linkWaiting(): boolean {
-  for (const entry of instances.values()) if (entry.fromLink && !entry.acted) return true;
-  return false;
 }
 
 /** A query parameter name that is one of the codec's keys under the prefix of `instanceId`. */
@@ -226,25 +225,11 @@ function onPopState_(): void {
   }
 }
 
-interface FrameLike {
-  getAttribute(name: string): string | null;
-  parentElement: unknown;
-}
-
-/** The nearest tool frame (ToolFrame's root, [data-frame]) at or above a node, if any. */
-function frameOf(node: unknown): FrameLike | null {
-  const n = node as { closest?: unknown } | null;
-  if (n === null || typeof n !== 'object' || typeof n.closest !== 'function') return null;
-  return (n as { closest(selectors: string): FrameLike | null }).closest('[data-frame]');
-}
-
-/** A press, key or input inside a tool's frame (and the frames around it): the reader acts on it. */
+/** A press, key or input inside a tool frame (ToolFrame's root, [data-frame]): the reader acts. */
 function onReaderInput(event: Event): void {
-  for (let frame = frameOf(event.target); frame !== null; frame = frameOf(frame.parentElement)) {
-    const id = frame.getAttribute('data-instance');
-    const entry = id === null ? undefined : instances.get(id);
-    if (entry) entry.acted = true;
-  }
+  const target = event.target as { closest?: unknown } | null;
+  if (target === null || typeof target !== 'object' || typeof target.closest !== 'function') return;
+  if ((target as { closest(selectors: string): unknown }).closest('[data-frame]') !== null) actions += 1;
 }
 
 /** Test seam: forget every instance and timer. */
@@ -253,4 +238,6 @@ export function resetHistoryForTests(): void {
   if (timer !== null) clearTimeout(timer);
   timer = null;
   listening = false;
+  actions = 0;
+  openedFromLink = false;
 }
