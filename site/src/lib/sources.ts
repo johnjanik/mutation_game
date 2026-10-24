@@ -104,6 +104,7 @@ function stripMarkdown(s: string): string {
   return s
     .replace(/<https?:\/\/[^>\s]*>/g, '')
     .replace(/\[([^\]]*)\]\(([^)\s]*)\)/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1');
 }
@@ -114,17 +115,25 @@ function stripMarkdown(s: string): string {
  * sources page uses when it spells the labels out.
  */
 const STATUS_LABEL = /\[(?:S2|S|V|U|D)(?=[\],;: ])/;
-/** A sentence that gives the reading status in words, without a label ("Not read.", "Not opened ..."). */
-const READING_STATUS = /^Not (?:read|opened)\b/;
+/** A Markdown autolink, <https://...>: in an entry it says where a copy can be read. */
+const AUTOLINK = /<https?:\/\/[^>\s]*>/;
+/**
+ * A sentence after the first that still belongs to the citation: an identifier of the work (its
+ * DOI, MSC classes, arXiv number or ISBN). Any other sentence after the first is research record.
+ */
+const IDENTIFIER = /^(?:DOI|MSC|ISBN|arXiv)\b/;
+/** Lower-case words with nothing else, such as "free at" or "also at": the lead-in of a link. */
+const LEAD_IN = /^\s*\p{Ll}[\p{Ll}\s]*$/u;
 
 /**
  * The indexes at which the sentences of a line begin. A full stop followed by spaces and a capital,
- * `[`, `*` or a backtick ends a sentence, unless the word before it is a single letter (an initial,
- * "N. J. Wildberger") or a capitalised word of letters (an abbreviation, "Amer. Math. Soc.").
+ * `[`, `*`, a backtick or an autolink ends a sentence, unless the word before it is a single letter
+ * (an initial, "N. J. Wildberger") or a capitalised word of letters (an abbreviation, "Amer. Math.
+ * Soc.").
  */
 function sentenceStarts(line: string): number[] {
   const starts = [0];
-  for (const m of line.matchAll(/\.\s+(?=[\p{Lu}[*`])/gu)) {
+  for (const m of line.matchAll(/\.\s+(?=[\p{Lu}[*`]|<https?:)/gu)) {
     const word = /(\S*)$/.exec(line.slice(0, m.index))![1]!.replace(/^[("'*_]+|[*_]+$/g, '');
     if (/^\p{L}$/u.test(word) || /^\p{Lu}\p{Ll}+$/u.test(word)) continue;
     starts.push(m.index + m[0].length);
@@ -133,37 +142,89 @@ function sentenceStarts(line: string): number[] {
 }
 
 /**
+ * Walks `s` up to index `to` and reports the first and last semicolon and the last comma that stand
+ * outside parentheses, double quotes and $...$ mathematics, and the parenthesis still open at `to`
+ * (-1 when none is).
+ */
+function topLevel(s: string, to: number): { firstSemicolon: number; lastSemicolon: number; lastComma: number; open: number } {
+  let depth = 0;
+  let open = -1;
+  let quoted = false;
+  let math = false;
+  let firstSemicolon = -1;
+  let lastSemicolon = -1;
+  let lastComma = -1;
+  for (let i = 0; i < to; i++) {
+    const c = s[i];
+    if (c === '$') math = !math;
+    if (math || c === '$') continue;
+    if (c === '"') quoted = !quoted;
+    if (quoted || c === '"') continue;
+    if (c === '(') {
+      if (depth === 0) open = i;
+      depth++;
+    } else if (c === ')' && depth > 0) depth--;
+    else if (depth === 0 && c === ';') {
+      if (firstSemicolon < 0) firstSemicolon = i;
+      lastSemicolon = i;
+    } else if (depth === 0 && c === ',') lastComma = i;
+  }
+  return { firstSemicolon, lastSemicolon, lastComma, open: depth > 0 ? open : -1 };
+}
+
+/**
+ * Where the citation stops inside a sentence that belongs to it, or -1 when it runs to the end.
+ * Three things end it, whichever comes first:
+ * - a status label: before the bracket the cut would leave unclosed, or else before the clause,
+ *   after the last semicolon, that holds the label, or else before the label;
+ * - an autolink (where a copy can be read): before the bracket it stands in, or the clause after a
+ *   semicolon that holds it, or else before its lead-in (": <url>", ", <url>", ", free at <url>"),
+ *   so that no label or colon is left with nothing after it;
+ * - a semicolon outside brackets and quotes: what follows it is a note on the work ("the three
+ *   figures ... are cited to ...", "free digital edition ..."), not the citation.
+ */
+function cutInSentence(sentence: string): number {
+  const cuts: number[] = [];
+  const label = STATUS_LABEL.exec(sentence);
+  if (label) {
+    const t = topLevel(sentence, label.index);
+    cuts.push(t.open >= 0 ? t.open : t.lastSemicolon >= 0 ? t.lastSemicolon : label.index);
+  }
+  const link = AUTOLINK.exec(sentence);
+  if (link) {
+    const t = topLevel(sentence, link.index);
+    const before = sentence.slice(0, link.index).trimEnd();
+    if (t.open >= 0) cuts.push(t.open);
+    else if (t.lastSemicolon >= 0) cuts.push(t.lastSemicolon);
+    else if (before.endsWith(':') || before.endsWith(',')) cuts.push(before.length - 1);
+    else if (t.lastComma >= 0 && LEAD_IN.test(before.slice(t.lastComma + 1))) cuts.push(t.lastComma);
+    else cuts.push(link.index);
+  }
+  const semicolon = topLevel(sentence, sentence.length).firstSemicolon;
+  if (semicolon >= 0) cuts.push(semicolon);
+  return cuts.length > 0 ? Math.min(...cuts) : -1;
+}
+
+/**
  * The citation part of an entry's first line (SOURCES.md 11.0: "Each entry gives the citation, where
- * a copy can be read, a status, and its role on the site"): the line up to the first sentence that
- * carries a status label or states the reading status, so that the research record after it (the
- * labels, the notes on what was read, the role) is left to the sources page. When the label stands
- * in the first sentence, the cut falls before the bracket the cut would leave unclosed, or else
- * before the clause, after the last semicolon, that holds the label.
+ * a copy can be read, a status, and its role on the site"): the first sentence, followed by the
+ * sentences that give an identifier of the work (DOI, MSC, arXiv, ISBN), up to the first other
+ * sentence or the first cut inside a kept sentence (cutInSentence). What is left out (where a copy can
+ * be read, the labels, the notes on what was read, the role) stays on the sources page.
  */
 function citationPart(line: string): string {
   const starts = sentenceStarts(line);
   let cut = line.length;
   for (let s = 0; s < starts.length; s++) {
-    const sentence = line.slice(starts[s], starts[s + 1] ?? line.length);
-    const label = STATUS_LABEL.exec(sentence);
-    if (s > 0 && (label || READING_STATUS.test(sentence))) {
-      cut = starts[s]!;
+    const from = starts[s]!;
+    const sentence = line.slice(from, starts[s + 1] ?? line.length);
+    if (s > 0 && !IDENTIFIER.test(sentence)) {
+      cut = from;
       break;
     }
-    if (s === 0 && label) {
-      cut = label.index;
-      let depth = 0;
-      let open = -1;
-      let semicolon = -1;
-      for (let i = 0; i < cut; i++) {
-        if (line[i] === '(') {
-          if (depth === 0) open = i;
-          depth++;
-        } else if (line[i] === ')' && depth > 0) depth--;
-        else if (line[i] === ';' && depth === 0) semicolon = i;
-      }
-      if (depth > 0) cut = open;
-      else if (semicolon >= 0) cut = semicolon;
+    const inner = cutInSentence(sentence);
+    if (inner >= 0) {
+      cut = from + inner;
       break;
     }
   }
