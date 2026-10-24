@@ -9,7 +9,7 @@ outcomes: ["LO7"]
 sources: ["Cox35", "Cox73", "CKPS95", "Cas17", "Ste59", "Cox51", "Eri95b", "Don08"]
 ---
 import T10GeometryStudio from '@components/tools/T10GeometryStudio.svelte';
-import { G, Tex, Cite, Unverified } from '@components/content';
+import { G, Tex, Cite, Unverified, View } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased } from '@lib/pages/released';
 import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
@@ -62,7 +62,7 @@ On <Tex src="A_2"/>, <Tex src="A_3"/> and <Tex src="D_4"/> the <Term a="root-pop
 
 <Beat n={2}>
 
-Start from a position with no negative number. A node is **ringed** when its number is positive, that number being its <Term a="ring">ring</Term>. On a board of finite type, free play from the position reaches finitely many positions, its **orbit**, whose convex hull is a polytope; its shape depends only on which nodes are ringed. This is Wythoff's construction <Cite k="Cox35"/>, <Cite k="CKPS95"/>, told here in the language of the game. The corners of a polytope are its **vertices**, the places of a board are its nodes, and here the two words never name the same thing. Rings are numbers, so this module uses the Numbers view.
+Start from a position with no negative number. A node is **ringed** when its number is positive, that number being its <Term a="ring">ring</Term>. On a board of finite type, free play from the position reaches finitely many positions, its **orbit**, whose convex hull is a polytope; its shape depends only on which nodes are ringed. This is Wythoff's construction <Cite k="Cox35"/>, <Cite k="CKPS95"/>, told here in the language of the game. The corners of a polytope are its **vertices**, the places of a board are its nodes, and here the two words never name the same thing. Rings are numbers, so this module uses the <View v="numbers"/> view.
 
 The orbit has <Tex src="|W|/|W_U|"/> vertices, $W$ being the Weyl group of module five and <Tex src="W_U"/> that of the unringed nodes $U$. Clicking a node rings it or clears its ring; the table under the studio lists what the rings give on <Tex src="A_3"/> and <Tex src="B_3"/>.
 

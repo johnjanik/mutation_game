@@ -13,15 +13,13 @@ import T02OrbitGarden from '@components/tools/T02OrbitGarden.svelte';
 import T05NumbersGameLab from '@components/tools/T05NumbersGameLab.svelte';
 import T06Kaleidoscope from '@components/tools/T06Kaleidoscope.svelte';
 import T15Route from '@components/tools/t15/T15Route.astro';
-import { G, Tex, Cite, Unverified } from '@components/content';
+import { G, Tex, Cite, Unverified, View } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased } from '@lib/pages/released';
 import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
-import { POPULATIONS_ICON, NUMBERS_ICON } from '@components/draw/palette';
 
 export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
 export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
-export const ViewWord = ({ v = 'numbers', children } = {}) => { const icon = v === 'populations' ? POPULATIONS_ICON : NUMBERS_ICON; return <span data-view-word={v} style={`white-space: nowrap; text-decoration-line: underline; text-decoration-color: var(--accent-${v}); text-decoration-thickness: 2px; text-underline-offset: 0.2em;`}><svg viewBox={icon.viewBox} width="16" height="16" aria-hidden="true" focusable="false" style="width: 1em; height: 1em; margin-inline-end: 0.25em; vertical-align: -0.125em;"><path d={icon.d} stroke={icon.stroke} fill={icon.fill} /></svg>{children}</span>; };
 export const fmt = (k, as) => formatGoldenValue(resolveGoldenPath(k), as);
 export const orbitSize = resolveGoldenPath('types.A2.fundamental_orbit_sizes[0]');
 export const pentagonEnds = resolveGoldenPath('pentagon_example.complete_games') > 0 && resolveGoldenPath('pentagon_example.moves') > 0;
@@ -39,7 +37,7 @@ export const SEEN_LEVEL = 'verified by computation on every affine board the sit
 
 <Beat n={1}>
 
-Module zero showed the board in a second record, the **<ViewWord v="numbers">Numbers</ViewWord>** view. Here that record becomes a game. A **position** is a list of whole numbers, one on each node. To **fire** node $i$, the node sends its number down every road that leaves it, then changes sign:
+Module zero showed the board in a second record, the **<View v="numbers"/>** view. Here that record becomes a game. A **position** is a list of whole numbers, one on each node. To **fire** node $i$, the node sends its number down every road that leaves it, then changes sign:
 
 $$
 \begin{aligned} a_i &\longmapsto -a_i, \\ a_j &\longmapsto a_j - C_{ji}\, a_i \quad (j \ne i), \end{aligned}
@@ -68,7 +66,7 @@ The second figure below sets the lowest-node game, <G k="types.A3.longest_word" 
 
 <Beat n={3}>
 
-This board shows the population <Tex src="(1,1,0)"/> on the <ViewWord v="populations">Populations</ViewWord> board and, below it, its numbers, computed by the **translator** $a=Cp$, entry by entry <Tex src="a_i=2p_i-\sum_{j\ne i}A_{ji}\,p_j"/>. They are <Tex src="(1,1,-1)"/>.
+This board shows the population <Tex src="(1,1,0)"/> on the <View v="populations"/> board and, below it, its numbers, computed by the **translator** $a=Cp$, entry by entry <Tex src="a_i=2p_i-\sum_{j\ne i}A_{ji}\,p_j"/>. They are <Tex src="(1,1,-1)"/>.
 
 <p data-bridge-prose><strong>The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.</strong></p>
 

@@ -9,16 +9,13 @@ outcomes: ["LO1", "LO2"]
 sources: ["W20", "W-MS", "Moz90", "Pro84", "Eri92"]
 ---
 import T01GameBoard from '@components/tools/T01GameBoard.svelte';
-import { G, Tex, Cite } from '@components/content';
+import { G, Tex, Cite, View } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased, siteInventory } from '@lib/pages/released';
 import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
-import { POPULATIONS_ICON, NUMBERS_ICON } from '@components/draw/palette';
 
 export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
 export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
-export const VIEWS = { populations: { word: 'Populations', icon: POPULATIONS_ICON, accent: 'var(--accent-populations)' }, numbers: { word: 'Numbers', icon: NUMBERS_ICON, accent: 'var(--accent-numbers)' } };
-export const View = ({ v = 'numbers' } = {}) => <span data-view-word={v} style={{ textDecorationLine: 'underline', textDecorationColor: VIEWS[v].accent, textDecorationThickness: '2px', textUnderlineOffset: '0.2em', whiteSpace: 'nowrap' }}><svg viewBox={VIEWS[v].icon.viewBox} width="16" height="16" aria-hidden="true" focusable="false" style={{ width: '1em', height: '1em', marginInlineEnd: '0.2em', verticalAlign: '-0.125em', stroke: VIEWS[v].icon.stroke, fill: VIEWS[v].icon.fill, strokeWidth: 1.5 }}><path d={VIEWS[v].icon.d} /></svg>{VIEWS[v].word}</span>;
 export const moduleList = siteInventory().modules;
 export const Developed = ({ ns = [] } = {}) => { const ls = ns.map((n) => ({ n, href: linkIfReleased({ kind: 'module', number: n }), title: moduleList.find((m) => m.module === n)?.title })).filter((l) => l.href !== null); return ls.length === 0 ? null : <> <span data-statement-links>Developed in {ls.map((l, k) => <>{k === 0 ? '' : ' and '}<a href={l.href} data-module-link={l.n}>{l.title}</a></>)}.</span></>; };
 export const theta = resolveGoldenPath('types.A3.highest_root');

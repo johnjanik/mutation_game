@@ -25,6 +25,9 @@
 //   this lesson's own markup: table[data-table="solids"] with tr[data-solid]; figure[data-figure="shells"]
 //     with table[data-table="shells"], tr[data-shell] and a[data-shell-link]; data-seen-statement;
 //     data-released="false" inside beat 8 (the placeholder, decisions/P4-A6.md)
+//   content components: data-view-word (populations | numbers: the name of a view in prose, with its icon and
+//     accent underline; site/src/components/content/View.astro); in the regressions also data-name on T10's
+//     boardName, and data-tool="sandbox" with its data-node buttons (T16)
 //
 // Word-counting rule (as M5.spec.ts and M6.spec.ts): the words of the <article> after removing every tool
 // root ([data-tool]), every <details>, every live or status region, the draft mark and the list of sources
@@ -1415,5 +1418,59 @@ test.describe('regressions', () => {
     const nodes = await t.locator('[data-node]').evaluateAll((els) => new Set(els.map((e) => e.getAttribute('data-node'))).size);
     expect(g, `m7-geometry: the sandbox opens ${g}, the module's first board is ${first}`).toBe(first);
     expect(nodes, `the sandbox shows the ${nodes} nodes of ${g}`).toBe(T(first!).cartan.length);
+  });
+
+  // RT-13, attack 27 (and the retest of P3-RT-13-08), the M7 case of
+  // site/tests/e2e/redteam-RT-13-p4-accents.spec.ts of the lens branch: wherever lesson prose names the
+  // Populations view or the Numbers view, the word carries the underline in its accent and the icon of its view
+  // (SPEC 8.3: the accents "mark the borders and icons of panels and the underlines of the two words"; "Icons: a
+  // small city for Populations, a small numbered disc for Numbers, used wherever the view is named"; 8.1 P8), and
+  // the text of the word keeps the text colour (never an accent). Light theme.
+  // regression: P4-RT-13-02
+  test('m7-geometry: every prose naming of a view is underlined in its accent with its icon', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto(ROUTE);
+    const accent = { populations: 'rgb(0, 158, 115)', numbers: 'rgb(204, 121, 167)' };
+    const found = await page.evaluate((accent) => {
+      const res: { text: string; marked: boolean; underline: string; icon: boolean; colour: string }[] = [];
+      const article = document.querySelector('main article')!;
+      const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const el = n.parentElement!;
+        if (el.closest('[data-tool], [data-anatomy="lie-theory"], [data-anatomy="sources"], .katex, script, style, nav, [data-challenge]')) continue;
+        const re = /\b(Populations|Numbers)\b(?=\s+(view|board|record|panel))/g;
+        for (const m of (n.nodeValue ?? '').matchAll(re)) {
+          const word = m[1]!.toLowerCase() as 'populations' | 'numbers';
+          const span = el.closest('[data-view-word]') as HTMLElement | null;
+          const cs = getComputedStyle(span ?? el);
+          res.push({
+            text: (n.nodeValue ?? '').slice(Math.max(0, m.index! - 40), m.index! + 30).replace(/\s+/g, ' '),
+            marked: !!span && span.getAttribute('data-view-word') === word,
+            underline: `${cs.textDecorationLine} ${cs.textDecorationColor}`,
+            icon: !!span?.querySelector('svg'),
+            colour: getComputedStyle(el).color,
+          });
+          if (getComputedStyle(el).color === accent[word]) res.at(-1)!.text += ' [TEXT IN ACCENT]';
+        }
+      }
+      return res;
+    }, accent);
+    const bad = found.filter((f) => !f.marked || !f.icon || !f.underline.includes('underline') || f.text.includes('[TEXT IN ACCENT]'));
+    expect(bad.map((b) => b.text), 'm7-geometry: view words without the accent underline and icon').toEqual([]);
+    // The page names a view (beat 2: "this module uses the Numbers view"), so the check is not vacuous: the marked
+    // word carries the underline in its accent, its icon, and the text colour.
+    const marked = await page.locator('main article [data-view-word]').evaluateAll(
+      (els, accent) =>
+        els.map((e) => {
+          const cs = getComputedStyle(e);
+          const v = e.getAttribute('data-view-word') as 'populations' | 'numbers';
+          return { v, word: e.textContent?.trim(), underline: cs.textDecorationLine, accent: cs.textDecorationColor === accent[v], icon: e.querySelector('svg') !== null, textInAccent: cs.color === accent[v] };
+        }),
+      accent,
+    );
+    expect(marked.length, 'M7 marks its naming of a view').toBeGreaterThan(0);
+    for (const m of marked) {
+      expect(m, `the view word ${m.word}`).toEqual({ v: m.v, word: m.v === 'numbers' ? 'Numbers' : 'Populations', underline: 'underline', accent: true, icon: true, textInAccent: false });
+    }
   });
 });
