@@ -32,6 +32,7 @@ import {
   clampRing,
   computeOrbit,
   drawingMatrix,
+  drawingMatrixOf,
   edgeLimitText,
   enumerationHint,
   faceTable,
@@ -52,7 +53,7 @@ import {
 import { sharedEdgeCount, moveEdgeColour } from '../../../src/components/tools/t10/graphs';
 import { MoveGraphBuilder, deriveInTasks, drawMoves, moveEdges } from '../../../src/components/tools/t10/moves';
 import { coxeterStats, distinctDotsText, planeStats } from '../../../src/components/tools/t10/coxeter';
-import { baseEdgeLengths, distinctLengths, replayVertices, replayWholeWords, symmetrizerFloats, uniformConstant, uniformMatters, uniformStart } from '../../../src/components/tools/t10/uniform';
+import { baseEdgeLengths, distinctLengths, lengthText, replayVertices, replayWholeWords, symmetrizerFloats, uniformConstant, uniformMatters, uniformStart } from '../../../src/components/tools/t10/uniform';
 import { MANIFEST_FILE, PLACED_FIGURES, PRESET_DIR, SHELL_LINKS, dataFileFor, presetState } from '../../../src/components/tools/t10/presets';
 import { POLYTOPE_NAMES, polytopeNameHtml, polytopeNamePlain } from '../../../src/components/tools/t10/names';
 import {
@@ -1003,4 +1004,36 @@ describe('server rendering', () => {
     // The answer stands in Predict.svelte's .answer-text, which the run without JavaScript reads (RT-FIX P4-MERGE-02).
     expect(predicted).toMatch(/data-prediction=""[^]*How many vertices\?[^]*<details[^]*<summary>Answer<\/summary>[^]*<p><span class="answer-text">4<\/span><\/p>[^]*A tetrahedron\./);
   }, 60000);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, phase 4 red-team round)
+// ---------------------------------------------------------------------------------------------
+
+describe('regressions', () => {
+  // The squared length of the base edge at a ringed node i is a_i^2 (alpha_i, alpha_i) = 2 d_i a_i^2, an
+  // integer (SPEC 2.14 [V]); on a simply laced board with equal rings every edge has that one length.
+  // oracle (reference/verify.py checks weight_inner(C, e, e) == lam_i^2 Bg[i][i]): python3 -c "import sys;
+  //   sys.path.insert(0, 'reference'); import lie_games as L; C = L.cartan('A', 3); lam = (1306,) * 3;
+  //   e = tuple(x - y for x, y in zip(lam, L.fire(C, lam, 0))); print(L.weight_inner(C, e, e))" gives 3411272;
+  //   with lam = (999999,) * 3, 1999996000002; on G2 with lam = (999999, 999999), 1999996000002 and 5999988000006.
+  // regression: P4-RT-04-04
+  it('A3 with rings (1306, 1306, 1306) (link r=1306.1306.1306): one squared length, 2 * 1306^2 = 3411272', () => {
+    const b = t10Board('A3');
+    const L = baseEdgeLengths(b, drawingMatrixOf(b), toPositionVector(b, [1306, 1306, 1306]));
+    expect(L.map((l) => lengthText(l.squared))).toEqual(['3411272', '3411272', '3411272']);
+    expect(distinctLengths(L)).toEqual(['3411272']);
+  });
+  // regression: P4-RT-04-04
+  it('A3 with rings (999999, 999999, 999999) (the largest ring a link may carry): 2 * 999999^2 = 1999996000002', () => {
+    const b = t10Board('A3');
+    const L = baseEdgeLengths(b, drawingMatrixOf(b), toPositionVector(b, [999999, 999999, 999999]));
+    expect(distinctLengths(L)).toEqual(['1999996000002']);
+  });
+  // regression: P4-RT-04-04
+  it('G2 with rings (999999, 999999): 2 * 1 * 999999^2 and 2 * 3 * 999999^2', () => {
+    const b = t10Board('G2');
+    const L = baseEdgeLengths(b, drawingMatrixOf(b), toPositionVector(b, [999999, 999999]));
+    expect(L.map((l) => lengthText(l.squared)).sort()).toEqual(['1999996000002', '5999988000006']);
+  });
 });

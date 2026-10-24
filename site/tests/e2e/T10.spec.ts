@@ -40,6 +40,7 @@ import { fileURLToPath } from 'node:url';
 import { CAPS, boardFromName, toPositions, wythoffFVector } from '../../../packages/engine/src/index';
 import type { AnyBoard } from '../../../packages/engine/src/index';
 import { RING_MAX } from '../../src/components/tools/t10/scene';
+import { shortValue } from '../../src/components/tools/t01/longNumber';
 
 interface WythoffRecord {
   type: string;
@@ -768,4 +769,144 @@ test('no serious or critical axe violations on the studio', async ({ page }) => 
     const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
     expect(serious, query).toEqual([]);
   }
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, phase 4 red-team round)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  const M7 = 'modules/m7-geometry/';
+  const instance = (page: Page, id: string): Locator => page.locator(`[data-tool="geometry"][data-instance="${id}"]`);
+  /** The KaTeX fonts, aborted where a box is measured, so that their swap (a cause of its own) does not enter it. */
+  const KATEX_FONTS = /\/katex\/[^/]+\/fonts\//;
+
+  /** document.activeElement after a key press, as tag[data-control or data-node], or BODY when the focus fell to the page. */
+  async function focusAfter(page: Page): Promise<string> {
+    return page.evaluate(() => {
+      const e = document.activeElement as HTMLElement | null;
+      if (!e || e === document.body) return 'BODY';
+      return `${e.tagName.toLowerCase()}[${e.dataset.control ?? e.dataset.tableNode ?? e.dataset.node ?? ''}]`;
+    });
+  }
+
+  /** Opens a route with "Copy link" and the history calls recorded, and waits until the first tool has hydrated. */
+  async function openRecorded(page: Page, path: string): Promise<Locator> {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __copied: string[] };
+      w.__copied = [];
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t: string) => { w.__copied.push(t); } } });
+    });
+    await page.goto(path);
+    const t = page.locator('[data-tool]').first();
+    await expect(t).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+    await page.waitForTimeout(1500);
+    return t;
+  }
+
+  /** Download data of the first tool, parsed. */
+  async function downloaded(page: Page): Promise<{ derived: Record<string, unknown> }> {
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('[data-tool] [data-control="downloadData"]').first().click()]);
+    return JSON.parse(readFileSync((await dl.path())!, 'utf8')) as { derived: Record<string, unknown> };
+  }
+
+  /** Safe integers written as strings, anywhere in the derived tables. */
+  function safeAsStrings(doc: unknown, path = ''): string[] {
+    const found: string[] = [];
+    if (typeof doc === 'string') {
+      if (/^-?\d+$/.test(doc) && Number.isSafeInteger(Number(doc))) found.push(`${path}=${JSON.stringify(doc)}`);
+    } else if (Array.isArray(doc)) doc.forEach((v, k) => found.push(...safeAsStrings(v, `${path}[${k}]`)));
+    else if (doc && typeof doc === 'object') for (const [k, v] of Object.entries(doc)) found.push(...safeAsStrings(v, `${path}.${k}`));
+    return found;
+  }
+
+  /** Every data-out of each T10 root, outside <noscript>, a measured one by its presence (as nojs.spec.ts compares them). */
+  async function outsOfRoots(page: Page): Promise<{ instance: string; outs: string[] }[]> {
+    return page.locator('[data-tool="geometry"]').evaluateAll((roots) =>
+      roots.map((r) => ({
+        instance: r.getAttribute('data-instance') ?? '',
+        outs: [...r.querySelectorAll('[data-out]')]
+          .filter((o) => o.closest('noscript') === null)
+          .map((o) => (o.hasAttribute('data-measured') ? `${o.getAttribute('data-out')} (measured)` : `${o.getAttribute('data-out')}=${(o.textContent ?? '').replace(/\s+/g, ' ').trim()}`)),
+      })),
+    );
+  }
+
+  /** The height of each T10 root whose island has not hydrated yet (astro-island[ssr]), by instance. */
+  async function serverHeights(page: Page): Promise<Record<string, number>> {
+    return page.locator('[data-tool="geometry"]').evaluateAll((roots) =>
+      Object.fromEntries(roots.filter((r) => r.closest('astro-island[ssr]') !== null).map((r) => [r.getAttribute('data-instance') ?? '', r.getBoundingClientRect().height])),
+    );
+  }
+
+  /** Cumulative Layout Shift as the largest session window (P3-A7 5.6; the gap of 1 s and the window of 5 s). */
+  function clsOf(shifts: { t: number; v: number }[]): number {
+    let best = 0;
+    let cur = 0;
+    let first = -Infinity;
+    let prev = -Infinity;
+    for (const s of [...shifts].sort((a, b) => a.t - b.t)) {
+      if (s.t - prev < 1000 && s.t - first < 5000) cur += s.v;
+      else {
+        cur = s.v;
+        first = s.t;
+      }
+      prev = s.t;
+      best = Math.max(best, cur);
+    }
+    return best;
+  }
+
+  /**
+   * The layout shifts of the 8 s after M7 opens at a reading position 300 px above an element of one T10
+   * instance (set when the document is parsed, before its island hydrates, as scroll restoration or a link to a
+   * beat leaves it), with the processor slowed four times and the KaTeX fonts aborted (SPEC 7.6 Lab timings).
+   */
+  async function clsAtReadingPosition(page: Page, id: string, target: string): Promise<number> {
+    await page.route(KATEX_FONTS, (r) => r.abort());
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await page.addInitScript(
+      ({ id, target }) => {
+        const w = window as unknown as { __shifts: { t: number; v: number }[] };
+        w.__shifts = [];
+        new PerformanceObserver((l) => {
+          for (const e of l.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) if (!e.hadRecentInput) w.__shifts.push({ t: e.startTime, v: e.value });
+        }).observe({ type: 'layout-shift', buffered: true });
+        document.addEventListener('DOMContentLoaded', () => {
+          const el = document.querySelector(`[data-tool="geometry"][data-instance="${id}"] ${target}`)!;
+          window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 300);
+        });
+      },
+      { id, target },
+    );
+    await page.goto(M7, { waitUntil: 'load' });
+    await page.waitForTimeout(8000);
+    await expect(instance(page, id)).toHaveAttribute('data-hydrated', 'true');
+    const shifts = await page.evaluate(() => (window as unknown as { __shifts: { t: number; v: number }[] }).__shifts);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    return clsOf(shifts);
+  }
+
+  // SPEC 2.14 [V]: the squared length of the base edge at a ringed node i is 2 d_i a_i^2, an integer; with equal
+  // rings on a simply laced board, one length. 4.0 Long numbers: above 12 digits the value is shown shortened,
+  // with the exact digits in the tooltip and in the export.
+  // regression: P4-RT-04-04
+  test('A3 r=1306.1306.1306: one squared length, 3411272', async ({ page }) => {
+    await openRecorded(page, `${ROUTE}?r=1306.1306.1306`);
+    const l = out(page, 'edgeLengths');
+    await expect(l).toHaveAttribute('data-count', '1');
+    await expect(l).toHaveText('3411272');
+  });
+  // regression: P4-RT-04-04
+  test('A3 r=999999.999999.999999: one squared length, 1999996000002, shown shortened with the exact digits in the tooltip and the export', async ({ page }) => {
+    await openRecorded(page, `${ROUTE}?r=999999.999999.999999`);
+    const l = out(page, 'edgeLengths');
+    await expect(l).toHaveAttribute('data-count', '1');
+    await expect(l).toHaveAttribute('title', '1999996000002');
+    await expect(l).toHaveText(shortValue('1999996000002'));
+    const doc = await downloaded(page);
+    expect(doc.derived.edgeLengthsSquared).toEqual([1, 2, 3].map((node) => ({ node, squared: 1999996000002 })));
+  });
+
 });

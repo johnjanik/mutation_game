@@ -29,6 +29,7 @@
   import Board from '../board/Board.svelte';
   import type PredictType from '../board/Predict.svelte';
   import { predictionAnswerText } from './t01/interop';
+  import { isLong, shortValue } from './t01/longNumber';
   import { decodeState } from '../../lib/urlCodec';
   import { engineCall, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
@@ -84,7 +85,7 @@
   } from './t10/scene';
   import { labelsOf, moveEdgeColour, moveGraphFitsOneTask, sharedEdgeCount, type MoveEdge } from './t10/graphs';
   import { coxeterStats, distinctDotsText, ringSizesText } from './t10/coxeter';
-  import { baseEdgeLengths, distinctLengths, lengthText, replayVertices, uniformStart } from './t10/uniform';
+  import { distinctLengths, lengthText, replayVertices, shownEdgeLengths, uniformStart } from './t10/uniform';
   import { buildPicture, drawPicture, projectionOf, rotateInPlane, type Picture, type PictureColours } from './t10/drawing';
   import { snapshotOf, ssrNames } from './t10/snapshot';
   import { boardNameHtml, polytopeNameHtml, type NameLookup } from './t10/names';
@@ -272,8 +273,12 @@
   const limitMessage = $derived(core.decision.verticesOnly && current.graph === 'polytope' ? edgeLimitText(core.counts.edges) : moveLimit);
   const refused = $derived(core.decision.refused ? refusalText(core.counts.vertices) : '');
   const pointCount = $derived(core.decision.refused ? 0 : core.counts.vertices + shortYs.length);
-  const lengths = $derived(core.decision.refused ? [] : baseEdgeLengths(board, P, uniformOn ? uniformStart(board, current.rings) : toPositionVector(board, current.rings)));
+  // The squared lengths are integers, exact (2.14; RT-FIX P4-RT-04-04); above 12 digits one is shown shortened,
+  // with its exact digits in the tooltip and in the export (4.0 Long numbers).
+  const lengths = $derived(core.decision.refused ? [] : shownEdgeLengths(board, current.rings, uniformOn));
   const lengthValues = $derived(distinctLengths(lengths));
+  const lengthShown = (text: string): string => (isLong(text) ? shortValue(text) : text);
+  const lengthsTitle = $derived(lengthValues.some(isLong) ? lengthValues.join(', ') : undefined);
   const canTurn = $derived(n >= 4 || (n === 3 && projection.view.kind === 'xyz'));
   const turnText = $derived(projection.turn.map((t) => ((t % 360) + 360) % 360).join(', '));
   const figureLabel = $derived(figureText(facts, current.graph));
@@ -1016,8 +1021,8 @@
       </p>
       <p class="line">
         Shared with the other graph: <span data-out="sharedEdges">{shared ?? ''}</span>; squared lengths of the edges at the start:
-        <span class="numeral" data-out="edgeLengths" data-count={lengthValues.length}>{lengthValues.join(', ')}</span>
-        ({lengths.map((l) => `node ${l.label}: ${lengthText(l.squared)}`).join('; ')}); make uniform:
+        <span class="numeral" data-out="edgeLengths" data-count={lengthValues.length} title={lengthsTitle}>{lengthValues.map(lengthShown).join(', ')}</span>
+        ({lengths.map((l) => `node ${l.label}: ${lengthShown(lengthText(l.squared))}`).join('; ')}); make uniform:
         <span data-out="uniform">{core.uniformMatters ? (uniformOn ? 'on' : 'off') : 'not needed'}</span>; short roots:
         <span data-out="shortRoots">{core.shortRings === null ? 'none on this board' : showShort ? `shown, ${shortYs.length}` : 'hidden'}</span>.
       </p>
