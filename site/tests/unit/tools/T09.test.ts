@@ -36,7 +36,7 @@ import {
   startFromLink,
   stepPosition,
 } from '../../../src/components/tools/t09/kostant';
-import { bigBoard, labelOrder } from '../../../src/lib/state';
+import { bigBoard, labelOrder, resolveBoard } from '../../../src/lib/state';
 import { whereToRun } from '../../../src/lib/worker';
 import T09 from '../../../src/tools/registry/T09';
 
@@ -411,13 +411,9 @@ beforeAll(async () => {
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     optimizeDeps: { noDiscovery: true, include: [] },
     plugins: [svelte({ configFile: false })],
-    resolve: {
-      alias: {
-        '@engine': join(SITE, '../packages/engine/src/index.ts'),
-        '@components': join(SITE, 'src/components'),
-        '@lib': join(SITE, 'src/lib'),
-      },
-    },
+    // The aliases of CONTRACTS.md 1 from their one declaration, the paths of site/tsconfig.json (RT-FIX
+    // P3-RT-12-05 and its residual; site/tests/unit/aliases-one-source.test.ts refuses a copy).
+    resolve: { tsconfigPaths: true },
   });
   renderFn = ((await server.ssrLoadModule('svelte/server')) as { render: typeof renderFn }).render;
   Component = ((await server.ssrLoadModule('/src/components/tools/T09Kostant.svelte')) as { default: unknown }).default;
@@ -492,6 +488,35 @@ describe('T9 server render', () => {
 });
 
 describe('regressions', () => {
+  // The finite-type data of the end panel (highest root, highest short root, Coxeter number) was cached
+  // under the name, the arithmetic and the labels, so two unnamed custom boards of one size shared it: a
+  // custom B3 loaded after a custom A3 in one page got A3's highest root and h. It is keyed on the board
+  // now (E-11). The boards are the golden Cartan matrices given as custom boards (6.6 `c:`), so unnamed.
+  // regression: RT-FIX residual (small-fixes confirmer, t09/kostant.ts finiteData cache key)
+  it('two unnamed custom boards of one size each get their own end panel (custom A3, then custom B3, then A3 again)', () => {
+    const custom = (name: string): AnyBoard => {
+      const b = resolveBoard({ cartan: golden.types[name]!.cartan });
+      expect(b.name, `${name} as a custom board is unnamed`).toBeUndefined();
+      expect(b.n).toBe(3);
+      return b;
+    };
+    const atHighestRoot = (name: string, b: AnyBoard) => {
+      const end = new Array<bigint>(b.n).fill(0n);
+      const order = toPositions(b, labelOrder(b));
+      golden.types[name]!.highest_root.forEach((x, k) => {
+        end[order[k]!] = BigInt(x);
+      });
+      return endPanel(b as Board<bigint>, end, 0);
+    };
+    for (const name of ['A3', 'B3', 'A3']) {
+      const panel = atHighestRoot(name, custom(name));
+      expect(panel.name, name).toBe('highest root');
+      expect(panel.end, name).toEqual(texts(golden.types[name]!.highest_root));
+      expect(panel.h, name).toBe(golden.types[name]!.coxeter_number);
+      expect(panel.simplyLaced, name).toBe(golden.types[name]!.highest_short_root === null || golden.types[name]!.highest_short_root === undefined);
+    }
+  });
+
   // regression: P3-RT-02-02
   it('Label arithmetic in T9: on B3 drawn as nodes 2, 3, 4 of B4 the new city sends 1 road to city 2, not 0', () => {
     // subBoard(B4, positions [1, 2, 3]) is B3 in Bourbaki order with labels [2, 3, 4] (E-7: labels kept).
@@ -538,14 +563,22 @@ describe('regressions', () => {
   // E-7 and CLAUDE.md: "only toLabels / toPositions convert". T9 turned labels into positions with
   // labels.indexOf (the marked overlay and the table's city buttons).
   // regression: residual of P3-RT-10-05 (T09Kostant.svelte converted labels with labels.indexOf)
-  it('T9 converts labels to positions only through toPositions', () => {
+  // Widened by RT-FIX residual (the small-fixes confirmer): the other direction, a position turned into a
+  // label by indexing into a board's labels (data-mark={anyBoard.labels[k]} in the marked overlay), is a
+  // hand conversion too; toLabels is the one way.
+  it('T9 converts labels to positions and positions to labels only through toPositions and toLabels', () => {
+    const HAND = /labels\.(indexOf|findIndex|lastIndexOf)\(|\.labels\[|\.labels\.at\(/;
+    // The scan flags both forms it was widened for (the two lines as they were).
+    expect(HAND.test('const k = game.labels.indexOf(label);')).toBe(true);
+    expect(HAND.test('<g class="mark" data-mark={anyBoard.labels[k]}>')).toBe(true);
+    expect(HAND.test('<g class="mark" data-mark={toLabels(anyBoard, [k])[0]}>')).toBe(false);
     const dir = new URL('../../../src/components/tools/', import.meta.url);
-    const files = ['T09Kostant.svelte', 't09/kostant.ts', 't09/phase2.ts', 't09/playOn.ts'];
+    const files = ['T09Kostant.svelte', 't09/kostant.ts', 't09/phase2.ts', 't09/playOn.ts', 't09/boards.ts'];
     const hand = files.flatMap((f) =>
       readFileSync(fileURLToPath(new URL(f, dir)), 'utf8')
         .split('\n')
         .map((l, k) => ({ file: f, line: k + 1, text: l.trim() }))
-        .filter(({ text }) => !text.startsWith('//') && /labels\.(indexOf|findIndex|lastIndexOf)\(/.test(text)),
+        .filter(({ text }) => !text.startsWith('//') && HAND.test(text)),
     );
     expect(hand, JSON.stringify(hand)).toEqual([]);
   });

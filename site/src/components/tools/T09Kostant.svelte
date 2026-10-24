@@ -13,7 +13,7 @@
   // layers (ignored: T9 grows no set, 4.0 "Growth off the finite types" does not bind it), and the plan
   // property boardChoices (limits the picker; M1 row 3 passes ['A3', 'D4', 'E8']).
   import { untrack } from 'svelte';
-  import { CAPS, EngineOverflow, toPositions } from '@two-games/engine';
+  import { CAPS, EngineOverflow, toLabels, toPositions } from '@two-games/engine';
   import type { AnyBoard, Board as EngineBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -279,7 +279,8 @@
   }
 
   function step(announce: (t: string) => void): void {
-    if (frozen || busy) return;
+    // The state in which Step is aria-disabled (atEnd or busy): a press does nothing (RT-FIX P3-RT-05-09).
+    if (frozen || busy || atEnd) return;
     let k: number | null;
     try {
       k = stepPosition(game.board as EngineBoard<unknown>, game.current.pop!);
@@ -448,7 +449,7 @@
               {@render glyph(MOOD_SHAPE[moodsNow[k]!], x + 0.3, y + 0.33, 0.07)}
             </g>
             {#if markedPositions.has(k)}
-              <g class="mark" data-mark={anyBoard.labels[k]}>
+              <g class="mark" data-mark={toLabels(anyBoard, [k])[0]}>
                 <circle cx={x} cy={y} r="0.42" />
                 <path d="M {x - 0.4} {y - 0.33} h 0.12 M {x - 0.34} {y - 0.39} v 0.12" />
               </g>
