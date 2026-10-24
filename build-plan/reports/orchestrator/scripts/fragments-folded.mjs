@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // RT-10 (spec-compliance), phase 4 round, attack 18 (README 3.2: every decisions fragment is folded into
 // DECISIONS.md by MERGE): every "## " heading of every decisions/*.md fragment occurs in DECISIONS.md.
-// Run: node redteam/redteam-RT-10-fragments-folded.mjs   (exit 1 when a heading is missing)
+// Run: node build-plan/reports/orchestrator/scripts/fragments-folded.mjs   (exit 1 when a heading is missing)
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('..', import.meta.url));
+const root = fileURLToPath(new URL('../../../../', import.meta.url));
 const decisions = readFileSync(`${root}DECISIONS.md`, 'utf8');
 const norm = (s) => s.replace(/\s+/g, ' ').trim();
 const all = norm(decisions);
