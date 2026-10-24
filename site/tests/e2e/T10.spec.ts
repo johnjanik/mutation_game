@@ -919,4 +919,27 @@ test.describe('regressions', () => {
     });
   }
 
+  // SPEC 6.6: j is "followed by @ and three whole numbers of degrees"; a link that decodes with no notice shows
+  // what it names, and the link the tool writes back (address bar, Copy link) reads back.
+  // regression: P4-RT-04-01
+  test('j=xyz:1,2,3@9007199254740993,0,0 turns the picture by 33 degrees (2^53 + 1 mod 360), or gives the notice', async ({ page }) => {
+    await openRecorded(page, `${ROUTE}?j=xyz:1,2,3@9007199254740993,0,0`);
+    const notice = await out(page, 'notice').count();
+    if (notice === 0) expect(await out(page, 'turn').innerText()).toBe('33, 0, 0');
+  });
+  // regression: P4-RT-04-01
+  test('j=xyz:1,2,3@<400 digits>,0,0: the link the tool writes back (address bar, Copy link) is readable', async ({ page }) => {
+    await openRecorded(page, `${ROUTE}?j=xyz:1,2,3@${'9'.repeat(400)},0,0`);
+    const bar = await page.evaluate(() => location.search);
+    await control(page, 'copyLink').click();
+    await page.waitForTimeout(200);
+    const copied = await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied.at(-1) ?? '');
+    expect(bar).not.toContain('NaN');
+    expect(copied).not.toContain('NaN');
+    // Following the copied link gives no notice.
+    const page2 = await page.context().newPage();
+    await openRecorded(page2, new URL(copied).pathname.slice(1) + new URL(copied).search);
+    expect(await page2.locator('[data-tool] [data-out="notice"]').count(), 'notice on the copied link').toBe(0);
+  });
+
 });

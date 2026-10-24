@@ -80,6 +80,7 @@ import { pictureSvg } from '../../../src/components/tools/t10/svg';
 import { snapshotOf } from '../../../src/components/tools/t10/snapshot';
 import { MANIFEST_FILE as P4A2_MANIFEST, PRESET_CONFIGS, PRESET_DIR as P4A2_DIR, presetFor, presetRings, type PresetManifest } from '../../../src/components/draw/presetsT10';
 import { LINK_NOTICE, decodeState, encodeState } from '../../../src/lib/urlCodec';
+import type { ToolState } from '../../../src/lib/state';
 import { whereToRun } from '../../../src/lib/worker';
 import { ssrLoader, type SsrLoader } from '../_svelteSsr';
 
@@ -1035,5 +1036,33 @@ describe('regressions', () => {
     const b = t10Board('G2');
     const L = baseEdgeLengths(b, drawingMatrixOf(b), toPositionVector(b, [999999, 999999]));
     expect(L.map((l) => lengthText(l.squared)).sort()).toEqual(['1999996000002', '5999988000006']);
+  });
+
+  // SPEC 6.6: j is "followed by @ and three whole numbers of degrees"; a link that decodes without a notice
+  // must show what it names, and the link the tool then writes must decode to the same state.
+  /** The configured state of /tools/geometry/ (T10's default preset, t10/config.ts). */
+  const GEO: ToolState = { schema: 1, tool: 'geometry', board: 'A3', rings: [1, 0, 1], projection: 'xyz:1,2,3@20,30,0', graph: 'polytope' };
+  /** What /tools/geometry/ shows for a link: the codec, then the tool's admit (T10GeometryStudio applyLink). */
+  function geometry(q: string, prefix = ''): { notice: string | null; state: ToolState } {
+    const r = decodeState(q, 'geometry', GEO, { prefix });
+    if (r.notice !== null) return r;
+    const a = admit(r.state, false);
+    return a === null ? { notice: LINK_NOTICE, state: GEO } : { notice: null, state: stateOf(a) };
+  }
+  // regression: P4-RT-04-01
+  it('an angle of 2^53 + 1 degrees is shown and written back as 33 degrees (2^53 + 1 = 33 mod 360), not 32', () => {
+    const r = geometry('j=xyz:1,2,3@9007199254740993,0,0');
+    // Either refused with the notice, or kept exactly: the turn the link names is 33 degrees modulo 360.
+    if (r.notice === null) expect(r.state.projection).toBe('xyz:1,2,3@33,0,0');
+  });
+  // regression: P4-RT-04-01
+  it('an angle of 400 digits gives a link that reads back, never the text NaN', () => {
+    const q = `j=xyz:1,2,3@${'9'.repeat(400)},0,0`;
+    const r = geometry(q);
+    if (r.notice === null) {
+      const again = decodeState(encodeState(r.state), 'geometry', GEO);
+      expect(encodeState(r.state)).not.toContain('NaN');
+      expect(again.notice, encodeState(r.state)).toBeNull();
+    }
   });
 });

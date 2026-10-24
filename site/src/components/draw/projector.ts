@@ -250,6 +250,17 @@ export function project(frame: Frame, y: readonly number[]): Point3 {
 const J_VALUE = /^(coxeter|xyz:(\d+),(\d+),(\d+))(@(-?\d+),(-?\d+),(-?\d+))?$/;
 
 /**
+ * A whole number of degrees from its digits (6.6 j: "three whole numbers of degrees", of any length): the
+ * number itself when it is a safe integer, else its remainder modulo 360 computed exactly, which turns the
+ * picture the same way. Number() alone rounds a longer text and gives Infinity past about 10^308, whose
+ * remainder is NaN (RT-FIX P4-RT-04-01).
+ */
+function degrees(digits: string): number {
+  const t = Number(digits);
+  return (Number.isSafeInteger(t) ? t : Number(BigInt(digits) % 360n)) + 0;
+}
+
+/**
  * Reads a j value for a board with n nodes: "coxeter" (any rank), or "xyz:" and three different
  * coordinate numbers in 1..n (so never on rank 1 or 2), either optionally followed by "@" and three
  * whole numbers of degrees (negative allowed). Returns null for anything else.
@@ -257,8 +268,7 @@ const J_VALUE = /^(coxeter|xyz:(\d+),(\d+),(\d+))(@(-?\d+),(-?\d+),(-?\d+))?$/;
 export function parseProjection(text: string, n: number): Projection | null {
   const m = J_VALUE.exec(text);
   if (m === null) return null;
-  const turn: [number, number, number] =
-    m[5] === undefined ? [0, 0, 0] : [Number(m[6]) + 0, Number(m[7]) + 0, Number(m[8]) + 0];
+  const turn: [number, number, number] = m[5] === undefined ? [0, 0, 0] : [degrees(m[6]!), degrees(m[7]!), degrees(m[8]!)];
   if (m[2] === undefined) return { view: { kind: 'coxeter' }, turn };
   const axes = [Number(m[2]), Number(m[3]), Number(m[4])];
   if (axes.some((k) => k < 1 || k > n) || new Set(axes).size !== 3) return null;
