@@ -1,0 +1,321 @@
+{
+ "agent": "rtfix-p4-t10",
+ "status": "done",
+ "branch": "worktree-agent-aa523ec972beff560",
+ "base": "967118d23189fb1ac0190af9790884d1c897edc7",
+ "commits": [
+  "683ed09 RT-FIX P4-RT-04-04: exact squared edge lengths in T10",
+  "99c519d RT-FIX P4-RT-04-02: integers as JSON numbers in the data of T10 and T11",
+  "ac0873c RT-FIX P4-RT-04-01: a j angle of any length turns the picture as it names",
+  "f7fd75c RT-FIX P4-RT-05-06: a frozen T10 ring board shows no node as able to act",
+  "41b3f22 RT-FIX P4-RT-05-03: u and r undo and redo T10's ring edits",
+  "95487e9 RT-FIX P4-RT-05-01: T10's No rotation and Draw the orbit keep the focus",
+  "eb84389 RT-FIX P4-RT-05-07: T10's ring and turn buttons carry their visible text in their names",
+  "082efa0 RT-FIX P4-RT-06-03: no drawing-time sentence without a time",
+  "d13688b RT-FIX P4-RT-07-02: T10's prediction keeps its box when Predict.svelte arrives",
+  "3da77cd RT-FIX P4-RT-07-01: T10 keeps the output lines of its server markup on hydration",
+  "738982a RT-FIX P4-RT-06-02: nojs.spec.ts reads T10's snapshot as its default figure",
+  "c5725fc RT-FIX P4-RT-10-01: a browser test of T10's turning cap",
+  "890ff91 RT-FIX P4-RT-10-02: a browser test of the points drawn with make uniform",
+  "4aeec18 RT-FIX P4-RT-04-04 P4-RT-04-02 P4-RT-04-01 P4-RT-07-01 P4-RT-07-02 P4-RT-06-03 P4-RT-05-01 P4-RT-05-07 P4-RT-05-06 P4-RT-06-02: decisions fragment",
+  "ea02053 RT-FIX P4-RT-05-06 P4-RT-07-01 P4-RT-07-02 P4-RT-04-04: list the hooks the T10 regressions read"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/T10GeometryStudio.svelte",
+  "site/src/components/tools/t10/uniform.ts",
+  "site/src/components/tools/t11/model.ts",
+  "site/src/components/draw/projector.ts",
+  "site/tests/e2e/T10.spec.ts",
+  "site/tests/e2e/T11.spec.ts",
+  "site/tests/e2e/nojs.spec.ts",
+  "site/tests/unit/tools/T10.test.ts",
+  "site/tests/unit/tools/T11.test.ts",
+  "decisions/RT-FIX-P4-tool-t10.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard 967118d; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-aa523ec972beff560; worktree-agent-aa523ec972beff560; HEAD 967118d23189fb1ac0190af9790884d1c897edc7"
+  },
+  {
+   "cmd": "shasum -a 256 reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: equal to CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "python3 scratch/lengths_oracle.py (lie_games weight_inner of the base edge)",
+   "exit": 0,
+   "summary": "A3 1306: 3411272 x3; A3 999999: 1999996000002 x3; G2 999999: 1999996000002, 5999988000006"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit T10.test.ts T11.test.ts -t regressions (base source, red)",
+   "exit": 1,
+   "summary": "6 failed: ['3411272','3411271.999999',...]; ['1999996000001.7036',...]; ['1999996000001.9995',...]; 'xyz:1,2,3@32,0,0' not 33; link contains NaN; T11 form values ['1','2'] not [1,2]"
+  },
+  {
+   "cmd": "npm run build (base source)",
+   "exit": 0,
+   "summary": "32 pages; links 1040, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c scratch config T10.spec.ts -g regressions (base build, red)",
+   "exit": 1,
+   "summary": "16 failed, 3 passed (10-01, 10-02 pass at base: tests without a fix; a third test later removed as not red); u: Received 'Node 1, value 0, not ringed'; frozen: data-can-act=true data-ring=true; focus BODY x2; 4 names; edgeLengths data-count 2 and 3; squared '2'; turn '32, 0, 0'; bar @NaN; b4 height 2219->2369 and 2372->2522; outs source=, sharedEdges=, pointsDrawn=, edgesDrawn=; CLS b4 0.108"
+  },
+  {
+   "cmd": "npx playwright test nojs.spec.ts -g 'rejects a T10 snapshot' (old predicate, red)",
+   "exit": 1,
+   "summary": "3 failed: b1..b13 and (tool route) accepted as board; b1..b13 as drawing with the ring board removed"
+  },
+  {
+   "cmd": "git checkout HEAD -- source files; git apply t10-turning-cap-removed.patch t10-uniform-not-drawn.patch; npm run build",
+   "exit": 0,
+   "summary": "base source plus both lens mutations built"
+  },
+  {
+   "cmd": "npx playwright test T10.spec.ts -g '2_41 is being turned|make uniform changes the drawn points|hydration keeps every output' (mutated base)",
+   "exit": 1,
+   "summary": "3 failed: Expected 8000 Received 69120; Received array [2, 4]; outs emptied"
+  },
+  {
+   "cmd": "npx playwright test T11.spec.ts -g regressions (base source)",
+   "exit": 1,
+   "summary": "3 failed: form_value \"1\", \"2\""
+  },
+  {
+   "cmd": "npx playwright test nojs.spec.ts -g 'no time sentence|rejects a T10 snapshot' (base source)",
+   "exit": 1,
+   "summary": "2 failed (no time sentence: every root), 3 passed (06-02 tests with the fixed predicate)"
+  },
+  {
+   "cmd": "bash commit-stage.sh 1..13 (vitest T10.test.ts T11.test.ts projector.test.ts at each commit)",
+   "exit": 0,
+   "summary": "96 to 99 passed at every stage"
+  },
+  {
+   "cmd": "npm run check -w site (stage 1)",
+   "exit": 0,
+   "summary": "0 errors, 0 warnings, 6 hints"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run typecheck",
+   "exit": 0,
+   "summary": "astro check 0 errors 0 warnings 1 hint (T06.spec, not mine); svelte-check 0 errors, 1 warning (LayerChart.svelte, not mine)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit T10.test.ts T11.test.ts projector.test.ts (final)",
+   "exit": 0,
+   "summary": "Test Files 3 passed; Tests 99 passed (93 at base)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (all, once)",
+   "exit": 1,
+   "summary": "808 passed, 2 failed by 5 s timeouts under load average 16: links-internal.test.ts (spawns scripts/links.mjs) and repo-ci-playwright-report.test.ts; neither file nor its subject changed here; repo-ci passed when rerun alone"
+  },
+  {
+   "cmd": "npm run build (final)",
+   "exit": 0,
+   "summary": "32 page(s) built; links: 1040 internal links, 0 problems; T10 CSS still inlined"
+  },
+  {
+   "cmd": "npx playwright test -c scratch config T10.spec.ts (final)",
+   "exit": 0,
+   "summary": "45 passed (2.4m)"
+  },
+  {
+   "cmd": "npx playwright test T10.spec.ts (pre-commit run of the same final source)",
+   "exit": 1,
+   "summary": "44 passed, 1 failed: 'no long task on E8 loads' (one 55 ms task, load average 12.7); passed alone at once (1 passed), and passed in the final run"
+  },
+  {
+   "cmd": "npx playwright test M7.spec.ts (final)",
+   "exit": 0,
+   "summary": "29 passed (1.3m)"
+  },
+  {
+   "cmd": "npx playwright test T11.spec.ts (final)",
+   "exit": 0,
+   "summary": "26 passed"
+  },
+  {
+   "cmd": "npx playwright test M6.spec.ts (final)",
+   "exit": 0,
+   "summary": "29 passed"
+  },
+  {
+   "cmd": "npx playwright test nojs.spec.ts (final)",
+   "exit": 0,
+   "summary": "77 passed (1.3m)"
+  },
+  {
+   "cmd": "npx playwright test a11y.spec.ts -g 'geometry|m7-geometry|fold|m6-multiple' (final)",
+   "exit": 0,
+   "summary": "4 passed"
+  },
+  {
+   "cmd": "BLOCK=/fonts/ node redteam-RT-07-hydration-shift.mjs site/dist 7621 /modules/m7-geometry/ 4,6,12,14 (lens script, final build)",
+   "exit": 0,
+   "summary": "CLS 0.0000 on islands 4, 6, 12, 14 (lens: 0.3002, 0.3161, 0.3002, 0.3002)"
+  },
+  {
+   "cmd": "BLOCK_FONTS=1 node redteam-RT-07-predict-shift.mjs site/dist 7621 360 1 and 320 1 (final build)",
+   "exit": 0,
+   "summary": "360: b4 2392->2392, b7 2383->2383, prediction block 278->278, CLS 0; 320: 2545->2545, 2571->2571, 302->302 and 354->354, CLS 0"
+  },
+  {
+   "cmd": "node heights.mjs site/dist 7621 320 and 360 /modules/m7-geometry/ (scratch: every T10 root before hydration and once drawn)",
+   "exit": 0,
+   "summary": "all 13 roots unchanged at 320 and 360 px"
+  },
+  {
+   "cmd": "git diff --name-only 967118d..HEAD | grep forbidden paths",
+   "exit": 1,
+   "summary": "no forbidden paths; 10 files"
+  },
+  {
+   "cmd": "python3 greps.py over the added lines of git diff 967118d..HEAD",
+   "exit": 0,
+   "summary": ".only( 0, .skip( 0, xit( 0, toBeCloseTo 0, console.log 0, : any 0, astro dev 0, export let 0, $: 0, on: 0, em-dash 0"
+  },
+  {
+   "cmd": "git log --format=%s 967118d..HEAD",
+   "exit": 0,
+   "summary": "15 subjects, each beginning RT-FIX P4-RT-"
+  },
+  {
+   "cmd": "git diff --name-only 967118d..HEAD | grep -i redteam",
+   "exit": 1,
+   "summary": "nothing (the redteam files of git ls-files are the existing build-plan/reports archive)"
+  },
+  {
+   "cmd": "pkill -f 'port 7620'; rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "preview stopped; tree clean"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P4-RT-10-01: T10's turning cap (at most 8000 edges while the picture is turned) is guarded by no test that fails when the tool stops applying it",
+   "status": "fixed",
+   "test": "site/tests/e2e/T10.spec.ts > regressions > while 2_41 is being turned at most 8000 edges are drawn, and all of them at rest",
+   "evidence": "Severity major (no adjustment). The finding is a missing test, so the test is the fix. The lens reproducer is adopted unchanged into the regressions block. Bite check: with the lens mutation t10-turning-cap-removed.patch (turning: false) on the base source, it fails with 'Expected \"8000\" Received \"69120\"'. Without the mutation it passes: on the base build, and in the final T10.spec.ts run (45 passed). Commit c5725fc."
+  },
+  {
+   "item": "P4-RT-10-02: Make uniform's drawn picture is untested: a T10 that ignores make uniform when drawing passes every T10 test",
+   "status": "fixed",
+   "test": "site/tests/e2e/T10.spec.ts > regressions > make uniform changes the drawn points: one edge length on B3 (0,1,1)",
+   "evidence": "Severity minor, fixed because T10.spec.ts and the component are already changed. The test is the fix: the reproducer is adopted unchanged, reading the drawn coordinates from Download data. Bite check: with the lens mutation t10-uniform-not-drawn.patch it fails with 'Received array: [2, 4]'. Without the mutation it passes, at base and final. Commit 890ff91."
+  },
+  {
+   "item": "P4-RT-07-01: T10 hydrates into a 'pending' orbit that empties output lines the server rendered, so B3 instances shrink by 24 px and grow back, shifting the face table and controls",
+   "status": "fixed",
+   "test": "site/tests/e2e/T10.spec.ts > regressions > M7: hydration keeps every output line of the server markup while the data files load; and > M7: Cumulative Layout Shift at most 0.1 at the reading positions of b4, b5, b7, b11 and b12",
+   "evidence": "Severity major. Red at base: with the data files held after hydration, the outs diff shows source=, sharedEdges=, pointsDrawn= and edgesDrawn= emptied on every M7 root. Cause: the browser starts the configured orbit as 'pending' with its vertices only, while the server renders it complete. Fix: those lines (plus edgeCount and the legend labels of a move-graph figure) are read once from the server markup on hydration, through the $props.id element, and shown until the browser's own values arrive. Green: texts and every box unchanged while held, loaded and drawn. The lens script now gives CLS 0.0000 on islands 4, 6, 12 and 14 (was 0.3002 and 0.3161). The script reproducer became the two tests. Commit 3da77cd."
+  },
+  {
+   "item": "P4-RT-07-02: T10 instances with a prediction grow by 150 px (226 px at 320 px) on hydration because Predict.svelte arrives later and replaces a shorter static question",
+   "status": "fixed",
+   "test": "site/tests/e2e/T10.spec.ts > regressions > M7 b4 and b7 (with a prediction) keep their height when they hydrate, at 360 px / at 320 px",
+   "evidence": "Severity major. Red at base: 'b4: height 2219 before hydration, 2369 after' (+150) at 360 px, and 2372 -> 2522 at 320 px. Cause: the static block lacked Predict's answer form and layout. Fix: T10's static block holds Predict.svelte's form with its controls disabled, laid out by a copy of Predict's rules, kept inside the 4 kB inline-CSS limit. Predict.svelte is not edited. Green: both widths pass. Lens script: block 278 -> 278 px at 360 and 354 -> 354 px at 320, CLS 0. Commit d13688b."
+  },
+  {
+   "item": "P4-RT-05-03: Attack 27: T10's ring board has Undo and Redo, but the u and r shortcuts do nothing inside it",
+   "status": "fixed",
+   "test": "site/tests/e2e/T10.spec.ts > regressions > u and r on a ring node of T10 undo and redo the ring edit (/tools/geometry/, A3)",
+   "evidence": "Severity major. Red at base: Expected 'Node 1, value 1, ringed', Received 'Node 1, value 0, not ringed'. Cause: no keydown handler of T10 asked shortcutOf. Fix: the wrapper of the ring board passes u and r to undo and redo, which still do nothing while the board is frozen. Green. Reproducer adopted unchanged. Commit 41b3f22."
+  },
+  {
+   "item": "P4-RT-05-06: Attacks 3, 9 and 30: while a prediction freezes T10's ring board, its nodes keep data-can-act=true and the 'may act here' second ring",
+   "status": "fixed",
+   "test": "site/tests/e2e/T10.spec.ts > regressions > the frozen ring board of M7 b4 shows no node as able to act (and b7)",
+   "evidence": "Severity: original minor, raised to major by the refuter; worked as major. Red at base: 'node 1: aria-disabled=true data-can-act=true data-ring=true' on b4 and on b7. Cause: canAct was true for every node whatever the freeze. Fix: canAct = !frozen. Green: 2 passed. 'hooks are present' still sees data-can-act=true on the unfrozen tool route. Commit f7fd75c."
+  },
+  {
+   "item": "P4-RT-05-01: Attacks 2 and 9, retest of P3-RT-05-09: eight controls that their own press makes inactive still take the HTML disabled attribute or leave the page, so keyboard focus falls to <body>",
+   "status": "fixed",
+   "test": "site/tests/e2e/T10.spec.ts > regressions > T10 \"No rotation\" keeps the focus (/tools/geometry/?g=D4); and > T10 \"Draw the orbit\" keeps the focus in the tool (/tools/geometry/?g=E8&r=0.1.0.0.0.0.0.0)",
+   "evidence": "Fixed for T10 only. The T2, T5, T7, board-editor and Challenge controls of the same finding belong to the accessibility cluster. Severity major. Red at base: both T10 cases 'Expected: not \"BODY\"'. Fix, following RT-FIX-P3-follow-predict: No rotation is aria-disabled after hydration and its handler returns in that state. Draw the orbit moves a focus left on it to the output-lines box (tabindex -1, given the focus ring of the face table). T10's CSS for disabled controls is not changed. Green: both pass. Commit 95487e9."
+  },
+  {
+   "item": "P4-RT-05-07: Attacks 6 and 10: the aria-labels of T10's ring and up/down turn buttons and of T6's point buttons do not contain the visible label (WCAG 2.5.3)",
+   "status": "fixed",
+   "test": "site/tests/e2e/T10.spec.ts > regressions > every labelled control of tools/geometry/ has its visible text in its name (WCAG 2.5.3)",
+   "evidence": "Fixed for T10 only; T6 belongs to the accessibility cluster. Severity minor, fixed because the component is already changed. Red at base: ringUp, ringDown, turnUp and turnDown are listed. Fix: each name now starts with the visible text, for example 'Ring 1 up: raise the ring of node 1' and 'Up: turn about the horizontal axis, the top toward you'. Green. Commit eb84389."
+  },
+  {
+   "item": "P4-RT-04-04: T10 prints its squared edge lengths from floating-point measurements: from rings of four digits the values are wrong, and edges of one length are listed as several",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T10.test.ts > regressions > A3 with rings (1306, 1306, 1306) ... / A3 with rings (999999, ...) / G2 with rings (999999, 999999); site/tests/e2e/T10.spec.ts > regressions > A3 r=1306.1306.1306: one squared length, 3411272 / A3 r=999999.999999.999999: ...",
+   "evidence": "Severity major. Unit red at base: 3 failed, e.g. ['3411272','3411271.999999','3411272'] and ['1999996000001.7036', ...]. Browser red: data-count 2 and 3. Cause: the lengths were measured on float coordinates. Fix: the integers 2 d_i a_i^2 (2 c^2 under make uniform), computed in SafeInt from the gram diagonal. These equal the oracle's weight_inner values: 3411272, 1999996000002, 5999988000006. Green: unit 3 passed, browser 2 passed. Adoption: the lens's unit test and the 1306 browser case are unchanged. The 999999 browser case asserted the 13-digit text '1999996000002', but SPEC 4.0 Long numbers, cited in the finding's own expected, shows such a value shortened. That case now asserts data-count 1 (kept), the shortened text, title='1999996000002' and the exported number 1999996000002. Commit 683ed09."
+  },
+  {
+   "item": "P4-RT-04-01: A j turning angle is read as a float with no bound: the turn is rounded, and an angle of 400 digits gives NaN, which T10 then writes into the address bar and into Copy link as a link that cannot be read",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T10.test.ts > regressions > an angle of 2^53 + 1 degrees is shown and written back as 33 degrees ... / an angle of 400 digits gives a link that reads back, never the text NaN; site/tests/e2e/T10.spec.ts > regressions > j=xyz:1,2,3@9007199254740993,0,0 turns the picture by 33 degrees ... / j=xyz:1,2,3@<400 digits>,0,0: the link the tool writes back ... is readable",
+   "evidence": "Severity: original minor, raised to major by the refuter; worked as major. Unit red at base: expected 'xyz:1,2,3@32,0,0' to be '...@33,0,0', and the written link contains '@NaN'. Browser red: '32, 0, 0', and the bar holds @NaN. Cause: parseProjection in site/src/components/draw/projector.ts read the angle with Number(). Fix: a safe angle is kept as read; a longer one is reduced modulo 360 exactly with BigInt. The existing projector.test.ts expectations still hold. Green: unit 2 passed, browser 2 passed. Commit ac0873c."
+  },
+  {
+   "item": "P4-RT-04-02: T11 and T10 put integers into Download data as text (form_value '1' and '2'; squared edge lengths '2' and '6')",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T11.test.ts > regressions > A5 with its flip: the averaged classes have form values 1 and 2, exported as the numbers 1 and 2; site/tests/e2e/T11.spec.ts > regressions > tools/fold/...: no safe integer is written as a string in Download data (3 routes); site/tests/e2e/T10.spec.ts > regressions > tools/geometry/...: no safe integer is written as a string in Download data (2 routes)",
+   "evidence": "Severity: original minor, raised to major by the refuter; worked as major. Red at base: unit [ '1', '2' ] vs [1, 2]. Browser: derived.edgeLengthsSquared[k].squared=\"2\" (T10) and derived.averaged.classes[k].form_value=\"1\"/\"2\" (T11, 3 routes). Fix: T10 exports integerOut of the exact length; T11's exportData applies the integer rule, and fractions stay p/q (RT-FIX-P3-export-long). An existing T11 unit assertion compared the export with the golden text. Following that fragment's precedent, it now compares with the golden values under the integer rule and stays exact; this is recorded in the fragment. Green: unit, T11.spec 26 passed, T10.spec. Commit 99c519d."
+  },
+  {
+   "item": "P4-RT-06-02: Attacks 1 and 12, sibling of P3-RT-06-03: nojs.spec.ts accepts T10's ring board, or its hidden empty canvas box, as the default figure, so a blank T10 snapshot passes the run without JavaScript",
+   "status": "fixed",
+   "test": "site/tests/e2e/nojs.spec.ts > nojs.spec.ts rejects a T10 snapshot with no point and no segment: modules/m7-geometry/ | tools/geometry/ | modules/m7-geometry/, ring board removed too",
+   "evidence": "Severity minor; nojs.spec.ts is in this cluster. Red with the old predicate: 3 failed (b1..b13 and the tool route accepted as \"board\"; b1..b13 as \"drawing\" once the ring board was removed). Fix: in toolReport, a root with data-out=\"snapshot\" has that snapshot as its figure. It must be a visible, named SVG with at least one point or segment, and a hidden figure counts as none. The node-hook check is unchanged. The reproducer is adopted with the file's own toolReport and figureProblems instead of a copy. Green: 3 passed; full nojs.spec.ts 77 passed. Commit 738982a."
+  },
+  {
+   "item": "P4-RT-06-03: Around the P4-MERGE-04 fix: without JavaScript T10 shows 'Drawn: 12 points, 24 edges, in  ms', a drawing time with no number",
+   "status": "fixed",
+   "test": "site/tests/e2e/nojs.spec.ts > T10 shows no time sentence without a time before hydration: tools/geometry/ (and modules/m7-geometry/)",
+   "evidence": "Severity minor, fixed because the component is already changed. Red at base: 2 failed, on every root (the tool route and b1..b13). Fix: the time has its own line, 'Drawing time: T ms.', whose words are rendered only with the time. While empty the line keeps its height, so the arriving time shifts nothing at 320 or 360 px. With the words kept in the first sentence instead, the showpiece's sentence wrapped at 320 px. data-out drawMs with data-measured is unchanged. Adoption: the reproducer read the drawMs element's parentElement; it now reads the T10 root's text through data-tool, with the same /in\\s+ms/ assertion. Green: 2 passed. Commit 082efa0."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX 5.4 item 1 (file outside the cluster area)",
+   "what": "site/src/components/draw/projector.ts (parseProjection) changed for P4-RT-04-01.",
+   "why": "The cause lies there; the codec site/src/lib/urlCodec.ts belongs to another cluster and is not touched."
+  },
+  {
+   "spec": "RT-FIX 5.3 (adoption)",
+   "what": "Two adoptions differ from the lens reproducers. (1) The P4-RT-04-04 browser case for r=999999.999999.999999 asserts the shortened long-number text plus the exact digits in title and export, instead of the 13-digit text. (2) The P4-RT-06-03 test reads the T10 root's text instead of the drawMs element's parent.",
+   "why": "(1) SPEC 4.0 Long numbers, cited in the finding's expected. (2) Browser tests read only the 4.0 hooks."
+  },
+  {
+   "spec": "COMMON 4.4 (existing assertion)",
+   "what": "site/tests/unit/tools/T11.test.ts 'exportData gives the orbits ...' now compares the exported averaged classes with the golden classes under the integer rule. It still uses an exact comparison.",
+   "why": "The assertion encoded the reported defect. This follows the precedent of RT-FIX-P3-export-long and is recorded in the fragment."
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P4-tool-t10.md",
+ "handoff": "Outside T10's directory this branch changes site/src/components/draw/projector.ts (P4-RT-04-01), site/src/components/tools/t11/model.ts and its two test files (T11's export, P4-RT-04-02), and nojs.spec.ts (the toolReport predicate: a snapshot is a canvas tool's figure, and hidden figures count as none). Expect a possible conflict with the accessibility cluster's edits to nojs.spec.ts. No shared library, ToolFrame or Predict.svelte is edited. T10's static prediction block now copies Predict.svelte's form and layout (P4-RT-07-02), so any change to Predict.svelte's markup or CSS must be mirrored there; the regression test 'M7 b4 and b7 ... keep their height' catches drift. P4-RT-05-01 and P4-RT-05-07 are fixed for T10 only, and the lens should rerun the other tools after the accessibility cluster merges. Proposed fixes not followed: P4-RT-04-01 is not refused in the codec (another cluster's file); long angles are reduced exactly instead, a choice the verifiers accepted. P4-RT-07-02 does not load Predict in T10's chunk, which would break the 90 kB budget of /tools/geometry/. P4-RT-04-04 does not round float measurements for make uniform; every shown length is the exact 2 c^2. For MERGE: links-internal.test.ts and repo-ci-playwright-report.test.ts timed out at 5 s in one full site-unit run under load average 16. Neither file nor its subject changed here, and repo-ci passed when rerun alone."
+}
