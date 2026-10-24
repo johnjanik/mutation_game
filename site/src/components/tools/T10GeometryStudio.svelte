@@ -1141,10 +1141,10 @@
       </select>
     </label>
     <button type="button" class="control" data-control="rootPolytope" disabled={!api.hydrated || frozen} onclick={() => rootPolytope(api.announce)}>Root polytope</button>
-    <button type="button" class="control" data-control="ringUp" disabled={!api.hydrated || frozen} aria-label="Raise the ring of node {focusLabel}" onclick={() => stepRing(1, api.announce)}
+    <button type="button" class="control" data-control="ringUp" disabled={!api.hydrated || frozen} aria-label="Ring {focusLabel} up: raise the ring of node {focusLabel}" onclick={() => stepRing(1, api.announce)}
       >Ring {focusLabel} up</button
     >
-    <button type="button" class="control" data-control="ringDown" disabled={!api.hydrated || frozen} aria-label="Lower the ring of node {focusLabel}" onclick={() => stepRing(-1, api.announce)}
+    <button type="button" class="control" data-control="ringDown" disabled={!api.hydrated || frozen} aria-label="Ring {focusLabel} down: lower the ring of node {focusLabel}" onclick={() => stepRing(-1, api.announce)}
       >Ring {focusLabel} down</button
     >
     {#if core.shortRings !== null}
@@ -1196,8 +1196,10 @@
   {#if canTurn}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="group turn" role="group" aria-label="Turn the picture: arrow keys, Shift with Left and Right" data-control="turnGroup" onkeydown={(e) => onTurnKey(e, api.announce)} onkeyup={endTurning}>
-      <button type="button" class="control" data-control="turnUp" aria-label="Turn about the horizontal axis, the top toward you" disabled={!api.hydrated} onclick={() => turnBy([TURN_STEP, 0, 0], api.announce)}>Up</button>
-      <button type="button" class="control" data-control="turnDown" aria-label="Turn about the horizontal axis, the top away from you" disabled={!api.hydrated} onclick={() => turnBy([-TURN_STEP, 0, 0], api.announce)}>Down</button>
+      <button type="button" class="control" data-control="turnUp" aria-label="Up: turn about the horizontal axis, the top toward you" disabled={!api.hydrated} onclick={() => turnBy([TURN_STEP, 0, 0], api.announce)}>Up</button>
+      <button type="button" class="control" data-control="turnDown" aria-label="Down: turn about the horizontal axis, the top away from you" disabled={!api.hydrated} onclick={() => turnBy([-TURN_STEP, 0, 0], api.announce)}
+        >Down</button
+      >
       <button type="button" class="control" data-control="turnLeft" aria-label="Turn about the vertical axis, to the left" disabled={!api.hydrated} onclick={() => turnBy([0, -TURN_STEP, 0], api.announce)}>Left</button>
       <button type="button" class="control" data-control="turnRight" aria-label="Turn about the vertical axis, to the right" disabled={!api.hydrated} onclick={() => turnBy([0, TURN_STEP, 0], api.announce)}>Right</button>
       <button type="button" class="control" data-control="turnCounter" aria-label="Turn about the viewing axis, counterclockwise" disabled={!api.hydrated} onclick={() => turnBy([0, 0, TURN_STEP], api.announce)}

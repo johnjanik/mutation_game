@@ -959,6 +959,26 @@ test.describe('regressions', () => {
     expect(await focusAfter(page), 'document.activeElement after Enter on "Draw the orbit"').not.toBe('BODY');
   });
 
+  // SPEC 7.5 target WCAG 2.2 AA, criterion 2.5.3 Label in Name: the accessible name of a control with a visible
+  // text label contains that text.
+  // regression: P4-RT-05-07
+  test('every labelled control of tools/geometry/ has its visible text in its name (WCAG 2.5.3)', async ({ page }) => {
+    await page.goto(ROUTE);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await page.waitForTimeout(500);
+    const rows = await page.evaluate(() => {
+      const norm = (s: string): string => s.replace(/\s+/g, ' ').trim().toLowerCase();
+      return [...document.querySelectorAll('[data-tool="geometry"] button[aria-label][data-control]')].map((b) => ({
+        control: (b as HTMLElement).dataset.control!,
+        visible: norm((b as HTMLElement).innerText),
+        name: norm(b.getAttribute('aria-label')!),
+      }));
+    });
+    expect(rows.length, 'controls with an aria-label found').toBeGreaterThan(0);
+    const bad = rows.filter((r) => r.visible !== '' && !r.name.includes(r.visible)).map((r) => `${r.control}: shows "${r.visible}", named "${r.name}"`);
+    expect(bad, 'tools/geometry/: accessible names that do not contain the visible label').toEqual([]);
+  });
+
   // SPEC 2.14 [V]: the squared length of the base edge at a ringed node i is 2 d_i a_i^2, an integer; with equal
   // rings on a simply laced board, one length. 4.0 Long numbers: above 12 digits the value is shown shortened,
   // with the exact digits in the tooltip and in the export.
