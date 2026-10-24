@@ -291,6 +291,8 @@ test.describe('without JavaScript', () => {
     await expect(table.locator('tbody tr')).toHaveCount(7);
     for (const row of await table.locator('tbody tr').all()) await expect(row.locator('th, td')).toHaveCount(3);
     await expect(table.locator('caption')).not.toHaveText('');
+    await expect(table.locator('tr[data-row="hold"] td').first()).toHaveText('the population of each city');
+    await expect(table.locator('tr[data-row="changes"] td').first()).toHaveText('the population of one city');
     expect(await proseWords(page)).toBeGreaterThan(800);
   });
 
@@ -329,6 +331,9 @@ test.describe('without JavaScript', () => {
     for (const row of await table.locator('tbody tr').all()) await expect(row.locator('th, td')).toHaveCount(3);
     await expect(table.locator('tbody th[scope="row"]')).toHaveText(['What you hold', 'What a move changes', 'The diagram', 'Rule', 'The moves generate', 'Finite when', 'What gets enumerated']);
     await expect(table.locator('tr[data-row="changes"] strong')).toHaveText('and the quiver');
+    // Wildberger's column speaks of populations, the site's word (review finding 9; Appendix C, P8).
+    await expect(table.locator('tr[data-row="hold"] td').first()).toHaveText('the population of each city');
+    await expect(table.locator('tr[data-row="changes"] td').first()).toHaveText('the population of one city');
     // The smallest illustration: two drawings, each with a title and a description, and a caption.
     const figure = page.locator('figure[data-static-figure="smallest-illustration"]');
     await expect(figure.locator('svg[role="img"]')).toHaveCount(2);
@@ -342,7 +347,7 @@ test.describe('without JavaScript', () => {
     await expect(figure.locator('figcaption')).not.toHaveText('');
     await expect(page.locator('article [data-confusion]')).toHaveCount(4);
     await expect(page.locator('article [data-anatomy="sources"] [data-source]')).not.toHaveCount(0);
-    for (const k of ['W20', 'BKR16', 'FZ02', 'FZ03a', 'BGP73']) await expect(page.locator(`article [data-anatomy="sources"] [data-source="${k}"]`), k).toHaveCount(1);
+    for (const k of ['W20', 'BKR16', 'FZ02', 'FZ03a', 'BGP73', 'Ele16', 'Che17', 'W03a']) await expect(page.locator(`article [data-anatomy="sources"] [data-source="${k}"]`), k).toHaveCount(1);
   });
 });
 
@@ -590,7 +595,12 @@ test('anatomy of 8.2', async ({ page }) => {
     const t = norm(await statements.nth(k).textContent());
     expect(/verified by computation|standard fact of Lie theory/i.test(t), `Seen statement ${k + 1} has a provenance`).toBe(true);
   }
-  expect(plain(await statements.nth(0).textContent())).toContain(`verified by computation for the ${GOLDEN.minuscule_representations.length} representations listed in beat 4`);
+  // Statement 1 is scoped to what its provenance covers (review finding 12): the 18 records, verified by
+  // computation, and the minuscule nodes of simply laced boards, Wildberger's construction.
+  const first = plain(await statements.nth(0).textContent());
+  expect(first).toMatch(new RegExp(`^For the ${GOLDEN.minuscule_representations.length} representations listed in beat 4, [^.]*: verified by computation\\.`));
+  expect(first).toContain('At every minuscule node of a simply laced board this is Wildberger');
+  expect(first).not.toMatch(/^On the orbit of the fundamental position of a minuscule node/);
   // The frontmatter of CONTRACTS 7 with the values of instruction 5.1.
   const source = readFileSync(LESSON_PATH, 'utf8');
   const front = /^---\n([\s\S]*?)\n---/.exec(source)![1]!;
@@ -723,7 +733,7 @@ const ALLOWED_M8: Allowed[] = [
   { text: '0', around: /<Tex src="-1"\/>, <Tex src="0"\/> or/, reason: 'a number of a minuscule orbit (F11)' },
   { text: '1', around: /<Tex src="0"\/> or <Tex src="1"\/>, so a string/, reason: 'a number of a minuscule orbit (F11)' },
   { text: '2', around: /size at least|contains a number/, reason: 'a number 2 in an orbit that is not minuscule (instruction 5.8)' },
-  { text: '\\det C-1', around: /A board has/, reason: 'the count of minuscule nodes, a formula of F11' },
+  { text: '\\det C-1', around: /A connected board of finite type has/, reason: 'the count of minuscule nodes, a formula of F11' },
   { text: '[H_i,H_j]=0,\\quad [H_i,E_j]=C_{ij}E_j,\\quad [H_i,F_j]=-C_{ij}F_j,\\quad [E_i,F_j]=\\delta_{ij}H_i,', around: /display/, reason: 'the Chevalley-Serre relations of 2.18, verbatim' },
   { text: '\\operatorname{ad}(E_i)^{1-C_{ij}}E_j=0,\\qquad \\operatorname{ad}(F_i)^{1-C_{ij}}F_j=0\\quad(i\\ne j),', around: /display/, reason: 'the Serre relations of 2.18 (1 - C_ij), verbatim' },
   { text: '[E_1,F_1]=H_1', around: /both sides of/, reason: 'a relation, with the node labels 1' },
@@ -758,6 +768,16 @@ const ALLOWED_PAGE: Allowed[] = [
   { text: 'a_i<0', around: /unhappy when/, reason: 'the mood unhappy (2.16)' },
   { text: 'a_i=0', around: /happy when/, reason: 'the mood happy (2.16)' },
   { text: 'a_i>0', around: /excited, when/, reason: 'the mood manic or excited (2.16)' },
+  // The argument for the Hasse diagram (RT-FIX P5-A3 review finding 7): the form value 2 of F2 ([W03a]
+  // Proposition 3.5) and the changes of the form value when one Martian is added or removed.
+  { text: '2', around: /form value <Tex src="2"\/> <Cite k="W03a"/, reason: 'the form value 2 of a root population on a simply laced board (F2)' },
+  { text: 'Proposition 3.5', around: /W03a/, reason: 'a proposition of [W03a] (F2)' },
+  { text: '2a_i+2', around: /adds <Tex/, reason: 'the change of the form value when one Martian is added to city i' },
+  { text: 'a_i=-1', around: /exactly when <Tex/, reason: 'the number on node i of a population one Martian below another' },
+  { text: '2-2a_i', around: /adds <Tex src="2-2a_i"\/> instead/, reason: 'the change of the form value when one Martian is removed from city i' },
+  { text: 'p_i>0', around: /some city with/, reason: 'a city with Martians' },
+  { text: 'a_i\\ge1', around: /has <Tex/, reason: 'a positive number on that node' },
+  { text: 'a_i=1', around: /positive definite, <Tex/, reason: 'the number on that node, forced by positive definiteness' },
   { text: '(1,1,0)', around: /turns <Tex/, reason: 'the triangle example of 2.16' },
   { text: '(1,1,2)', around: /into <Tex/, reason: 'the triangle example of 2.16' },
   { text: '1', around: /every number fired equals|site's numbers equal to/, reason: 'the minuscule situation: every number fired is 1 (2.16; [BKR16] in this site convention)' },
@@ -1015,10 +1035,12 @@ test('challenges report success on their goal and not before', async ({ page }) 
   await control(page, 'b9', 'set-start').click();
   await expect(out(page, 'b9', 'string-length')).toHaveText(String(FOUR));
   await expect(strings.locator('[data-challenge-result]')).toHaveText('Goal reached.');
-  // b10, b11, b12: a node of a board, reached with the tool's pickers; met only there.
+  // b10, b11, b12: a node of a board, reached with the tool's pickers; met only there. The wrong steps are
+  // the tempting ones: for b10 a failing node of another board (D4 node 2) and a failing node of E6 with a
+  // larger orbit (node 3); for b11 the minuscule node that beat 4 lists (node 5) and a failing node (node 2).
   const cases: { id: string; board: string; node: number; steps: { board?: string; node?: number }[] }[] = [
-    { id: 'b10', board: 'D4', node: 2, steps: [{ node: 1 }, { node: 2 }] },
-    { id: 'b11', board: 'E6', node: 6, steps: [{ board: 'E6' }, { node: 6 }] },
+    { id: 'b10', board: 'E6', node: 2, steps: [{ node: 2 }, { board: 'E6' }, { node: 3 }, { node: 2 }] },
+    { id: 'b11', board: 'D5', node: 4, steps: [{ board: 'D5' }, { node: 5 }, { node: 2 }, { node: 4 }] },
     { id: 'b12', board: 'A3', node: 2, steps: [{ node: 3 }, { node: 2 }] },
   ];
   for (const c of cases) {
@@ -1041,12 +1063,58 @@ test('challenges report success on their goal and not before', async ({ page }) 
     await expect(out(page, c.id, 'dimension')).toHaveText(String(orbitOf(c.board, c.node)));
     await expect(challenge.locator('[data-challenge-result]'), c.id).toHaveText('Goal reached.', { timeout: 20000 });
   }
-  // The D4 node: not minuscule, a failing relation; the others minuscule.
+  // The E6 node: not minuscule, a failing relation, and the smallest orbit among the failing nodes of E6;
+  // the D5 node minuscule and not one of the 18 records listed in beat 4 (golden file).
   await expect(out(page, 'b10', 'minuscule')).toHaveAttribute('data-minuscule', 'false');
   await expect(out(page, 'b10', 'explanation')).toContainText('some number in the orbit is 2');
+  const failingE6 = T('E6').fundamental_orbit_sizes.map((size, k) => ({ node: k + 1, size })).filter(({ node }) => !T('E6').minuscule_nodes.includes(node));
+  expect(failingE6.map(({ node }) => node)).toContain(2);
+  for (const { node, size } of failingE6) if (node !== 2) expect(size, `E6 node ${node}`).toBeGreaterThan(orbitOf('E6', 2));
   await expect(out(page, 'b11', 'minuscule')).toHaveAttribute('data-minuscule', 'true');
+  expect(T('D5').minuscule_nodes).toContain(4);
+  expect(GOLDEN.minuscule_representations.filter((r) => r.type === 'D5').map((r) => r.node)).not.toContain(4);
   expect(dim('A3', 2)).toBeGreaterThan(orbitOf('A3', 1));
   expect(orbitOf('A3', 3)).toBe(orbitOf('A3', 1));
+  // The explanation of b10 says what fails (review finding 10): firing a number 2 moves a position by two
+  // single steps, so no single step is that firing.
+  const b10 = props.find((p) => p.for === 'b10')!.explanation;
+  expect(b10).toContain('moves a position by two steps, which no single step gives');
+  expect(b10).not.toMatch(/a single step there is no firing/);
+});
+
+/**
+ * The answers of the challenges are not printed in the prose (review finding 10; RT-FIX-P3-lesson-m5).
+ * The prose is the article with tools, challenges, the sources and the links removed, formulas as TeX.
+ */
+function nodesNamed(text: string, tex: string): Set<number> {
+  const esc = tex.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+  const found = new Set<number>();
+  for (const m of text.matchAll(new RegExp(`\\b[Nn]odes? ((?:\\d+, )*\\d+(?: and \\d+)?) of ${esc}(?!\\w)`, 'g'))) for (const l of m[1]!.split(/, | and /)) found.add(Number(l));
+  for (const m of text.matchAll(new RegExp(`${esc} from node (\\d+)`, 'g'))) found.add(Number(m[1]));
+  return found;
+}
+
+test('the prose does not print the answers of the challenges', async ({ page }) => {
+  await page.goto(ROUTE);
+  const prose = norm(await proseText(page, 'article'));
+  // Not vacuous: the list of beat 4 names nodes 1 and 6 of E6, node 2 of D4 is named, and so on.
+  expect([...nodesNamed(prose, 'E_6')].sort()).toEqual([1, 6]);
+  expect(nodesNamed(prose, 'D_4').has(2)).toBe(true);
+  const props = await challengeProps(page);
+  for (const c of props.filter((p) => p.check.kind === 'out' && p.check.name === 'caption')) {
+    const target = /^On ([A-H]\d)[ ,][^]*?(?:node (\d+)|ω(\d+))/.exec(c.check.equals ?? '');
+    expect(target, c.for).not.toBeNull();
+    const board = target![1]!;
+    const node = Number(target![2] ?? target![3]);
+    const tex = `${board[0]}_${board.slice(1)}`;
+    if (c.for === 'b12') {
+      // The list of beat 4 names node 2 of A3 as checked, but no sentence compares the sizes of the nodes
+      // of A3, which is what the challenge asks.
+      for (const s of sentences(prose).filter((x) => x.includes(tex))) expect(s, s).not.toMatch(/largest|positions|dimension|matri/i);
+      continue;
+    }
+    expect([...nodesNamed(prose, tex)], `${c.for}: node ${node} of ${board} is named in the prose`).not.toContain(node);
+  }
 });
 
 test('not-quiver page makes no reference to the project note', async ({ page }) => {
@@ -1058,6 +1126,117 @@ test('not-quiver page makes no reference to the project note', async ({ page }) 
     expect(t, route).not.toMatch(/mutation-game|Cortis|\bnote\b/i);
   }
   for (const path of [LESSON_PATH, PAGE_PATH]) expect(readFileSync(path, 'utf8')).not.toMatch(/algebraic data|project note/i);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Hypotheses, provenance and words (the findings of the P5 stage 5.3 review of P5-A3, one assertion or
+// more for each; each fails on the text the review read)
+// ---------------------------------------------------------------------------------------------
+
+test('the corrections of the page are introduced as corrections', async ({ page }) => {
+  // Finding 1: the bold headlines of the list are the correct statements, so the list is introduced as
+  // a list of corrections, not as a list of wrong statements.
+  await page.goto(PAGE_ROUTE);
+  const intro = norm(await page.locator('article ul[data-confusions]').evaluate((el) => el.previousElementSibling?.textContent ?? ''));
+  expect(intro).toBe('Each item below corrects a statement about the mutation game that is sometimes made.');
+  expect(intro).not.toMatch(/wrong/i);
+  for (const headline of await page.locator('article [data-confusion] > strong').allTextContents()) expect(headline, headline).not.toMatch(/\?$/);
+});
+
+test('the two meanings of arrow are kept apart', async ({ page }) => {
+  // Finding 2 (2.16; 2.1): a line between joined nodes is one road each way, so a quiver keeps one road of
+  // each line; an arrowhead sits on a double or triple line, never on a road.
+  for (const route of [ROUTE, PAGE_ROUTE]) {
+    await page.goto(route);
+    const scope = route === ROUTE ? 'aside[data-sidebar="quivers"]' : 'article';
+    const list = sentences(await proseText(page, scope));
+    for (const s of list) expect(s, `${route}: ${s}`).not.toMatch(/\beach road\b[^.]*\bdirection|\bdirection\b[^.]*\beach road\b/i);
+    for (const s of list) expect(s, `${route}: ${s}`).not.toMatch(/\b(?:double|triple) road\b/i);
+    const defining = list.filter((s) => /the result is a quiver/.test(s));
+    expect(defining, route).toHaveLength(1);
+    // (The sentence follows a heading, which has no full stop, so it is read as a substring.)
+    expect(defining[0]).toContain('Keep one of the two roads of each line of a simply laced board (choose a direction for each line), and the result is a quiver');
+  }
+  await page.goto(ROUTE);
+  expect(norm(await proseText(page, 'aside[data-sidebar="quivers"]'))).toContain('An arrowhead on a double or triple line of this site says something else');
+});
+
+test('statements of M8 carry their hypotheses and their provenance', async ({ page }) => {
+  await page.goto(ROUTE);
+  const list = sentences(await proseText(page, 'article'));
+  // Finding 3 (F11): the count det C - 1 is a fact about connected boards of finite type, with its range.
+  const count = list.filter((s) => s.includes('\\det C-1'));
+  expect(count).toHaveLength(1);
+  expect(count[0]).toMatch(/^A connected board of finite type has \\det C-1 minuscule nodes, verified by computation for every such board of rank at most eight\.$/);
+  // Finding 4 (2.18): the move matrix E + F + P0 is a statement about a minuscule orbit.
+  const beat5 = sentences(await proseText(page, '[data-beat="5"]'));
+  expect(beat5[0]).toMatch(/^On a minuscule orbit, firing node k permutes the positions, so its matrix/);
+  // Finding 5 ([BGP73] Theorem 1.1): the hypothesis of the reflection functor.
+  const functor = list.filter((s) => /changes exactly as the population of a city changes/.test(s));
+  expect(functor).toHaveLength(1);
+  expect(functor[0]).toMatch(/^For an indecomposable representation (?:of the quiver )?other than the simple one at that vertex/);
+  // Finding 11: the site shows the positions of one such representation, those of E8 in the figure; no
+  // sentence says that the site shows the positions of the 26 of F4 or of every adjoint representation.
+  const beat6 = sentences(await proseText(page, '[data-beat="6"]'));
+  for (const s of beat6) expect(s, s).not.toMatch(/site shows/i);
+  expect(beat6).toContain('The figure draws these positions.');
+  expect(beat6.findIndex((s) => s === 'The figure draws these positions.') - 1).toBe(beat6.findIndex((s) => /on its own Lie algebra, of dimension/.test(s)));
+  // Finding 12 (1): a statement that a representation of E8 is the smallest is marked as standard.
+  const smallest = list.filter((s) => /smallest (?:nontrivial )?representation/.test(s));
+  expect(smallest.length).toBeGreaterThanOrEqual(2);
+  for (const s of smallest) expect(s, s).toMatch(/standard fact/);
+  // The text alternative of the figure claims nothing more than the beat.
+  expect(norm(await page.locator('[data-static-figure="e8-roots"] svg desc').textContent())).not.toMatch(/smallest/);
+  // Finding 12 (3): the run of a string consists of the positions of the representation, not of every
+  // point of the lattice on that line (beat 1 and the third statement of "What we have seen").
+  const runs = list.filter((s) => /unbroken run/.test(s));
+  expect(runs).toHaveLength(2);
+  for (const s of runs) expect(s, s).toMatch(/its positions on the line through one of them, \\?mu ?, in the direction of \\alpha_i form an unbroken run/);
+});
+
+test('statements of the page carry their hypotheses and their provenance', async ({ page }) => {
+  await page.goto(PAGE_ROUTE);
+  const text = await proseText(page, 'article');
+  const list = sentences(text);
+  // Finding 5 ([BGP73] Theorem 1.1), as on M8.
+  const functor = list.filter((s) => /changes exactly as the population of a city changes/.test(s));
+  expect(functor).toHaveLength(1);
+  expect(functor[0]).toMatch(/^For an indecomposable representation of the quiver other than the simple one at that vertex, which has dimension one there and zero elsewhere,/);
+  // Finding 6 (2.9 row [BKR16]): a sign and a transpose.
+  const bkr = list.filter((s) => /fires negative numbers/.test(s));
+  expect(bkr).toHaveLength(1);
+  expect(bkr[0]).toMatch(/writes the transpose of C ?: negate every number and transpose its matrix to read it in this site's convention/);
+  // Finding 7 (0.3): every "verified by computation" names its range, and only checks of verify.py are
+  // called verified; the form value is that of the population p with a = Cp.
+  const verified = list.filter((s) => /verified/i.test(s));
+  expect(verified.length).toBeGreaterThanOrEqual(2);
+  for (const s of verified) expect(s, s).toMatch(/verified by computation for every (?:simply laced )?board of finite type of rank at most eight/);
+  expect(norm(text)).not.toMatch(/All three statements/i);
+  const keeps = list.filter((s) => /What every move keeps/.test(s));
+  expect(keeps).toHaveLength(1);
+  expect(keeps[0]).toMatch(/^What every move keeps is the form value of the population p with a=Cp ,? ?whose entries may be fractions, verified by computation for every board of finite type of rank at most eight\.$/);
+  // The Hasse diagram is stated with its argument, not as verified: the form value 2 of [W03a] Proposition
+  // 3.5 and the changes of the form value when one Martian is added or removed.
+  const hasse = list.filter((s) => /Hasse diagram/.test(s));
+  expect(hasse).toHaveLength(1);
+  expect(hasse[0]).not.toMatch(/verified/);
+  expect(norm(text)).toMatch(/The argument uses the form value\. On such a board the positive root populations are exactly the populations with no negative entry and form value 2 \[W03a\] \(Proposition 3\.5\)/);
+  expect(norm(text)).toMatch(/2a_i\+2/);
+  expect(norm(text)).toMatch(/every positive root population is met from some starting city/);
+  // The identities of the third confusion with their one-line argument in place of "verified".
+  const third = norm(await proseText(page, '[data-confusion="simply-laced"]'));
+  expect(third).toContain('Both follow from writing the moves as matrices, S_i=I-e_ie_i^{\\mathsf T}C and R_i=I-Ce_ie_i^{\\mathsf T}');
+  expect(third).not.toMatch(/verified/);
+  // Finding 8 (2.4(c)): two different matrices only at a node joined to another (on A1, S_1 = R_1).
+  expect(third).toMatch(/two different matrices at any node joined to another\./);
+  // Kostant's game and its moods cite [Ele16] and [Che17] (2.9; SOURCES 11.3), as M1 does.
+  const kostant = sentences(norm(await page.locator('article h2', { hasText: /^Kostant.s game$/ }).evaluate((h) => {
+    let t = '';
+    for (let el = h.nextElementSibling; el && el.tagName !== 'H2'; el = el.nextElementSibling) t += ` ${el.textContent ?? ''}`;
+    return t;
+  })));
+  expect(kostant[0]).toMatch(/^Kostant['’]s game is attributed to Kostant; \[Ele16\] and \[Che17\] describe it and its moods\.$/);
+  for (const k of ['Ele16', 'Che17', 'W03a']) await expect(page.locator(`article a.cite[data-cite="${k}"]`).first(), k).toBeAttached();
 });
 
 test('links resolve', async ({ page }) => {
@@ -1296,7 +1475,9 @@ test('later uses of a term link to the glossary', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// The statements of the page checked by computation (2.16; F13)
+// The statements of the page, recomputed with the engine (2.16; F13). The page calls verified only what
+// reference/verify.py checks (every raising move adds one Martian; every population met is a positive
+// root); it gives the Hasse diagram with its argument. This test is a check of the engine against both.
 // ---------------------------------------------------------------------------------------------
 
 test("Kostant's game climbs the Hasse diagram of the positive roots on every simply laced board of finite type", () => {
