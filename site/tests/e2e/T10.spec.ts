@@ -930,6 +930,35 @@ test.describe('regressions', () => {
     });
   }
 
+  // DECISIONS.md RT-FIX-P3-follow-predict: "after hydration a control that its own press makes inactive keeps the
+  // focus"; SPEC 7.5 A-1 (WCAG 2.4.3). The T10 controls of the finding (the other tools' are another cluster's).
+  // regression: P4-RT-05-01
+  test('T10 "No rotation" keeps the focus (/tools/geometry/?g=D4)', async ({ page }) => {
+    await page.goto(`${ROUTE}?g=D4`);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    const plus = control(page, 'rotatePlus');
+    await expect(plus).toBeEnabled();
+    await plus.focus();
+    await page.keyboard.press('Enter');
+    const none = control(page, 'rotateReset');
+    await expect(none).toBeEnabled();
+    await none.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(500);
+    expect(await focusAfter(page), '/tools/geometry/?g=D4: document.activeElement after Enter on "No rotation"').not.toBe('BODY');
+  });
+  // regression: P4-RT-05-01
+  test('T10 "Draw the orbit" keeps the focus in the tool (/tools/geometry/?g=E8&r=0.1.0.0.0.0.0.0)', async ({ page }) => {
+    await page.goto(`${ROUTE}?g=E8&r=0.1.0.0.0.0.0.0`);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    const draw = control(page, 'drawOrbit');
+    await draw.waitFor();
+    await draw.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1000);
+    expect(await focusAfter(page), 'document.activeElement after Enter on "Draw the orbit"').not.toBe('BODY');
+  });
+
   // SPEC 2.14 [V]: the squared length of the base edge at a ringed node i is 2 d_i a_i^2, an integer; with equal
   // rings on a simply laced board, one length. 4.0 Long numbers: above 12 digits the value is shown shortened,
   // with the exact digits in the tooltip and in the export.

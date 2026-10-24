@@ -720,8 +720,19 @@
   }
 
   function resetRotation(announce: (t: string) => void): void {
+    if (rotation === null) return; // the button is done (aria-disabled) but keeps the focus
     rotation = null;
     announce('Rotation in coordinate planes undone.');
+  }
+
+  /**
+   * "Draw the orbit" leaves the page once the drawing starts: a focus left on it moves to the output lines,
+   * inside the tool, never to the page (A-1, WCAG 2.4.3; as T4's keep counting).
+   */
+  let linesBox: HTMLElement | null = $state(null);
+  function drawOrbit(event: MouseEvent, announce: (t: string) => void): void {
+    if (document.activeElement === event.currentTarget) linesBox?.focus();
+    void startLoad('reader', announce);
   }
 
   /** u and r while the focus is inside the ring board (A-1): undo and redo the ring edits. */
@@ -997,7 +1008,8 @@
         ></canvas>
       </div>
     </div>
-    <div class="lines">
+    <!-- tabindex -1: where the focus goes when "Draw the orbit" leaves the page (drawOrbit). -->
+    <div class="lines" tabindex="-1" bind:this={linesBox}>
       <p class="line summary" data-out="summary">
         <span data-out="vertexCount">{core.counts.vertices}</span>
         {core.counts.vertices === 1 ? 'vertex' : 'vertices'},
@@ -1012,9 +1024,7 @@
       {#if orbit.kind === 'wait' && orbit.key === key}
         <p class="line">
           This orbit needs more than {CAPS.mainThreadItems} items computed in the background.
-          <button type="button" class="control" data-control="drawOrbit" disabled={!api.hydrated || frozen} onclick={() => void startLoad('reader', api.announce)}
-            >Draw the orbit</button
-          >
+          <button type="button" class="control" data-control="drawOrbit" disabled={!api.hydrated || frozen} onclick={(e) => drawOrbit(e, api.announce)}>Draw the orbit</button>
         </p>
       {/if}
       {#if orbit.kind === 'error' && orbit.key === key}
@@ -1213,7 +1223,16 @@
       >
       <button type="button" class="control" data-control="rotatePlus" disabled={!api.hydrated || planeA === planeB} onclick={() => rotatePlane(1, api.announce)}>Rotate +{PLANE_STEP}</button>
       <button type="button" class="control" data-control="rotateMinus" disabled={!api.hydrated || planeA === planeB} onclick={() => rotatePlane(-1, api.announce)}>Rotate −{PLANE_STEP}</button>
-      <button type="button" class="control" data-control="rotateReset" disabled={!api.hydrated || rotation === null} onclick={() => resetRotation(api.announce)}>No rotation</button>
+      <!-- With no rotation left the button is done but keeps the focus (aria-disabled; disabled only before
+           hydration, 7.4); resetRotation() ignores the press. -->
+      <button
+        type="button"
+        class="control"
+        data-control="rotateReset"
+        disabled={!api.hydrated}
+        aria-disabled={rotation === null ? 'true' : undefined}
+        onclick={() => resetRotation(api.announce)}>No rotation</button
+      >
     </div>
   {/if}
 {/snippet}
@@ -1386,7 +1405,8 @@
     border: 1px solid var(--sign-zero-outline);
     border-radius: 6px;
   }
-  .faces:focus-visible {
+  .faces:focus-visible,
+  .lines:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
   }
