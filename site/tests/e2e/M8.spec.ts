@@ -863,6 +863,69 @@ test('numbers in prose', () => {
   }
 });
 
+/**
+ * The literal text the lesson source gives to the captions, questions, reveals, goals and explanations of
+ * its tools and challenges (string and template literals, with every ${...} interpolation removed), by
+ * instance id and property.
+ */
+function literalTexts(source: string): { where: string; text: string }[] {
+  const found: { where: string; text: string }[] = [];
+  for (const tag of source.matchAll(/<(T12RepresentationBuilder|Challenge)\b[\s\S]*?\/>/g)) {
+    const t = tag[0];
+    const id = /\b(?:id|for)="(b\d+)"/.exec(t)?.[1] ?? '?';
+    const props = [
+      ...[...t.matchAll(/\b(caption|goal|explanation)="([^"]*)"/g)].map((m) => [m[1]!, m[2]!]),
+      ...[...t.matchAll(/\b(caption|goal|explanation)=\{`([^`]*)`\}/g)].map((m) => [m[1]!, m[2]!]),
+      ...[...t.matchAll(/\b(question|reveal): '([^']*)'/g)].map((m) => [m[1]!, m[2]!]),
+      ...[...t.matchAll(/\b(question|reveal): `([^`]*)`/g)].map((m) => [m[1]!, m[2]!]),
+    ];
+    for (const [prop, text] of props) found.push({ where: `${id} ${prop}`, text: text.replace(/\$\{[^}]*\}/g, ' ') });
+  }
+  return found;
+}
+
+/**
+ * What a literal may type besides names, labels and the positions of beat 1 (instruction 5.8): matrix
+ * entries 1 and -1 (b3), the number 0 on node 1 after two firings (b1 reveal), mu_i = 3 and the numbers 2,
+ * 0, -2 of the orbit of (2, 0) (string challenge), the number 2 in the orbit of node 2 of D4 (D4 challenge).
+ */
+const LITERAL_ALLOWED: Record<string, string[]> = {
+  'b3 caption': ['1', '-1'],
+  'b1 reveal': ['0'],
+  'b9 explanation': ['3', '2', '0', '-2'],
+  'b10 explanation': ['2'],
+};
+/** Names and labels: board names, names with a node label, node labels, beat numbers, columns, relations. */
+function withoutNamesAndLabels(text: string): string {
+  return text
+    .replace(/−/g, '-')
+    .replace(/\[E1, F[12]\] = (?:H1|0)/g, ' ')
+    .replace(/\b[A-H]\d\b/g, ' ')
+    .replace(/(?<![\w])(?:[eEFH]\d|ω\d)(?![\w])/g, ' ')
+    .replace(/\b[Nn]odes? \d+(?:(?:,| and) \d+)*/g, ' ')
+    .replace(/\bbeat \d\b/g, ' ')
+    .replace(/\bnode [ij] is \d\b/g, ' ')
+    .replace(/\bcolumn \d of C\b/g, ' ');
+}
+
+test('numbers typed in captions, questions, reveals, goals and explanations', () => {
+  const texts = literalTexts(readFileSync(LESSON_PATH, 'utf8'));
+  // Every caption of the twelve tools, both predictions and the four challenges are read.
+  expect(texts.filter((t) => t.where.endsWith('caption')).length).toBe(TOOLS.length - CHALLENGE_TOOLS.filter((c) => c.id !== 'b9').length);
+  expect(texts.filter((t) => /question|reveal/.test(t.where)).length).toBe(4);
+  expect(texts.filter((t) => /goal|explanation/.test(t.where)).length).toBe(2 * CHALLENGE_TOOLS.length);
+  const typedTuples = new Set(['2,0', '-2,2', '0,-2']);
+  const unexplained: string[] = [];
+  for (const { where, text } of texts) {
+    const rest = withoutNamesAndLabels(text).replace(/\(([^()]*\d[^()]*)\)/g, (m, inner: string) => {
+      if (!typedTuples.has(inner.replace(/\s+/g, ''))) unexplained.push(`${where}: ${m}`);
+      return ' ';
+    });
+    for (const v of rest.match(/-?\d+/g) ?? []) if (!(LITERAL_ALLOWED[where] ?? []).includes(v)) unexplained.push(`${where}: ${v} in ${text}`);
+  }
+  expect(unexplained).toEqual([]);
+});
+
 test('numbers in captions, questions, reveals, goals and explanations are golden or allowed', async ({ page }) => {
   await page.goto(ROUTE);
   const texts: { where: string; board: string; text: string }[] = [];
