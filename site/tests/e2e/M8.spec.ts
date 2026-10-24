@@ -708,8 +708,15 @@ type Allowed = { text: string; around: RegExp; reason: string };
 /** Names, not numbers: board names (A_2, E_8), subscripted names of a node (e_1, F_1, \omega_i). */
 const NAME = /^(?:[A-H]_\d|[A-H]_\{?n\}?|[eEFHPs]_\d|\\omega_[i\d])$/;
 const ALLOWED_M8: Allowed[] = [
+  // Positions with no golden record (instruction 5.8, "M8, beats 1 to 6").
+  { text: '(2,0)', around: /string through|orbit of|orbit holds/, reason: 'the start (2, 0) of the string of beat 1, which is not a minuscule orbit' },
+  { text: '(-2,2)', around: /dynkin_labels\[1\]"\/> and <Tex src="\(-2,2\)"|holds <Tex src="\(2,0\)"\/>, <Tex src="\(-2,2\)"/, reason: 'the fired end of the string through (2, 0), in its orbit' },
+  { text: '(0,-2)', around: /<Tex src="\(-2,2\)"\/> and <Tex src="\(0,-2\)"\/> only/, reason: 'the third position of the orbit of (2, 0)' },
+  // The zero vector, and a matrix entry 1.
+  { text: '0', around: /leave the orbit gives|every other case gives|sends it to|on node \$k\$ is|sends the others to/, reason: 'the zero vector, or the number 0 of the projection P^0' },
+  { text: '1', around: /holds a single <Tex src="1"\/> in each column/, reason: 'a matrix entry of a permutation matrix' },
   // Constants of the recipe and of the formulas of 2.18 (instruction 5.8: matrix entries 0, 1, -1).
-  { text: 'H_1=\\operatorname{diag}(1,-1)', around: /\$E_1\$ sends it back/, reason: 'the diagonal entries of H1, typed as matrix entries (instruction 5.8)' },
+  { text: 'H_1=\\operatorname{diag}(1,-1)', around: /<Tex src="E_1"\/> sends it back/, reason: 'the diagonal entries of H1, typed as matrix entries (instruction 5.8)' },
   { text: '\\mu_k=1', around: /reaches if|exactly when/, reason: 'the condition of F_k in the recipe of 2.18' },
   { text: '\\mu_k=-1', around: /that position if/, reason: 'the condition of E_k in the recipe of 2.18' },
   { text: '-1', around: /fundamental position(?:<\/Term>)? is|raised to its number/, reason: 'a number of a minuscule orbit; the base of (-1)^H' },
@@ -780,12 +787,7 @@ const ALLOWED_PAGE: Allowed[] = [
  * and a pattern for its context (the line around it, as the script reports it).
  */
 type AllowedFinding = { number: string; context: RegExp; reason: string };
-const FORMULAS_M8: AllowedFinding[] = [
-  { number: '2', context: /\$\(2,0\)\$|\$\(-2,2\)\$/, reason: 'the positions (2, 0) and (-2, 2) of beat 1, no golden record (instruction 5.8)' },
-  { number: '0', context: /\$\(2,0\)\$|\$\(0,-2\)\$|\$0\$/, reason: 'the positions (2, 0) and (0, -2) of beat 1; the zero vector or a matrix entry 0' },
-  { number: '-2', context: /\$\(-2,2\)\$|\$\(0,-2\)\$/, reason: 'the positions (-2, 2) and (0, -2) of the orbit of (2, 0)' },
-  { number: '1', context: /\$[eEF]_1\$|a single \$1\$/, reason: 'the label 1 in the names e1, E1, F1; a matrix entry 1 of a permutation matrix' },
-];
+const FORMULAS_M8: AllowedFinding[] = [];
 const FORMULAS_PAGE: AllowedFinding[] = [];
 
 /** Every <Tex> source (golden paths removed) and brace string of a source that holds a digit, with its index. */
@@ -847,7 +849,7 @@ test('numbers in prose', () => {
   const outsideGolden = lesson.replace(/<G\b[^>]*\/>/g, ' ').replace(/\{\{[^}]*\}\}/g, ' ').replace(/^export .*$/gm, ' ');
   const deny: [RegExp, string][] = [
     [/3\s*(?:×|\\times)\s*3/, 'a typed size 3 by 3'],
-    [/\b(?:2|3|6|8|27|56) by \1\b/, 'a typed matrix size'],
+    [/\b(2|3|6|8|27|56) by \1\b/, 'a typed matrix size'],
     [/\(\s*1\s*,\s*0\s*\)|\(\s*0\s*,\s*-\s*1\s*\)|\(\s*-\s*1\s*,\s*1\s*\)|\(\s*0\s*,\s*1\s*\)|\(\s*[−-]1\s*,\s*1\s*\)|\(\s*0\s*,\s*[−-]1\s*\)/, 'a golden position of A2 typed'],
     [/\(\s*[−-]?1\s*\)(?!\^)/, 'a golden position of A1 typed (the formula (-1)^H is not one)'],
     [/\b8 zeros\b|\b240 roots\b|\b248-dimensional\b|\b248\b|\b240\b/, 'the counts of E8'],
