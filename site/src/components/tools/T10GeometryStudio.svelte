@@ -284,7 +284,8 @@
   const figureLabel = $derived(figureText(facts, current.graph));
   const values = $derived(toPositionVector(ringBoard, target.rings));
   const spoken = $derived(values.map((v) => `${v}, ${v === 0 ? 'not ringed' : 'ringed'}`));
-  const canActAll = $derived(values.map(() => true));
+  // Every node can be ringed, except while a prediction freezes the board (4.0 Predict; 6.3: no second ring then).
+  const canActAll = $derived(values.map(() => !frozen));
   const states = $derived(values.map(() => null));
   const groups = $derived.by(() => {
     const out: { letter: string; names: string[] }[] = [];

@@ -888,6 +888,26 @@ test.describe('regressions', () => {
     return clsOf(shifts);
   }
 
+  // SPEC 6.3 ("May act here ... is shown by a second ring"), 4.0 Predict ("The board is frozen until the reader
+  // has answered or pressed show me") and 4.0 Test hooks (data-can-act): a frozen ring board shows no node as
+  // able to act (data-ring is Board.svelte's hook of the second ring).
+  for (const id of ['b4', 'b7']) {
+    // regression: P4-RT-05-06
+    test(`the frozen ring board of M7 ${id} shows no node as able to act`, async ({ page }) => {
+      await page.goto(M7);
+      const tool = instance(page, id);
+      await tool.scrollIntoViewIfNeeded();
+      await expect(tool).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      const nodes = tool.locator('[data-board-group] button[data-node]');
+      await expect(nodes.first()).toHaveAttribute('aria-disabled', 'true');
+      const rows = await nodes.evaluateAll((bs) =>
+        bs.map((b) => `node ${(b as HTMLElement).dataset.node}: aria-disabled=${b.getAttribute('aria-disabled')} data-can-act=${(b as HTMLElement).dataset.canAct} data-ring=${(b as HTMLElement).dataset.ring}`),
+      );
+      expect(rows.length).toBe(3);
+      for (const r of rows) expect(r, `/modules/m7-geometry/ ${id} before the prediction is answered`).toMatch(/aria-disabled=true data-can-act=false data-ring=false$/);
+    });
+  }
+
   // SPEC 2.14 [V]: the squared length of the base edge at a ringed node i is 2 d_i a_i^2, an integer; with equal
   // rings on a simply laced board, one length. 4.0 Long numbers: above 12 digits the value is shown shortened,
   // with the exact digits in the tooltip and in the export.
