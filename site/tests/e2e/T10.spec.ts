@@ -1033,4 +1033,26 @@ test.describe('regressions', () => {
     expect(await page2.locator('[data-tool] [data-out="notice"]').count(), 'notice on the copied link').toBe(0);
   });
 
+  // SPEC 7.6: "Tools reserve their box size in the HTML so that hydration does not shift the page." A T10 with a
+  // prediction keeps its box when Predict.svelte arrives and replaces the question of the server markup.
+  for (const width of [360, 320]) {
+    // regression: P4-RT-07-02
+    test(`M7 b4 and b7 (with a prediction) keep their height when they hydrate, at ${width} px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.route(KATEX_FONTS, (r) => r.abort());
+      await page.goto(M7, { waitUntil: 'load' });
+      const before = await serverHeights(page);
+      for (const id of ['b4', 'b7']) {
+        expect(before[id], `${id} has not hydrated yet`).toBeGreaterThan(0);
+        const tool = instance(page, id);
+        await tool.scrollIntoViewIfNeeded();
+        await expect(tool).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+        // Predict.svelte has arrived and shows its answer form.
+        await expect(tool.locator('[data-prediction] [data-control="predictCheck"]')).toBeEnabled({ timeout: 15000 });
+        const after = await tool.evaluate((r) => r.getBoundingClientRect().height);
+        expect(Math.abs(after - before[id]!), `${id}: height ${before[id]} before hydration, ${after} after`).toBeLessThanOrEqual(1);
+      }
+    });
+  }
+
 });

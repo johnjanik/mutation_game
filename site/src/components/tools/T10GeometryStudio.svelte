@@ -1084,9 +1084,35 @@
         <PredictComponent {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
       {:else}
         <!-- Before Predict.svelte arrives, and without JavaScript (4.0 Predict): the question, then a <details> with the answer
-             and the reveal, in Predict.svelte's markup (the answer in .answer-text, the empty result line; RT-FIX P4-MERGE-02). -->
+             and the reveal, in Predict.svelte's markup (the answer in .answer-text, the empty result line; RT-FIX P4-MERGE-02).
+             Its answer form stands too, with its controls disabled until Predict.svelte arrives (4.0, 7.4), laid out by
+             Predict.svelte's rules, so that the form that replaces it has the same box (7.6; RT-FIX P4-RT-07-02). -->
         <div class="predict" data-prediction="">
-          <p class="question">{prediction.question}</p>
+          <p class="question" id="{svgId}-q">{prediction.question}</p>
+          <div class="answer" role="group" aria-labelledby="{svgId}-q">
+            {#if prediction.answer.type === 'number'}
+              <label class="field">
+                <span>Your answer</span>
+                <input type="text" inputmode="numeric" class="number" data-control="predictAnswer" disabled />
+              </label>
+            {:else if prediction.answer.type === 'position'}
+              {#each Array.from({ length: prediction.answer.value.length }, (_, k) => k) as k (k)}
+                <label class="field">
+                  <span>{labels[k] !== undefined ? `Node ${labels[k]}` : `Entry ${k + 1}`}</span>
+                  <input type="text" inputmode="numeric" size="4" data-control="predictAnswer" disabled />
+                </label>
+              {/each}
+            {:else}
+              {#each prediction.answer.options as option, k (k)}
+                <label class="choice">
+                  <input type="radio" name="{svgId}-choice" value={k} data-control="predictAnswer" disabled />
+                  <span>{option}</span>
+                </label>
+              {/each}
+            {/if}
+            <button type="button" class="control" data-control="predictCheck" disabled>Check</button>
+            <button type="button" class="control" data-control="predictShow" disabled>Show me</button>
+          </div>
           <p class="line" data-out="predictResult"></p>
           <details class="nojs-answer">
             <summary>Answer</summary>
@@ -1377,6 +1403,55 @@
   .lines {
     display: grid;
     gap: 2px;
+  }
+  /* The prediction before Predict.svelte arrives, laid out by Predict.svelte's own rules (its .predict, .question,
+     .line, .answer, .field, .choice, text input, .number and summary; its .control is 44 pixels high, as T10's), so
+     that the form replacing it keeps the box (7.6; RT-FIX P4-RT-07-02). The summary is reached through :global, so
+     that the markup of the <details> stays Predict.svelte's. */
+  .predict {
+    display: grid;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--sign-zero-outline);
+    border-radius: 6px;
+  }
+  .predict .question {
+    margin: 0;
+  }
+  /* Predict.svelte's result line keeps its height while it is empty; T10's own empty lines take none (.line:empty). */
+  .predict .line,
+  .predict .line:empty {
+    min-height: 1.5em;
+  }
+  .predict .answer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .predict .field,
+  .predict .choice {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    min-height: 44px;
+  }
+  .predict input[type='text'] {
+    min-height: 36px;
+    min-width: 44px;
+    font: inherit;
+    color: var(--text);
+    background: var(--page);
+    border: 1px solid var(--text);
+    border-radius: 4px;
+    padding: 0 6px;
+  }
+  .predict .number {
+    width: 8em;
+  }
+  .predict :global(summary) {
+    min-height: 44px;
+    line-height: 44px;
   }
   .line {
     margin: 0;
