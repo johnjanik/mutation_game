@@ -27,12 +27,14 @@
   import type { OrbitGraph } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
+  import { shortcutOf } from '../board/keyboard';
   import type PredictType from '../board/Predict.svelte';
   import { predictionAnswerText } from './t01/interop';
+  import { isLong, shortValue } from './t01/longNumber';
   import { decodeState } from '../../lib/urlCodec';
   import { engineCall, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
-  import type { ToolState } from '../../lib/state';
+  import { integerOut, type ToolState } from '../../lib/state';
   import type { Prediction } from '../../tools/types';
   import { formatProjection, type FloatMatrix, type Projection } from '../draw/projector';
   import type { PresetManifest } from '../draw/presetsT10';
@@ -84,7 +86,7 @@
   } from './t10/scene';
   import { labelsOf, moveEdgeColour, moveGraphFitsOneTask, sharedEdgeCount, type MoveEdge } from './t10/graphs';
   import { coxeterStats, distinctDotsText, ringSizesText } from './t10/coxeter';
-  import { baseEdgeLengths, distinctLengths, lengthText, replayVertices, uniformStart } from './t10/uniform';
+  import { distinctLengths, lengthText, replayVertices, shownEdgeLengths, uniformStart } from './t10/uniform';
   import { buildPicture, drawPicture, projectionOf, rotateInPlane, type Picture, type PictureColours } from './t10/drawing';
   import { snapshotOf, ssrNames } from './t10/snapshot';
   import { boardNameHtml, polytopeNameHtml, type NameLookup } from './t10/names';
@@ -267,19 +269,55 @@
   const stats = $derived(plane && ys !== null ? coxeterStats([...ys, ...shortYs]) : null);
   const shared = $derived(data !== null && data.polytopeEdges !== null && data.moveEdges !== null ? sharedEdgeCount(data.polytopeEdges, data.moveEdges) : null);
   const moveCount = $derived(data?.moveEdges?.length ?? null);
-  const edgeCountText = $derived(current.graph === 'moves' ? (moveCount === null ? '' : String(moveCount)) : String(core.counts.edges));
+
+  // The output lines of the server markup, kept on hydration (7.6; RT-FIX P4-RT-07-01).
+  /** The outputs of the server markup that come from the orbit's edges or from its drawing. */
+  interface ServerLines {
+    source: string;
+    shared: string;
+    points: string;
+    edges: string;
+    edgeCount: string;
+    legend: number[];
+  }
+  /**
+   * The server renders the configured orbit complete (from its data file, or computed in-process); the browser
+   * has only its vertices at hydration and loads the rest in tasks of its own. The lines that depend on the rest
+   * are read once from the server markup on hydration ($props.id gives this instance the same id on both sides)
+   * and shown until the browser's own value of each arrives, so that hydration empties no line and shifts
+   * nothing (7.6: tools reserve their box size so that hydration does not shift the page). Null when the tool
+   * was not server rendered.
+   */
+  function readServerLines(): ServerLines | null {
+    const box = typeof document === 'undefined' ? null : document.getElementById(`${svgId}-figure`);
+    if (box === null) return null;
+    const text = (name: string): string => (box.querySelector(`[data-out="${name}"]`)?.textContent ?? '').trim();
+    const legend = [...box.querySelectorAll<HTMLElement>('[data-legend-label]')].map((e) => Number(e.dataset.legendLabel));
+    return { source: text('source'), shared: text('sharedEdges'), points: text('pointsDrawn'), edges: text('edgesDrawn'), edgeCount: text('edgeCount'), legend };
+  }
+  const serverLines = import.meta.env.SSR ? null : readServerLines();
+  /** The server's lines describe what is shown: the configured state, at rest, with no display option. */
+  const keepServerLines = $derived(serverLines !== null && current === configured.config && !uniform && !showShort && rotation === null);
+  const sourceText = $derived(complete && data !== null ? data.source : keepServerLines ? serverLines!.source : '');
+  const sharedText = $derived(shared !== null ? String(shared) : keepServerLines ? serverLines!.shared : '');
+  const edgeCountText = $derived(current.graph === 'moves' ? (moveCount !== null ? String(moveCount) : keepServerLines ? serverLines!.edgeCount : '') : String(core.counts.edges));
   const moveLimit = $derived(current.graph === 'moves' && moveCount !== null && moveCount > CAPS.edgesAtRest ? edgeLimitText(moveCount) : '');
   const limitMessage = $derived(core.decision.verticesOnly && current.graph === 'polytope' ? edgeLimitText(core.counts.edges) : moveLimit);
   const refused = $derived(core.decision.refused ? refusalText(core.counts.vertices) : '');
   const pointCount = $derived(core.decision.refused ? 0 : core.counts.vertices + shortYs.length);
-  const lengths = $derived(core.decision.refused ? [] : baseEdgeLengths(board, P, uniformOn ? uniformStart(board, current.rings) : toPositionVector(board, current.rings)));
+  // The squared lengths are integers, exact (2.14; RT-FIX P4-RT-04-04); above 12 digits one is shown shortened,
+  // with its exact digits in the tooltip and in the export (4.0 Long numbers).
+  const lengths = $derived(core.decision.refused ? [] : shownEdgeLengths(board, current.rings, uniformOn));
   const lengthValues = $derived(distinctLengths(lengths));
+  const lengthShown = (text: string): string => (isLong(text) ? shortValue(text) : text);
+  const lengthsTitle = $derived(lengthValues.some(isLong) ? lengthValues.join(', ') : undefined);
   const canTurn = $derived(n >= 4 || (n === 3 && projection.view.kind === 'xyz'));
   const turnText = $derived(projection.turn.map((t) => ((t % 360) + 360) % 360).join(', '));
   const figureLabel = $derived(figureText(facts, current.graph));
   const values = $derived(toPositionVector(ringBoard, target.rings));
   const spoken = $derived(values.map((v) => `${v}, ${v === 0 ? 'not ringed' : 'ringed'}`));
-  const canActAll = $derived(values.map(() => true));
+  // Every node can be ringed, except while a prediction freezes the board (4.0 Predict; 6.3: no second ring then).
+  const canActAll = $derived(values.map(() => !frozen));
   const states = $derived(values.map(() => null));
   const groups = $derived.by(() => {
     const out: { letter: string; names: string[] }[] = [];
@@ -291,7 +329,7 @@
     }
     return out;
   });
-  const legendLabels = $derived(current.graph === 'moves' && data?.moveEdges ? labelsOf(data.moveEdges) : []);
+  const legendLabels = $derived(current.graph !== 'moves' ? [] : data?.moveEdges ? labelsOf(data.moveEdges) : keepServerLines ? serverLines!.legend : []);
 
   // The page's highlight (7.4): a position or root of this board that another tool points at.
   const highlighted = $derived.by((): number | null => {
@@ -713,8 +751,28 @@
   }
 
   function resetRotation(announce: (t: string) => void): void {
+    if (rotation === null) return; // the button is done (aria-disabled) but keeps the focus
     rotation = null;
     announce('Rotation in coordinate planes undone.');
+  }
+
+  /**
+   * "Draw the orbit" leaves the page once the drawing starts: a focus left on it moves to the output lines,
+   * inside the tool, never to the page (A-1, WCAG 2.4.3; as T4's keep counting).
+   */
+  let linesBox: HTMLElement | null = $state(null);
+  function drawOrbit(event: MouseEvent, announce: (t: string) => void): void {
+    if (document.activeElement === event.currentTarget) linesBox?.focus();
+    void startLoad('reader', announce);
+  }
+
+  /** u and r while the focus is inside the ring board (A-1): undo and redo the ring edits. */
+  function onRingKeydown(event: KeyboardEvent, announce: (t: string) => void): void {
+    const action = shortcutOf(event);
+    if (action === null) return;
+    event.preventDefault();
+    if (action === 'undo') undo(announce);
+    else redo(announce);
   }
 
   function setGraph(g: T10Graph, announce: (t: string) => void): void {
@@ -780,6 +838,9 @@
   let snapshotKey = orbitKey(configured.config.board, configured.config.rings) + `|${configured.config.projection}|${configured.config.graph}|u0|s0|r0`;
 
   const viewKey = $derived(`${key}|${current.projection}|${current.graph}|u${uniformOn ? 1 : 0}|s${showShort ? 1 : 0}|r${rotation === null ? 0 : 1}`);
+  // The drawn counts: the canvas's, else the snapshot's (server rendering), else those the server markup showed.
+  const pointsText = $derived(pointsDrawn !== null ? String(pointsDrawn) : ssr !== null ? String(ssr.points) : keepServerLines ? serverLines!.points : '');
+  const edgesDrawnText = $derived(edgesDrawn !== null ? String(edgesDrawn) : ssr !== null ? String(ssr.segments) : keepServerLines ? serverLines!.edges : '');
 
   let colourCache: { key: string; value: PictureColours } | null = null;
   function colours(): PictureColours {
@@ -953,7 +1014,7 @@
       distinctDots: stats === null ? null : stats.distinct,
       shortRoots: shortPositions === null ? null : shortPositions.map((v) => toLabelVector(board, v)),
       uniform: uniformOn,
-      edgeLengthsSquared: lengths.map((l) => ({ node: l.label, squared: lengthText(l.squared) })),
+      edgeLengthsSquared: lengths.map((l) => ({ node: l.label, squared: integerOut(l.squared) })),
       rotationInPlanes: rotation,
     };
   }
@@ -961,7 +1022,7 @@
 
 {#snippet figure(api: FrameApi)}
   {remember(api)}
-  <div class="t10" data-board-name={current.board}>
+  <div class="t10" id="{svgId}-figure" data-board-name={current.board}>
     <p class="names">
       <span class="board-name" data-out="boardName" data-name={current.board}>{@html boardNameHtml(current.board, katex)}</span>{#if core.name !== null}<span class="sep">{': '}</span><span class="polytope-name" data-out="polytopeName">{@html polytopeNameHtml(core.name, katex)}</span>{:else}<span data-out="polytopeName"></span>{/if}
     </p>
@@ -981,7 +1042,8 @@
         ></canvas>
       </div>
     </div>
-    <div class="lines">
+    <!-- tabindex -1: where the focus goes when "Draw the orbit" leaves the page (drawOrbit). -->
+    <div class="lines" tabindex="-1" bind:this={linesBox}>
       <p class="line summary" data-out="summary">
         <span data-out="vertexCount">{core.counts.vertices}</span>
         {core.counts.vertices === 1 ? 'vertex' : 'vertices'},
@@ -996,9 +1058,7 @@
       {#if orbit.kind === 'wait' && orbit.key === key}
         <p class="line">
           This orbit needs more than {CAPS.mainThreadItems} items computed in the background.
-          <button type="button" class="control" data-control="drawOrbit" disabled={!api.hydrated || frozen} onclick={() => void startLoad('reader', api.announce)}
-            >Draw the orbit</button
-          >
+          <button type="button" class="control" data-control="drawOrbit" disabled={!api.hydrated || frozen} onclick={(e) => drawOrbit(e, api.announce)}>Draw the orbit</button>
         </p>
       {/if}
       {#if orbit.kind === 'error' && orbit.key === key}
@@ -1007,7 +1067,7 @@
       <p class="line">
         View: <span data-out="projection">{current.projection}</span>; turn <span data-out="turn">{turnText}</span> degrees; graph
         <span data-out="graph">{current.graph}</span>; drawn from
-        <span data-out="source">{complete && data !== null ? data.source : ''}</span>.
+        <span data-out="source">{sourceText}</span>.
       </p>
       <p class="line">
         Ring sizes in this plane, innermost first: <span class="numeral" data-out="ringSizes" data-radii={stats === null ? '' : stats.rings.map(([r]) => r).join(',')}
@@ -1015,17 +1075,23 @@
         >. <span data-out="distinctDots">{stats === null ? '' : (distinctDotsText(stats) ?? '')}</span>
       </p>
       <p class="line">
-        Shared with the other graph: <span data-out="sharedEdges">{shared ?? ''}</span>; squared lengths of the edges at the start:
-        <span class="numeral" data-out="edgeLengths" data-count={lengthValues.length}>{lengthValues.join(', ')}</span>
-        ({lengths.map((l) => `node ${l.label}: ${lengthText(l.squared)}`).join('; ')}); make uniform:
+        Shared with the other graph: <span data-out="sharedEdges">{sharedText}</span>; squared lengths of the edges at the start:
+        <span class="numeral" data-out="edgeLengths" data-count={lengthValues.length} title={lengthsTitle}>{lengthValues.map(lengthShown).join(', ')}</span>
+        ({lengths.map((l) => `node ${l.label}: ${lengthShown(lengthText(l.squared))}`).join('; ')}); make uniform:
         <span data-out="uniform">{core.uniformMatters ? (uniformOn ? 'on' : 'off') : 'not needed'}</span>; short roots:
         <span data-out="shortRoots">{core.shortRings === null ? 'none on this board' : showShort ? `shown, ${shortYs.length}` : 'hidden'}</span>.
       </p>
       <p class="line small">
-        Drawn: <span data-out="pointsDrawn">{pointsDrawn ?? (ssr !== null ? ssr.points : '')}</span> points,
-        <span data-out="edgesDrawn">{edgesDrawn ?? (ssr !== null ? ssr.segments : '')}</span> edges, in
-        <span data-out="drawMs" data-measured="">{drawMs === null ? '' : (Math.round(drawMs * 10) / 10).toFixed(1)}</span> ms; edits:
+        Drawn: <span data-out="pointsDrawn">{pointsText}</span> points,
+        <span data-out="edgesDrawn">{edgesDrawnText}</span> edges; edits:
         <span data-out="edits">{past.length}</span>.
+      </p>
+      <!-- The time is measured on the reader's machine (data-measured): its words are shown with it, never around an
+           empty time (before hydration, without JavaScript; RT-FIX P4-RT-06-03). The line keeps its height while
+           empty, so that the time arriving moves nothing (7.6). -->
+      <p class="line small">
+        {drawMs === null ? '' : 'Drawing time: '}<span data-out="drawMs" data-measured="">{drawMs === null ? '' : (Math.round(drawMs * 10) / 10).toFixed(1)}</span
+        >{drawMs === null ? '' : ' ms.'}
       </p>
     </div>
     <div class="legend" data-out="legend">
@@ -1052,9 +1118,35 @@
         <PredictComponent {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
       {:else}
         <!-- Before Predict.svelte arrives, and without JavaScript (4.0 Predict): the question, then a <details> with the answer
-             and the reveal, in Predict.svelte's markup (the answer in .answer-text, the empty result line; RT-FIX P4-MERGE-02). -->
+             and the reveal, in Predict.svelte's markup (the answer in .answer-text, the empty result line; RT-FIX P4-MERGE-02).
+             Its answer form stands too, with its controls disabled until Predict.svelte arrives (4.0, 7.4), laid out by
+             Predict.svelte's rules, so that the form that replaces it has the same box (7.6; RT-FIX P4-RT-07-02). -->
         <div class="predict" data-prediction="">
-          <p class="question">{prediction.question}</p>
+          <p class="question" id="{svgId}-q">{prediction.question}</p>
+          <div class="answer" role="group" aria-labelledby="{svgId}-q">
+            {#if prediction.answer.type === 'number'}
+              <label class="field">
+                <span>Your answer</span>
+                <input type="text" inputmode="numeric" class="number" data-control="predictAnswer" disabled />
+              </label>
+            {:else if prediction.answer.type === 'position'}
+              {#each Array.from({ length: prediction.answer.value.length }, (_, k) => k) as k (k)}
+                <label class="field">
+                  <span>{labels[k] !== undefined ? `Node ${labels[k]}` : `Entry ${k + 1}`}</span>
+                  <input type="text" inputmode="numeric" size="4" data-control="predictAnswer" disabled />
+                </label>
+              {/each}
+            {:else}
+              {#each prediction.answer.options as option, k (k)}
+                <label class="choice">
+                  <input type="radio" name="{svgId}-choice" value={k} data-control="predictAnswer" disabled />
+                  <span>{option}</span>
+                </label>
+              {/each}
+            {/if}
+            <button type="button" class="control" data-control="predictCheck" disabled>Check</button>
+            <button type="button" class="control" data-control="predictShow" disabled>Show me</button>
+          </div>
           <p class="line" data-out="predictResult"></p>
           <details class="nojs-answer">
             <summary>Answer</summary>
@@ -1064,8 +1156,10 @@
         </div>
       {/if}
     {/if}
-    <!-- The node the ring buttons act on is the last one focused (keyboard or click), never one merely hovered. -->
-    <div class="rings" onfocusin={onRingFocus}>
+    <!-- The node the ring buttons act on is the last one focused (keyboard or click), never one merely hovered.
+         u and r undo and redo the ring edits while the focus is inside the board (A-1). -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="rings" onfocusin={onRingFocus} onkeydown={(e) => onRingKeydown(e, api.announce)}>
       <Board
         board={ringBoard}
         {values}
@@ -1113,10 +1207,10 @@
       </select>
     </label>
     <button type="button" class="control" data-control="rootPolytope" disabled={!api.hydrated || frozen} onclick={() => rootPolytope(api.announce)}>Root polytope</button>
-    <button type="button" class="control" data-control="ringUp" disabled={!api.hydrated || frozen} aria-label="Raise the ring of node {focusLabel}" onclick={() => stepRing(1, api.announce)}
+    <button type="button" class="control" data-control="ringUp" disabled={!api.hydrated || frozen} aria-label="Ring {focusLabel} up: raise the ring of node {focusLabel}" onclick={() => stepRing(1, api.announce)}
       >Ring {focusLabel} up</button
     >
-    <button type="button" class="control" data-control="ringDown" disabled={!api.hydrated || frozen} aria-label="Lower the ring of node {focusLabel}" onclick={() => stepRing(-1, api.announce)}
+    <button type="button" class="control" data-control="ringDown" disabled={!api.hydrated || frozen} aria-label="Ring {focusLabel} down: lower the ring of node {focusLabel}" onclick={() => stepRing(-1, api.announce)}
       >Ring {focusLabel} down</button
     >
     {#if core.shortRings !== null}
@@ -1168,8 +1262,10 @@
   {#if canTurn}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="group turn" role="group" aria-label="Turn the picture: arrow keys, Shift with Left and Right" data-control="turnGroup" onkeydown={(e) => onTurnKey(e, api.announce)} onkeyup={endTurning}>
-      <button type="button" class="control" data-control="turnUp" aria-label="Turn about the horizontal axis, the top toward you" disabled={!api.hydrated} onclick={() => turnBy([TURN_STEP, 0, 0], api.announce)}>Up</button>
-      <button type="button" class="control" data-control="turnDown" aria-label="Turn about the horizontal axis, the top away from you" disabled={!api.hydrated} onclick={() => turnBy([-TURN_STEP, 0, 0], api.announce)}>Down</button>
+      <button type="button" class="control" data-control="turnUp" aria-label="Up: turn about the horizontal axis, the top toward you" disabled={!api.hydrated} onclick={() => turnBy([TURN_STEP, 0, 0], api.announce)}>Up</button>
+      <button type="button" class="control" data-control="turnDown" aria-label="Down: turn about the horizontal axis, the top away from you" disabled={!api.hydrated} onclick={() => turnBy([-TURN_STEP, 0, 0], api.announce)}
+        >Down</button
+      >
       <button type="button" class="control" data-control="turnLeft" aria-label="Turn about the vertical axis, to the left" disabled={!api.hydrated} onclick={() => turnBy([0, -TURN_STEP, 0], api.announce)}>Left</button>
       <button type="button" class="control" data-control="turnRight" aria-label="Turn about the vertical axis, to the right" disabled={!api.hydrated} onclick={() => turnBy([0, TURN_STEP, 0], api.announce)}>Right</button>
       <button type="button" class="control" data-control="turnCounter" aria-label="Turn about the viewing axis, counterclockwise" disabled={!api.hydrated} onclick={() => turnBy([0, 0, TURN_STEP], api.announce)}
@@ -1195,7 +1291,16 @@
       >
       <button type="button" class="control" data-control="rotatePlus" disabled={!api.hydrated || planeA === planeB} onclick={() => rotatePlane(1, api.announce)}>Rotate +{PLANE_STEP}</button>
       <button type="button" class="control" data-control="rotateMinus" disabled={!api.hydrated || planeA === planeB} onclick={() => rotatePlane(-1, api.announce)}>Rotate −{PLANE_STEP}</button>
-      <button type="button" class="control" data-control="rotateReset" disabled={!api.hydrated || rotation === null} onclick={() => resetRotation(api.announce)}>No rotation</button>
+      <!-- With no rotation left the button is done but keeps the focus (aria-disabled; disabled only before
+           hydration, 7.4); resetRotation() ignores the press. -->
+      <button
+        type="button"
+        class="control"
+        data-control="rotateReset"
+        disabled={!api.hydrated}
+        aria-disabled={rotation === null ? 'true' : undefined}
+        onclick={() => resetRotation(api.announce)}>No rotation</button
+      >
     </div>
   {/if}
 {/snippet}
@@ -1333,6 +1438,55 @@
     display: grid;
     gap: 2px;
   }
+  /* The prediction before Predict.svelte arrives, laid out by Predict.svelte's own rules (its .predict, .question,
+     .line, .answer, .field, .choice, text input, .number and summary; its .control is 44 pixels high, as T10's), so
+     that the form replacing it keeps the box (7.6; RT-FIX P4-RT-07-02). The summary is reached through :global, so
+     that the markup of the <details> stays Predict.svelte's. */
+  .predict {
+    display: grid;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--sign-zero-outline);
+    border-radius: 6px;
+  }
+  .predict .question {
+    margin: 0;
+  }
+  /* Predict.svelte's result line keeps its height while it is empty; T10's own empty lines take none (.line:empty). */
+  .predict .line,
+  .predict .line:empty {
+    min-height: 1.5em;
+  }
+  .predict .answer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .predict .field,
+  .predict .choice {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    min-height: 44px;
+  }
+  .predict input[type='text'] {
+    min-height: 36px;
+    min-width: 44px;
+    font: inherit;
+    color: var(--text);
+    background: var(--page);
+    border: 1px solid var(--text);
+    border-radius: 4px;
+    padding: 0 6px;
+  }
+  .predict .number {
+    width: 8em;
+  }
+  .predict :global(summary) {
+    min-height: 44px;
+    line-height: 44px;
+  }
   .line {
     margin: 0;
     min-height: 1.5em;
@@ -1368,7 +1522,8 @@
     border: 1px solid var(--sign-zero-outline);
     border-radius: 6px;
   }
-  .faces:focus-visible {
+  .faces:focus-visible,
+  .lines:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
   }

@@ -6,9 +6,11 @@
 //
 // The constant c is the largest ringed integer (plan, recorded): the picture keeps its size. The base edge
 // from lambda to R_i lambda has squared length a_i^2 (alpha_i, alpha_i) = 2 d_i a_i^2; with a_i = c / sqrt(d_i)
-// every one of them is 2 c^2, which is what "uniform" means. The lengths shown are measured on the drawn
-// coordinates y = E C^-1 a, not taken from the formula, and agree with it (unit test).
-import { applyWordFloat, symmetrizer, wordTo } from '@two-games/engine';
+// every one of them is 2 c^2, which is what "uniform" means. The lengths shown and exported are these
+// integers, computed exactly in the board's arithmetic (shownEdgeLengths; RT-FIX P4-RT-04-04): measured on
+// float coordinates they are wrong from rings of four digits on. The drawn coordinates y = E C^-1 a agree
+// with them (unit tests measure the picture).
+import { applyWordFloat, gram, symmetrizer, wordTo } from '@two-games/engine';
 import type { Board } from '@two-games/engine';
 import { euclideanPoints, labelOf, toPositionVector, treeGraph, type OrbitData } from './scene';
 
@@ -77,12 +79,49 @@ export function replayWholeWords(board: Board<number>, data: Pick<OrbitData, 've
 export interface EdgeLength {
   /** The label of the ringed node i. */
   label: number;
-  /** |y(lambda) - y(R_i lambda)|^2 on the drawn coordinates. */
+  /**
+   * The squared length of the base edge from lambda to R_i lambda: for a start of whole numbers the integer
+   * a_i^2 (alpha_i, alpha_i) = 2 d_i a_i^2, exact; for a real start |y(lambda) - y(R_i lambda)|^2 on the
+   * drawn coordinates.
+   */
   squared: number;
 }
 
-/** The squared length of the base edge at each ringed node, measured on y = P a (start in positions). */
+/** (alpha_i, alpha_i) = 2 d_i, the diagonal of the Gram matrix (SPEC 2.5), in positions: 2, 4 or 6 on every board T10 offers. */
+function rootNorms(board: Board<number>): number[] {
+  const g = gram(board);
+  if (g === null) throw new Error(`${board.name ?? 'the board'} is not balanced`);
+  return g.map((row, i) => {
+    const x = row[i]!;
+    if (x.den !== 1n) throw new Error(`(alpha_${labelOf(board, i)}, alpha_${labelOf(board, i)}) = ${x.num}/${x.den} is not an integer`);
+    return board.arith.fromInt(Number(x.num));
+  });
+}
+
+/**
+ * The squared length of the base edge at each ringed node of a start of whole numbers (positions):
+ * a_i^2 (alpha_i, alpha_i) = 2 d_i a_i^2 (SPEC 2.14 [V]; the oracle's check in reference/verify.py), computed
+ * exactly in the board's arithmetic (SafeInt on the named finite types, whose results are checked), never on
+ * drawn coordinates.
+ */
+export function exactEdgeLengths(board: Board<number>, start: readonly number[]): EdgeLength[] {
+  const A = board.arith;
+  const norms = rootNorms(board);
+  const out: EdgeLength[] = [];
+  for (let i = 0; i < board.n; i++) {
+    if (start[i] === 0) continue;
+    const a = A.fromInt(start[i]!);
+    out.push({ label: labelOf(board, i), squared: A.mul(A.mul(a, a), norms[i]!) });
+  }
+  return out.sort((x, y) => x.label - y.label);
+}
+
+/**
+ * The squared length of the base edge at each ringed node (start in positions): exact for a start of whole
+ * numbers (exactEdgeLengths); for a real start, such as make uniform's, measured on y = P a.
+ */
 export function baseEdgeLengths(board: Board<number>, P: readonly (readonly number[])[], start: readonly number[]): EdgeLength[] {
+  if (start.every((a) => Number.isInteger(a))) return exactEdgeLengths(board, start);
   const out: EdgeLength[] = [];
   const [y0] = euclideanPoints(P, [start]);
   for (let i = 0; i < board.n; i++) {
@@ -95,8 +134,23 @@ export function baseEdgeLengths(board: Board<number>, P: readonly (readonly numb
   return out.sort((a, b) => a.label - b.label);
 }
 
-/** A squared length as text: rounded to 6 decimals, trailing zeros dropped ("4", "2", "1.333333"). */
+/**
+ * The squared lengths the tool shows and exports, exact (SPEC 2.14 [V]): the integer orbit's 2 d_i a_i^2 at
+ * each ringed node; with make uniform, a_i = c / sqrt(d_i), so every one of them is a_i^2 (alpha_i, alpha_i)
+ * = 2 c^2, computed in the board's arithmetic. Rings in label order.
+ */
+export function shownEdgeLengths(board: Board<number>, rings: readonly number[], uniform: boolean): EdgeLength[] {
+  const lengths = exactEdgeLengths(board, toPositionVector(board, rings));
+  if (!uniform) return lengths;
+  const A = board.arith;
+  const c = A.fromInt(uniformConstant(rings));
+  const squared = A.mul(A.fromInt(2), A.mul(c, c));
+  return lengths.map((l) => ({ label: l.label, squared }));
+}
+
+/** A squared length as text: an integer as its digits; a measured length rounded to 6 decimals, trailing zeros dropped ("4", "2", "1.333333"). */
 export function lengthText(x: number): string {
+  if (Number.isInteger(x)) return String(x + 0);
   const r = Math.round(x * 1e6) / 1e6 + 0;
   return String(r);
 }

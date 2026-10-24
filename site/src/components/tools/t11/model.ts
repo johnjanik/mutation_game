@@ -702,7 +702,9 @@ export function exportData(bench: FoldBench): Record<string, unknown> {
         ? null
         : { name: ctx.foldedName, labels: [...ctx.folded.labels], cartan: cartanNumbers(ctx.folded), orbitsInBourbakiOrder: orbitsInBourbakiOrder(ctx) },
     foldMessage: ctx.message,
-    averaged: { name: avg.name, classes: avg.classes.map((c) => ({ ...c })) },
+    // A form value is the engine's exact text (CONTRACTS 2.4); an integer goes out by the integer rule, a
+    // fraction as p/q (RT-FIX P4-RT-04-02; decisions/RT-FIX-P3-export-long.md).
+    averaged: { name: avg.name, classes: avg.classes.map((c) => ({ ...c, form_value: /^-?\d+$/.test(c.form_value) ? integerOut(c.form_value) : c.form_value })) },
     averagedSimpleCartan: averagedSimpleCartan(ctx.board, ctx.sigma),
     bigPositions: upTo.map((k) => bench.bigInLabelOrder(k).map((v) => integerOut(v))),
     foldedPositions: ctx.folded === null ? null : upTo.map((k) => bench.foldedInLabelOrder(k).map((v) => integerOut(v))),
