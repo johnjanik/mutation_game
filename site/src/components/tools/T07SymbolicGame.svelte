@@ -304,18 +304,16 @@
     afterMove(announce, moveSentence('numbers', game.labels, r.label, before, game.shown, game.cursor));
   }
 
+  // At the end of the game Step and Play to the end are aria-disabled (atEnd) and do nothing: no move and
+  // nothing said, since the move that ended the game already said "Game over" (A-4; RT-FIX P3-RT-05-09).
   function step(announce: (t: string) => void): void {
-    if (frozen) return;
+    if (frozen || atEnd) return;
     const k = game.stepPosition();
-    if (k === null) {
-      if (game.gameOver) announce(gameOverSentence(game.cursor));
-      return;
-    }
-    act(k, announce);
+    if (k !== null) act(k, announce);
   }
 
   function playToEnd(announce: (t: string) => void): void {
-    if (frozen || game.stepPosition() === null) return;
+    if (frozen || atEnd || game.stepPosition() === null) return;
     // Every offered board is finite: at most N <= 120 moves, on the main thread (E-9).
     const outcome = game.playToEnd();
     touch();
