@@ -257,6 +257,62 @@ test.describe('without JavaScript', () => {
     await expect(page.locator('[data-challenge] details').first()).toHaveCount(1);
     await expect(page.locator('[data-challenge-result]')).toHaveCount(0);
   });
+
+  // regression: RT-FIX residual (round 1 confirmer of the pages cluster)
+  test('credits: no cell of the table shows raw Markdown', async ({ page }) => {
+    // Observed at 51a7e26: svelte's "Author and source" cell printed
+    // "Copyright (c) 2016-2025 [Svelte Contributors](https://github.com/sveltejs/svelte/graphs/contributors)".
+    await page.goto('credits/');
+    const cells = await page.locator('[data-out="creditsTable"] :is(th, td)').allTextContents();
+    expect(cells.length).toBeGreaterThan(25);
+    const raw = cells.map((c) => c.replace(/\s+/g, ' ').trim()).filter((c) => /\[[^\]]*\]\([^)]*\)|\]\(|<https?:|\*\*/.test(c));
+    expect(raw).toEqual([]);
+    await expect(page.locator('tr[data-package="svelte"] td').nth(2)).toContainText(/Copyright \(c\) \d{4}-\d{4} Svelte Contributors/);
+  });
+
+  // regression: P3-RT-08-03 (sibling, red-team round 1 confirmers)
+  test('every <Cite> title and Sources entry on every route reads as a plain bibliographic line', async ({ page }) => {
+    test.setTimeout(180_000);
+    // What must not reach a printed entry or a title, outside its mathematics (the patterns of
+    // site/tests/unit/sources-cite-title-labels.test.ts, read here from the built pages).
+    const DEBRIS: [string, RegExp][] = [
+      ['a backtick', /`/],
+      ['raw Markdown', /\*\*|\]\(|<https?:|https?:\/\//],
+      ['a label or colon followed by nothing', /:\s*(?:[.,;)]|$)/],
+      ['a space before punctuation (a removed link)', /\s[.,;:]/],
+      ['a lead-in left with no link', /\b(?:at|page|Free|Preprint|Solutions|sheet|record)\s*[.:]?$/],
+      ['"link not re-checked"', /link not re-checked/i],
+      ['"Project file"', /Project file/i],
+    ];
+    const debris = (t: string): string[] => DEBRIS.filter(([, re]) => re.test(t)).map(([name]) => name);
+    const cited = routesOf(DIST).filter((r: { file: string }) => /class="cite"/.test(readFileSync(r.file, 'utf8')));
+    expect(cited.length, 'routes with a citation').toBeGreaterThan(8);
+    const bad: string[] = [];
+    let entries = 0;
+    for (const { route } of cited as { route: string }[]) {
+      await page.goto(route.replace(/^\//, ''));
+      const titles = await page.locator('a.cite').evaluateAll((as) => as.map((a) => `[${a.getAttribute('data-cite')}] ${a.getAttribute('title') ?? ''}`));
+      const listed = await page.locator('[data-anatomy="sources"] li[data-source]').evaluateAll((lis) =>
+        lis.map((li) => {
+          const copy = li.cloneNode(true) as HTMLElement;
+          for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode('MATH'));
+          for (const a of copy.querySelectorAll('a.cite')) a.remove();
+          return `[${li.getAttribute('data-source')}] ${(copy.textContent ?? '').replace(/\s+/g, ' ').trim()}`;
+        }),
+      );
+      entries += listed.length;
+      for (const t of titles) {
+        const why = debris(t.split('$').filter((_, i) => i % 2 === 0).join(' MATH '));
+        if (why.length > 0) bad.push(`${route} title ${t} (${why.join(', ')})`);
+      }
+      for (const t of listed) {
+        const why = debris(t);
+        if (why.length > 0) bad.push(`${route} entry ${t} (${why.join(', ')})`);
+      }
+    }
+    expect(entries, 'entries of Sources lists read').toBeGreaterThan(40);
+    expect(bad).toEqual([]);
+  });
 });
 
 async function axe(page: Page): Promise<{ id: string; nodes: string[] }[]> {
