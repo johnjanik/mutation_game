@@ -919,6 +919,38 @@ test.describe('regressions', () => {
     await expect(out(page, 'edgesDrawn')).toHaveText(String(edges), { timeout: 10000 });
   });
 
+  // SPEC 4 T10 Make uniform: the start is replaced by a_i = c / sqrt(d_i) on the ringed nodes and the words are
+  // replayed in floating point; 3 M7 beat 5: on B3 (0,1,1) the uniform picture has one edge length. The drawn
+  // points themselves (the Euclidean coordinates y of every vertex, in Download data) are measured.
+  // regression: P4-RT-10-02
+  test('make uniform changes the drawn points: one edge length on B3 (0,1,1)', async ({ page }) => {
+    interface Exported {
+      derived: { vertices: { y: number[] }[]; edges: { a: number; b: number }[]; uniform: boolean };
+    }
+    const exported = async (): Promise<Exported> => (await downloaded(page)) as unknown as Exported;
+    const lengths = (d: Exported): number[] => {
+      const seen = new Set<string>();
+      for (const { a, b } of d.derived.edges) {
+        const ya = d.derived.vertices[a]!.y;
+        const yb = d.derived.vertices[b]!.y;
+        seen.add(ya.reduce((s, x, k) => s + (x - yb[k]!) ** 2, 0).toFixed(6));
+      }
+      return [...seen].map(Number).sort((x, y) => x - y);
+    };
+    await page.goto(`${ROUTE}?g=B3&r=0.1.1`);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await expect(out(page, 'drawMs')).not.toHaveText('', { timeout: 15000 });
+    const before = await exported();
+    expect(before.derived.uniform).toBe(false);
+    expect(lengths(before)).toHaveLength(2);
+    await control(page, 'uniform').check();
+    await expect(out(page, 'uniform')).toHaveText('on');
+    const after = await exported();
+    expect(after.derived.uniform).toBe(true);
+    expect(after.derived.edges).toHaveLength(before.derived.edges.length);
+    expect(lengths(after), 'squared lengths of the drawn edges with make uniform on').toHaveLength(1);
+  });
+
   // SPEC 7.5 A-1: "the shortcuts u (undo) and r (redo) work only while focus is inside the board"; T10's undo
   // and redo act on the ring edits (decisions/P4-A3.md "history semantics and the picker").
   // regression: P4-RT-05-03
