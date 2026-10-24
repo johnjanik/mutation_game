@@ -27,6 +27,25 @@ function blank(chars, start, end) {
   for (let i = start; i < end && i < chars.length; i++) if (chars[i] !== '\n') chars[i] = ' ';
 }
 
+/**
+ * Inside a brace expression (JavaScript), the index just after a comment that opens at `i`
+ * (slash-star to star-slash, or slash-slash to the end of the line), or -1 when none opens there.
+ * A quote inside a comment, such as the apostrophe of "the site's own words" in an MDX comment,
+ * opens no string.
+ */
+function commentEnd(text, i) {
+  if (text[i] !== '/') return -1;
+  if (text[i + 1] === '*') {
+    const close = text.indexOf('*/', i + 2);
+    return close < 0 ? text.length : close + 2;
+  }
+  if (text[i + 1] === '/') {
+    const eol = text.indexOf('\n', i + 2);
+    return eol < 0 ? text.length : eol;
+  }
+  return -1;
+}
+
 /** Index just after the tag that opens at `start` (a '<'), respecting quotes and braces. */
 function tagEnd(text, start) {
   let depth = 0;
@@ -35,6 +54,8 @@ function tagEnd(text, start) {
     const c = text[i];
     if (quote) { if (c === quote) quote = null; continue; }
     if (depth > 0) {
+      const comment = commentEnd(text, i);
+      if (comment >= 0) { i = comment - 1; continue; }
       if (c === '{') depth++;
       else if (c === '}') depth--;
       else if (c === '"' || c === "'" || c === '`') quote = c;
@@ -54,6 +75,8 @@ function braceEnd(text, start) {
   for (let i = start; i < text.length; i++) {
     const c = text[i];
     if (quote) { if (c === quote && text[i - 1] !== '\\') quote = null; continue; }
+    const comment = commentEnd(text, i);
+    if (comment >= 0) { i = comment - 1; continue; }
     if (c === '"' || c === "'" || c === '`') quote = c;
     else if (c === '{') depth++;
     else if (c === '}') { depth--; if (depth === 0) return i + 1; }

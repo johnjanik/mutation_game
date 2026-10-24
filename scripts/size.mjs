@@ -137,7 +137,9 @@ export function dataToolValues(html) {
  * @returns {{ label: 'lesson' | 'tool' | 'no-tool' | 'one-board' | 'several-tools'; limitKb: number }}
  */
 export function classifyRoute(routePath, html) {
-  if (routePath.startsWith('/modules/')) return { label: 'lesson', limitKb: 120 };
+  // A lesson is a page below /modules/ (/modules/<slug>/); the module index /modules/ itself is not a
+  // lesson and is classified by its tools like any other page.
+  if (/^\/modules\/[^/]/.test(routePath)) return { label: 'lesson', limitKb: 120 };
   if (routePath.startsWith('/tools/') || routePath.startsWith('/embed/')) return { label: 'tool', limitKb: 90 };
   const tools = dataToolValues(html);
   if (tools.length === 0) return { label: 'no-tool', limitKb: 15 };
