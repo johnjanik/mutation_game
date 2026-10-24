@@ -15,6 +15,9 @@
 //   table:    data-table-node (the A-10 table's buttons), data-table-ring (its number inputs),
 //             data-table="vertices" | "edges" | "rings"
 //   live:     [data-live] (ToolFrame's polite live region)
+//   regressions (RT-FIX phase 4): data-instance (a lesson's T10 root), data-board-group (the ring board's
+//             group, A-1), data-ring (Board.svelte's second "may act here" ring), aria-disabled, the title of
+//             data-out="edgeLengths" (the tooltip of a long number), data-prediction, data-measured
 // data-out names (every one T10 renders; the registry's `outs`):
 //   caption, notice, noscript, exportNotice (ToolFrame);
 //   snapshot (the SVG of the view; the build-time snapshot without JavaScript), boardName, polytopeName
@@ -29,7 +32,9 @@
 // data-control names: picker, rootPolytope, ringUp, ringDown, shortRoots, uniform, graphPolytope,
 //   graphMoves, viewCoxeter, viewXyz, axis1 to axis3, turnGroup, turnUp, turnDown, turnLeft, turnRight,
 //   turnCounter, turnClock, planeGroup, planeA, planeB, rotatePlus, rotateMinus, rotateReset, drawOrbit;
-//   undo, redo, reset, copyLink, downloadData (ToolFrame); data-export="svg" | "png" (ToolFrame)
+//   undo, redo, reset, copyLink, downloadData (ToolFrame); data-export="svg" | "png" (ToolFrame);
+//   predictAnswer, predictCheck, predictShow (Predict.svelte's form, and the same form of T10's server markup
+//   until Predict.svelte arrives)
 //
 // Properties of T10 beyond the common ones of 4.0 Configuration (id, board, prediction, preset, caption):
 // rings, projection, graph. linkTo, coords, start, moves and layers are accepted and ignored.
