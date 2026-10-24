@@ -2,11 +2,15 @@
 // Appendix E with their status, the rule that decides what a usage renders, and the report of open
 // items and the pages that use them, which a release build writes for the owner.
 // Build time only (Node); never imported by a .svelte file or anything that reaches the browser.
-// It never writes into reference/, content/unverified.json or DECISIONS.md.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+// It never writes into reference/, content/unverified.json or DECISIONS.md. The report's files (where
+// they are, the Markdown form, the hold of the postbuild link check) are in ./openItemsReport.mjs,
+// plain JavaScript that scripts/links.mjs shares (RT-FIX P4-RT-12-04).
+import { existsSync, readFileSync } from 'node:fs';
 import type { AstroIntegration } from 'astro';
 import seed from '../content/unverified.json' with { type: 'json' };
+import { isReleaseBuild, readReleaseReport, reportPath, writeReportFiles } from './openItemsReport.mjs';
+
+export { isReleaseBuild, reportPath };
 
 export type UnverifiedStatus = 'open' | 'closed';
 
@@ -30,23 +34,19 @@ export interface OpenItemsReport {
   /**
    * True only when the release build that wrote the file finished (written by the build-done hook).
    * A build that stops part way leaves false, and npm run report refuses such a report (and one
-   * without the field, written before the field existed).
+   * without the field, written before the field existed). The postbuild link check sets it false
+   * while it runs and true again only when it passes; a build process that exits with a failure
+   * after the build-done hook sets it false.
    */
   complete?: boolean;
+  /** The postbuild link check of the release build (scripts/links.mjs): absent until it starts. */
+  linkCheck?: 'running' | 'passed' | 'failed';
   items: { id: string; status: UnverifiedStatus; gate: string; pages: string[]; fallbackShown: boolean }[];
   unknownItems: { item: string; pages: string[] }[];
 }
 
 const ITEMS: readonly UnverifiedItem[] = seed as UnverifiedItem[];
 const BY_ID = new Map(ITEMS.map((item) => [item.id, item]));
-
-/**
- * A release build is `RELEASE=1 npm run build` (SPEC.md 7.3, 7.7). Any non-empty value of RELEASE
- * counts, 0 included. Read at call time, never cached, so that a test can set and unset it.
- */
-export function isReleaseBuild(): boolean {
-  return process.env.RELEASE !== undefined && process.env.RELEASE !== '';
-}
 
 /** The item of unverified.json with this id, or undefined (an unknown item counts as open). */
 export function itemById(id: string): UnverifiedItem | undefined {
@@ -72,28 +72,6 @@ const usage = new Map<string, Usage>();
 /** Forgets every registration (for tests). */
 export function clearUsage(): void {
   usage.clear();
-}
-
-/** The directory of the report: OPEN_ITEMS_REPORT_DIR when set, else reports/ at the repository root. */
-function reportsDir(): string {
-  const override = process.env.OPEN_ITEMS_REPORT_DIR;
-  if (override !== undefined && override !== '') return resolve(override);
-  let dir = resolve(process.cwd());
-  for (;;) {
-    if (existsSync(join(dir, 'reference', 'golden_data.json'))) return join(dir, 'reports');
-    const up = dirname(dir);
-    if (up === dir) return join(resolve(process.cwd()), 'reports');
-    dir = up;
-  }
-}
-
-/** <reports dir>/open-items-report.json; the Markdown report sits beside it. */
-export function reportPath(): string {
-  return join(reportsDir(), 'open-items-report.json');
-}
-
-function markdownPath(): string {
-  return join(reportsDir(), 'open-items-report.md');
 }
 
 function buildReport(map: ReadonlyMap<string, Usage>, complete = false): OpenItemsReport {
@@ -147,45 +125,13 @@ function mergedWithFile(): Map<string, Usage> {
   return merged;
 }
 
-function cell(s: string): string {
-  return s.replace(/\|/g, '\\|');
-}
-
-function toMarkdown(r: OpenItemsReport): string {
-  const lines = [
-    '# Open items report',
-    '',
-    `Release build of ${r.generatedAt}. Every item of \`site/src/content/unverified.json\` (SPEC.md Appendix E), with the pages that wrap a sentence resting on it in \`<Unverified>\`. In this release an open item shows its fallback, or nothing where none is given.`,
-    '',
-    ...(r.complete ? [] : ['**Incomplete:** the release build that wrote this report has not finished (or failed), so pages may be missing. Rerun `RELEASE=1 npm run build`.', '']),
-    '| Item | Status | Gate | Pages | Fallback shown |',
-    '|---|---|---|---|---|',
-    ...r.items.map((it) => `| ${it.id} | ${it.status} | ${it.gate} | ${it.pages.length ? it.pages.map(cell).join(', ') : 'none'} | ${it.fallbackShown ? 'yes' : 'no'} |`),
-    '',
-    '## Items not in unverified.json',
-    '',
-  ];
-  if (r.unknownItems.length === 0) lines.push('None.');
-  else {
-    lines.push('Treated as open. Add them to `unverified.json` (MERGE) or correct the `item` attribute.', '', '| Item | Pages |', '|---|---|');
-    for (const u of r.unknownItems) lines.push(`| ${cell(u.item)} | ${u.pages.map(cell).join(', ')} |`);
-  }
-  return lines.join('\n') + '\n';
-}
-
-function writeFiles(r: OpenItemsReport): void {
-  mkdirSync(reportsDir(), { recursive: true });
-  writeFileSync(reportPath(), JSON.stringify(r, null, 2) + '\n');
-  writeFileSync(markdownPath(), toMarkdown(r));
-}
-
 /**
  * Writes reports/open-items-report.json and .md from the registrations (merged with the file the
  * same build wrote before). A no-op in a preview build, which leaves any existing report untouched.
  */
 export function writeReport(): void {
   if (!isReleaseBuild()) return;
-  writeFiles(buildReport(mergedWithFile()));
+  writeReportFiles(buildReport(mergedWithFile()));
 }
 
 /**
@@ -210,11 +156,27 @@ export function registerUsage(item: string, page: string, hasFallback = false): 
 }
 
 /**
+ * After the build-done hook has marked the report complete, a build process that exits with a
+ * failure (an exit code other than 0) marks the report of its build incomplete again, so that a
+ * release build that fails after the hook never leaves a report that npm run report presents
+ * (RT-FIX P4-RT-12-04). The postbuild link check holds the report on its own (openItemsReport.mjs).
+ */
+function demoteOnFailedExit(buildId: string | undefined): void {
+  process.once('exit', (code: number) => {
+    if (code === 0) return;
+    const r = readReleaseReport();
+    if (r && r.complete === true && r.buildId === buildId) writeReportFiles({ ...r, complete: false });
+  });
+}
+
+/**
  * The build-start hook (plan): in a release build it writes the report with no page listed, so
  * that both files exist and list every item even when no page uses <Unverified>. It also sets the
  * build id under which later registrations of the same build merge their pages into the file.
  * The build-done hook rewrites the report, with the pages of the same build, marked complete; a
  * build that fails never reaches it, so its report stays marked incomplete (RT-FIX P3-RT-12-06).
+ * The postbuild link check, and a failure of the build process after the hook, mark it incomplete
+ * again (RT-FIX P4-RT-12-04).
  */
 export function openItemsReportIntegration(): AstroIntegration {
   return {
@@ -223,11 +185,12 @@ export function openItemsReportIntegration(): AstroIntegration {
       'astro:build:start': () => {
         if (!isReleaseBuild()) return;
         process.env.OPEN_ITEMS_BUILD_ID = `${Date.now()}-${process.pid}-${Math.random().toString(36).slice(2)}`;
-        writeFiles(buildReport(new Map()));
+        writeReportFiles(buildReport(new Map()));
       },
       'astro:build:done': () => {
         if (!isReleaseBuild()) return;
-        writeFiles(buildReport(mergedWithFile(), true));
+        writeReportFiles(buildReport(mergedWithFile(), true));
+        demoteOnFailedExit(process.env.OPEN_ITEMS_BUILD_ID);
       },
     },
   };

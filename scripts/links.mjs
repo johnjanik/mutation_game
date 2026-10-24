@@ -9,10 +9,15 @@
 // script, RT-FIX P4-RT-12-03). It reads the built directory only: every URL attribute of
 // every built page that points into the site must lie under the base, name a file of the build, and
 // not name a page whose source says it is not released. Exit 1 on any problem.
+// In a release build (RELEASE set) this check is the last step of the build: while it runs, the
+// open-items report that the Astro build marked complete is marked incomplete, and it is marked
+// complete again only when the check passes, so that npm run report never presents the report of a
+// release build that failed here (RT-FIX P4-RT-12-04; site/src/lib/openItemsReport.mjs).
 // External links are not followed here; links.yml checks them weekly (SPEC.md 7.7). No dependency.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { holdForLinkCheck, settleLinkCheck } from '../site/src/lib/openItemsReport.mjs';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const SITE_DIR = join(ROOT, 'site');
@@ -198,6 +203,8 @@ export function formatResult(result, distLabel) {
 }
 
 async function main() {
+  // First, before anything that can fail: a release report stays incomplete until the check passes.
+  holdForLinkCheck();
   const config = await import(pathToFileURL(join(SITE_DIR, 'src', 'lib', 'siteAndBase.mjs')).href);
   const { site, base } = config.siteAndBase(process.env);
   const distDir = resolve(SITE_DIR, config.outDirFrom(process.env));
@@ -207,6 +214,7 @@ async function main() {
   }
   const result = checkLinks({ distDir, base, site, unreleased: unreleasedRoutes(SITE_DIR) });
   const text = formatResult(result, relative(ROOT, distDir).split(sep).join('/'));
+  settleLinkCheck(result.problems.length === 0);
   if (result.problems.length > 0) console.error(text);
   else console.log(text);
   process.exit(result.problems.length > 0 ? 1 : 0);
