@@ -26,6 +26,13 @@
   let positionAnswer = $state<string[]>([]);
   let choiceAnswer = $state<number | null>(null);
   let resolved = $state<'correct' | 'wrong' | 'shown' | null>(null);
+  /**
+   * RT-FIX P4-RT-05-05 (WCAG 3.3.1, 4.1.3): an answer Check cannot read is named in words, in the result
+   * line and the tool's live region, and each field that holds it is described by that line, and marked
+   * aria-invalid (a text field; a radio button takes no aria-invalid), until it is edited.
+   */
+  let problem = $state('');
+  let invalidFields = $state<boolean[]>([]);
 
   const answerText = $derived(predictionAnswerText(prediction));
   const fields = $derived(prediction.answer.type === 'position' ? prediction.answer.value.length : 0);
@@ -33,34 +40,66 @@
   /** The answer closing a sentence: a full stop is added unless the answer already ends one (a choice is often a sentence). */
   const closed = $derived(/[.!?]$/.test(answerText) ? answerText : `${answerText}.`);
   const resultText = $derived(
-    resolved === 'correct' ? `Right: ${closed}` : resolved === 'wrong' ? `Not quite: the answer is ${closed}` : resolved === 'shown' ? `The answer is ${closed}` : '',
+    resolved === 'correct' ? `Right: ${closed}` : resolved === 'wrong' ? `Not quite: the answer is ${closed}` : resolved === 'shown' ? `The answer is ${closed}` : problem,
   );
+
+  /** What an answer that cannot be read lacks, by answer type. */
+  const PROBLEM = { number: 'Type a whole number.', position: 'Type a whole number in each field.', choice: 'Choose one of the answers.' } as const;
+  const WHOLE = /^-?\d+$/;
+  const plain = (t: string | undefined): string => (t ?? '').trim().replace(/^−/, '-');
 
   function read(): PredictionAnswer | null {
     switch (prediction.answer.type) {
       case 'number': {
-        const t = numberAnswer.trim().replace(/^−/, '-');
-        return /^-?\d+$/.test(t) ? Number(t) : null;
+        const t = plain(numberAnswer);
+        return WHOLE.test(t) ? Number(t) : null;
       }
       case 'position': {
-        const vs = Array.from({ length: fields }, (_, k) => (positionAnswer[k] ?? '').trim().replace(/^−/, '-'));
-        return vs.every((t) => /^-?\d+$/.test(t)) ? vs.map(Number) : null;
+        const vs = Array.from({ length: fields }, (_, k) => plain(positionAnswer[k]));
+        return vs.every((t) => WHOLE.test(t)) ? vs.map(Number) : null;
       }
       case 'choice':
         return choiceAnswer;
     }
   }
 
+  /** The fields that hold an answer Check cannot read (every radio button when none is chosen). */
+  function badFields(): boolean[] {
+    switch (prediction.answer.type) {
+      case 'number':
+        return [!WHOLE.test(plain(numberAnswer))];
+      case 'position':
+        return Array.from({ length: fields }, (_, k) => !WHOLE.test(plain(positionAnswer[k])));
+      case 'choice':
+        return prediction.answer.options.map(() => choiceAnswer === null);
+    }
+  }
+
+  /** An edited field is no longer marked; the sentence goes once no field is. */
+  function edited(k: number): void {
+    if (!invalidFields[k]) return;
+    invalidFields = prediction.answer.type === 'choice' ? [] : invalidFields.map((b, j) => b && j !== k);
+    if (!invalidFields.some(Boolean)) problem = '';
+  }
+
   function finish(outcome: 'correct' | 'wrong' | 'shown'): void {
     if (resolved !== null) return;
     resolved = outcome;
+    problem = '';
+    invalidFields = [];
     announce?.(`${outcome === 'correct' ? 'Right' : outcome === 'wrong' ? 'Not quite' : 'Shown'}. The answer is ${closed} ${prediction.reveal}`);
     onResolved?.(outcome);
   }
 
   function check(): void {
+    if (resolved !== null) return;
     const a = read();
-    if (a === null) return;
+    if (a === null) {
+      problem = PROBLEM[prediction.answer.type];
+      invalidFields = badFields();
+      announce?.(problem);
+      return;
+    }
     finish(predictionCorrect(prediction, a) ? 'correct' : 'wrong');
   }
 </script>
@@ -71,19 +110,48 @@
     {#if prediction.answer.type === 'number'}
       <label class="field">
         <span>Your answer</span>
-        <input type="text" inputmode="numeric" class="number" data-control="predictAnswer" bind:value={numberAnswer} disabled={!hydrated || resolved !== null} />
+        <input
+          type="text"
+          inputmode="numeric"
+          class="number"
+          data-control="predictAnswer"
+          bind:value={numberAnswer}
+          disabled={!hydrated || resolved !== null}
+          aria-invalid={invalidFields[0] ? 'true' : undefined}
+          aria-describedby={invalidFields[0] ? `${uid}-result` : undefined}
+          oninput={() => edited(0)}
+        />
       </label>
     {:else if prediction.answer.type === 'position'}
       {#each Array.from({ length: fields }, (_, k) => k) as k (k)}
         <label class="field">
           <span>{labels[k] !== undefined ? `Node ${labels[k]}` : `Entry ${k + 1}`}</span>
-          <input type="text" inputmode="numeric" size="4" data-control="predictAnswer" bind:value={positionAnswer[k]} disabled={!hydrated || resolved !== null} />
+          <input
+            type="text"
+            inputmode="numeric"
+            size="4"
+            data-control="predictAnswer"
+            bind:value={positionAnswer[k]}
+            disabled={!hydrated || resolved !== null}
+            aria-invalid={invalidFields[k] ? 'true' : undefined}
+            aria-describedby={invalidFields[k] ? `${uid}-result` : undefined}
+            oninput={() => edited(k)}
+          />
         </label>
       {/each}
     {:else}
       {#each prediction.answer.options as option, k (k)}
         <label class="choice">
-          <input type="radio" name="{uid}-choice" value={k} data-control="predictAnswer" bind:group={choiceAnswer} disabled={!hydrated || resolved !== null} />
+          <input
+            type="radio"
+            name="{uid}-choice"
+            value={k}
+            data-control="predictAnswer"
+            bind:group={choiceAnswer}
+            disabled={!hydrated || resolved !== null}
+            aria-describedby={invalidFields[k] ? `${uid}-result` : undefined}
+            onchange={() => edited(k)}
+          />
           <span>{option}</span>
         </label>
       {/each}
@@ -96,7 +164,7 @@
       >Show me</button
     >
   </div>
-  <p class="line" data-out="predictResult">{resultText}</p>
+  <p class="line" id="{uid}-result" data-out="predictResult">{resultText}</p>
   {#if resolved !== null}
     <p class="reveal" data-out="predictReveal">{prediction.reveal}</p>
   {:else}
