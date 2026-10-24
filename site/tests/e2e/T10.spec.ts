@@ -24,7 +24,8 @@
 //   three angles), uniform, edgeLengths (distinct squared base-edge lengths; data-count), shortRoots,
 //   limitMessage, refused, busy, source ("preset" | "computed"), drawMs, edits (ring and board edits; see
 //   the decisions fragment on data-moves), legend, ringLimit (the cap of the rings in words, beside the
-//   ring fields of the table view, and the sentence when a ring asked for is held to it)
+//   ring fields of the table view, and the sentence when a ring asked for is held to it); predictResult,
+//   predictReveal (Predict.svelte, only with a prediction: lesson instances, registry-outs.spec.ts)
 // data-control names: picker, rootPolytope, ringUp, ringDown, shortRoots, uniform, graphPolytope,
 //   graphMoves, viewCoxeter, viewXyz, axis1 to axis3, turnGroup, turnUp, turnDown, turnLeft, turnRight,
 //   turnCounter, turnClock, planeGroup, planeA, planeB, rotatePlus, rotateMinus, rotateReset, drawOrbit;
@@ -165,7 +166,10 @@ test('turning by keys and buttons', async ({ page }) => {
   // The link carries the three angles (replaceState after the burst; Copy link encodes the same state).
   const turn = (await turnOf(page)).join(',');
   await expect.poll(() => decodeURIComponent(page.url())).toContain(`j=xyz:1,2,3@${turn}`);
-  await expect(live(page)).toContainText('Turn now');
+  // The whole sentence of the last turn (within half a second only the last is said, A-4), its three
+  // angles computed above from the step (RT-FIX residual, the P3-RT-11-08 sibling in phase 4).
+  const last = [(t1[0]! + 2 * step) % 360, t1[1]! + step, (t1[2]! + step) % 360];
+  await expect(live(page)).toHaveText(`Turn now ${last.join(', ')} degrees.`);
   // Keys act only inside the group: an arrow on the ring board moves the focus, not the picture.
   await node(page, 1).focus();
   await page.keyboard.press('ArrowRight');
@@ -631,8 +635,9 @@ test('clicking rings a node, announces, and undo restores', async ({ page }) => 
   await expect(out(page, 'vertexCount')).toHaveText(String(big.f_vector[0]));
   await expect(out(page, 'edgeCount')).toHaveText(String(big.f_vector[1]));
   await expect(out(page, 'edgesDrawn')).toHaveText(String(big.f_vector[1]));
-  await expect(live(page)).toContainText('Node 3 ring 1.');
-  await expect(live(page)).toContainText(`${big.f_vector[0]} vertices, ${big.f_vector[1]} edges`);
+  // The whole sentence: the edit, then the counts of the new orbit from the golden f-vector (RT-FIX
+  // residual, the P3-RT-11-08 sibling in phase 4).
+  await expect(live(page)).toHaveText(`Node 3 ring 1. ${big.f_vector[0]} vertices, ${big.f_vector[1]} edges; faces by dimension ${big.f_vector.join(', ')}.`);
   await expect(out(page, 'edits')).toHaveText('1');
   await expect(root(page)).toHaveAttribute('data-moves', /^\d+$/);
   await expect(node(page, 3)).toHaveAttribute('aria-label', 'Node 3, value 1, ringed');
@@ -691,7 +696,12 @@ test('the ring cap is stated beside the ring fields, and a ring held to it is sa
   await expect(node(page, 3)).toHaveAttribute('data-value', String(RING_MAX));
   await expect(field).toHaveValue(String(RING_MAX));
   await expect(limit).toContainText(`Node 3 held at ${RING_MAX}`);
-  await expect(live(page)).toContainText(`Node 3 held at ${RING_MAX}`);
+  // Whole sentences in the live region (RT-FIX residual, the P3-RT-11-08 sibling in phase 4): the ring
+  // held to the cap, then, since the rings changed, the counts of the orbit with nodes 1 and 3 ringed
+  // (the golden f-vector of A3 with rings 1, 0, 1; the counts do not depend on the size of a ring).
+  const held = `Node 3 held at ${RING_MAX}: a ring is a whole number from 0 to ${RING_MAX}, the largest the studio takes.`;
+  const r101 = record('A3', [1, 0, 1]);
+  await expect(live(page)).toHaveText(`${held} ${r101.f_vector[0]} vertices, ${r101.f_vector[1]} edges; faces by dimension ${r101.f_vector.join(', ')}.`);
   await expect(out(page, 'edits')).toHaveText('1');
   // A ring inside the range clears the sentence.
   await field.fill('2');
@@ -710,7 +720,8 @@ test('the ring cap is stated beside the ring fields, and a ring held to it is sa
   await field.blur();
   await expect(field).toHaveValue(String(RING_MAX));
   await expect(limit).toContainText(`Node 3 held at ${RING_MAX}`);
-  await expect(live(page)).toContainText(`Node 3 held at ${RING_MAX}`);
+  // Nothing changed, so the held sentence alone.
+  await expect(live(page)).toHaveText(held);
   await expect(out(page, 'edits')).toHaveText('3');
 });
 
@@ -743,6 +754,8 @@ test('hooks are present', async ({ page }) => {
   expect(outs.length).toBeGreaterThan(20);
   for (const name of outs) {
     if (name === 'notice' || name === 'noscript') continue; // a bad link; JavaScript off (tested above)
+    // Rendered only with a prediction (lesson instances; registry-outs.spec.ts checks them on M7).
+    if (name === 'predictResult' || name === 'predictReveal') continue;
     await expect(out(page, name), name).toHaveCount(1);
   }
 });

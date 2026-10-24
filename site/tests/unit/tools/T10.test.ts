@@ -27,7 +27,7 @@ import {
 } from '@engine';
 import type { Board } from '@engine';
 import T10 from '../../../src/tools/registry/T10';
-import { T10_BOARDS, T10_OUTS, T10_PRESETS, T10_PRESET_IDS, defaultProjectionText } from '../../../src/components/tools/t10/config';
+import { T10_BOARDS, T10_OUTS, T10_PRESETS, T10_PRESET_IDS, T10_PROP_ONLY_OUTS, defaultProjectionText } from '../../../src/components/tools/t10/config';
 import {
   clampRing,
   computeOrbit,
@@ -945,11 +945,25 @@ describe('server rendering', () => {
     }
     // Every data-out of the registry that is always rendered is present.
     for (const name of T10_OUTS) {
-      if (name === 'notice' || name === 'noscript') continue;
+      if (name === 'notice' || name === 'noscript' || T10_PROP_ONLY_OUTS.includes(name)) continue;
       expect(body, name).toContain(`data-out="${name}"`);
     }
     // Ring board hooks.
     expect((body.match(/data-board="numbers"/g) ?? []).length).toBe(3);
+  }, 60000);
+
+  // SPEC 4.0 Test hooks; CONTRACTS 5.2 "outs: every data-out name the tool renders". T10 renders
+  // Predict.svelte (or, before it arrives and without JavaScript, its markup) when a prediction is given,
+  // as on M7, and T10_OUTS did not list predictResult and predictReveal.
+  // regression: RT-FIX residual of P3-RT-10-06 (T10_OUTS lacked the Predict names)
+  it('with a prediction every data-out name the server renders is in T10_OUTS, the prediction names included', () => {
+    const prediction = { question: 'How many vertices?', answer: { type: 'number', value: 24 }, reveal: 'Twenty-four.' };
+    const body = loader.render(T10C.default, { id: 'b4', preset: 'rings', board: 'A3', prediction });
+    const seen = [...new Set([...body.matchAll(/data-out="([^"]+)"/g)].map((m) => m[1]!))];
+    expect(seen).toContain('predictResult');
+    expect(seen.filter((n) => !(T10_OUTS as readonly string[]).includes(n))).toEqual([]);
+    for (const name of T10_PROP_ONLY_OUTS) expect(T10_OUTS).toContain(name);
+    expect(T10_PROP_ONLY_OUTS).toEqual(['predictResult', 'predictReveal']);
   }, 60000);
 
   it('the ring fields state the cap in words beside them (4.0 Stated limits)', () => {
