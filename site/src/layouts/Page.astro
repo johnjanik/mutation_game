@@ -3,9 +3,10 @@
 // renders the one <h1> of the page from the frontmatter's title, then the content. When the
 // frontmatter says `generated: 'dependencies'` (the credits page) it renders, after the content,
 // the fonts notice and the table of dependencies generated at build time from the three
-// package.json files and the installed packages (SPEC.md 7.9), never typed. No script.
+// package.json files, the packages the client build bundled (RT-FIX P4-RT-08-04) and the installed
+// packages (SPEC.md 7.9), never typed. No script.
 import Base from './Base.astro';
-import { dependencyRows, katexFontNotice } from '@lib/pages/dependencies';
+import { bundledPackages, dependencyRows, findRoot, katexFontNotice } from '@lib/pages/dependencies';
 
 interface Props {
   title: string;
@@ -17,7 +18,9 @@ interface Props {
 
 const { title, description, generated } = Astro.props;
 const siteName = 'Two Games on a Dynkin Diagram';
-const rows = generated === 'dependencies' ? dependencyRows() : [];
+// A production build has always written the list of bundled packages before it generates the pages.
+const root = generated === 'dependencies' ? findRoot(process.cwd()) : '';
+const rows = generated === 'dependencies' ? dependencyRows(root, bundledPackages(root, import.meta.env.PROD)) : [];
 const unreadable = rows.filter((r) => r.licence === null).map((r) => r.name);
 const font = generated === 'dependencies' ? katexFontNotice() : null;
 const shippedCount = rows.filter((r) => r.shipped !== null).length;
@@ -47,8 +50,9 @@ const shippedCount = rows.filter((r) => r.shipped !== null).length;
         <h2 id="deps">Software</h2>
         <p>
           Every package named in the three package.json files of the repository (the root, the engine and the
-          site), with the version installed and the licence stated by the installed package. {shippedCount} of
-          them reach the reader's browser, as marked; the rest are used only to build and test the site.
+          site), and every other package whose code the build bundles into the scripts of the pages, with the
+          version installed and the licence stated by the installed package. {shippedCount} of them reach the
+          reader's browser, as marked; the rest are used only to build and test the site.
         </p>
         <div class="table-wrap" tabindex="0" role="region" aria-label="Software used by this site">
           <table data-out="creditsTable">

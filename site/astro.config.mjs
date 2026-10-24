@@ -9,6 +9,7 @@ import { unified } from '@astrojs/markdown-remark';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { openItemsReportIntegration } from './src/lib/unverifiedRegistry.ts';
+import { shippedPackagesIntegration } from './src/lib/pages/shippedPackages.ts';
 import { execSync } from 'node:child_process';
 
 /** The git commit of the build, for exportJSON and the Cite text (request of P1-A2; MERGE P1 stage 1.1). */
@@ -70,7 +71,8 @@ export default defineConfig({
   base,
   outDir: outDirFrom(process.env),
   output: 'static',
-  integrations: [mdx(), svelte(), openItemsReportIntegration()],
+  // shippedPackagesIntegration: the packages whose code the client build bundles, for the credits page (SPEC.md 7.9).
+  integrations: [mdx(), svelte(), openItemsReportIntegration(), shippedPackagesIntegration()],
   vite: { define: { 'import.meta.env.PUBLIC_GIT_COMMIT': JSON.stringify(gitCommit()) } },
   markdown: { processor: unified({ remarkPlugins: [remarkMath], rehypePlugins: [[rehypeKatex, { output: 'htmlAndMathml' }]] }) },
 });

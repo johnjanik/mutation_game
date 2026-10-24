@@ -1,10 +1,12 @@
 // The generated part of the credits page (SPEC.md 7.9, 9.3): every dependency named in the three
-// package.json files of the repository (root, engine, site), with the version installed and the
-// licence read from the installed package, and the notices KaTeX's fonts carry. Moved here from
-// P0-A5's credits.astro (P1-A4) so that Page.astro renders it when a page's frontmatter says
-// `generated: 'dependencies'`. Build time only (Node file system); never reaches the browser.
+// package.json files of the repository (root, engine, site), and every other package whose code the
+// build bundles into the scripts it ships to the reader (shippedPackages.ts; RT-FIX P4-RT-08-04), with
+// the version installed and the licence read from the installed package, and the notices KaTeX's fonts
+// carry. Moved here from P0-A5's credits.astro (P1-A4) so that Page.astro renders it when a page's
+// frontmatter says `generated: 'dependencies'`. Build time only (Node file system); never reaches the browser.
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { readShippedPackages, shippedPackagesFile, type ShippedPackage } from './shippedPackages';
 
 interface PackageJson {
   name?: string;
@@ -123,8 +125,32 @@ const SHIPPED: Record<string, string> = {
   nanostores: 'the highlight store and the state map of the islands',
 };
 
-/** Every dependency of the three package.json files, sorted by name. */
-export function dependencyRows(root: string = findRoot(process.cwd())): DependencyRow[] {
+/**
+ * The packages the last build bundled into the reader's scripts (shippedPackages.ts). `required`: a
+ * production build must have written the list before it generates the credits page; without it the
+ * page would omit bundled libraries, so the build fails.
+ */
+export function bundledPackages(root: string, required: boolean): ShippedPackage[] {
+  const file = shippedPackagesFile(join(root, 'site'));
+  const list = readShippedPackages(file);
+  if (list === null && required) throw new Error(`credits: ${file} was not written by the client build`);
+  return list ?? [];
+}
+
+/** The packages that import a bundled package, other than the site itself. */
+const importersOf = (p: ShippedPackage): string[] => p.importedBy.filter((n) => n !== 'the site');
+
+/** The "Used" column of a package whose code the build bundles. */
+function bundledUse(p: ShippedPackage): string {
+  const by = importersOf(p);
+  return `its code is bundled into the scripts of the pages${by.length > 0 ? ` (imported by ${by.join(', ')})` : ''}`;
+}
+
+/**
+ * Every dependency of the three package.json files, and every package of `bundled` (the packages whose
+ * code the build ships) that none of them names, sorted by name.
+ */
+export function dependencyRows(root: string = findRoot(process.cwd()), bundled: ShippedPackage[] = bundledPackages(root, false)): DependencyRow[] {
   const manifests = [
     { where: 'root', dir: root },
     { where: 'engine', dir: join(root, 'packages', 'engine') },
@@ -154,6 +180,25 @@ export function dependencyRows(root: string = findRoot(process.cwd())): Dependen
         rows.set(name, row);
       }
     }
+  }
+  for (const p of bundled) {
+    const named = rows.get(p.name);
+    if (named) {
+      named.shipped ??= bundledUse(p);
+      continue;
+    }
+    const found = p.dir !== null && existsSync(join(p.dir, 'package.json')) ? { pkg: readJson(join(p.dir, 'package.json')), dir: p.dir } : installed(p.name, join(root, 'site'), root);
+    const inst = found?.pkg ?? null;
+    rows.set(p.name, {
+      name: p.name,
+      pinned: inst?.version ?? 'not installed',
+      version: inst?.version ?? 'not installed',
+      licence: licenceOf(inst),
+      author: authorOf(inst, found?.dir ?? null),
+      source: sourceOf(inst),
+      usedIn: [importersOf(p).length > 0 ? `a dependency of ${importersOf(p).join(', ')}` : 'added by the bundler'],
+      shipped: bundledUse(p),
+    });
   }
   return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name, 'en'));
 }
