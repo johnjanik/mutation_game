@@ -49,7 +49,7 @@ import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
 import { boardFromName, fire, mutate, symbolicPlay, toPositions } from '../../../packages/engine/src/index';
 import type { Board, Game } from '../../../packages/engine/src/index';
-import { distDir } from './routes';
+import { discoverRoutes, distDir } from './routes';
 
 const ROUTE = 'modules/m6-multiple-edges/';
 const LESSON_PATH = fileURLToPath(new URL('../../src/content/modules/m6-multiple-edges.mdx', import.meta.url));
@@ -1066,4 +1066,61 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the red team (phase 4 round)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // regression: P4-RT-13-03
+  test('M6 draws multiple roads as a double or triple line with an arrow and tells the primary reader how to read it', async ({ page }) => {
+    // Adopted from redteam/rt13-lo6-arrow.mjs with its reading pass redteam/rt13-read.mjs (lens RT-13,
+    // attacks 35 and 26). SPEC 1.3 LO6 "read a multiple edge with an arrow as long and short roots";
+    // 2.1: "(2,1) and (3,1) are a double and a triple line with an arrowhead pointing from i to j, the
+    // direction in which the extra roads run". The prose of M0 to M6 outside the Lie theory paragraphs
+    // (each formula read as its TeX, the captions of the tools included) is searched for a sentence on
+    // how a board is drawn, and among those for one that explains a double or triple line with an
+    // arrow; the road styles of the M6 figures are read from the built page.
+    const routes = discoverRoutes().filter((r) => /^modules\/m[0-6]-/.test(r.path));
+    expect(routes.length, 'the lessons M0 to M6').toBe(7);
+    const prose: { route: string; section: string; text: string }[] = [];
+    for (const route of routes) {
+      await page.goto(route.path);
+      const blocks = await page.locator('article').evaluate((article) => {
+        const tex = (el: Element): string => {
+          const copy = el.cloneNode(true) as HTMLElement;
+          for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(`$${k.querySelector('annotation')?.textContent ?? ''}$`));
+          for (const e of copy.querySelectorAll('script, style, template, svg, .visually-hidden')) e.remove();
+          return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+        };
+        const out: { section: string; text: string }[] = [];
+        for (const el of article.querySelectorAll('p, li, td, th, figcaption, h2, h3')) {
+          if (el.closest('[data-tool]') || el.parentElement?.closest('p, li, td, th, figcaption')) continue;
+          out.push({ section: el.closest('[data-anatomy="lie-theory"]') ? 'lie-theory' : 'prose', text: tex(el) });
+        }
+        for (const el of article.querySelectorAll('[data-tool] [data-out="caption"]')) out.push({ section: 'caption', text: tex(el) });
+        return out;
+      });
+      for (const b of blocks) prose.push({ route: route.path, ...b });
+    }
+    const drawingRules = prose.filter((q) => /\bline\b.*\broad|\bdrawn\b|\barrow(head)?\b/i.test(q.text));
+    const primary = drawingRules.filter((q) => q.section !== 'lie-theory' && /(double|triple|two|three) lines?|arrowhead|arrow (points|runs|gives)|line with an arrow/i.test(q.text));
+    const html = readFileSync(BUILT, 'utf8');
+    const styles: Record<string, string | null> = {};
+    for (const id of ['b1', 'b3', 'b4', 'b11', 'b12']) {
+      const i = html.indexOf(`data-instance="${id}"`);
+      expect(i, id).toBeGreaterThanOrEqual(0);
+      styles[id] = /data-road-style="([a-z]+)"/.exec(html.slice(i))?.[1] ?? null;
+    }
+    const dynkin = Object.values(styles).filter((s) => s === 'dynkin').length;
+    expect(
+      dynkin === 0 || primary.length > 0,
+      `${dynkin} M6 figures draw a multiple road as a double or triple line with an arrow (${JSON.stringify(styles)}), and no primary-reader sentence says how to read it; the drawing sentences of M0 to M6: ${JSON.stringify(drawingRules.map((q) => `${q.route} [${q.section}] ${q.text.slice(0, 160)}`))}`,
+    ).toBe(true);
+    // LO6: the arrow is read as long and short. A primary-reader sentence of M6 ties the arrowhead to
+    // the long and the short city.
+    const lo6 = prose.filter((q) => q.route.includes('m6-') && q.section === 'prose' && /arrowhead/i.test(q.text) && /\blong\b/.test(q.text) && /\bshort\b/.test(q.text));
+    expect(lo6.length, 'a sentence of M6 reads the arrowhead as long and short').toBeGreaterThan(0);
+  });
 });
