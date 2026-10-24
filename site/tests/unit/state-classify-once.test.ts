@@ -75,3 +75,22 @@ describe('RT-03 attack 23: classify is called once when the board is loaded', ()
     }, 120_000);
   }
 });
+
+// The same count on the largest board the editor allows, the 12-cycle (affine A11~), which the RT-07 lens
+// loaded by link into T1, T2, T4 and T16 (attack 24): its verdict was computed 2, 3, 4 and 5 times per
+// load (one classify per resolveBoard of the spec, each a new board object). SPEC.md 5.6, last sentence.
+describe('classify is called once when a 12-node board is loaded', () => {
+  const ring12 = Array.from({ length: 12 }, (_, i) => Array.from({ length: 12 }, (_, j) => (i === j ? 2 : j === (i + 1) % 12 || i === (j + 1) % 12 ? -1 : 0)));
+  for (const [path, props] of [
+    ['/src/components/tools/T01GameBoard.svelte', { id: '', board: { cartan: ring12 } }],
+    ['/src/components/tools/T02OrbitGarden.svelte', { id: '', preset: 'default', board: { cartan: ring12 } }],
+    ['/src/components/tools/T04ClassificationLab.svelte', { id: '', preset: 'default', board: { cartan: ring12 } }],
+    ['/src/components/tools/T16Sandbox.svelte', { id: '', preset: 'default', board: { cartan: ring12 } }],
+  ] as const) {
+    // regression: P3-RT-07-02
+    it(`${path.split('/').pop()!} on the 12-cycle`, async () => {
+      const n = await classifyCalls(path, props);
+      expect(n, `classify calls while rendering ${path} on the 12-cycle`).toBe(1);
+    }, 120_000);
+  }
+});

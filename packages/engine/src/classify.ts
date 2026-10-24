@@ -12,7 +12,6 @@ import type { AnyBoard, Board } from './board';
 import { adjacency, boardKind, cartan, cartanNumbers, components, subBoard } from './board';
 import { CAPS } from './caps';
 import { NeedsConnectedBoard, NeedsTwoWayRoads, NotABoard } from './errors';
-import { determinant } from './linalg';
 import type { Rational } from './rational';
 import { rat, ratDiv, ratEq, ratMul, ratSign, ratSub } from './rational';
 import { extendMatrix, nullVector, twistedAEven } from './affine';
@@ -136,11 +135,21 @@ export function cartanClass<T>(board: Board<T>): 'finite' | 'affine' | 'indefini
   const B = gram(board);
   if (B === null) return 'indefinite';
   const n = board.n;
-  const minors: Rational[] = [];
-  for (let k = 1; k <= n; k++) minors.push(determinant(B.slice(0, k).map((row) => row.slice(0, k))));
-  if (minors.every((m) => ratSign(m) > 0)) return 'finite';
-  if (minors.slice(0, -1).every((m) => ratSign(m) > 0) && ratSign(minors[n - 1]!) === 0) return 'affine';
-  return 'indefinite';
+  // The leading principal minors in one elimination without row swaps: while the minors so far are
+  // positive, the k-th minor is the (k-1)-th times the k-th pivot, so the first pivot that is not
+  // positive decides (exactly the rule on the minors, with one elimination instead of n determinants).
+  const A = B.map((row) => [...row]);
+  for (let c = 0; c < n; c++) {
+    const pivot = A[c]![c]!;
+    const s = ratSign(pivot);
+    if (s <= 0) return s === 0 && c === n - 1 ? 'affine' : 'indefinite';
+    for (let r = c + 1; r < n; r++) {
+      const f = ratDiv(A[r]![c]!, pivot);
+      if (ratSign(f) === 0) continue;
+      for (let k = c + 1; k < n; k++) A[r]![k] = ratSub(A[r]![k]!, ratMul(f, A[c]![k]!));
+    }
+  }
+  return 'finite';
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -292,19 +301,26 @@ export function identify<T>(board: Board<T>): { name: string; order: number[] } 
  */
 export function affineCandidates(m: number): { name: string; cartan: number[][] }[] {
   if (!Number.isInteger(m)) throw new RangeError(`the node count ${String(m)} is not an integer`);
+  return [...eachAffineCandidate(m)];
+}
+
+/**
+ * The candidates of affineCandidates in the same order, each matrix built only when it is reached, so
+ * that identifyAffine, which stops at the first match, does not enumerate the root systems of the
+ * candidates after it (each extension enumerates the roots of a finite type of rank m - 1).
+ */
+function* eachAffineCandidate(m: number): Generator<{ name: string; cartan: number[][] }> {
   const n = m - 1;
-  const out: { name: string; cartan: number[][] }[] = [];
-  if (n < 1) return out;
+  if (n < 1) return;
   for (const X of finiteCandidates(n)) {
     if (X === 'B2') continue;
-    out.push({ name: `${X}~`, cartan: extendMatrix(cartan(X), false).cartan });
+    yield { name: `${X}~`, cartan: extendMatrix(cartan(X), false).cartan };
   }
-  out.push({ name: `A${2 * n}^(2)`, cartan: twistedAEven(n) });
-  if (n >= 3) out.push({ name: `A${2 * n - 1}^(2)`, cartan: transposed(extendMatrix(cartan(`B${n}`), false).cartan) });
-  if (n >= 2) out.push({ name: `D${n + 1}^(2)`, cartan: transposed(extendMatrix(cartan(`C${n}`), false).cartan) });
-  if (n === 4) out.push({ name: 'E6^(2)', cartan: transposed(extendMatrix(cartan('F4'), false).cartan) });
-  if (n === 2) out.push({ name: 'D4^(3)', cartan: transposed(extendMatrix(cartan('G2'), false).cartan) });
-  return out;
+  yield { name: `A${2 * n}^(2)`, cartan: twistedAEven(n) };
+  if (n >= 3) yield { name: `A${2 * n - 1}^(2)`, cartan: transposed(extendMatrix(cartan(`B${n}`), false).cartan) };
+  if (n >= 2) yield { name: `D${n + 1}^(2)`, cartan: transposed(extendMatrix(cartan(`C${n}`), false).cartan) };
+  if (n === 4) yield { name: 'E6^(2)', cartan: transposed(extendMatrix(cartan('F4'), false).cartan) };
+  if (n === 2) yield { name: 'D4^(3)', cartan: transposed(extendMatrix(cartan('G2'), false).cartan) };
 }
 
 /** The name of a connected affine board in any numbering (oracle lines 1221 to 1226); null on a one-way board and when no candidate matches. */
@@ -314,7 +330,7 @@ export function identifyAffine<T>(board: Board<T>): string | null {
   const C = intCartan(board);
   if (boardKind(C) !== 'gcm') return null;
   if (components(board).length !== 1) throw new NeedsConnectedBoard('identifyAffine needs a connected board');
-  for (const cand of affineCandidates(board.n)) {
+  for (const cand of eachAffineCandidate(board.n)) {
     if (relabellingsOf(C, cand.cartan, 1).length > 0) return cand.name;
   }
   return null;
@@ -396,6 +412,24 @@ function eachCombination(n: number, k: number, f: (K: number[]) => boolean): boo
   }
 }
 
+/** Whether the positions K form one piece, two positions joined when C[i][j] or C[j][i] is nonzero (as components). */
+function connectedSet(C: number[][], K: readonly number[]): boolean {
+  const reached: boolean[] = K.map((_, k) => k === 0);
+  const stack: number[] = [0];
+  let count = 1;
+  while (stack.length > 0) {
+    const i = K[stack.pop()!]!;
+    for (let t = 0; t < K.length; t++) {
+      const j = K[t]!;
+      if (reached[t] || (C[i]![j] === 0 && C[j]![i] === 0)) continue;
+      reached[t] = true;
+      count += 1;
+      stack.push(t);
+    }
+  }
+  return count === K.length;
+}
+
 /**
  * The first connected subset of positions, by increasing size and lexicographic within a size, whose
  * induced board is affine or indefinite, with its class; null when every connected subset is finite and
@@ -404,13 +438,16 @@ function eachCombination(n: number, k: number, f: (K: number[]) => boolean): boo
 export function smallestNonfiniteSubboard<T>(board: Board<T>): NonfiniteSubboard | null;
 export function smallestNonfiniteSubboard(board: AnyBoard): NonfiniteSubboard | null;
 export function smallestNonfiniteSubboard<T>(board: Board<T>): NonfiniteSubboard | null {
-  if (kindOf(board) !== 'gcm') return null;
+  const C = intCartan(board);
+  if (boardKind(C) !== 'gcm') return null;
   const n = board.n;
   let found: NonfiniteSubboard | null = null;
   for (let size = 1; size <= n && found === null; size++) {
     eachCombination(n, size, (K) => {
+      // The induced board is connected exactly when K is connected through the roads of the board, so
+      // the sub-board is built only for a connected K (most subsets of a large board are not).
+      if (!connectedSet(C, K)) return false;
       const sub = subBoard(board, K);
-      if (components(sub).length !== 1) return false;
       const cls = cartanClass(sub);
       if (cls === 'finite') return false;
       found = { nodes: K, class: cls };
