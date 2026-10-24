@@ -11,7 +11,7 @@
   // (numbers only), start, moves, caption, preset (default, tally, wave, compared, dimension),
   // prediction, linkTo (ignored: T5 follows no tool), layers (ignored: T5 grows no set of positions),
   // and T5's own: tab, lambda (also a state field), firstColour, secondMoves, boardChoices.
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { coxeterNumber } from '@two-games/engine';
   import type { AnyBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
@@ -399,6 +399,7 @@
   }
 
   function stepB(announce: (t: string) => void): void {
+    if (frozen || gameB.gameOver) return;
     const k = gameB.stepPosition('highest');
     if (k !== null) actB(k, announce);
   }
@@ -457,6 +458,22 @@
     if (!customValid) return;
     const start = customEntries as (number | string)[];
     setStart(start, startKindOf(start), announce);
+  }
+
+  /** The wave's tab panel and the start chooser: where the focus goes when its own press removes a control. */
+  let panelEl: HTMLElement | null = $state(null);
+  let startKindEl: HTMLSelectElement | null = $state(null);
+
+  /**
+   * A control whose own press removes it ("Start the wave from all ones" once the wave can start; "Use this
+   * start" when the start is all ones or a fundamental weight) hands a focus left on it to `target`, inside
+   * the tool, never to the page (A-1, WCAG 2.4.3; RT-FIX P4-RT-05-01, as T4's keep counting).
+   */
+  function keepFocusIn(control: HTMLElement, target: HTMLElement | null): void {
+    if (document.activeElement !== control) return;
+    void tick().then(() => {
+      if (!control.isConnected) target?.focus();
+    });
   }
 
   function startWave(announce: (t: string) => void): void {
@@ -612,7 +629,15 @@
         >
       {/each}
     </div>
-    <div class="panel" role="tabpanel" id="{instanceId || 'numbers'}-panel" aria-labelledby="{instanceId || 'numbers'}-tab-{tab}" data-panel={tab}>
+    <div
+      class="panel"
+      role="tabpanel"
+      id="{instanceId || 'numbers'}-panel"
+      aria-labelledby="{instanceId || 'numbers'}-tab-{tab}"
+      data-panel={tab}
+      tabindex="-1"
+      bind:this={panelEl}
+    >
       {#if tab === 'tape'}
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
         <div tabindex="0" role="group" aria-label="Tape table" class="scrollbox">
@@ -704,7 +729,16 @@
           <p class="line" data-out="waveLegal" data-legal={wave.legal ? 'true' : 'false'}>{wave.legal ? 'Every firing of the wave is legal.' : 'Some firing of the wave is not legal.'}</p>
           {#if waveText !== null}
             <p class="line" data-out="waveNote">{waveText}</p>
-            <button type="button" class="control" data-control="startWave" disabled={!api.hydrated || frozen} onclick={() => startWave(api.announce)}>Start the wave from all ones</button>
+            <button
+              type="button"
+              class="control"
+              data-control="startWave"
+              disabled={!api.hydrated || frozen}
+              onclick={(e) => {
+                keepFocusIn(e.currentTarget, panelEl);
+                startWave(api.announce);
+              }}>Start the wave from all ones</button
+            >
           {/if}
         {/if}
         <ol class="rounds">
@@ -726,8 +760,25 @@
             onAct={(k) => actB(k, api.announce)}
           />
           <div class="row-b">
-            <button type="button" class="control" data-control="stepB" disabled={!api.hydrated || frozen || curB().gameOver} onclick={() => stepB(api.announce)}>Step B</button>
-            <button type="button" class="control" data-control="playToEndB" disabled={!api.hydrated || frozen || curB().gameOver} onclick={() => playToEndB(api.announce)}>Play B to the end</button>
+            <!-- At the end of game B the two controls are done but keep the focus (A-1, WCAG 2.4.3; RT-FIX
+                 P4-RT-05-01): aria-disabled, the handlers doing nothing then; disabled only before hydration
+                 (7.4) and while a prediction freezes the board. -->
+            <button
+              type="button"
+              class="control"
+              data-control="stepB"
+              disabled={!api.hydrated || frozen}
+              aria-disabled={!frozen && curB().gameOver ? 'true' : undefined}
+              onclick={() => stepB(api.announce)}>Step B</button
+            >
+            <button
+              type="button"
+              class="control"
+              data-control="playToEndB"
+              disabled={!api.hydrated || frozen}
+              aria-disabled={!frozen && curB().gameOver ? 'true' : undefined}
+              onclick={() => playToEndB(api.announce)}>Play B to the end</button
+            >
             <button type="button" class="control" data-control="resetB" disabled={!api.hydrated || frozen} onclick={() => resetB(api.announce)}>Reset B</button>
           </div>
         </div>
@@ -833,7 +884,7 @@
   >
   <label class="setting">
     <span>Start</span>
-    <select data-control="startKind" disabled={!api.hydrated || frozen} onchange={(e) => pickStartKind(e.currentTarget.value as StartKind, api.announce)}>
+    <select data-control="startKind" disabled={!api.hydrated || frozen} bind:this={startKindEl} onchange={(e) => pickStartKind(e.currentTarget.value as StartKind, api.announce)}>
       <option value="ones" selected={startKind === 'ones'}>all ones</option>
       <option value="fundamental" selected={startKind === 'fundamental'}>a fundamental weight</option>
       <option value="custom" selected={startKind === 'custom'}>custom</option>
@@ -857,7 +908,16 @@
           <input type="text" inputmode="numeric" size="4" data-control="customEntry" data-entry-node={l} bind:value={customDraft[k]} disabled={!api.hydrated || frozen} />
         </label>
       {/each}
-      <button type="button" class="control" data-control="customStart" disabled={!api.hydrated || frozen || !customValid} onclick={() => applyCustom(api.announce)}>Use this start</button>
+      <button
+        type="button"
+        class="control"
+        data-control="customStart"
+        disabled={!api.hydrated || frozen || !customValid}
+        onclick={(e) => {
+          keepFocusIn(e.currentTarget, startKindEl);
+          applyCustom(api.announce);
+        }}>Use this start</button
+      >
     </span>
   {/if}
   <label class="setting">

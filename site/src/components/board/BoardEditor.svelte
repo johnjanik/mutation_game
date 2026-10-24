@@ -142,10 +142,12 @@
   }
 
   function add(): void {
+    if (addReason !== '') return;
     if (emit(addNode(edit, nodeCap), 'add-node')) subjectRaw = board.n;
   }
 
   async function remove(k: number = subject): Promise<void> {
+    if (removeReason !== '') return;
     const n = board.n;
     if (!emit(removeNode(edit, k), 'remove-node')) return;
     const next = Math.min(k, n - 2);
@@ -361,9 +363,20 @@
         >{/if}.
     </p>
     <div class="row">
-      <button type="button" class="control" data-control="addNode" disabled={off || addReason !== ''} onclick={add}>Add node</button>
-      <button type="button" class="control" data-control="removeNode" disabled={off || removeReason !== ''} onclick={() => remove()}
-        >Remove node {subjectLabel}</button
+      <!-- Add node at the largest board and Remove node at the smallest are done by their own press but keep
+           the focus (A-1, WCAG 2.4.3; RT-FIX P4-RT-05-01): aria-disabled, with the reason beside them, and the
+           handlers doing nothing then; disabled only before hydration (7.4) and while the tool turns the
+           editor off. -->
+      <button type="button" class="control" data-control="addNode" disabled={off} aria-disabled={addReason !== '' ? 'true' : undefined} onclick={add}
+        >Add node</button
+      >
+      <button
+        type="button"
+        class="control"
+        data-control="removeNode"
+        disabled={off}
+        aria-disabled={removeReason !== '' ? 'true' : undefined}
+        onclick={() => remove()}>Remove node {subjectLabel}</button
       >
       <span class="reason" data-out="editorReason">{addReason || removeReason}</span>
     </div>
