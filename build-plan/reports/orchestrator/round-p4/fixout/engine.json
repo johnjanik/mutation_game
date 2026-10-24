@@ -1,0 +1,245 @@
+{
+ "agent": "rtfix-p4-engine",
+ "status": "done",
+ "branch": "worktree-agent-a1d34dd3e1b9579e5",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a1d34dd3e1b9579e5",
+ "base": "967118d23189fb1ac0190af9790884d1c897edc7",
+ "commits": [
+  "5a450a5 RT-FIX P4-RT-01-01 P4-RT-03-01: wythoffEdges throws EngineOverflow past 2^53 on Big",
+  "ad14092 RT-FIX P4-RT-01-02: symmetrizer and gram take road counts beyond 2^53",
+  "2bf126f RT-FIX P4-RT-03-02: orbitGraph fast path hashes entries with a non-linear mix",
+  "07e5a66 RT-FIX P4-RT-01-01 P4-RT-03-01 P4-RT-01-02 P4-RT-03-02: decisions fragment",
+  "74763cf RT-FIX P4-RT-01-02 P4-RT-03-02: wording of a comment and of the fragment",
+  "243552c RT-FIX P4-RT-11-01: tests of the generic orbit loop at a cap equal to the orbit",
+  "62ff5f8 RT-FIX P4-RT-11-03: T15 compares each city name whole with its data-node",
+  "68347ac RT-FIX P4-RT-11-01 P4-RT-11-02 P4-RT-11-03: decisions fragment entries"
+ ],
+ "filesChanged": [
+  "packages/engine/src/wythoff.ts",
+  "packages/engine/src/classify.ts",
+  "packages/engine/src/search.ts",
+  "packages/engine/test/unit/wythoff-edges-beyond-2-53.test.ts",
+  "packages/engine/test/unit/wythoff-edges-big-board.test.ts",
+  "packages/engine/test/unit/classify-entries-beyond-2-53.test.ts",
+  "packages/engine/test/unit/search-hash-sublattice.test.ts",
+  "packages/engine/test/unit/search-generic-cap.test.ts",
+  "packages/engine/test/unit/mainthread-fast-paths.test.ts",
+  "site/tests/e2e/T15.spec.ts",
+  "decisions/RT-FIX-P4-engine.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard 967118d; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "worktree agent-a1d34dd3e1b9579e5, branch worktree-agent-a1d34dd3e1b9579e5, base 967118d23189fb1ac0190af9790884d1c897edc7"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: all three match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65), Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- test/unit/wythoff-edges-beyond-2-53.test.ts test/unit/wythoff-edges-big-board.test.ts (red, base)",
+   "exit": 1,
+   "summary": "Tests 2 failed | 1 passed: 13510798882111492 where the oracle has 13510798882111491 (six edges); 9007199254740996 where the oracle has 9007199254740995"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- test/unit/classify-entries-beyond-2-53.test.ts (red, base)",
+   "exit": 1,
+   "summary": "Tests 7 failed | 2 passed (9): RangeError: the numerator -9007199254740992 is not a safe integer (and -18014398509481984 on the 3-node board)"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- test/unit/search-hash-sublattice.test.ts (red, base, load 7)",
+   "exit": 1,
+   "summary": "1 failed: fast path from 2^30 rho 16884 ms; generic loop 657 ms; expected 16884 to be less than 3285"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- the two wythoff files (after fix)",
+   "exit": 0,
+   "summary": "Tests 4 passed (4); with wythoff.ts reverted by hand: 3 failed | 1 passed"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- test/unit/classify-entries-beyond-2-53.test.ts (after fix)",
+   "exit": 0,
+   "summary": "Tests 14 passed (14); with classify.ts reverted by hand: 11 failed | 3 passed"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- test/unit/search-hash-sublattice.test.ts (after fix)",
+   "exit": 0,
+   "summary": "Tests 4 passed (4); with the linear share put back by hand: 3 failed (timing 13599 vs 727 ms; k=2^29: 2 hashes, 400215225 comparisons; triangle: 1 hash, 4999950000 comparisons), the fast-vs-generic equality test passes as it should"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- test/golden/p1-layer-growth.test.ts test/unit/mainthread-fast-paths.test.ts test/unit/search-hash-sublattice.test.ts test/unit/p1-search.test.ts",
+   "exit": 0,
+   "summary": "Test Files 4 passed, Tests 43 passed"
+  },
+  {
+   "cmd": "patch F3-generic-M14 (lens mutant); npm test -w packages/engine -- test/unit/search-generic-cap.test.ts test/unit/mainthread-fast-paths.test.ts; patch -R",
+   "exit": 1,
+   "summary": "under F3: 3 failed | 9 passed (A2 cap 6, triangle cap 18 maxDepth 3, [[2,-4],[-4,2]] cap 242: expected true to be false); without F3: 12 passed"
+  },
+  {
+   "cmd": "npx --prefix <wt> vitest run --project site-unit site/tests/unit/tools/T16.test.ts",
+   "exit": 0,
+   "summary": "Tests 17 passed (17): T16 import refusal unchanged"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors 0 warnings; svelte-check 0 errors, 1 warning (existing, LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "build complete; links: 1040 internal links on 32 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7640> T15.spec.ts (final build)",
+   "exit": 0,
+   "summary": "21 passed (52.6s)"
+  },
+  {
+   "cmd": "T15.spec.ts -g 'frozen population' under a build with a11y.ts naming every city 'City 1' (reverted after)",
+   "exit": 1,
+   "summary": "strengthened test failed: Expected 'City 2, population 1, mutation would change nothing', Received 'City 1, ...'; the base version of the test passed"
+  },
+  {
+   "cmd": "T15.spec.ts -g 'capped play' --repeat-each on base-engine build and on this branch's build",
+   "exit": 1,
+   "summary": "pre-existing flake: base build 8 of 9 pass, branch build 9 of 13 pass, every failure 'Received: Board square.'; play.ts is untouched"
+  },
+  {
+   "cmd": "patch F9-generic-slow; npm run bench -w packages/engine -- test/bench/orbit.bench.ts (with the uncommitted bigint case); patch -R",
+   "exit": 1,
+   "summary": "bigint case median 588.54 ms (fails), first case 21.27 ms (passes): the case catches F9"
+  },
+  {
+   "cmd": "npm run bench -w packages/engine -- test/bench/orbit.bench.ts (with the uncommitted bigint case), runs at load 2 to 15",
+   "exit": 1,
+   "summary": "bigint case medians: load ~2: 31.84, 24.29, 30.02 ms; ~4.5: 29.12, 22.81, 21.60; ~10: 22.92, 34.23, 40.47; 11-12: 26.58 to 36.68 ms; needs-decision, case not committed"
+  },
+  {
+   "cmd": "npm run bench -w packages/engine (committed benchmarks, final, load ~4.9)",
+   "exit": 0,
+   "summary": "3 passed, three runs: orbit 9.77, 16.01, 10.82 ms; T4 load path 33.52, 14.20, 24.92 ms"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine (final)",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final, clean tree)",
+   "exit": 0,
+   "summary": "Test Files 70 passed (70), Tests 2243 passed (2243); baseline 65 / 2218"
+  },
+  {
+   "cmd": "grep -rn 'regression: P4-RT-' packages/engine/test site/tests",
+   "exit": 0,
+   "summary": "P4-RT-01-01 x2, P4-RT-01-02 x11, P4-RT-03-01 x1, P4-RT-03-02 x4, P4-RT-11-01 x3, P4-RT-11-03 x1"
+  },
+  {
+   "cmd": "git diff 967118d..HEAD greps: .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on:click em-dash; redteam names; forbidden paths",
+   "exit": 0,
+   "summary": "all 0; no redteam file in the diff; no forbidden path"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep -f 'port 7640'",
+   "exit": 0,
+   "summary": "clean tree, no preview server of mine"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P4-RT-01-01: wythoffEdges silently rounds vertex entries beyond 2^53 on a Big board instead of returning them exactly or throwing EngineOverflow (major)",
+   "status": "fixed",
+   "test": "packages/engine/test/unit/wythoff-edges-beyond-2-53.test.ts > wythoffEdges on a Big board never returns a rounded vertex entry (P4-RT-01-01); > wythoffEdges at the edge of the safe range: exact up to 2^53 - 1 on Big, EngineOverflow past it, as on SafeInt",
+   "evidence": "red at base 967118d: 13510798882111492 against the oracle's 13510798882111491 in all six edges; cause: wythoff.ts toNumber wrote each bigint entry through Number() with no check; fix: an entry that is not a safe integer throws EngineOverflow (CONTRACTS 2.4 types the entries as number; same rule as SafeInt and symbolicPlay); green 4 passed; the boundary test is exact at 3r = 9007199254740990 on Big and throws at r + 1; commit 5a450a5"
+  },
+  {
+   "item": "P4-RT-03-01: wythoffEdges returns entries past 2^53 rounded on a Big board instead of exact values or EngineOverflow (DUPLICATE of P4-RT-01-01)",
+   "status": "fixed",
+   "test": "packages/engine/test/unit/wythoff-edges-big-board.test.ts > every edge equals the oracle, digit for digit (or the call throws EngineOverflow)",
+   "evidence": "same cause and commit as P4-RT-01-01 (5a450a5); red at base: 9007199254740996 where the oracle has 9007199254740995; the Python bridge is replaced by the 18 oracle edges as literals; green after fix (EngineOverflow)"
+  },
+  {
+   "item": "P4-RT-01-02: symmetrizer, gram, cartanClass, classify, smallestNonfiniteSubboard and every guarded function throw RangeError on a road count beyond 2^53 (raised to major by both verifiers; original minor)",
+   "status": "fixed",
+   "test": "packages/engine/test/unit/classify-entries-beyond-2-53.test.ts (11 tests with // regression: P4-RT-01-02)",
+   "evidence": "red at base: 7 failed | 2 passed, RangeError: the numerator -9007199254740992 is not a safe integer; cause: symmetrizer and gram built rationals with rat(number), which accepts only safe integers; fix: entries go into the rationals through BigInt (rat's own rule in P1-A1 kept); green 14 passed, including a balanced chain, a board in two pieces with symmetrizer entry 2^53/3, an unbalanced board, a one-way board, formValue, and NotFiniteType from coxeterNumber, weylOrder and wythoffEdges; values from the oracle; reverting the fix fails 11; commit ad14092 (comment wording 74763cf)"
+  },
+  {
+   "item": "P4-RT-03-02: orbitGraph's fast path hashes positions linearly mod 2^30, so an orbit inside 2^30 Z^n becomes quadratic (minor)",
+   "status": "fixed",
+   "test": "packages/engine/test/unit/search-hash-sublattice.test.ts (4 tests: the adopted timing test, two comparison counts, fast vs generic equality)",
+   "evidence": "red at base: fast 16884 ms vs generic 657 ms; cause: each entry's share of the hash was linear in the entry, so every position in 2^30 Z^n had one hash; fix: each entry's low 32 bits and the rest mixed by the MurmurHash3 finaliser, summed mod 2^30 and still updated incrementally, positions still compared entry by entry; green 4 passed; with the linear share restored: 3 failed (one bucket of 40000, 799980000 comparisons); E8 from 2^30 rho at cap 40000 now 39999 hashes; fast path equals the generic loop on the colliding seeds in both games, both arithmetics, layer bounds, legal play and a handover past 2^53; golden layer_growth green; benchmarks unchanged within noise (warm 1.94 vs 1.60 ms); commit 2bf126f"
+  },
+  {
+   "item": "P4-RT-11-01: The generic orbitGraph loop (values beyond 2^53) can report truncated for a search that ends with exactly cap positions and the whole suite stays green (major)",
+   "status": "fixed",
+   "test": "packages/engine/test/unit/search-generic-cap.test.ts > both tests; packages/engine/test/unit/mainthread-fast-paths.test.ts > where values pass 2^53 and the search ends with exactly cap positions (cap one below, equal to and one above the orbit)",
+   "evidence": "missing test, so the tests are the fix; no source change; under the lens mutant F3: 3 failed | 9 passed (expected true to be false at cap 6, 18 and 242); without F3: 12 passed; engine suite 2243 passed; commit 243552c"
+  },
+  {
+   "item": "P4-RT-11-02: The 25 ms orbit benchmark of SPEC 7.6 no longer measures Big arithmetic: the bigint loop can become 30 times slower and orbit.bench.ts stays green (major)",
+   "status": "needs-decision",
+   "test": "packages/engine/test/bench/redteam-RT-11-big-values.bench.ts on worktree-agent-a19febfb0f4c5a241",
+   "evidence": "fixed thing: the 25 ms threshold of SPEC 7.6 / CONTRACTS.md 3 for orbit.bench.ts. A second case was written: same board, seeds times 2^60, same 2000 positions, bigint loop, 25 ms. It catches F9 (588.54 ms). But on this machine it does not stay under 25 ms. Medians at load ~2 (quietest in about 50 minutes): 31.84, 24.29, 30.02 ms. At ~4.5: 29.12, 22.81, 21.60 ms. At 10 to 15: 22.9 to 40.5 ms. In one process it takes 19.5 to 21 ms warm, identical on base and branch. So the case is not committed and the threshold is unchanged. Options: (a) speed up the bigint loop, then add the case at 25 ms; (b) the owner reads 'in Big arithmetic' as naming the board and sets a line for the bigint case; (c) commit the case and let GATE measure it alone. Recommendation (a). The record of what the benchmark measures, plus the exact edit, is in decisions/RT-FIX-P4-engine.md (commit 68347ac)."
+  },
+  {
+   "item": "P4-RT-11-03: T15.spec.ts checks the A-3 node names with a wildcard for the city number (minor)",
+   "status": "fixed",
+   "test": "site/tests/e2e/T15.spec.ts > frozen population: every city is happy and a Martian wakes the board",
+   "evidence": "red: under a build whose city names all say 'City 1', the strengthened test fails (Expected 'City 2, population 1, mutation would change nothing', Received 'City 1, ...') while the base version passes; green: 21 passed against this branch's build on port 7640; each name is compared whole with its data-node label and the four labels are checked; commit 62ff5f8"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX.md 5.4 item 7",
+   "what": "P4-RT-03-02 (minor) fixed in search.ts, a file no other finding of the original cluster changed",
+   "why": "the round's prompt names the fix and its test explicitly; recorded in the fragment"
+  },
+  {
+   "spec": "RT-FIX.md 5.3 (adoption edits)",
+   "what": "the RT-01 reproducers import ../../src/index instead of ../../src/index.ts; the RT-03 Wythoff file uses literal oracle edges and leaves its attack-28 block (E8 cap, unrelated, passing) on the lens branch; the RT-03 hash file puts its timings in the assertion message instead of console.log",
+   "why": "tsc refuses the .ts extension (TS5097); no Python at test time; no console.log in the diff; inputs and assertions unchanged"
+  },
+  {
+   "spec": "CONTRACTS.md 2.1",
+   "what": "search.ts exports an internal helper positionHash (not re-exported from index.ts)",
+   "why": "for the comparison-count test; not part of the public API"
+  },
+  {
+   "spec": "cluster area packages/engine/src",
+   "what": "site/tests/e2e/T15.spec.ts changed",
+   "why": "P4-RT-11-03 was added to this cluster by the orchestrator; test-only"
+  }
+ ],
+ "requests": [
+  {
+   "to": "owner / MERGE",
+   "what": "P4-RT-11-02: after the decision, add the bigint case to packages/engine/test/bench/orbit.bench.ts as written out in decisions/RT-FIX-P4-engine.md, entry 'what the orbit benchmark measures, and request for its bigint case'"
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P4-engine.md",
+ "openQuestions": [
+  "site/tests/e2e/T15.spec.ts 'announcements of a capped play, recorded' (regression P3-RT-11-08) is flaky under load: it fails 'Received: Board square.' in 1 of 9 runs on a build with the base engine and 4 of 13 on this branch's build. The cause is a race in the test: recording starts before the picker's coalesced announcement, and the poll stops at the first entry. play.ts and the announcement code are untouched.",
+  "P4-RT-01-02's T16 claim did not reproduce at this base: T16BoardIO refuses entries that are not safe integers ('cartan has an entry that is not a whole number') before resolveBoard, so the import never showed the RangeError. T16.test.ts still passes 17 of 17 and nothing under site/ was changed for it."
+ ],
+ "handoff": "Engine fixes are in wythoff.ts (EngineOverflow past 2^53), classify.ts (rationals through bigint) and search.ts (non-linear hash; the generic loop is untouched). The only file outside the engine cluster is site/tests/e2e/T15.spec.ts (test-only). The proposedFix of P4-RT-01-02 was followed in the narrower form: BigInt of the integer copy, with rat unchanged. P4-RT-11-02 is needs-decision: the bigint benchmark case catches F9 but measured 21.6 to 40.5 ms here, never quiet, so it is not committed. GATE should measure it alone before the owner chooses."
+}
