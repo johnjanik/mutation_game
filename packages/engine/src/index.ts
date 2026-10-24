@@ -94,3 +94,7 @@ export { symEig, euclideanBasis, coxeterPlanePoints, coxeterPlaneRings, coxeterW
 export type { CoxeterPlaneRings } from './geometry';
 export { wythoffFaceTypes, wythoffFVector, wythoffEdges } from './wythoff';
 export type { FaceType } from './wythoff';
+
+// phase 5 (P5-A1): rep.ts
+export { spKey, spMul, spAdd, spComm, spScale, spEq, minusculeMatrices, signedMoves, chevalleySerre, stringThrough } from './rep';
+export type { SparseMatrix, RelationCheck } from './rep';
