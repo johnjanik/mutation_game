@@ -8,8 +8,10 @@
 // <figcaption>, <details>, <table>; KaTeX's .katex and its <math> (A-12, plan addition). RT-FIX
 // P3-RT-06-03 adds: data-board-group and the drawing beside it, role="img", <img alt>, the node hooks
 // data-board, data-value, data-can-act, data-editor (the board editor), every data-out and data-moves
-// (compared with the hydrated default), data-hydrated, and the prediction's .answer-text.
-import { expect, test } from '@playwright/test';
+// (compared with the hydrated default), data-hydrated, and the prediction's .answer-text. RT-FIX
+// P4-MERGE-04 adds data-measured: a data-out whose text measures the reader's machine (T10's drawMs) is
+// compared by its presence, not its value.
+import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { hydrateEveryIsland } from './hydrate';
 import { discoverRoutes } from './routes';
@@ -204,7 +206,12 @@ interface StateHooks {
   /** data-node, data-board, data-value and data-can-act of every element carrying data-node. */
   nodes: string[];
   caption: string;
-  /** name=text of every data-out, on a ToolFrame tool (data-frame). */
+  /**
+   * name=text of every data-out, on a ToolFrame tool (data-frame). An output that measures the reader's
+   * machine (a drawing time) carries the attribute data-measured (RT-FIX P4-MERGE-04): it is not part of the
+   * default state, so it is listed as "name (measured)", which still requires the element, and the
+   * attribute, on both sides.
+   */
   outs: string[];
 }
 
@@ -220,7 +227,9 @@ function stateHooks(root: Element): StateHooks {
       .map((b) => ['data-node', 'data-board', 'data-value', 'data-can-act'].map((a) => `${a}=${b.getAttribute(a) ?? '-'}`).join(' ')),
     caption: text(root.querySelector('[data-out="caption"]') ?? root.closest('figure')?.querySelector(':scope > figcaption')),
     outs: root.hasAttribute('data-frame')
-      ? [...root.querySelectorAll('[data-out]')].filter(outside).map((o) => `${o.getAttribute('data-out') ?? ''}=${text(o)}`)
+      ? [...root.querySelectorAll('[data-out]')]
+          .filter(outside)
+          .map((o) => (o.hasAttribute('data-measured') ? `${o.getAttribute('data-out') ?? ''} (measured)` : `${o.getAttribute('data-out') ?? ''}=${text(o)}`))
       : [],
   };
 }
@@ -288,3 +297,95 @@ for (const route of ['tools/board/', 'modules/m0-start/']) {
     expect.soft(predictionsAccepted, `${route}: emptied predictions nojs.spec.ts accepts`).toBe(0);
   });
 }
+
+// regression: P4-MERGE-01
+test('M6 b10 (T11 on the Average preset, A5) has a default figure and a text alternative in its server markup', async ({ page }) => {
+  await page.goto('modules/m6-multiple-edges/');
+  const root = page.locator('[data-tool="fold"][data-instance="b10"]');
+  await expect(root).toHaveCount(1);
+  await expect(root.locator('[data-tab="average"]')).toHaveAttribute('aria-selected', 'true');
+  const report = await root.evaluate(toolReport);
+  expect(figureProblems(report), 'the Average tab: default figure and its text alternative').toEqual([]);
+  expect(report.figure).toBe('board');
+});
+
+// regression: P4-MERGE-02
+test('M7 prediction 0 has an answer (.answer-text) inside the <details> that follows it without JavaScript', async ({ page }) => {
+  await page.goto('modules/m7-geometry/');
+  const predictions = page.locator('[data-prediction]');
+  const n = await predictions.count();
+  expect(n, 'predictions on M7').toBeGreaterThan(0);
+  for (let k = 0; k < n; k++) {
+    const report = await predictions.nth(k).evaluate(predictionReport);
+    expect(predictionProblems(report), `prediction ${k}`).toEqual([]);
+  }
+});
+
+// regression: P4-MERGE-02
+test('M7 T10 predictions: the server markup holds the empty result line (data-out predictResult) of the hydrated prediction', async ({ page }) => {
+  await page.goto('modules/m7-geometry/');
+  const predictions = page.locator('[data-tool="geometry"] [data-prediction]');
+  const n = await predictions.count();
+  expect(n, 'T10 predictions on M7').toBeGreaterThan(0);
+  for (let k = 0; k < n; k++) {
+    const result = predictions.nth(k).locator('[data-out="predictResult"]');
+    await expect(result, `prediction ${k}: the result line`).toHaveCount(1);
+    await expect(result, `prediction ${k}: empty before an answer`).toHaveText('');
+  }
+});
+
+/** The text of the named data-out of the first root of a tool on a page, '' when absent. */
+async function outText(page: Page, tool: string, name: string): Promise<string> {
+  return page
+    .locator(`[data-tool="${tool}"]`)
+    .first()
+    .evaluate((root, n) => (root.querySelector(`[data-out="${n}"]`)?.textContent ?? '').replace(/\s+/g, ' ').trim(), name);
+}
+
+// regression: P4-MERGE-03
+test('T10 server markup shows data-out source and sharedEdges as the hydrated default fills them', async ({ page, browser }) => {
+  for (const route of ['modules/m7-geometry/', 'tools/geometry/']) {
+    await page.goto(route);
+    const server = { source: await outText(page, 'geometry', 'source'), sharedEdges: await outText(page, 'geometry', 'sharedEdges') };
+    const context = await browser.newContext({ javaScriptEnabled: true, viewport: { width: 360, height: 800 } });
+    try {
+      const live = await context.newPage();
+      await live.goto(route);
+      await hydrateEveryIsland(live);
+      await expect(live.locator('[data-tool="geometry"]').first()).toHaveAttribute('data-hydrated', 'true');
+      // The hydrated default fills both once the orbit has loaded.
+      await expect.poll(() => outText(live, 'geometry', 'source'), { message: `${route}: hydrated source` }).not.toBe('');
+      await expect.poll(() => outText(live, 'geometry', 'sharedEdges'), { message: `${route}: hydrated sharedEdges` }).not.toBe('');
+      const hydrated = { source: await outText(live, 'geometry', 'source'), sharedEdges: await outText(live, 'geometry', 'sharedEdges') };
+      expect(server, `${route}: the server markup against the hydrated default`).toEqual(hydrated);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// regression: P4-MERGE-04
+test('T10 drawMs is a measured time: present in the server markup and marked data-measured, so the default-state comparison reads its presence, not its value', async ({ page, browser }) => {
+  for (const route of ['modules/m7-geometry/', 'tools/geometry/']) {
+    await page.goto(route);
+    const roots = await page.locator('[data-tool="geometry"]').count();
+    expect(roots, `${route}: T10 roots`).toBeGreaterThan(0);
+    // Every T10 root has its drawMs element in the server markup, marked as a measurement.
+    await expect(page.locator('[data-tool="geometry"] [data-out="drawMs"]')).toHaveCount(roots);
+    await expect(page.locator('[data-tool="geometry"] [data-out="drawMs"][data-measured]')).toHaveCount(roots);
+    const server = await page.locator('[data-tool="geometry"]').first().evaluate(stateHooks);
+    expect(server.outs).toContain('drawMs (measured)');
+    const context = await browser.newContext({ javaScriptEnabled: true, viewport: { width: 360, height: 800 } });
+    try {
+      const live = await context.newPage();
+      await live.goto(route);
+      await hydrateEveryIsland(live);
+      // Hydrated, the element holds the time of this machine, still marked; the comparison sees its name only.
+      const first = live.locator('[data-tool="geometry"]').first();
+      await expect(first.locator('[data-out="drawMs"][data-measured]')).toHaveText(/^\d+\.\d$/);
+      expect((await first.evaluate(stateHooks)).outs).toContain('drawMs (measured)');
+    } finally {
+      await context.close();
+    }
+  }
+});

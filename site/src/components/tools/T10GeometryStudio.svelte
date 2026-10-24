@@ -15,6 +15,8 @@
   // (the client's first value of the {@html} block is a placeholder, so Svelte adopts the server's nodes).
   // After hydration a Canvas 2D drawing replaces it in the same reserved box (7.6); the SVG stays under the
   // canvas and is rewritten after the reader's changes, so that Export SVG and PNG take the current view.
+  // The drawing time (data-out="drawMs") carries data-measured: a time measured on the reader's machine,
+  // which no server markup can show and which is not part of the default state (RT-FIX P4-MERGE-04).
   //
   // Properties (CONTRACTS 5.2; listed in site/tests/e2e/T10.spec.ts): id, board, preset ('default' |
   // 'root-polytope' | 'rings' | 'face-table' | 'two-graphs' | 'make-uniform' | 'showpiece' |
@@ -193,7 +195,9 @@
   function initialOrbit(): Orbit {
     const key = orbitKey(configured.config.board, configured.config.rings);
     if (initialFacts.decision.refused) return { kind: 'refused', key };
-    if (ssr !== null && ssr.data !== null) return { kind: 'ready', key, data: ssr.data };
+    // At build time, the orbit as the browser's own load on hydration leaves it (RT-FIX P4-MERGE-03): ready
+    // (from the data file or the main thread), or waiting for "Draw the orbit" with its vertices when known.
+    if (ssr !== null && ssr.data !== null) return ssr.ready ? { kind: 'ready', key, data: ssr.data } : { kind: 'wait', key, partial: verticesOnMain(initialFacts, configured.config) };
     return { kind: 'pending', key, partial: verticesOnMain(initialFacts, configured.config) };
   }
 
@@ -993,7 +997,7 @@
       <p class="line">
         View: <span data-out="projection">{current.projection}</span>; turn <span data-out="turn">{turnText}</span> degrees; graph
         <span data-out="graph">{current.graph}</span>; drawn from
-        <span data-out="source">{api.hydrated && complete && data !== null ? data.source : ''}</span>.
+        <span data-out="source">{complete && data !== null ? data.source : ''}</span>.
       </p>
       <p class="line">
         Ring sizes in this plane, innermost first: <span class="numeral" data-out="ringSizes" data-radii={stats === null ? '' : stats.rings.map(([r]) => r).join(',')}
@@ -1010,7 +1014,7 @@
       <p class="line small">
         Drawn: <span data-out="pointsDrawn">{pointsDrawn ?? (ssr !== null ? ssr.points : '')}</span> points,
         <span data-out="edgesDrawn">{edgesDrawn ?? (ssr !== null ? ssr.segments : '')}</span> edges, in
-        <span data-out="drawMs">{drawMs === null ? '' : (Math.round(drawMs * 10) / 10).toFixed(1)}</span> ms; edits:
+        <span data-out="drawMs" data-measured="">{drawMs === null ? '' : (Math.round(drawMs * 10) / 10).toFixed(1)}</span> ms; edits:
         <span data-out="edits">{past.length}</span>.
       </p>
     </div>
@@ -1037,12 +1041,14 @@
       {#if PredictComponent}
         <PredictComponent {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
       {:else}
-        <!-- Before Predict.svelte arrives, and without JavaScript (4.0 Predict): the question, then a <details> with the answer and the reveal. -->
+        <!-- Before Predict.svelte arrives, and without JavaScript (4.0 Predict): the question, then a <details> with the answer
+             and the reveal, in Predict.svelte's markup (the answer in .answer-text, the empty result line; RT-FIX P4-MERGE-02). -->
         <div class="predict" data-prediction="">
           <p class="question">{prediction.question}</p>
+          <p class="line" data-out="predictResult"></p>
           <details class="nojs-answer">
             <summary>Answer</summary>
-            <p>{predictionAnswerText(prediction)}</p>
+            <p><span class="answer-text">{predictionAnswerText(prediction)}</span></p>
             <p>{prediction.reveal}</p>
           </details>
         </div>

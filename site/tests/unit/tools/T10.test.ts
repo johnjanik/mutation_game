@@ -986,6 +986,7 @@ describe('server rendering', () => {
       preset: 'rings',
       prediction: { question: 'How many vertices?', answer: { type: 'number', value: 4 }, reveal: 'A tetrahedron.' },
     });
-    expect(predicted).toMatch(/data-prediction=""[^]*How many vertices\?[^]*<details[^]*<summary>Answer<\/summary>[^]*<p>4<\/p>[^]*A tetrahedron\./);
+    // The answer stands in Predict.svelte's .answer-text, which the run without JavaScript reads (RT-FIX P4-MERGE-02).
+    expect(predicted).toMatch(/data-prediction=""[^]*How many vertices\?[^]*<details[^]*<summary>Answer<\/summary>[^]*<p><span class="answer-text">4<\/span><\/p>[^]*A tetrahedron\./);
   }, 60000);
 });
