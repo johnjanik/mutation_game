@@ -1,0 +1,252 @@
+{
+ "agent": "rtfix-p4-shared",
+ "status": "done",
+ "branch": "worktree-agent-ae8b99c4957f880f8",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-ae8b99c4957f880f8",
+ "base": "967118d23189fb1ac0190af9790884d1c897edc7",
+ "commits": [
+  "4f473a7 RT-FIX P4-RT-07-03: preload the KaTeX fonts a page uses",
+  "7262096 RT-FIX P4-RT-08-04: credit every package whose code the build ships",
+  "91c3fae RT-FIX P4-RT-04-03: write nothing for a link before the reader acts",
+  "4b0fbae RT-FIX P4-RT-07-05: T10 and T11 board lists in modules of their own",
+  "ec2c060 RT-FIX P4-RT-08-04: keep the list of bundled packages per build",
+  "ecf91db RT-FIX P4-RT-04-03 P4-RT-07-03 P4-RT-07-05 P4-RT-08-04: decisions fragment"
+ ],
+ "filesChanged": [
+  "decisions/RT-FIX-P4-shared.md",
+  "site/astro.config.mjs",
+  "site/src/components/tools/t10/boards.ts",
+  "site/src/components/tools/t10/config.ts",
+  "site/src/components/tools/t11/boards.ts",
+  "site/src/components/tools/t11/config.ts",
+  "site/src/layouts/Page.astro",
+  "site/src/lib/history.ts",
+  "site/src/lib/katex.ts",
+  "site/src/lib/pages/dependencies.ts",
+  "site/src/lib/pages/shippedPackages.ts",
+  "site/src/middleware.ts",
+  "site/src/tools/offered.ts",
+  "site/tests/e2e/credits-bundled.spec.ts",
+  "site/tests/e2e/history-no-write-on-load.spec.ts",
+  "site/tests/e2e/katex-font-preload.spec.ts",
+  "site/tests/e2e/registry-weight.spec.ts",
+  "site/tests/unit/dependencies-bundled.test.ts",
+  "site/tests/unit/history.test.ts",
+  "site/tests/unit/katex-font-preloads.test.ts"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD (after git reset --hard 967118d)",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-ae8b99c4957f880f8; worktree-agent-ae8b99c4957f880f8; 967118d23189fb1ac0190af9790884d1c897edc7"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: all three equal CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "npm run build (base)",
+   "exit": 0,
+   "summary": "links: 1040 internal links on 32 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7650> history-no-write-on-load.spec.ts (base build, RED)",
+   "exit": 1,
+   "summary": "10 failed; e.g. replaceState at 1056 ms to /tools/mirror/?z=1&g=B2&c=n&s=1,1&w=; at 1689 ms to /modules/m7-geometry/?b1.z=1&b1.g=A2&b1.r=0.1&b1.j=coxeter&b1.e=p"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/history.test.ts (base history.ts restored by scratch copy, RED)",
+   "exit": 1,
+   "summary": "Tests 3 failed | 10 passed (13)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/history.test.ts (fix)",
+   "exit": 0,
+   "summary": "Tests 13 passed (13)"
+  },
+  {
+   "cmd": "npx playwright test registry-weight.spec.ts (base build, RED)",
+   "exit": 1,
+   "summary": "2 failed | 1 passed: T10 captions in _astro/ToolFrame.Bt4Ioa0w.js on /tools/board/, /modules/m0-start/, /tools/garden/, /tools/weyl/, /modules/m6-multiple-edges/; T11 captions on 4 routes"
+  },
+  {
+   "cmd": "npx playwright test katex-font-preload.spec.ts credits-bundled.spec.ts (base build, RED)",
+   "exit": 1,
+   "summary": "4 failed | 2 passed: credits page lists clsx (Received no clsx; shipped in client.sNPtvj1U.js); tr[data-package=clsx] count 0; font preloads in the head of M7: 0; M0: 0"
+  },
+  {
+   "cmd": "npm run lab -- --port 7652 --json ... /modules/m7-geometry/ /tools/board/ (base, load 17 to 20)",
+   "exit": 1,
+   "summary": "M7 TBT 656.3 ms OVER; board 342.6 ms OVER; canary over on all three"
+  },
+  {
+   "cmd": "bash lab-alt.sh (npm run lab -- --port 7652 --dist <base|fixed> /modules/m7-geometry/ /tools/board/, alternated 4 runs, load 2.7 to 4.3)",
+   "exit": 0,
+   "summary": "M7 TBT base 318.9, 341.1 ms (OVER); fixed 146.9, 162.8 ms (ok); board base 209.9, 188.7; fixed 165.7, 312.8 (last run ended at load 12.7); CLS 0.0000 all"
+  },
+  {
+   "cmd": "bash size-both.sh (npm run size -- --port 7651 --dist <base|fixed>)",
+   "exit": 0,
+   "summary": "both 32 routes, 0 over budget; every tool route and lesson not showing T10 0.6 to 0.9 kB less (/tools/board/ 73.0 to 72.2, M0 73.0 to 72.2, /tools/fold/ 74.4 to 73.8); geometry and M7 unchanged at 82.4"
+  },
+  {
+   "cmd": "node redteam/redteam-RT-07-font-swap-shift.mjs <fixed dist> 7653 /modules/m6-multiple-edges/ 8178,14891 2; same for /modules/m7-geometry/ 0,19000 2 (lens script, brought in temporarily and removed)",
+   "exit": 0,
+   "summary": "CLS 0.0000 in all 8 runs; fonts finished at 73 to 156 ms"
+  },
+  {
+   "cmd": "npm run build (final)",
+   "exit": 0,
+   "summary": "links: 1090 internal links on 32 pages of site/dist checked, 0 problems; M7 preloads Main-Regular, Math-Italic, SansSerif-Regular; credits says 8 of them reach"
+  },
+  {
+   "cmd": "npx playwright test history-no-write-on-load katex-font-preload credits-bundled registry-weight nojs-phase0 pages (final build)",
+   "exit": 0,
+   "summary": "43 passed (2.3m)"
+  },
+  {
+   "cmd": "npx playwright test T01 T04 T05 T06 T10 T11 T15 T16 M7 toolframe-hydration prediction-links a11y nojs",
+   "exit": 1,
+   "summary": "361 passed, 3 failed: T10 two 'no long task' timing tests (load 16) and toolframe-hydration (Symbol(filename) SSR cache); toolframe-hydration rerun alone 3 passed; T10 'no long task on E8' --repeat-each 3 fails 1 of 3 on both the base build (66 ms task) and the fixed build (52 ms task)"
+  },
+  {
+   "cmd": "npx playwright test T02 T03 T07 T08 T09 M0-M6 frozen-board play-focus export phase2-additions mathml math-check",
+   "exit": 1,
+   "summary": "367 passed, 2 failed, 2 skipped; the two (play-focus T9 at the end, a 500 ms write landing after its 700 ms wait at load 16, on a route with no link; T07 colour-class panel, Symbol(filename)) rerun alone: 3 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/katex-font-preloads.test.ts dependencies-bundled dependencies-shipped dependencies-recorded credits-plain-text katex history",
+   "exit": 0,
+   "summary": "7 files, 60 passed; after the per-build list rework: 4 files, 31 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-components.test.ts released.test.ts (fixture builds)",
+   "exit": 0,
+   "summary": "24 passed; only the site build's shipped-packages file in site/src/generated"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings, 1 hint; svelte-check 0 errors, 1 warning (pre-existing LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218), baseline 2218"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no output"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (final, load about 10)",
+   "exit": 1,
+   "summary": "Tests 1 failed | 819 passed (820): links-internal 'npm run build runs the check' timed out at 5000 ms; alone it passes in 3208 ms (base config 3446, 3468 ms; this config 3626, 4044 ms)"
+  },
+  {
+   "cmd": "node time-config.mjs (plain Node import of base vs fixed astro.config.mjs, 9 alternated runs)",
+   "exit": 0,
+   "summary": "base median 1815 ms, fixed median 1879 ms (spread 1428 to 2088)"
+  },
+  {
+   "cmd": "git diff --name-only 967118d..HEAD | grep forbidden paths; git diff --name-only | grep -i redteam",
+   "exit": 1,
+   "summary": "nothing printed for either"
+  },
+  {
+   "cmd": "git diff 967118d..HEAD added lines | grep .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' 'on:' em-dash",
+   "exit": 1,
+   "summary": "nothing printed"
+  },
+  {
+   "cmd": "grep -rn 'regression: P4-RT-' site/tests packages/engine/test",
+   "exit": 0,
+   "summary": "12 markers: credits-bundled.spec 4, dependencies-bundled 1, history-no-write-on-load.spec 1 (in a loop of 10 routes), history.test 2, katex-font-preload.spec 1, katex-font-preloads.test 2, registry-weight.spec 1"
+  },
+  {
+   "cmd": "git log --format=%s 967118d..HEAD",
+   "exit": 0,
+   "summary": "6 subjects, each 'RT-FIX P4-RT-..'"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist test-results; git status --porcelain; pgrep astro preview on 7650-7653",
+   "exit": 0,
+   "summary": "status empty; no preview server on my ports"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P4-RT-04-03: Opening a valid link rewrites the address bar with replaceState before the reader acts (T10, T11, and T1, T4, T5, T6, T15, T16)",
+   "status": "fixed",
+   "test": "site/tests/e2e/history-no-write-on-load.spec.ts > the address bar is not rewritten on load > <route>: no replaceState or pushState before the reader acts (10 routes); site/tests/unit/history.test.ts > a link applied after registration > nothing is written on load when a tool applies its link after registering / after the reader acts, only the instances the reader has changed are written",
+   "evidence": "Severity minor (no adjustment). Red on the base build: 10 failed, the same rewrites the verifier saw (for example /tools/mirror/?g=B2 rewritten to ?z=1&g=B2&c=n&s=1,1&w= at 1056 ms; M7 ?b1.r=0.1 rewritten to ?b1.z=1&b1.g=A2&b1.r=0.1&b1.j=coxeter&b1.e=p at 1689 ms). Unit: 3 failed | 10 passed with the base history.ts. Green: e2e 10 passed plus a new check that a reader's click then writes ?z=1&g=A3&v=p&m=f&c=p&s=1,0,0&w=1.2; unit 13 passed. Cause: ToolFrame registers an instance before its tool applies the link (child effects run first; T10 a task after hydration), so the link's state reached stateChanged as a reader change. Fix in site/src/lib/history.ts only: an instance whose keys are in the bar at registration is opened from a link; until the reader acts inside its frame (pointerdown, keydown, click, input or change reaching its [data-frame] root, or exampleLoaded), its changes, and those of instances the reader has not acted on while such a link waits (linkTo followers), are recorded and not written; a write encodes only instances the reader changed and keeps the others' keys as the bar holds them. No tool, ToolFrame or exported signature changed. Commit 91c3fae."
+  },
+  {
+   "item": "P4-RT-07-03: KaTeX fonts (font-display: block, not preloaded) arrive after the first paint: a lesson reloaded mid-page shifts by CLS 0.30 to 0.33, and the whole-document relayout adds about 40 percent of M7's TBT",
+   "status": "fixed",
+   "test": "site/tests/e2e/katex-font-preload.spec.ts > M7: every KaTeX font the page fetches is preloaded from its head, and every preload is used; site/tests/unit/katex-font-preloads.test.ts > KaTeX font preloads > a page preloads exactly the fonts its KaTeX markup uses",
+   "evidence": "Severity major (TBT half; the CLS half was refuted by the verifier). Red on the base build: 'font preloads in the head of M7' expected > 0, received 0 (M0 the same). Green: 2 passed; unit 5 passed. Cause: the fonts were discovered only at the first layout and arrived after the first paint, relaying out the whole lesson. Fix: lib/katex.ts reads which font each KaTeX class selects from the installed katex.min.css; site/src/middleware.ts (build time) adds one <link rel=preload as=font type=font/woff2 crossorigin> per font the page's KaTeX markup uses, before the KaTeX stylesheet, with import.meta.env.BASE_URL and the katex/<version>/fonts/ path; pages without KaTeX unchanged. M7 gets exactly the lens's three (Main-Regular, Math-Italic, SansSerif-Regular). npm run lab, alternated at load 2.7 to 4.3: M7 TBT base 318.9 and 341.1 ms, fixed 146.9 and 162.8 ms (limit 200); /tools/board/ (no KaTeX) 209.9 and 188.7 vs 165.7 and 312.8 (noise). Lens font-swap script on the fixed build: CLS 0.0000 in all 8 runs (base 0.30 to 0.33). Commit 4f473a7; P3-X1's no-preload record changed in the fragment, with the reason."
+  },
+  {
+   "item": "P4-RT-07-05: offered.ts pulls t10/config.ts and t11/config.ts, with T10's preset table and all its captions, into the ToolFrame chunk that every tool route and lesson fetches",
+   "status": "fixed",
+   "test": "site/tests/e2e/registry-weight.spec.ts > offered.ts pulls no T10 preset captions into the shared code of routes that do not show T10",
+   "evidence": "Severity minor (no adjustment). Red on the base build: 1 failed (T10 captions in _astro/ToolFrame.Bt4Ioa0w.js on /tools/board/, /modules/m0-start/, /tools/garden/, /tools/weyl/, /modules/m6-multiple-edges/), the same for the T11 sibling test (4 routes). Green: 3 passed. Cause: offered.ts imported the board lists from the config modules that also hold the presets and captions. Fix: T10_BOARDS and T11_BOARDS move to t10/boards.ts and t11/boards.ts (no import); each config.ts re-exports in one line; offered.ts imports the new modules. npm run size: 0.6 to 0.9 kB less on every tool route and lesson that does not show T10 (/tools/board/ 73.0 to 72.2), geometry and M7 unchanged, 0 over budget. Commit 4b0fbae."
+  },
+  {
+   "item": "P4-RT-07-05 (sibling): T11's captions (t11/config.ts) in the shared chunk through offered.ts",
+   "status": "fixed",
+   "test": "site/tests/e2e/registry-weight.spec.ts > offered.ts pulls no T11 preset captions into the shared code of routes that do not show T11",
+   "evidence": "Red on the base build: 1 failed ('Folding A3 by its flip...' in _astro/ToolFrame.Bt4Ioa0w.js on /tools/board/, M0, /tools/garden/, /tools/weyl/). Green: passed. Same cause and commit as above (4b0fbae)."
+  },
+  {
+   "item": "P4-RT-08-04: Attack 28, sibling of P3-RT-08-10: the credits page omits clsx (MIT), which the Svelte runtime bundles into the client chunk of every island",
+   "status": "fixed",
+   "test": "site/tests/e2e/credits-bundled.spec.ts > bundled libraries on the credits page > clsx code is in a client chunk, so the credits page must list clsx and its licence; ... > every package whose code the build ships has a row on the credits page, with its licence; site/tests/unit/dependencies-bundled.test.ts > a bundled package that no package.json names gets a row with its licence",
+   "evidence": "Severity major (no adjustment). Red on the base build: 2 failed | 2 passed ('credits page lists clsx, shipped in client.sNPtvj1U.js'; tr[data-package=clsx] count 0). Green: 4 passed; unit 31 passed (dependencies-recorded and dependencies-shipped still pass). Cause: dependencies.ts built the table from the three package.json files only. Fix: an Astro integration (lib/pages/shippedPackages.ts, registered in astro.config.mjs) records, from the client build's and the worker bundles' emitted chunks, the package of every module with code in them; the credits page of the same build (same process) adds a row with version, licence and author for each package no package.json names. This build: clsx 2.1.1 MIT, rolldown 1.2.13 MIT (runtime helpers), vite 8.3.4 MIT (preload helper); the page now says 8 packages reach the reader. A production build fails without the list. A build with a credits page writes the list per output directory for the browser test; unit-suite fixture builds write none. The adopted reproducer reads site/dist, so it lives in the browser suite (CI runs unit tests before the build), as RT-FIX-P3-perf-b did. Commits 7262096, ec2c060."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX 5.3 (directory of the adopted test)",
+   "what": "The RT-08 reproducer (a Vitest file reading site/dist) is adopted as site/tests/e2e/credits-bundled.spec.ts, not under site/tests/unit.",
+   "why": "CI runs npm run check (the unit suite) before npm run build, so a unit test reading site/dist would fail on every fresh checkout; precedent RT-FIX-P3-perf-b (registry-outs.spec.ts). Assertions unchanged."
+  },
+  {
+   "spec": "RT-FIX 5.3 (adoption)",
+   "what": "The RT-04 reproducer's console.log line was dropped and only its finding-3 block (with its open() helper) adopted; the RT-07 shared-config script became a Playwright test in registry-weight.spec.ts.",
+   "why": "console.log is forbidden in the diff; findings 1, 2 and 4 of that file belong to other clusters. Inputs, routes, marks and assertions unchanged."
+  },
+  {
+   "spec": "Cluster area",
+   "what": "Files outside site/src/lib, layouts and tools/offered.ts: site/src/components/tools/t10/config.ts and t11/config.ts (one-line re-export each), new t10/boards.ts and t11/boards.ts, new site/src/middleware.ts, site/astro.config.mjs (one integration added).",
+   "why": "The cause of P4-RT-07-05 lies in those modules (as the prompt directs), and the preload and credits fixes need a build-time hook."
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P4-shared.md",
+ "openQuestions": [
+  "site/tests/unit/links-internal.test.ts > 'npm run build runs the check after every build' times out at 5000 ms in a full site-unit run on this loaded machine (load 10 to 17); alone it passes in 3.2 to 4.0 s. Measured alone at load 11: base config 3446 and 3468 ms, this branch 3626 and 4044 ms. A plain Node import of astro.config.mjs: median 1815 ms (base) vs 1879 ms (this branch), within the spread 1428 to 2088. The new shippedPackages.ts import costs at most tens of ms per spawn; the test's default 5000 ms timeout is the margin GATE may want to look at.",
+  "site/tests/e2e/T10.spec.ts > 'no long task on E8 loads and the graph switch' fails 1 of 3 runs at load about 11 on both the base build (66 ms task) and this branch (52 ms task): machine-bound, not caused here.",
+  "toolframe-hydration.spec.ts and T07 'T1 colour-class panel' failed once inside long Playwright batches with 'Cannot read properties of undefined (reading Symbol(filename))' (the Vite SSR cache issue the round notes name) and passed alone.",
+  "With links on a lesson page, a linkTo follower that changes only because its leader's link was applied is not written until the reader acts; afterwards followers are written as before. A touch that scrolls over a tool whose link is still being applied asynchronously (T10 facts in tasks, T11 long replay) counts as the reader acting, and that link is then written normalised (recorded in the fragment)."
+ ],
+ "handoff": "Files outside the cluster area: t10/config.ts and t11/config.ts change by one re-export line each (the T10 fixer edits other parts of t10/; the hunk is only the T10_BOARDS block), plus new t10/boards.ts, t11/boards.ts, site/src/middleware.ts and one integration in site/astro.config.mjs. T10 and T11 need no local change for P4-RT-04-03: history.ts alone now holds a link's state back until the reader acts in the frame, so ToolFrame was not touched. The proposed fix for P4-RT-04-03 (register with the link's state as initial, or a new history.ts call from tools) was not followed, because it would need edits to ToolFrame, T10 and T11 (other fixers' files) and would miss linkTo followers. The lens should rerun RT-04 attack 21 on all routes (including M6 and M1 followers), RT-07 attack 19 (npm run lab on M6 and M7) and RT-08 attack 28 against a fresh build. No finding is needs-decision."
+}
