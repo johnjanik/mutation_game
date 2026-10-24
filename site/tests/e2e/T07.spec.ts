@@ -120,6 +120,7 @@ async function nojsPage(browser: Browser, baseURL: string | undefined, viewport 
 // SPEC 4 T7 and Appendix A.1
 // ---------------------------------------------------------------------------------------------
 
+// regression: P3-RT-11-08
 test('B2 game from (1,1) fires x1, 2x1+x2, x1+x2, x2', async ({ page }) => {
   await open(page, 'z=1&g=B2&c=n&s=1,1');
   // Appendix A.1: the numbers after each move, and the forms fired.
@@ -131,7 +132,8 @@ test('B2 game from (1,1) fires x1, 2x1+x2, x1+x2, x2', async ({ page }) => {
     expect(await values(left(page))).toEqual(numbers[k]);
     expect(await firedForms(page)).toEqual(forms.slice(0, k + 1));
   }
-  await expect(live(page)).toContainText('Game over after 4 moves.');
+  // A-4, the whole text: the move that ends the game, then the game over (decisions/P1-A5.md).
+  await expect(live(page)).toHaveText('Fired node 2. Numbers now minus 1, minus 1. Move 4. Game over after 4 moves.');
   // The table holds (2, 1) of the reversed board, where B2 itself has (1, 2) (A.1).
   const table = await rowState(page);
   expect(table.map((r) => r.root)).toContain('2,1');
