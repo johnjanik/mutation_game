@@ -92,6 +92,9 @@ export function symmetrizer<T>(board: Board<T>): Rational[] | null {
   // On a symmetric matrix the walk sets every d_j to d_i = 1, the least value is 1 and every pair
   // check holds, so the result is all ones; it is written at once (RT-FIX residual P3-RT-07-02).
   if (isSymmetric(C)) return C.map(() => rat(1));
+  // The entries as rationals through bigint: a road count may be any integer (5.6, first table), also one
+  // beyond 2^53, which rat would refuse as a number (RT-FIX P4-RT-01-02).
+  const R: Rational[][] = C.map((row) => row.map((x) => rat(BigInt(x))));
   const d: (Rational | null)[] = [];
   for (let i = 0; i < n; i++) d.push(null);
   for (const comp of components(board)) {
@@ -102,7 +105,7 @@ export function symmetrizer<T>(board: Board<T>): Rational[] | null {
       const i = stack.pop()!;
       for (const j of comp) {
         if (j !== i && C[i]![j] !== 0 && d[j] === null) {
-          d[j] = ratDiv(ratMul(d[i]!, rat(C[i]![j]!)), rat(C[j]![i]!));
+          d[j] = ratDiv(ratMul(d[i]!, R[i]![j]!), R[j]![i]!);
           stack.push(j);
         }
       }
@@ -114,7 +117,7 @@ export function symmetrizer<T>(board: Board<T>): Rational[] | null {
   const out = d as Rational[];
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      if (!ratEq(ratMul(out[i]!, rat(C[i]![j]!)), ratMul(out[j]!, rat(C[j]![i]!)))) return null;
+      if (!ratEq(ratMul(out[i]!, R[i]![j]!), ratMul(out[j]!, R[j]![i]!))) return null;
     }
   }
   return out;
@@ -127,7 +130,7 @@ export function gram<T>(board: Board<T>): Rational[][] | null {
   const d = symmetrizer(board);
   if (d === null) return null;
   const C = intCartan(board);
-  return C.map((row, i) => row.map((x) => ratMul(d[i]!, rat(x))));
+  return C.map((row, i) => row.map((x) => ratMul(d[i]!, rat(BigInt(x))))); // through bigint, as in symmetrizer
 }
 
 // ---------------------------------------------------------------------------------------------

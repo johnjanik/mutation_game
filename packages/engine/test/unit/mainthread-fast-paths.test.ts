@@ -341,6 +341,32 @@ describe('orbitGraph on a Big board: the same graph as the bigint loop', () => {
     }
   });
 
+  // regression: P4-RT-11-01
+  it('where values pass 2^53 and the search ends with exactly cap positions (cap one below, equal to and one above the orbit)', () => {
+    // The same boards, each with a layer bound at which its search ends by itself after handing over to
+    // bigint (the orbit within that bound: 242, 1195, 122 and 768 positions). SPEC 5.5: the cap acts only
+    // when the search is about to add one position more than the cap, so a cap equal to the orbit leaves
+    // truncated false on the generic loop too.
+    for (const [C, game, maxDepth] of [
+      [[[2, -4], [-4, 2]], 'mutation', 60],
+      [[[2, -1000, -1], [-1000, 2, -2], [-1, -2, 2]], 'mutation', 8],
+      [[[2, -4], [-3, 2]], 'firing', 60],
+      [[[2, -900, -2], [-700, 2, -2], [-2, -2, 2]], 'firing', 8],
+    ] as [number[][], Game, number][]) {
+      const b = bigBoard(C);
+      const whole = refOrbitGraph(b, units(C.length), game, 100000, maxDepth);
+      const what = `${JSON.stringify(C)} ${game} maxDepth ${maxDepth}`;
+      expect(whole.truncated, what).toBe(false);
+      expect(whole.items.some((v) => v.some((x) => x > SAFE || x < -SAFE)), `${what} passes 2^53`).toBe(true);
+      const n = whole.items.length;
+      for (const cap of [n - 1, n, n + 1]) {
+        same(orbitGraph(b, units(C.length), game, cap, maxDepth), refOrbitGraph(b, units(C.length), game, cap, maxDepth), `${what} cap ${cap}`);
+      }
+      const exact = orbitGraph(b, units(C.length), game, n, maxDepth);
+      expect([exact.items.length, exact.truncated], `${what} cap ${n}`).toEqual([n, false]);
+    }
+  });
+
   it('with a seed beyond 2^53, and on the 12-cycle as T4 counts it (cap 2000, 40 layers)', () => {
     const b2 = bigBoard([[2, -1], [-1, 2]]);
     const seeds = [[2n ** 60n, -(2n ** 59n)], [1n, 0n]];

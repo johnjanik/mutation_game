@@ -10,11 +10,14 @@
 import { Big, SafeInt } from './arith';
 import type { AnyBoard, Board } from './board';
 import { cartanNumbers, subBoard } from './board';
-import { EngineError } from './errors';
+import { EngineError, EngineOverflow } from './errors';
 import { requireFinite, requireGcm } from './guards';
 import { fire } from './moves';
 import type { Enumeration } from './search';
 import { weylOrder } from './weyl';
+
+/** Number.MAX_SAFE_INTEGER as a bigint. */
+const SAFE_MAX = 9007199254740991n;
 
 /** One face type of an orbit polytope (CONTRACTS.md 2.2, plan): K as positions, |K|, the number of faces. */
 export interface FaceType {
@@ -160,7 +163,8 @@ export function wythoffFVector<T>(board: Board<T>, rings: readonly number[]): bi
  * item number cap + 1: it stops at once with exactly `cap` items and truncated true (E-6; the oracle raises
  * OverflowError there); otherwise every edge, truncated false. No ringed node: no edge. RangeError on a bad
  * `rings` (as wythoffFaceTypes) or a cap that is not a non-negative integer (plan); NeedsTwoWayRoads,
- * NotFiniteType (5.6).
+ * NotFiniteType (5.6); EngineOverflow when an edge to be returned has an entry that is not a safe integer,
+ * in either arithmetic (E-2).
  */
 export function wythoffEdges<T>(board: Board<T>, rings: readonly number[], cap: number): Enumeration<[number[], number[]]>;
 export function wythoffEdges(board: AnyBoard, rings: readonly number[], cap: number): Enumeration<[number[], number[]]>;
@@ -172,7 +176,14 @@ export function wythoffEdges<T>(board: Board<T>, rings: readonly number[], cap: 
   const arith = board.arith;
   const native = arith === (SafeInt as unknown) || arith === (Big as unknown);
   const textOf = (v: readonly T[]): string => (native ? v.join(',') : v.map((x) => arith.show(x)).join(','));
-  const toNumber = (x: T): number => (arith === (SafeInt as unknown) ? (x as unknown as number) : Number(arith.toBig(x)));
+  // An entry is returned as a number (CONTRACTS.md 2.4), so off SafeInt one beyond the safe range throws
+  // EngineOverflow, as SafeInt itself does (E-2), rather than coming back rounded (5.4: exact).
+  const toNumber = (x: T): number => {
+    if (arith === (SafeInt as unknown)) return x as unknown as number;
+    const b = arith.toBig(x);
+    if (b > SAFE_MAX || b < -SAFE_MAX) throw new EngineOverflow(`a vertex entry of an edge, ${b.toString()}, is not a safe integer`);
+    return Number(b);
+  };
   const compare = (u: readonly T[], v: readonly T[]): number => {
     for (let k = 0; k < n; k++) {
       const s = arith.sign(arith.sub(u[k]!, v[k]!));
