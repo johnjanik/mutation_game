@@ -50,7 +50,7 @@ export function checkOpenItemsReport(reportsDir) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const numbers = writeNumbersReport();
-  console.log(`numbers-in-prose: ${numbers.numbers} numbers in ${numbers.files} files; report written to ${relative(ROOT, numbers.report).split(sep).join('/')}`);
+  console.log(`numbers-in-prose: ${numbers.numbers} numbers in ${numbers.files} files, ${numbers.fallbacks} in fallbacks; report written to ${relative(ROOT, numbers.report).split(sep).join('/')}`);
   const result = checkOpenItemsReport(REPORTS_DIR);
   console.log(result.message);
   process.exit(result.exitCode);
