@@ -170,7 +170,28 @@ test('D5 with the swap folds to C4', async ({ page }) => {
   await bigNode(page, 5).click();
   expect(await valuesOf(bigNodes(page))).toEqual(e.big);
   expect(await valuesOf(foldedNodes(page))).toEqual(e.folded);
-  await expect(live(page)).toHaveText(/^Fired nodes 4 and 5\. Node 3 now 3, node 4 now minus 1, node 5 now minus 1\. Move 1\.$/);
+  await expect(live(page)).toHaveText('Fired nodes 4 and 5. Node 3 now 3, node 4 now minus 1, node 5 now minus 1. Move 1.');
+});
+
+// SPEC 7.5 A-4 fixes no sentence for a move that changes nothing on a board with more than four nodes;
+// the site reads it as the shared changedOnly does, the head and the move ("Fired node 3. Move 1."), and
+// T11 read "... Nothing changed. Move k." (two readings). Whole sentences, typed.
+// regression: RT-FIX residual (small-fixes confirmer, two readings of a move that changes nothing)
+test('D5: a symmetric move that changes nothing is read as the head and the move', async ({ page }) => {
+  // From (0, 1, 1, 0, 0) node 1 and the orbit {4, 5} hold 0: firing them changes nothing.
+  const e = expected('D5', [1, 2, 3, 5, 4], [0, 1, 1, 0, 0], [1, 5], 'firing');
+  expect(e.big).toEqual(['0', '1', '1', '0', '0']);
+  await open(page, 'g=D5&c=n&s=0,1,1,0,0');
+  await expect(out(page, 'notice')).toHaveCount(0);
+  await expect(control(page, 'symmetry')).toHaveValue('1.2.3.5.4');
+  await bigNode(page, 1).click();
+  await expect(root(page)).toHaveAttribute('data-moves', '1');
+  expect(await valuesOf(bigNodes(page))).toEqual(['0', '1', '1', '0', '0']);
+  await expect(live(page)).toHaveText('Fired node 1. Move 1.');
+  await bigNode(page, 5).click();
+  await expect(root(page)).toHaveAttribute('data-moves', '2');
+  expect(await valuesOf(bigNodes(page))).toEqual(e.big);
+  await expect(live(page)).toHaveText('Fired nodes 4 and 5. Move 2.');
 });
 
 test('the average tab on A5 shows B3 and C3', async ({ page }) => {
@@ -200,7 +221,11 @@ test('A4 with the flip: the fold tab says an orbit contains an edge and the aver
   // A click makes no move; the reader hears why.
   await bigNode(page, 2).click();
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  await expect(live(page)).toContainText(PHRASE);
+  // The whole sentence (RT-FIX residual, the P3-RT-11-08 sibling in phase 4): the engine's reason, which is
+  // the phrase of SPEC 4 T11, then the orbit that contains an edge.
+  const reason = fold(B('A4'), symmetryInPositions(B('A4'), [4, 3, 2, 1])).reason;
+  expect(reason).toBe(PHRASE);
+  await expect(live(page)).toHaveText(`This board does not fold by this symmetry: ${reason}. The orbit {2, 3} contains an edge.`);
   await root(page).locator('[data-tab="average"]').click();
   await expect(out(page, 'averaged-name')).toHaveText(r.averaged_roots_type);
   await expect(out(page, 'averaged-name')).toHaveText('BC2');

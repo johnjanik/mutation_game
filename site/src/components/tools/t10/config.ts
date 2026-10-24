@@ -127,6 +127,16 @@ export const T10_OUTS = [
   'legend',
   // T10: the table view
   'ringLimit',
+  // Predict.svelte, with a prediction (lesson instances such as M7 beats 4 and 7)
+  'predictResult',
+  'predictReveal',
 ] as const;
 
 export type T10Out = (typeof T10_OUTS)[number];
+
+/**
+ * The names of T10_OUTS rendered only when a property asks for them (a prediction), never by the tool's
+ * own state; the checks of "every name is rendered" on /tools/geometry/ leave them out (RT-FIX residual of
+ * P3-RT-10-06; site/tests/e2e/registry-outs.spec.ts checks them on a lesson instance).
+ */
+export const T10_PROP_ONLY_OUTS: readonly T10Out[] = ['predictResult', 'predictReveal'];

@@ -58,6 +58,7 @@ import {
 import { LINK_NOTICE, decodeState, encodeState } from '../../../src/lib/urlCodec';
 import { labelOrder, positionsOf, resolveBoard, type ToolState } from '../../../src/lib/state';
 import { whereToRun } from '../../../src/lib/worker';
+import { announceTemplates } from '../../../src/lib/a11y';
 import T11 from '../../../src/tools/registry/T11';
 import { ssrLoader, type SsrLoader } from '../_svelteSsr';
 
@@ -510,6 +511,25 @@ describe('T11 announcements (A-4; plan wording)', () => {
     expect(announceSymmetric(a5p, a5p.act(orbitOfLabel(a5p.ctx, 2))!)).toBe('Mutated cities 2 and 4. City 2 now 1, city 4 now 1. Move 1.');
     expect(announceSymmetric(a5p, a5p.act(orbitOfLabel(a5p.ctx, 3))!)).toBe('Mutated city 3. City 3 now 2. Move 2.');
     expect(undoAnnouncement(a3, 2, 1)).toBe('Undid move 2. Numbers now minus 1, 3, minus 1.');
+  });
+
+  // SPEC 7.5 A-4 fixes no sentence for a move that changes nothing above four nodes; the site reads it one
+  // way, as the shared changedOnly does ("Fired node 3. Move 1.", site/tests/unit/a11y-changed-only.test.ts).
+  // T11 read "... Nothing changed. Move k." instead. Whole sentences, typed.
+  // regression: RT-FIX residual (small-fixes confirmer, two readings of a move that changes nothing)
+  it('a move that changes nothing above four nodes reads as the site reads it: the head and the move', () => {
+    // A5 with the flip, numbers: from (0, 1, 0, 1, 0) the orbits {3} and {1, 5} hold 0, so firing them changes nothing.
+    const nums = new FoldBench({ board: 'A5', view: 'numbers', symmetry: [5, 4, 3, 2, 1], start: [0, 1, 0, 1, 0] });
+    expect(announceSymmetric(nums, nums.act(orbitOfLabel(nums.ctx, 3))!)).toBe('Fired node 3. Move 1.');
+    expect(announceSymmetric(nums, nums.act(orbitOfLabel(nums.ctx, 1))!)).toBe('Fired nodes 1 and 5. Move 2.');
+    expect(announceSymmetric(nums, nums.act(orbitOfLabel(nums.ctx, 2))!)).toBe('Fired nodes 2 and 4. Node 1 now 1, node 2 now minus 1, node 3 now 2, node 4 now minus 1, node 5 now 1. Move 3.');
+    // Populations: from the empty population every mutation changes nothing.
+    const pops = new FoldBench({ board: 'A5', view: 'populations', symmetry: [5, 4, 3, 2, 1], start: [0, 0, 0, 0, 0] });
+    expect(announceSymmetric(pops, pops.act(orbitOfLabel(pops.ctx, 3))!)).toBe('Mutated city 3. Move 1.');
+    expect(announceSymmetric(pops, pops.act(orbitOfLabel(pops.ctx, 2))!)).toBe('Mutated cities 2 and 4. Move 2.');
+    // The shared template gives the same reading for one node (the template T11 now uses).
+    expect(announceTemplates.changedOnly('Fired', 3, [], 1)).toBe('Fired node 3. Move 1.');
+    expect(announceTemplates.changedOnly('Mutated', 3, [], 1)).toBe('Mutated city 3. Move 1.');
   });
 });
 

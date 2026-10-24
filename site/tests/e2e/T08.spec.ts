@@ -611,8 +611,9 @@ test.describe('regressions', () => {
   // the start; its subscription, tracked by its effect, then ran once more (the cause of P3-RT-04-04 in T2
   // and T3). The engine's moves of one move of b1 (engineMoves.ts) are counted after a link of 1 move and
   // after a link of 4 moves (the legal play 1, 2, 1, 3; oracle: (1,1,1) -> (-1,2,1) -> (1,-2,3) ->
-  // (-1,-1,3) -> (-1,2,-3)); they must be equal.
-  // regression: P3-RT-13-04
+  // (-1,-1,3) -> (-1,2,-3)); they must be equal. The T8 sibling of P3-RT-04-04 (found with the follow
+  // fixes of P3-RT-13-04, which it is not; the tag was corrected by the RT-FIX residual).
+  // regression: sibling of P3-RT-04-04 (T8)
   test('M5: one move of b1 costs the following T8 b2 the same engine moves after 1 move and after 4', async ({ page }) => {
     const counts: number[] = [];
     for (const word of ['1', '1.2.1.3']) {

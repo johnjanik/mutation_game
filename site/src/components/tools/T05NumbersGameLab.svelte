@@ -186,6 +186,9 @@
   const classes = $derived(colourClasses(named));
   const h = $derived(coxeterNumber(named));
   const waveText = $derived(waveNote(wave, progress));
+  // The end of the game (or, on the wave tab, of the wave): Step and Play to the end are aria-disabled and
+  // their handlers do nothing, by this one predicate (RT-FIX P3-RT-05-09).
+  const playDone = $derived(ended || (tab === 'wave' && (!progress.follows || progress.nextEnd === null)));
   const colourByPosition = $derived(Array.from({ length: n }, (_, k) => (classes[0].positions.includes(k) ? 0 : 1)));
 
   // Two games compared (F3).
@@ -307,7 +310,7 @@
 
   /** Step: in the wave tab, one round of the wave; elsewhere the lowest legal node (E-5). */
   function step(announce: (t: string) => void): void {
-    if (frozen) return;
+    if (frozen || playDone) return;
     if (tab === 'wave') {
       waveStep(announce);
       return;
@@ -330,7 +333,7 @@
 
   /** Play to the end: one engine call (play), or in the wave tab the rest of the wave's word. */
   function playToEnd(announce: (t: string) => void): void {
-    if (frozen || ended) return;
+    if (frozen || playDone) return;
     if (tab === 'wave') {
       const p = progress;
       if (!p.follows || p.nextEnd === null) return;
@@ -810,7 +813,7 @@
   <!-- At the end of the game (or of the wave) the two controls are done but keep the focus the reader left
        on them: aria-disabled, the handlers doing nothing then; disabled only before hydration (7.4) and
        while a prediction freezes the board (A-1, WCAG 2.4.3). -->
-  {@const done = !frozen && (ended || (waveTab && (!progress.follows || progress.nextEnd === null)))}
+  {@const done = !frozen && playDone}
   <button
     type="button"
     class="control"

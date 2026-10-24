@@ -203,6 +203,12 @@
     if (g === null || !isNumbers) return [] as number[];
     return g.legalNow();
   });
+  // A play control that cannot act: a play running in the worker, the end of the game (no number is
+  // positive), or the link maximum (Step) and the play maximum (Play on) reached. Each is aria-disabled
+  // then, and its handler does nothing (RT-FIX P3-RT-05-09; Play on at the end was neither, and said
+  // "Played 0 moves to the end.").
+  const stepInactive = $derived(busy || legal.length === 0 || atLinkCap);
+  const playOnInactive = $derived(busy || legal.length === 0 || (cur()?.cursor ?? 0) >= CAPS.playMoves);
   const canAct = $derived.by(() => {
     const n = anyBoard.n;
     if (frozen || busy || atLinkCap || current === null) return Array.from({ length: n }, () => false);
@@ -456,13 +462,16 @@
     announce(sentence);
   }
 
+  // Step and Play on do nothing in the states in which they are aria-disabled (stepInactive, playOnInactive):
+  // no move and nothing said (RT-FIX P3-RT-05-09).
   function step(announce: (t: string) => void): void {
-    if (legal.length > 0 && !atLinkCap) act(legal[0]!, announce);
+    if (frozen || stepInactive) return;
+    act(legal[0]!, announce);
   }
 
   async function playOn(announce: (t: string) => void): Promise<void> {
     const g = game;
-    if (g === null || frozen || busy || !isNumbers) return;
+    if (g === null || frozen || playOnInactive || !isNumbers) return;
     const from = g.cursor;
     const cap = CAPS.playMoves - from;
     if (cap < 1) return;
@@ -638,7 +647,7 @@
       class="control"
       data-control="step"
       disabled={!api.hydrated || frozen}
-      aria-disabled={!frozen && (busy || legal.length === 0 || atLinkCap) ? 'true' : undefined}
+      aria-disabled={!frozen && stepInactive ? 'true' : undefined}
       onclick={() => step(api.announce)}>Step</button
     >
     <button
@@ -646,7 +655,7 @@
       class="control"
       data-control="playOn"
       disabled={!api.hydrated || frozen}
-      aria-disabled={!frozen && (busy || (cur()?.cursor ?? 0) >= CAPS.playMoves) ? 'true' : undefined}
+      aria-disabled={!frozen && playOnInactive ? 'true' : undefined}
       onclick={() => void playOn(api.announce)}>Play on</button
     >
   {/if}

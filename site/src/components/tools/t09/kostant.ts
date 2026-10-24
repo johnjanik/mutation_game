@@ -77,12 +77,18 @@ interface FiniteData {
   h: number;
 }
 
-const finiteCache = new Map<string, FiniteData>();
+/**
+ * Keyed on the board object, as the engine keeps classify's verdicts (E-11): boards are immutable, so an
+ * entry cannot go stale, and two boards never share one. A key made of the name, the arithmetic and the
+ * labels gave every unnamed custom board of one size the same entry, so a custom B3 loaded after a
+ * custom A3 got A3's highest root and Coxeter number (RT-FIX residual, the small-fixes confirmer).
+ */
+const finiteCache = new WeakMap<object, FiniteData>();
 
-/** Called only on named finite boards (E-11). */
+/** Called only on finite boards (E-11). */
 function finiteData(board: AnyBoard): FiniteData {
   const b = board as Board<unknown>;
-  const key = `${board.name ?? ''}|${typeof b.arith.zero}|${board.labels.join(',')}`;
+  const key: object = board;
   const hit = finiteCache.get(key);
   if (hit !== undefined) return hit;
   const show = (v: readonly unknown[]): string[] => v.map((x) => b.arith.show(x));

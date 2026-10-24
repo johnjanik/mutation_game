@@ -578,10 +578,10 @@ describe('T2 plan tests', () => {
   });
 });
 
-// The server render through Vite with the Svelte plugin, as P1-A2's _svelteSsr.ts does, plus the
-// path aliases of CONTRACTS 1 that Board.svelte imports by (tsconfigPaths does not reach .svelte files).
+// The server render through Vite with the Svelte plugin, as P1-A2's _svelteSsr.ts does. Board.svelte
+// imports by the path aliases of CONTRACTS 1, which tsconfigPaths resolves from .svelte importers too
+// (Vite 8.3.4; the explicit copy here was dropped, RT-FIX residual of P3-RT-12-05).
 const SITE = fileURLToPath(new URL('../../../', import.meta.url));
-const ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
 interface Loader {
   render(component: unknown, props: Record<string, unknown>): string;
   close(): Promise<void>;
@@ -596,13 +596,9 @@ async function gardenLoader(): Promise<{ loader: Loader; Garden: unknown }> {
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     optimizeDeps: { noDiscovery: true, include: [] },
     plugins: [svelte({ configFile: false })],
-    resolve: {
-      alias: {
-        '@engine': join(ROOT, 'packages/engine/src/index.ts'),
-        '@components': join(SITE, 'src/components'),
-        '@lib': join(SITE, 'src/lib'),
-      },
-    },
+    // The aliases of CONTRACTS.md 1 from their one declaration, the paths of site/tsconfig.json (RT-FIX
+    // P3-RT-12-05 and its residual; site/tests/unit/aliases-one-source.test.ts refuses a copy).
+    resolve: { tsconfigPaths: true },
   });
   const sv = (await server.ssrLoadModule('svelte/server')) as { render: (c: unknown, o: { props: unknown }) => { body: string } };
   const mod = (await server.ssrLoadModule('/src/components/tools/T02OrbitGarden.svelte')) as { default: unknown };
