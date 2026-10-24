@@ -657,6 +657,9 @@ const out = (t: string | bigint | number): number | string => integerOut(typeof 
 export function exportData(tool: T12Tool, digest: RelationDigest | null = null): Record<string, unknown> {
   const rep = tool.rep;
   ensureMatrices(rep);
+  // The relation list, when it is not computed yet and belongs on the main thread (a list above the bound
+  // stays null until the worker's arrives; the relation shown keeps its two sides, from the digest).
+  if (rep.built && rep.checks === null && listOnMain(rep)) relationsNow(rep);
   const lists = (ms: readonly SparseMatrix[] | null) => (ms === null ? null : inLabelOrder(tool.board, ms).map(entryList));
   const view = tool.string();
   const orbit = rep.built ? orbitView(rep) : null;

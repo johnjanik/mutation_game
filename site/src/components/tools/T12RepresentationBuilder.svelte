@@ -429,9 +429,12 @@
   }
 
   /**
-   * After hydration (the configured state, from the server's markup): the matrices and the relation list
-   * (on the main thread within RELATIONS_MAIN_WORK; above it the digest stands until the reader asks for
-   * another relation), then the panels the reader acts on, each in tasks of its own (SPEC 7.6).
+   * After hydration (the configured state, from the server's markup): the matrices, then the panels the
+   * reader acts on, each in tasks of its own (SPEC 7.6). The relation list is not computed here: the
+   * server's digest holds the relation shown and the counts, and the list is computed when the reader asks
+   * for another relation (pickRelation: on the main thread within RELATIONS_MAIN_WORK, in the worker above)
+   * or for the data (exportData). Without a digest (it could not be read) the list is computed as after a
+   * pick. The signed moves wait for a change of the node k (pickMatrixNode) or for the data.
    */
   function activate(g: number): void {
     const steps: Step[] = [
@@ -441,14 +444,11 @@
         touch();
       },
       () => {
-        if (tool.rep.built) addSignedMoves(tool.rep, { route: mainRoute });
-      },
-      () => {
         const r = tool.rep;
-        if (r.built && r.checks === null && listOnMain(r)) {
-          relationsNow(r);
-          touch();
-        }
+        if (!r.built || r.checks !== null || digestHolds(r)) return;
+        if (listOnMain(r)) relationsNow(r);
+        else needList = true;
+        touch();
       },
       ...(['relations', 'matrices'] as Part[]).map((part): Step => () => (tool.rep.built ? goLive(part) : undefined)),
       () => goLive('string'),
@@ -675,6 +675,7 @@
 
   /** The node k of the matrices and of the signed move (not part of the state); the signed move is then drawn from it. */
   function pickMatrixNode(label: number): void {
+    if (tool.rep.built) addSignedMoves(tool.rep, { route: mainRoute });
     matrixNode = label;
     goLive('signed');
   }
@@ -694,7 +695,11 @@
     if (parseRelationCode(anyBoard, code) === null || code === tool.relation) return;
     tool.relation = code;
     relationFixed = true;
-    if (rep.checks === null) needList = true;
+    // The list, if the digest stood for it: computed now within RELATIONS_MAIN_WORK, else in the worker.
+    if (rep.checks === null && rep.built) {
+      if (listOnMain(rep)) relationsNow(rep);
+      else needList = true;
+    }
     touch();
     announce(relationSentence(tool, shownCheck(rep, code, digest)));
   }
