@@ -1,0 +1,254 @@
+{
+ "agent": "rtfix-p4-toolchain",
+ "status": "done",
+ "branch": "worktree-agent-a778a41df895d40ff",
+ "base": "967118d23189fb1ac0190af9790884d1c897edc7",
+ "commits": [
+  "096c978 RT-FIX P4-RT-12-02: registry-weight.spec.ts reads the build under any base",
+  "ef1908e RT-FIX P4-RT-12-03: the scripts of build, size and lab load no TypeScript",
+  "5dba8f6 RT-FIX P4-RT-12-04: a release build that fails in postbuild leaves no report to present",
+  "a981786 RT-FIX P4-RT-08-10: the release report's line for an item and a page reads every use",
+  "8ab386b RT-FIX P4-RT-12-02 P4-RT-12-03 P4-RT-12-04 P4-RT-08-10: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/tests/e2e/registry-weight.spec.ts",
+  "site/src/lib/siteAndBase.mjs",
+  "site/astro.config.mjs",
+  "scripts/links.mjs",
+  "scripts/size.mjs",
+  "scripts/lab.mjs",
+  "site/tests/unit/scripts-plain-node.test.ts",
+  "site/src/lib/openItemsReport.mjs",
+  "site/src/lib/unverifiedRegistry.ts",
+  "site/tests/unit/links-release-report.test.ts",
+  "site/tests/unit/unverified-report-lines.test.ts",
+  "decisions/RT-FIX-P4-toolchain.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD (after git reset --hard 967118d)",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-a778a41df895d40ff; worktree-agent-a778a41df895d40ff; 967118d23189fb1ac0190af9790884d1c897edc7"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474..., 485cae..., 1fc9f8...: all three match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "65 files, 2218 passed"
+  },
+  {
+   "cmd": "GITHUB_REPOSITORY=johnjanik/mutation_game npm run build (base)",
+   "exit": 0,
+   "summary": "32 page(s) built; links: 1040 internal links on 32 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "GITHUB_REPOSITORY=johnjanik/mutation_game npx playwright test -c <scratch config, port 7660> site/tests/e2e/registry-weight.spec.ts (base, red)",
+   "exit": 1,
+   "summary": "1 failed: ENOENT ... site/dist/mutation_game/_astro/client.svelte.XNJPo5Ip.js"
+  },
+  {
+   "cmd": "GITHUB_REPOSITORY=johnjanik/mutation_game npx playwright test -c <scratch config> (whole suite at the CI base, base build)",
+   "exit": 1,
+   "summary": "881 passed, 6 failed, 2 skipped, 4 did not run: registry-weight (ENOENT), board-load:48, T10:516, T10:555, T05:859 (stale Vite SSR cache), T15:537"
+  },
+  {
+   "cmd": "same config at CI base: board-load:48 T10:516 T10:555 T15:537 T05:859 alone",
+   "exit": 1,
+   "summary": "5 passed, 1 failed (T15:537 received 'Board square.')"
+  },
+  {
+   "cmd": "npm run build (root base); playwright T15.spec.ts:537 and registry-weight at root; then T15.spec.ts:537 --repeat-each 3 at root",
+   "exit": 1,
+   "summary": "2 passed; then 3 failed of 3 at root ('Board square.'): T15:537 is flaky at both bases, so it does not depend on the base"
+  },
+  {
+   "cmd": "playwright registry-weight.spec.ts at root with the mapping reverted to the old leading-slash strip (scratch revert)",
+   "exit": 1,
+   "summary": "1 failed: ENOENT /tmp/registry-weight-*/mutation_game/_astro/client.js (new test); 1 passed"
+  },
+  {
+   "cmd": "playwright registry-weight.spec.ts at root, fix restored",
+   "exit": 0,
+   "summary": "2 passed"
+  },
+  {
+   "cmd": "GITHUB_REPOSITORY=johnjanik/mutation_game npm run build, then playwright registry-weight.spec.ts and T15.spec.ts:537 at CI base",
+   "exit": 0,
+   "summary": "3 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/scripts-plain-node.test.ts (base, red)",
+   "exit": 1,
+   "summary": "3 failed, 1 passed: 'links: Unknown file extension \".ts\" for .../site/src/lib/unverifiedRegistry.ts' (same for size and lab)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/links-release-report.test.ts (base, red)",
+   "exit": 1,
+   "summary": "5 failed, 2 passed: 'report: open items report of ...: 1 open items used on 1 pages, 0 unknown items' accepted after links.mjs exited 1 (expected 1, received 0)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/unverified-report-lines.test.ts (base, red)",
+   "exit": 1,
+   "summary": "2 failed, 1 passed: 'open item E7 used on /modules/m7-geometry/ (nothing shown)'"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit scripts-plain-node.test.ts (after fix)",
+   "exit": 0,
+   "summary": "4 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit config, scripts-plain-node, lab-thresholds, size-classify, size-classify-module-index, links-internal, scripts, aliases-one-source, basepath-per-route, presets-size",
+   "exit": 0,
+   "summary": "10 files, 82 passed"
+  },
+  {
+   "cmd": "npm run check -w site (after each commit)",
+   "exit": 0,
+   "summary": "astro check 287 files 0 errors; svelte-check 0 errors, 1 warning (existing LayerChart.svelte tabindex)"
+  },
+  {
+   "cmd": "official Node v22.12.0 (npm pack node-linux-x64@22.12.0): npm run build with it first on PATH, OUT_DIR in scratch",
+   "exit": 0,
+   "summary": "presets 'strip' via re-exec; 32 page(s) built; links: 1040 internal links ... 0 problems"
+  },
+  {
+   "cmd": "Node v22.12.0: node scripts/links.mjs; node scripts/size.mjs; node scripts/lab.mjs (no build)",
+   "exit": 1,
+   "summary": "links exit 0 (1040 links, 0 problems); size and lab reach 'no built directory' / 'no build found' (past the import)"
+  },
+  {
+   "cmd": "Node v22.12.0: node scripts/size.mjs --port 7661 on its own build",
+   "exit": 0,
+   "summary": "size: 32 routes measured, 0 over budget"
+  },
+  {
+   "cmd": "npx playwright test --list -c playwright.config.ts on Node 22.22 and on Node 22.12.0",
+   "exit": 0,
+   "summary": "Total: 894 tests in 46 files (both)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit links-release-report, scripts-plain-node, links-internal, scripts (after P4-RT-12-04)",
+   "exit": 0,
+   "summary": "4 files, 36 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit report-partial-release, content-components, tools/T15, released",
+   "exit": 0,
+   "summary": "4 files, 49 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit unverified-report-lines, links-release-report, report-partial-release, content-components, tools/T15, scripts (after P4-RT-08-10)",
+   "exit": 0,
+   "summary": "6 files, 69 passed"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/rt08-rel npm run build:release 2> stderr; node <scratch copy of redteam-RT-08-p4-release-report.mjs> stderr <scratch>/rt08-rel",
+   "exit": 0,
+   "summary": "build exit 0; 'open item E7 used on /modules/m7-geometry/ (fallback shown)'; 'every report line agrees with the release pages'"
+  },
+  {
+   "cmd": "npm run report (after the release build)",
+   "exit": 0,
+   "summary": "report: open items report of 2026-10-24T14:21:27.618Z: 8 open items used on 8 pages, 0 unknown items; JSON complete true, linkCheck passed"
+  },
+  {
+   "cmd": "bash <scratch copy of redteam-RT-12-run-mutations.sh> <worktree> <scratch>/mut deadlink",
+   "exit": 0,
+   "summary": "deadlink: preview-build exit 1; release-build exit 1 (links: 971 internal links on 32 pages ..., 1 problems); report exit 1 'comes from a release build that did not finish'"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=dist-basepath npm run build; playwright basepath.spec.ts registry-weight.spec.ts with the same env",
+   "exit": 0,
+   "summary": "build 0 problems; 35 passed"
+  },
+  {
+   "cmd": "npm test (whole unit suite, TMPDIR in scratch)",
+   "exit": 0,
+   "summary": "138 files, 3036 passed"
+  },
+  {
+   "cmd": "npm test -w packages/engine; npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "65 files, 2218 passed (baseline 2218); tsc exit 0"
+  },
+  {
+   "cmd": "npm run build (root); playwright registry-weight.spec.ts pages.spec.ts T16.spec.ts",
+   "exit": 0,
+   "summary": "links 1040, 0 problems; 46 passed"
+  },
+  {
+   "cmd": "grep of git diff 967118d..HEAD for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on:click and em-dash",
+   "exit": 0,
+   "summary": "only false positives 'demoteOnFailedExit(' (matches 'xit('); 0 em-dashes"
+  },
+  {
+   "cmd": "git ls-files | grep -i redteam; git diff --name-only 967118d..HEAD",
+   "exit": 0,
+   "summary": "85 paths, all under build-plan/ from the base; the branch adds none; diff lists the 12 files above, none forbidden"
+  },
+  {
+   "cmd": "grep -rn 'regression: P4-RT-' site/tests packages/engine/test",
+   "exit": 0,
+   "summary": "13 lines: registry-weight.spec.ts (2), scripts-plain-node.test.ts (3), links-release-report.test.ts (6), unverified-report-lines.test.ts (2)"
+  },
+  {
+   "cmd": "rm node_modules, site/dist and build outputs; git status --porcelain; pgrep astro preview on my ports",
+   "exit": 0,
+   "summary": "empty; no preview server"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P4-RT-12-02: npm run e2e fails in CI on every run: registry-weight.spec.ts reads built files by URL with the /<repo>/ base still in the path",
+   "status": "fixed",
+   "test": "site/tests/e2e/registry-weight.spec.ts > every tool route and lesson fetches no other tool presets before interaction; site/tests/e2e/registry-weight.spec.ts > registry-weight.spec.ts reads the built files of island URLs without the /<repo>/ base in the path",
+   "evidence": "Severity: major as filed, raised to blocker by both verifiers. Red at base 967118d with the CI-base build: 1 failed, ENOENT site/dist/mutation_game/_astro/client.svelte.XNJPo5Ip.js. The new test was also red under a scratch revert to the old mapping (ENOENT .../mutation_game/_astro/client.js). Cause: the spec dropped only the leading slash of component-url and read site/dist hard-coded. It now uses siteAndBase(process.env).base and outDirFrom(process.env), as basepath.spec.ts does. Green: 3 passed at the CI base, 2 passed at root, and 35 passed at /sub/path/ with OUT_DIR=dist-basepath. I ran the whole suite once at the CI base: 881 passed, 6 failed. No other spec has this cause: four failures passed when rerun alone, and T15:537 fails at both bases. Commit 096c978."
+  },
+  {
+   "item": "P4-RT-12-03: On Node 22.12 to 22.17, which engines and SPEC 7.1 admit, npm run build exits 1 (postbuild links.mjs), and npm run size and lab exit 1: plain node imports astro.config.mjs, which imports a .ts file",
+   "status": "fixed",
+   "test": "site/tests/unit/scripts-plain-node.test.ts > links.mjs, the postbuild of npm run build, checks a build (also > size.mjs reads the base and the built directory, > lab.mjs reads the base and the built directory)",
+   "evidence": "Red at base: 3 failed, 'links: Unknown file extension \".ts\" for .../site/src/lib/unverifiedRegistry.ts', the same for size and lab. The test runs each script with --no-experimental-strip-types. Cause: the three scripts imported site/astro.config.mjs, which imports unverifiedRegistry.ts. siteAndBase, normaliseBase and outDirFrom moved unchanged into site/src/lib/siteAndBase.mjs, plain JavaScript; astro.config.mjs imports and re-exports them, so CONTRACTS 1 still holds. Green: 4 passed. On the official Node v22.12.0, npm run build exits 0 (links: 1040 internal links, 0 problems) and size.mjs exits 0 (32 routes, 0 over budget); lab.mjs gets past the import. engines and .nvmrc are unchanged. Commit ef1908e."
+  },
+  {
+   "item": "P4-RT-12-04: npm run report presents the report of a release build that failed: the report is marked complete at astro:build:done, and postbuild's link check fails afterwards",
+   "status": "fixed",
+   "test": "site/tests/unit/links-release-report.test.ts > npm run report refuses the report of a release build that failed in postbuild (and 5 more cases)",
+   "evidence": "Red at base: 5 failed. checkOpenItemsReport accepted 'report: open items report of ...: 1 open items used on 1 pages, 0 unknown items' after links.mjs exited 1 with 1 problem. Cause: only astro:build:done set complete, and the postbuild never touched the report. In a release build links.mjs now first marks a completed report incomplete (linkCheck running), then marks it complete only when the check passes, else failed. It never completes a report the Astro build left incomplete. The build-done hook also marks the report incomplete when the process exits with a nonzero code after the hook. The report's file code moved unchanged to site/src/lib/openItemsReport.mjs, plain JavaScript. Green: 7 passed. The existing report-partial-release and content-components assertions still pass. On a copy of the branch, the lens's deadlink run gives release-build exit 1 and report exit 1 ('did not finish'). A clean release build gives report exit 0. Commit 5dba8f6."
+  },
+  {
+   "item": "P4-RT-08-10: Attack 3 (e): the release report on standard error says E7 shows 'nothing' on M7, although the page shows the E7 fallback; gate G4's owner's part repeats it",
+   "status": "fixed",
+   "test": "site/tests/unit/unverified-report-lines.test.ts > a page whose later use of an item shows the fallback is reported as fallback shown (also > the line is decided per page: one page shows the fallback, another nothing)",
+   "evidence": "Red at base: 2 failed, 'open item E7 used on /modules/m7-geometry/ (nothing shown)'. Cause: registerUsage printed the line when a pair was first used. The registry now keeps the pages on which any use shows the fallback (the optional fallbackPages field, merged across module instances by build id). The build-done hook prints one line per (item, page). Green: 3 passed. A real RELEASE=1 build prints 'open item E7 used on /modules/m7-geometry/ (fallback shown)', and the lens's redteam-RT-08-p4-release-report.mjs reports 'every report line agrees with the release pages' (exit 0). reports/gate-G4.md section 11 still carries the old line; I did not edit any report. Commit a981786."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "P0-A4 instruction 5.8 (plan), DECISIONS P0-A4 'release mode, unknown items, and the open-items report'",
+   "what": "The stderr line of an (item, page) pair is now printed by the build-done hook at the end of the build, not at the pair's first registration. One line per pair and the wording are unchanged. The report JSON gains two optional fields: fallbackPages (on items and unknownItems, present only when not empty) and linkCheck.",
+   "why": "P4-RT-08-10 needs every use on the page before the line can be decided. P4-RT-12-04 needs the postbuild's state in the report. Neither shape is in CONTRACTS.md, and buildId and complete were added the same way before."
+  },
+  {
+   "spec": "cluster area (scripts/, unverifiedRegistry.ts, one browser test)",
+   "what": "Changed site/astro.config.mjs (imports and re-exports the three functions) and added site/src/lib/siteAndBase.mjs and site/src/lib/openItemsReport.mjs.",
+   "why": "The cause of P4-RT-12-03 is the import chain through astro.config.mjs (named in the finding's location). links.mjs needs the report-file code without TypeScript."
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P4-toolchain.md",
+ "handoff": "Outside the cluster: site/astro.config.mjs only re-exports siteAndBase, normaliseBase and outDirFrom from the new plain site/src/lib/siteAndBase.mjs, and site/src/lib/openItemsReport.mjs holds the report-file code that the registry used to hold. Request to MERGE (root package.json, for P4-RT-12-02): add the script \"e2e:ci-base\": \"GITHUB_REPOSITORY=johnjanik/mutation_game npm run build && GITHUB_REPOSITORY=johnjanik/mutation_game playwright test\". It leaves site/dist built at /mutation_game/. I did not follow the proposed --experimental-strip-types re-exec for P4-RT-12-03: the plain module takes the TypeScript out of the scripts entirely. Open questions, not fixed: (1) T15.spec.ts:537 'announcements of a capped play, recorded' is flaky at both bases on 967118d (received 'Board square.'; 3 failures of 3 at root under load). (2) T02.spec.ts:522 reads '../../dist/' and ignores OUT_DIR; it does not fail in CI. (3) reports/gate-G4.md section 11 repeats the wrong E7 line, which GATE should correct. (4) I did not run lab.mjs's Lighthouse pass on Node 22.12; only its import was checked."
+}
