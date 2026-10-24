@@ -27,9 +27,10 @@ const LEAD = 'Exactly the balanced boards have a form with positive city weights
 
 /** The form values of the simple root populations e_i (roots by definition), in label order. */
 function simpleLengths(name: string): string[] {
-  const b = boardFromName(name) as Board<unknown>;
+  const board = boardFromName(name);
+  const b = board as Board<unknown>;
   const order = [...b.labels].sort((x, y) => x - y);
-  return toPositions(b, order).map((p) => {
+  return toPositions(board, order).map((p) => {
     const e = b.labels.map((_, k) => b.arith.fromInt(k === p ? 1 : 0));
     return ratToString(formValue(b, e)!);
   });
