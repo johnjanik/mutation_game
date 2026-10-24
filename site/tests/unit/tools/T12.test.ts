@@ -17,6 +17,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   CAPS,
+  EngineOverflow,
   boardFromName,
   chevalleySerre,
   fire,
@@ -28,6 +29,7 @@ import {
   spEq,
   spKey,
   spMul,
+  stringThrough,
   toLabels,
   toPositions,
 } from '@engine';
@@ -38,11 +40,13 @@ import {
   DRAW_MAX,
   REP_ENGINE,
   RELATIONS,
-  RELATIONS_MAIN_MAX,
+  RELATIONS_MAIN_WORK,
   STRING_SHOWN_MAX,
   T12Tool,
   acceptRelations,
+  addSignedMoves,
   admitLink,
+  basisHeaders,
   buildRepresentation,
   byPosition,
   captionOf,
@@ -54,11 +58,15 @@ import {
   entryList,
   explanation,
   exportData,
+  failingDefault,
   findRelation,
   firstFailing,
+  forgetRepresentations,
   inArithmetic,
   interaction,
   limitSentence,
+  linkNames,
+  listOnMain,
   matrixFormat,
   minusculeLabels,
   moveSentence,
@@ -66,22 +74,33 @@ import {
   orbitDrawing,
   orbitLayers,
   parseRelationCode,
+  positionText,
+  relationCaption,
   relationCode,
+  relationCount,
+  relationDigest,
+  relationLabels,
   relationParts,
   relationSpoken,
   relationSummary,
+  relationTally,
   relationText,
+  relationWork,
   relationsNow,
   relationsOnMain,
   repCaption,
   representationOf,
   representationSteps,
   routedCalls,
+  shownCheck,
   someNumberPhrase,
+  stringNote,
   stringView,
   undoSentence,
   type RepEngine,
+  type Step,
 } from '../../../src/components/tools/t12/model';
+import { bigBoard } from '../../../src/lib/state';
 import T12 from '../../../src/tools/registry/T12';
 import { LINK_NOTICE, encodeState } from '../../../src/lib/urlCodec';
 import { exportJSON } from '../../../src/lib/export';
@@ -147,9 +166,9 @@ describe('T12 acceptance over minuscule_representations', () => {
       const board = named(rec.type);
       const rep = buildRepresentation(board, rec.node);
       const n = board.n;
-      // Up to RELATIONS_MAIN_MAX positions the browser computes the list on the main thread; above (E7 node 7,
-      // the half-spin nodes of D7 and D8, ...) the worker makes the same engine call, run here in-process.
-      expect(relationsOnMain(rep.orbitSize), rec.type).toBe(rep.orbitSize <= CAPS.matrixGridDim);
+      // Up to RELATIONS_MAIN_WORK (positions times records) the browser computes the list on the main thread;
+      // above (E6, E7 node 7, ...) the worker makes the same engine call, run here in-process.
+      expect(relationsOnMain(rep.orbitSize, n), rec.type).toBe(rep.orbitSize * (6 * n * n - 2 * n) <= RELATIONS_MAIN_WORK);
       expect(rep.checks!.length).toBe(6 * n * n - 2 * n);
       for (const c of rep.checks!) {
         expect(c.holds, `${rec.type} node ${rec.node}: ${relationCode(board, c)}`).toBe(true);
@@ -514,13 +533,33 @@ describe('T12 relations', () => {
     expect(relationSpoken(relationParts(A2, 'serre-e:1,2')!)).toBe('ad E 1 to the power 2 applied to E 2 equals 0');
   });
 
-  it('the relation list of an orbit above RELATIONS_MAIN_MAX positions is left to the worker, and accepted once', () => {
-    // The bound of decisions/P5-A2.md: the largest grid (5.6), E6 node 1; E7 node 7 (56) goes to the worker.
-    expect(RELATIONS_MAIN_MAX).toBe(CAPS.matrixGridDim);
-    expect(RELATIONS_MAIN_MAX).toBe(27);
-    expect(relationsOnMain(27)).toBe(true);
-    expect(relationsOnMain(28)).toBe(false);
-    expect(relationsOnMain(matchRecord(RECORDS, { type: 'E6', node: 1 }).dimension)).toBe(true);
+  it('the relation list is bounded on the main thread by its work, positions times records: E6 and every list of rank 8 go to the worker', () => {
+    // The bound of decisions/P5-A2.md (review P5-A2, finding 2): the work of chevalleySerre is the size of the
+    // orbit times the 6n^2 - 2n records; E6 node 1 (5508) and A8 node 1 (3312) were long tasks at four times
+    // slower, D6 node 1 (2448) the largest list kept on the main thread.
+    expect(RELATIONS_MAIN_WORK).toBe(2500);
+    expect(relationCount(6)).toBe(204);
+    for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) expect(relationCount(n)).toBe(buildRepresentation(named(n === 1 ? 'A1' : `A${n}`), 1).checks!.length);
+    let kept = 0;
+    for (const type of TYPE_NAMES) {
+      const board = named(type);
+      golden.types[type]!.fundamental_orbit_sizes.forEach((size, p) => {
+        if (size > CAPS.repOrbit) return;
+        const label = toLabels(board, [p])[0]!;
+        const onMain = relationsOnMain(size, board.n);
+        expect(onMain, `${type} node ${label}`).toBe(relationWork(size, board.n) <= RELATIONS_MAIN_WORK);
+        if (type === 'E6' || board.n === 8) expect(onMain, `${type} node ${label}`).toBe(false);
+        if (onMain) kept = Math.max(kept, relationWork(size, board.n));
+      });
+    }
+    expect(kept).toBe(12 * relationCount(6));
+    expect(relationsOnMain(golden.types.D4!.fundamental_orbit_sizes[1]!, 4)).toBe(true);
+    expect(relationsOnMain(golden.types.D6!.fundamental_orbit_sizes[0]!, 6)).toBe(true);
+    expect(relationsOnMain(golden.types.A8!.fundamental_orbit_sizes[0]!, 8)).toBe(false);
+    const e6 = buildRepresentation(named('E6'), 1, { relations: 'auto' });
+    expect(listOnMain(e6)).toBe(false);
+    expect(e6.checks).toBeNull();
+    expect(defaultRelation(e6)).toBe('ef:1,1');
     const e7 = buildRepresentation(named('E7'), 7, { relations: 'auto' });
     expect(e7.built).toBe(true);
     expect(e7.checks).toBeNull();
@@ -542,26 +581,32 @@ describe('T12 relations', () => {
   });
 
   it('a pick builds the representation one engine call per step, and in the browser no list above the bound is computed on the main thread after the first state', () => {
-    const g = globalThis as { window?: unknown };
-    const had = 'window' in g;
-    const before = g.window;
-    g.window = {};
-    try {
+    /** Runs steps as the tool's runSteps does: the steps a step returns run next. */
+    const runAll = (steps: Step[]): number => {
+      const queue = [...steps];
+      let ran = 0;
+      while (queue.length > 0) {
+        const more = queue.shift()!();
+        ran++;
+        if (Array.isArray(more)) queue.unshift(...more);
+      }
+      return ran;
+    };
+    inBrowser(() => {
+      forgetRepresentations();
       // D7 node 7 (64 positions, minuscule): four steps; the fourth computes nothing for a minuscule node.
       const steps = representationSteps('D7', 7);
       expect(steps).toHaveLength(4);
-      for (const s of steps) s();
+      expect(runAll(steps)).toBe(4);
       const d7 = representationOf('D7', 7, 'staged');
       expect(d7.basis).toHaveLength(64);
       expect(d7.signed).not.toBeNull();
       expect(d7.checks).toBeNull();
       expect(() => relationsNow(d7)).toThrow(RangeError);
-      // The configured state computes it whatever the size (no default state waits for the worker).
       relationsNow(d7, true);
       expect(d7.checks!.every((c) => c.holds)).toBe(true);
-      // A node that is not minuscule with at most RELATIONS_MAIN_MAX positions gets its list in step 4.
-      const d4 = representationSteps('D4', 2);
-      for (const s of d4) s();
+      // A node that is not minuscule within RELATIONS_MAIN_WORK gets its list in step 4.
+      runAll(representationSteps('D4', 2));
       expect(representationOf('D4', 2, 'staged').checks!.some((c) => !c.holds)).toBe(true);
       // Steps interrupted after the first (another pick came first) are completed by representationOf.
       representationSteps('A5', 3)[0]!();
@@ -569,12 +614,77 @@ describe('T12 relations', () => {
       expect(a5.basis).toHaveLength(golden.types.A5!.fundamental_orbit_sizes[2]!);
       expect(a5.signed).not.toBeNull();
       expect(a5.checks).toBeNull();
-    } finally {
-      if (had) g.window = before;
-      else delete g.window;
+    });
+  });
+
+  it('above 300 positions the signed moves are computed one node per task, and equal the engine\'s whole list (review P5-A2, finding 3)', () => {
+    inBrowser(() => {
+      forgetRepresentations();
+      const steps = representationSteps('B8', 5);
+      steps[0]!();
+      steps[1]!();
+      const more = steps[2]!();
+      expect(Array.isArray(more)).toBe(true);
+      expect(more as Step[]).toHaveLength(8);
+      const b8 = representationOf('B8', 5, 'facts');
+      expect(b8.basis).toHaveLength(1792);
+      expect(b8.signed).toBeNull();
+      (more as Step[]).forEach((s, k) => {
+        s();
+        expect(b8.signed === null, `after node position ${k}`).toBe(k < 7);
+      });
+      const whole = signedMoves(b8.basis!, b8.E!, b8.F!);
+      b8.signed!.forEach((m, k) => expect(spEq(m, whole[k]!), `node position ${k}`).toBe(true));
+    });
+    // The same split on a small orbit, against the worked value of the instruction (A2 node 1, k = 1).
+    const a2 = buildRepresentation(named('A2'), 1);
+    const fresh: typeof a2 = { ...a2, signed: null, signedPart: null };
+    addSignedMoves(fresh, {}, 1);
+    expect(fresh.signed).toBeNull();
+    addSignedMoves(fresh, {}, 0);
+    expect(spEq(fresh.signed![0]!, sparse({ '0,2': 1, '1,1': 1, '2,0': -1 }))).toBe(true);
+    expect(fresh.signed!.every((m, k) => spEq(m, a2.signed![k]!))).toBe(true);
+  });
+
+  it('when a list from the worker arrives on a node that is not minuscule and the default [E_i, F_i] = H_i holds, the tool moves to the first failing check (review P5-A2, finding 6)', () => {
+    const cases: [string, number][] = [['C5', 5], ['C6', 6]];
+    for (const [type, node] of cases) {
+      const rep = buildRepresentation(named(type), node, { relations: 'auto' });
+      expect(rep.minuscule).toBe(false);
+      expect(listOnMain(rep)).toBe(false);
+      expect(defaultRelation(rep)).toBe(`ef:${node},${node}`);
+      expect(failingDefault(rep, defaultRelation(rep))).toBeNull();
+      acceptRelations(rep, chevalleySerre(rep.board, rep.E!, rep.F!, rep.H!));
+      // The default holds on these nodes (the review's script found C5:5 to C8:8), so it moves.
+      expect(findRelation(rep.checks!, rep.board, `ef:${node},${node}`)!.holds).toBe(true);
+      const to = failingDefault(rep, `ef:${node},${node}`)!;
+      expect(to).toBe(relationCode(rep.board, firstFailing(rep.checks!)!));
+      expect(findRelation(rep.checks!, rep.board, to)!.holds).toBe(false);
+      // A relation the reader chose is never moved by the tool (the component passes it only while unchosen).
+      expect(failingDefault(rep, to)).toBeNull();
     }
+    // A minuscule node never moves.
+    const e7 = buildRepresentation(named('E7'), 7);
+    expect(failingDefault(e7, 'ef:7,7')).toBeNull();
+    expect(linkNames('?g=C5&k=5&q=ef:5,5', '', 'q')).toBe(true);
+    expect(linkNames('?g=C5&k=5', '', 'q')).toBe(false);
+    expect(linkNames('?b3.q=ef:1,1', 'b3', 'q')).toBe(true);
   });
 });
+
+/** Runs `fn` with a `window` global, so that the model takes the browser's paths (E-9). */
+function inBrowser(fn: () => void): void {
+  const g = globalThis as { window?: unknown };
+  const had = 'window' in g;
+  const before = g.window;
+  g.window = {};
+  try {
+    fn();
+  } finally {
+    if (had) g.window = before;
+    else delete g.window;
+  }
+}
 
 // ---------------------------------------------------------------------------------------------
 // The string viewer
@@ -657,6 +767,61 @@ describe('T12 string viewer', () => {
     expect(doc.derived.positions[0]).toEqual([big, 0]);
     expect(doc.derived.string.through).toEqual([`-${big}`, big]);
   });
+
+  describe('a safe start whose line, ends or legal play pass 2^53 is computed on the Big board (review P5-A2, finding 1)', () => {
+    /** The decimal key of a position given by position, in label order (the order of data-value). */
+    const keyOf = (board: AnyBoard, v: readonly (number | bigint)[]): string => toPositions(board, [...board.labels].sort((a, b) => a - b)).map((p) => String(v[p])).join(',');
+    /** The end of legal play on the Big copy of the board (the in-orbit test of F3, exact). */
+    const bigEnd = (board: AnyBoard, v: readonly bigint[]): string => play(bigBoard(board), v).position.join(',');
+    const toolOf = (name: string, node: number, start: string[]): T12Tool => new T12Tool({ board: name, node, relation: `ef:${node},${node}`, start, moves: [] });
+
+    it('A2 node 1 through (5, 9007199254740990): six positions whose entries pass 2^53, shown by their two ends', () => {
+      const A2 = named('A2');
+      const mu = [5n, 9007199254740990n];
+      const tool = toolOf('A2', 1, ['5', '9007199254740990']);
+      const view = tool.string();
+      const far = fire(bigBoard(A2), mu, pos(A2, 1));
+      expect(view.shown.map((p) => p.key)).toEqual([keyOf(A2, mu), keyOf(A2, far)]);
+      expect(view.shown.map((p) => p.key)).toEqual(['5,9007199254740990', '-5,9007199254740995']);
+      expect(view.length).toBe(6n);
+      expect(view.elided).toBe(4n);
+      expect(view.unsafe).toBe(true);
+      expect(view.shown.map((p) => p.inOrbit)).toEqual([true, bigEnd(A2, far) === bigEnd(A2, mu)]);
+      expect(stringNote(view)).toContain('Its entries pass 2^53, so only its two ends are computed here.');
+      // The engine refuses the line on numbers: this is what the Big board is for.
+      expect(() => stringThrough(A2, [5, 9007199254740990], pos(A2, 1))).toThrow(EngineOverflow);
+      // A move from there is exact too, and its line is computed.
+      const r = tool.act(2)!;
+      expect(r.after).toEqual(fire(bigBoard(A2), mu, pos(A2, 2)).map(String));
+      expect(() => tool.string()).not.toThrow();
+    });
+
+    it('A2 node 1 through (1, 9007199254740991) and A2 node 2 through (9007199254740991, 1): lines of two positions past 2^53', () => {
+      const A2 = named('A2');
+      const one = toolOf('A2', 1, ['1', '9007199254740991']).string();
+      expect(one.shown.map((p) => p.key)).toEqual(['1,9007199254740991', keyOf(A2, fire(bigBoard(A2), [1n, 9007199254740991n], pos(A2, 1)))]);
+      expect(one.shown[1]!.key).toBe('-1,9007199254740992');
+      expect(one.elided).toBe(0n);
+      expect(one.shown.map((p) => p.inOrbit)).toEqual([true, true]);
+      expect(stringNote(one)).not.toContain('2^53');
+      const two = toolOf('A2', 2, ['9007199254740991', '1']).string();
+      expect(two.shown.map((p) => p.key)).toEqual(['9007199254740991,1', keyOf(A2, fire(bigBoard(A2), [9007199254740991n, 1n], pos(A2, 2)))]);
+      expect(two.shown[1]!.key).toBe('9007199254740992,-1');
+    });
+
+    it('G2 node 1 through (3, 3002399751580330): a safe line whose legal play passes 2^53', () => {
+      const G2 = named('G2');
+      const mu = [3, 3002399751580330];
+      // Legal play from mu on numbers overflows: the in-orbit test needs the Big board.
+      expect(() => play(G2, mu)).toThrow(EngineOverflow);
+      const view = toolOf('G2', 1, ['3', '3002399751580330']).string();
+      const line = stringThrough(G2, mu, pos(G2, 1));
+      expect(view.shown.map((p) => p.key)).toEqual(line.map((v) => keyOf(G2, v)));
+      expect(view.length).toBe(4n);
+      const muEnd = bigEnd(G2, mu.map(BigInt));
+      expect(view.shown.map((p) => p.inOrbit)).toEqual(line.map((v) => bigEnd(G2, v.map(BigInt)) === muEnd));
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -731,6 +896,32 @@ describe('T12 state and links', () => {
     expect(doc.derived.F[0]).toEqual([[3, 1, 1]]);
     expect(doc.derived.relations).toContainEqual({ relation: 'ef', i: 1, j: 1, holds: true });
     expect(doc.derived.relations).toHaveLength(20);
+    // Every record is the engine's, in its order, with its positions mapped through toLabels (E-7): on A2 a
+    // node 2 exists only as a label (positions are 0 and 1).
+    const rep = tool.rep;
+    expect(doc.derived.relations).toEqual(rep.checks!.map((c) => ({ relation: c.relation, i: toLabels(rep.board, [c.i])[0], j: toLabels(rep.board, [c.j])[0], holds: c.holds })));
+    expect(doc.derived.relations).toContainEqual({ relation: 'ef', i: 2, j: 2, holds: true });
+    expect(doc.derived.relations.every((r: { i: number; j: number }) => r.i >= 1 && r.j >= 1)).toBe(true);
+    // The tables the screen shows (SPEC 6.6 Data export; review P5-A2, finding 8): the orbit with its rows
+    // and layers, its edges, and the two sides of the relation shown.
+    const o = orbitLayers(rep);
+    expect(doc.derived.orbit).toEqual(
+      [...o.vertices].sort((a, b) => a.basisIndex - b.basisIndex).map((v) => ({ row: v.basisIndex + 1, position: v.values, layer: v.depth })),
+    );
+    expect(doc.derived.orbit[0]).toEqual({ row: 1, position: [1, 0], layer: 0 });
+    expect(doc.derived.edges).toEqual(o.edges.map((e) => [o.vertices[e.from]!.basisIndex + 1, o.vertices[e.to]!.basisIndex + 1, e.node]));
+    expect(doc.derived.edges).toContainEqual([1, 3, 1]);
+    const c11 = findRelation(rep.checks!, rep.board, 'ef:1,1')!;
+    expect(doc.derived.relationSides).toEqual({ relation: 'ef:1,1', holds: true, left: entryList(c11.left).map(([r, c, v]) => [r, c, Number(v)]), right: entryList(c11.right).map(([r, c, v]) => [r, c, Number(v)]) });
+    expect(doc.derived.relationSides.left).toEqual([
+      [1, 1, 1],
+      [3, 3, -1],
+    ]);
+    // Above 300 positions the graph is not drawn: the orbit is listed, the edges are null.
+    const e7two = new T12Tool(configOf(defaultsFor('E7', 2)));
+    const big = JSON.parse(exportJSON(e7two.state(), exportData(e7two)));
+    expect(big.derived.orbit).toHaveLength(576);
+    expect(big.derived.edges).toBeNull();
     expect(doc.derived.string.positions.map((p: { position: number[] }) => p.position)).toEqual([[1, 0], [-1, 1]]);
     const e7 = new T12Tool(configOf(defaultsFor('E7')));
     const d = JSON.parse(exportJSON(e7.state(), exportData(e7)));
@@ -775,7 +966,7 @@ describe('T12 state and links', () => {
       const calls = routedCalls(type, node);
       const size = golden.types[type]!.fundamental_orbit_sizes[pos(board, node)]!;
       for (const c of calls) {
-        const expected = c.fn === 'chevalleySerre' && !relationsOnMain(size) ? 'worker' : 'main';
+        const expected = c.fn === 'chevalleySerre' && !relationsOnMain(size, board.n) ? 'worker' : 'main';
         expect(c.where, `${type} node ${node}: ${c.fn}`).toBe(expected);
         if (c.fn === 'minusculeMatrices' || c.fn === 'orbitGraph') expect(c.hint).toMatchObject({ kind: 'enumeration', expectedItems: size });
       }
@@ -783,11 +974,12 @@ describe('T12 state and links', () => {
       else expect(calls.map((c) => c.fn)).not.toContain('minusculeMatrices');
     }
     // E7 node 7: the enumerations on the main thread with 56 items known in advance, the relation list in
-    // the worker (above RELATIONS_MAIN_MAX); E6 node 1 (27): every call on the main thread.
+    // the worker (above RELATIONS_MAIN_WORK); E6 node 1 (27 positions, 204 records): the list in the worker too, the rest on the main thread.
     const e7 = routedCalls('E7', 7);
     expect(e7.filter((c) => c.where === 'worker').map((c) => c.fn)).toEqual(['chevalleySerre']);
     expect(e7.find((c) => c.fn === 'minusculeMatrices')!.hint).toMatchObject({ expectedItems: 56 });
-    expect(routedCalls('E6', 1).every((c) => c.where === 'main')).toBe(true);
+    expect(routedCalls('E6', 1).filter((c) => c.where === 'worker').map((c) => c.fn)).toEqual(['chevalleySerre']);
+    expect(routedCalls('D4', 2).every((c) => c.where === 'main')).toBe(true);
     // The largest orbit T12 builds: the matrices on the main thread (E-9 rule 1), the relation list in the worker.
     const b8 = routedCalls('B8', 5);
     expect(b8.find((c) => c.fn === 'minusculeMatrices')!.where).toBe('main');
@@ -870,7 +1062,10 @@ type OrbitModule = {
     texts: readonly string[],
     title: string,
     titleId: string,
-  ) => { width: number; height: number; edges: string; vertices: string };
+  ) => { width: number; height: number; edgeLayers: string[]; vertexLayers: string[] };
+  layerCounts: (layers: ReturnType<typeof orbitLayers>) => { vertices: number; edges: number };
+  EDGE_CHUNK: number;
+  VERTEX_CHUNK: number;
 };
 type ComponentModule = { default: unknown };
 let loader: SsrLoader;
@@ -978,29 +1173,52 @@ describe('MatrixView', () => {
 });
 
 describe('OrbitLayers', () => {
-  it('orbitSvg draws one vertex per position with its basis index and one labelled edge per pair, in two layers of one size', () => {
+  it('orbitSvg draws one vertex per position with its basis index and one labelled edge per pair, in layers of one size', () => {
     const rep = buildRepresentation(named('A2'), 1);
     const o = orbitLayers(rep);
     const texts = o.vertices.map((v) => `(${v.values.map((x) => (x < 0 ? `−${-x}` : String(x))).join(', ')})`);
     const svg = OL.orbitSvg(o, orbitDrawing(o), texts, 'The orbit of ω1 on A2', 't1');
-    expect(svg.edges).toMatch(/^<svg class="drawing edges-layer" aria-hidden="true" width="\d+" height="\d+"/);
-    expect(svg.vertices).toMatch(/^<svg class="drawing vertices-layer" role="img" aria-labelledby="t1" [^>]*><title id="t1">The orbit of ω1 on A2<\/title>/);
-    expect((svg.vertices.match(/data-vertex="/g) ?? []).length).toBe(3);
-    expect((svg.edges.match(/data-edge-label="/g) ?? []).length).toBe(2);
+    expect(svg.edgeLayers).toHaveLength(1);
+    expect(svg.vertexLayers).toHaveLength(1);
+    const edges = svg.edgeLayers.join('');
+    const vertices = svg.vertexLayers.join('');
+    expect(edges).toMatch(/^<svg class="drawing edges-layer" aria-hidden="true" width="\d+" height="\d+"/);
+    expect(vertices).toMatch(/^<svg class="drawing vertices-layer" role="img" aria-labelledby="t1" [^>]*><title id="t1">The orbit of ω1 on A2<\/title>/);
+    expect((vertices.match(/data-vertex="/g) ?? []).length).toBe(3);
+    expect((edges.match(/data-edge-label="/g) ?? []).length).toBe(2);
     // Layer 0 holds omega_1, which is basis vector 1; the text carries the index after #.
-    expect(svg.vertices).toContain('data-vertex="1" data-layer="0" data-value="1,0"');
-    expect(svg.vertices).toContain('>(1, 0) #1</text>');
+    expect(vertices).toContain('data-vertex="1" data-layer="0" data-value="1,0"');
+    expect(vertices).toContain('>(1, 0) #1</text>');
     for (const e of o.edges) {
-      expect(svg.edges).toContain(`data-edge-node="${e.node}" data-edge-from="${o.vertices[e.from]!.basisIndex + 1}" data-edge-to="${o.vertices[e.to]!.basisIndex + 1}" data-step="true"`);
+      expect(edges).toContain(`data-edge-node="${e.node}" data-edge-from="${o.vertices[e.from]!.basisIndex + 1}" data-edge-to="${o.vertices[e.to]!.basisIndex + 1}" data-step="true"`);
     }
-    expect(svg.edges).not.toContain('class="dashed"');
+    expect(edges).not.toContain('class="dashed"');
     // D4 node 2: the edges of a number 2 are dashed.
     const d4 = orbitLayers(buildRepresentation(named('D4'), 2));
     const d4svg = OL.orbitSvg(d4, orbitDrawing(d4), d4.vertices.map((v) => v.values.join(',')), 'D4', 't2');
-    expect((d4svg.edges.match(/class="dashed"/g) ?? []).length).toBe(d4.edges.filter((e) => !e.step).length);
-    expect((d4svg.edges.match(/data-step="false"/g) ?? []).length).toBe(d4.edges.filter((e) => !e.step).length);
+    expect((d4svg.edgeLayers.join('').match(/class="dashed"/g) ?? []).length).toBe(d4.edges.filter((e) => !e.step).length);
+    expect((d4svg.edgeLayers.join('').match(/data-step="false"/g) ?? []).length).toBe(d4.edges.filter((e) => !e.step).length);
     // Text is escaped.
-    expect(OL.orbitSvg(o, orbitDrawing(o), texts, 'a <b> & "c"', 't3').vertices).toContain('<title id="t3">a &lt;b&gt; &amp; &quot;c&quot;</title>');
+    expect(OL.orbitSvg(o, orbitDrawing(o), texts, 'a <b> & "c"', 't3').vertexLayers[0]).toContain('<title id="t3">a &lt;b&gt; &amp; &quot;c&quot;</title>');
+  });
+
+  it('a large orbit is drawn in layers of at most 16 vertices and 40 edges, one SVG each, of one size, the title on the first (review P5-A2, finding 2)', () => {
+    expect(OL.VERTEX_CHUNK).toBe(16);
+    expect(OL.EDGE_CHUNK).toBe(40);
+    const o = orbitLayers(buildRepresentation(named('E7'), 7, { relations: 'later' }));
+    const svg = OL.orbitSvg(o, orbitDrawing(o), o.vertices.map((v) => v.values.join(',')), 'E7', 't4');
+    expect(svg.vertexLayers).toHaveLength(Math.ceil(56 / 16));
+    expect(svg.edgeLayers).toHaveLength(Math.ceil(o.edges.length / 40));
+    expect(OL.layerCounts(o)).toEqual({ vertices: svg.vertexLayers.length, edges: svg.edgeLayers.length });
+    const count = (s: string, re: RegExp): number => (s.match(re) ?? []).length;
+    for (const l of svg.vertexLayers) expect(count(l, /data-vertex="/g)).toBeLessThanOrEqual(16);
+    for (const l of svg.edgeLayers) expect(count(l, /data-edge="/g)).toBeLessThanOrEqual(40);
+    expect(svg.vertexLayers.reduce((s, l) => s + count(l, /data-vertex="/g), 0)).toBe(56);
+    expect(svg.edgeLayers.reduce((s, l) => s + count(l, /data-edge="/g), 0)).toBe(o.edges.length);
+    const size = `width="${svg.width}" height="${svg.height}"`;
+    for (const l of [...svg.edgeLayers, ...svg.vertexLayers]) expect(l).toContain(size);
+    expect(count(svg.vertexLayers.join(''), /role="img"/g)).toBe(1);
+    expect(svg.vertexLayers[0]).toContain('role="img"');
   });
 });
 
@@ -1074,5 +1292,135 @@ describe('T12 server render', () => {
     expect(d4).toMatch(/data-out="relation-verdict" data-holds="false"/);
     expect(outText(d4, 'explanation')[0]).toContain('some number in the orbit is 2');
     expect(d4).toMatch(/data-step="false"/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The repair after review (P5-A2-review.json): hydration, island data, headers, labels, hooks
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 hydration without the relation list or the matrices (review P5-A2, finding 4 and request 10)', () => {
+  it('a configured state hydrates with the facts of its node only: minusculeMatrices, signedMoves and chevalleySerre are not called', () => {
+    const keep = { ...REP_ENGINE };
+    const calls: Record<string, number> = {};
+    const counted = <K extends keyof RepEngine>(name: K): RepEngine[K] =>
+      ((...a: never[]) => {
+        calls[name] = (calls[name] ?? 0) + 1;
+        return (keep[name] as (...b: never[]) => unknown)(...a);
+      }) as RepEngine[K];
+    REP_ENGINE.minusculeMatrices = counted('minusculeMatrices');
+    REP_ENGINE.signedMoves = counted('signedMoves');
+    REP_ENGINE.chevalleySerre = counted('chevalleySerre');
+    try {
+      inBrowser(() => {
+        forgetRepresentations();
+        for (const [board, node] of [['E7', 7], ['E6', 1], ['A2', 1], ['D4', 1]] as const) {
+          const tool = new T12Tool(configOf(configuredState({ board, node })));
+          expect(tool.rep.basis, board).toBeNull();
+          expect(tool.rep.checks, board).toBeNull();
+          expect(tool.rep.orbitSize).toBe(golden.types[board]!.fundamental_orbit_sizes[pos(tool.board, node)]);
+          expect(() => tool.string()).not.toThrow();
+        }
+        expect(calls).toEqual({});
+      });
+    } finally {
+      Object.assign(REP_ENGINE, keep);
+    }
+  });
+
+  it('the server\'s digest gives the browser the counts, the verdict and the two sides of the relation shown, so the first render equals the server\'s', () => {
+    const server = buildRepresentation(named('E7'), 7);
+    const digest = relationDigest(server, 'ef:7,7')!;
+    expect(digest).toMatchObject({ board: 'E7', node: 7, code: 'ef:7,7', holds: true, total: 280, failing: 0 });
+    inBrowser(() => {
+      forgetRepresentations();
+      const tool = new T12Tool(configOf(configuredState({ board: 'E7', node: 7 })));
+      const rep = tool.rep;
+      expect(rep.checks).toBeNull();
+      // Without the digest the browser could only say that the relations are checked in the background.
+      expect(repCaption(rep)).toContain('checked in the background');
+      expect(repCaption(rep, digest)).toBe(repCaption(server));
+      expect(relationCaption(rep, 'ef:7,7', digest)).toBe(relationCaption(server, 'ef:7,7'));
+      expect(captionOf(tool, null, 7, digest)).toBe(repCaption(server));
+      expect(relationTally(rep, digest)).toEqual({ total: 280, failing: 0 });
+      const shown = shownCheck(rep, 'ef:7,7', digest)!;
+      const real = findRelation(server.checks!, server.board, 'ef:7,7')!;
+      expect(shown.holds).toBe(true);
+      expect(spEq(shown.left, real.left)).toBe(true);
+      expect(spEq(shown.right, real.right)).toBe(true);
+      // Another relation, or a digest of another node, is not taken from it.
+      expect(shownCheck(rep, 'ef:1,7', digest)).toBeNull();
+      expect(relationTally(representationOf('E7', 1, 'facts'), digest)).toBeNull();
+    });
+  });
+
+  it('the server writes the digest of the configured state as island data, and leaves no hydration comment in the panels it keeps', async () => {
+    const body = loader.render(T12C.default, { id: 'b7', board: 'E7', node: 7 });
+    const m = /<script type="application\/json" data-t12-digest="b7">([^<]*)<\/script>/.exec(body);
+    expect(m).not.toBeNull();
+    expect(JSON.parse(m![1]!)).toEqual(relationDigest(buildRepresentation(named('E7'), 7), 'ef:7,7'));
+    // The panels are the server's markup of the live panels (t12/static.ts), without hydration comments.
+    for (const panel of ['orbit', 'matrices', 'relations', 'signed', 'string']) {
+      const at = body.indexOf(`data-panel="${panel}"`);
+      expect(at, panel).toBeGreaterThan(0);
+    }
+    const from = body.indexOf('data-panel="relations"');
+    const section = body.slice(from, body.indexOf('</section>', from));
+    expect(section).toContain('data-out="relation-verdict"');
+    expect(section).not.toMatch(/<!--/);
+    // In the browser the island data is read back before hydration.
+    const { readDigest } = await loader.load<{ readDigest: (uid: string) => unknown }>('/src/components/tools/t12/static.ts');
+    const g = globalThis as { document?: unknown };
+    g.document = { querySelector: (sel: string) => (sel === 'script[data-t12-digest="b7"]' ? { textContent: m![1] } : null) };
+    try {
+      expect(readDigest('b7')).toEqual(JSON.parse(m![1]!));
+      expect(readDigest('b8')).toBeNull();
+    } finally {
+      delete g.document;
+    }
+  });
+});
+
+describe('T12 hooks and texts (review P5-A2, findings 5, 7, 9 and request 11)', () => {
+  it('the row headers of every matrix are the golden weights_dynkin_labels, in order (the basis-order trap)', () => {
+    for (const rec of RECORDS) {
+      if (rec.weights_dynkin_labels === null) continue;
+      const rep = buildRepresentation(named(rec.type), rec.node);
+      expect(basisHeaders(rep), `${rec.type} node ${rec.node}`).toEqual(rec.weights_dynkin_labels.map((w) => positionText(w)));
+    }
+    const body = loader.render(T12C.default, { id: '' });
+    const h = body.slice(body.indexOf('data-out="matrix-h"'));
+    const rows = [...h.slice(0, h.indexOf('</table>')).matchAll(/<th scope="row">([^<]*)<\/th>/g)].map((x) => x[1]);
+    const a2 = matchRecord(RECORDS, { type: 'A2', node: 1 }).weights_dynkin_labels!;
+    expect(rows).toEqual(a2.map((w, r) => `${r + 1}: ${positionText(w)}`));
+    expect(rows).toEqual(['1: (1, 0)', '2: (0, −1)', '3: (−1, 1)']);
+  });
+
+  it('relation nodes are read through toLabels: a board whose labels are not in position order', () => {
+    const A2 = named('A2');
+    const swapped = { ...A2, labels: [2, 1] } as AnyBoard;
+    expect(relationLabels(swapped, { i: 0, j: 1 })).toEqual([2, 1]);
+    expect(relationLabels(A2, { i: 0, j: 1 })).toEqual([1, 2]);
+    expect(relationCode(swapped, { relation: 'ef', i: 0, j: 0 })).toBe('ef:2,2');
+    // The component reads the selects' labels through relationLabels, never by indexing the sorted labels.
+    const source = readFileSync(new URL('../../../src/components/tools/T12RepresentationBuilder.svelte', import.meta.url), 'utf8');
+    expect(source).toContain('relationLabels(anyBoard, relationRef)');
+    expect(source).not.toMatch(/labels\[relationRef/);
+  });
+
+  it('the table view writes negative numbers with the true minus sign and keeps the exact digits', () => {
+    const body = loader.render(T12C.default, { id: 't', board: 'A2', node: 1, start: [-2, 2] });
+    const button = /<button[^>]*data-table-node="1"[^>]*>([^<]*)<\/button>/.exec(body);
+    expect(button![1]).toBe('−2');
+    const long = loader.render(T12C.default, { id: 'u', board: 'A2', node: 1, start: ['-12345678901234567890', '0'] });
+    expect(/<button[^>]*data-table-node="1"[^>]*>([^<]*)<\/button>/.exec(long)![1]).toBe('−12345678901234567890');
+  });
+
+  it('the state shown names its board and node in data-out="state-board" and "state-node" (labels)', () => {
+    const body = loader.render(T12C.default, { id: 'b10', board: 'D4', node: 4 });
+    expect(outText(body, 'state-board')).toEqual(['D4']);
+    expect(outText(body, 'state-node')).toEqual(['4']);
+    expect(T12.outs).toContain('state-board');
+    expect(T12.outs).toContain('state-node');
   });
 });

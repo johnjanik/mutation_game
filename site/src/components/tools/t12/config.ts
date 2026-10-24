@@ -61,7 +61,9 @@ export const T12_OUTS = [
   'historyCounter',
   'predictResult',
   'predictReveal',
-  // T12: the representation
+  // T12: the representation (the board and the node of the state shown, labels, for a lesson's checks)
+  'state-board',
+  'state-node',
   'dimension',
   'minuscule',
   'explanation',

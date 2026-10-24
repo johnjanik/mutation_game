@@ -218,6 +218,8 @@
 </script>
 
 <script lang="ts">
+  import { untrack } from 'svelte';
+
   interface Props {
     /** The caption of the table (the matrix's name and what it shows). */
     caption: string;
@@ -236,9 +238,15 @@
     listMax?: number;
     /** The data-out name of the root. */
     out?: string;
+    /**
+     * The root of a MatrixView already on the page with these same props (for example the server's markup of
+     * a panel that was not hydrated): its table is moved into this view instead of being written again, until
+     * a prop changes (plan; SPEC 7.6, decisions/P5-A2.md).
+     */
+    adopt?: Element | null;
   }
 
-  let { caption, rowHeaders, colHeaders, sparse, dense, format = 'auto', sparseDisplay = false, indexHeaders = false, listMax = Infinity, out }: Props = $props();
+  let { caption, rowHeaders, colHeaders, sparse, dense, format = 'auto', sparseDisplay = false, indexHeaders = false, listMax = Infinity, out, adopt = null }: Props = $props();
 
   const uid = $props.id();
   const rows = $derived(rowHeaders.length);
@@ -249,12 +257,41 @@
   const input = $derived({ caption, captionId: `${uid}-caption`, rowHeaders, colHeaders, entries, shape, sparseDisplay, indexHeaders, listMax });
   const html = $derived(matrixTable(input));
   const box = $derived(matrixBoxSize(input));
+
+  // The table of `adopt` stands for this view's table while the props are the ones it was given first.
+  const first = untrack(() => ({ caption, rowHeaders, colHeaders, sparse, dense, format, sparseDisplay, indexHeaders, listMax }));
+  let released = false;
+  const adopted = $derived.by((): HTMLTableElement | null => {
+    if (released || adopt === null) return null;
+    const same =
+      caption === first.caption &&
+      rowHeaders === first.rowHeaders &&
+      colHeaders === first.colHeaders &&
+      sparse === first.sparse &&
+      dense === first.dense &&
+      format === first.format &&
+      sparseDisplay === first.sparseDisplay &&
+      indexHeaders === first.indexHeaders &&
+      listMax === first.listMax;
+    if (!same) {
+      released = true;
+      return null;
+    }
+    return adopt.querySelector<HTMLTableElement>('.box > table');
+  });
+
+  /** Moves the adopted table into this view's box, with its caption's id made this view's own. */
+  function moveIn(node: HTMLElement, table: HTMLTableElement): void {
+    const c = table.querySelector('caption');
+    if (c !== null) c.id = `${uid}-caption`;
+    node.append(table);
+  }
 </script>
 
 <div class="matrix-view" data-out={out} data-format={shape} data-rows={rows} data-cols={cols}>
   <!-- A scroll box is a tab stop so that a wide matrix can be scrolled from the keyboard (A-11; axe scrollable-region-focusable). -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <div class="box" tabindex="0" role="group" aria-labelledby="{uid}-caption" style="contain-intrinsic-size: auto {box.width}px auto {box.height}px;">{@html html}</div>
+  <div class="box" tabindex="0" role="group" aria-labelledby="{uid}-caption" style="contain-intrinsic-size: auto {box.width}px auto {box.height}px;">{#if adopted !== null}<div class="adopted" use:moveIn={adopted}></div>{:else}{@html html}{/if}</div>
   {#if notListed > 0}
     <p class="more">The first {entries.length - notListed} of {entries.length} nonzero entries are listed; Download data holds them all.</p>
   {/if}
@@ -278,6 +315,9 @@
   .box:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
+  }
+  .adopted {
+    display: contents;
   }
   /* Fixed layout from the <colgroup> widths (in ch of the monospaced face of every cell): a table of 729
      cells lays out in one pass, where the automatic table layout measured every cell (SPEC 7.6). */
