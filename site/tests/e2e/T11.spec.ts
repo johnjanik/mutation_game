@@ -532,3 +532,32 @@ test('at 320 pixels the two boards stack and the page has no horizontal scroll',
   expect(Math.abs(folded.y - big.y)).toBeLessThan(2);
   expect(folded.x).toBeGreaterThanOrEqual(big.x + big.width - 1);
 });
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, phase 4 red-team round)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  /** Safe integers written as strings, anywhere in the derived tables. */
+  function safeAsStrings(doc: unknown, path = ''): string[] {
+    const found: string[] = [];
+    if (typeof doc === 'string') {
+      if (/^-?\d+$/.test(doc) && Number.isSafeInteger(Number(doc))) found.push(`${path}=${JSON.stringify(doc)}`);
+    } else if (Array.isArray(doc)) doc.forEach((v, k) => found.push(...safeAsStrings(v, `${path}[${k}]`)));
+    else if (doc && typeof doc === 'object') for (const [k, v] of Object.entries(doc)) found.push(...safeAsStrings(v, `${path}.${k}`));
+    return found;
+  }
+
+  // SPEC 6.6 Data export: "all integers as JSON numbers when safe and as decimal strings otherwise"; the
+  // averaged classes' form values 1 and 2 are integers (a fraction such as 1/2 stays p/q text).
+  for (const query of ['', 'g=A5&y=5.4.3.2.1&w=1', 'g=D4&y=3.2.4.1']) {
+    // regression: P4-RT-04-02
+    test(`tools/fold/${query ? `?${query}` : ''}: no safe integer is written as a string in Download data`, async ({ page }) => {
+      await open(page, query);
+      await page.waitForTimeout(1500);
+      const [dl] = await Promise.all([page.waitForEvent('download'), control(page, 'downloadData').click()]);
+      const doc = JSON.parse(readFileSync((await dl.path())!, 'utf8')) as { derived: unknown };
+      expect(safeAsStrings(doc.derived, 'derived')).toEqual([]);
+    });
+  }
+});

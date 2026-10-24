@@ -909,4 +909,14 @@ test.describe('regressions', () => {
     expect(doc.derived.edgeLengthsSquared).toEqual([1, 2, 3].map((node) => ({ node, squared: 1999996000002 })));
   });
 
+  // SPEC 6.6 Data export: "all integers as JSON numbers when safe and as decimal strings otherwise".
+  for (const path of [ROUTE, `${ROUTE}?g=G2&r=1.1&j=coxeter`]) {
+    // regression: P4-RT-04-02
+    test(`${path}: no safe integer is written as a string in Download data`, async ({ page }) => {
+      await openRecorded(page, path);
+      const doc = await downloaded(page);
+      expect(safeAsStrings(doc.derived, 'derived')).toEqual([]);
+    });
+  }
+
 });

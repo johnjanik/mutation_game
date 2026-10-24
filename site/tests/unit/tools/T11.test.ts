@@ -542,7 +542,7 @@ describe('T11 export, worker and hints (4.0 Share and export; E-9)', () => {
       view: string;
       symmetry: { images: number[]; orbits: number[][]; order: number };
       folded: { name: string; labels: number[]; cartan: number[][]; orbitsInBourbakiOrder: number[][] } | null;
-      averaged: { name: string; classes: { class: string; roots: number; form_value: string }[] };
+      averaged: { name: string; classes: { class: string; roots: number; form_value: number | string }[] };
       bigPositions: (number | string)[][];
       foldedPositions: (number | string)[][];
     };
@@ -555,7 +555,9 @@ describe('T11 export, worker and hints (4.0 Share and export; E-9)', () => {
     intEq(d.folded!.orbitsInBourbakiOrder, row.folded_orbits_in_bourbaki_order);
     expect(d.folded!.labels).toEqual([1, 2]);
     expect(d.averaged.name).toBe(row.averaged_roots_type);
-    expect(d.averaged.classes).toEqual(row.averaged_root_classes);
+    // The golden form values are text (5.7 rule 4); the export writes an integer as a JSON number (6.6 Data
+    // export; RT-FIX P4-RT-04-02), a fraction as p/q.
+    expect(d.averaged.classes).toEqual(row.averaged_root_classes.map((c) => ({ ...c, form_value: /^-?\d+$/.test(c.form_value) ? Number(c.form_value) : c.form_value })));
     expect(d.bigPositions).toEqual([[1, 1, 1], [-1, 3, -1]]);
     expect(d.foldedPositions).toEqual([[1, 1], [-1, 3]]);
     expect(JSON.parse(JSON.stringify(d))).toEqual(d);
@@ -786,5 +788,19 @@ describe('T11 server render', () => {
     expect(() => loader.render(T11C.default, { id: 'b7', board: 'A3', symmetry: [1, 3, 2] })).toThrow(/b7/);
     expect(() => loader.render(T11C.default, { id: 'b7', board: 'A3', start: [1, 2, 3] })).toThrow(/b7/);
     expect(() => loader.render(T11C.default, { id: 'b7', board: 'A4', symmetry: [4, 3, 2, 1], moves: [1] })).toThrow(/b7/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, phase 4 red-team round)
+// ---------------------------------------------------------------------------------------------
+
+describe('regressions', () => {
+  // SPEC 6.6 Data export: "all integers as JSON numbers when safe and as decimal strings otherwise".
+  // regression: P4-RT-04-02
+  it('A5 with its flip: the averaged classes have form values 1 and 2, exported as the numbers 1 and 2', () => {
+    const b = new FoldBench({ board: 'A5', view: 'numbers', symmetry: [5, 4, 3, 2, 1], start: [1, 1, 1, 1, 1], moves: [] });
+    const avg = exportData(b).averaged as { classes: { form_value: unknown }[] };
+    expect(avg.classes.map((c) => c.form_value)).toEqual([1, 2]);
   });
 });

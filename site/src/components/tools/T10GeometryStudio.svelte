@@ -33,7 +33,7 @@
   import { decodeState } from '../../lib/urlCodec';
   import { engineCall, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
-  import type { ToolState } from '../../lib/state';
+  import { integerOut, type ToolState } from '../../lib/state';
   import type { Prediction } from '../../tools/types';
   import { formatProjection, type FloatMatrix, type Projection } from '../draw/projector';
   import type { PresetManifest } from '../draw/presetsT10';
@@ -958,7 +958,7 @@
       distinctDots: stats === null ? null : stats.distinct,
       shortRoots: shortPositions === null ? null : shortPositions.map((v) => toLabelVector(board, v)),
       uniform: uniformOn,
-      edgeLengthsSquared: lengths.map((l) => ({ node: l.label, squared: lengthText(l.squared) })),
+      edgeLengthsSquared: lengths.map((l) => ({ node: l.label, squared: integerOut(l.squared) })),
       rotationInPlanes: rotation,
     };
   }
