@@ -1,0 +1,117 @@
+{
+ "reviewed": "f7ed74b",
+ "findings": [
+  {
+   "severity": "major",
+   "what": "The introduction to the confusions list says that the statements below are wrong. But each bold headline below it is the correct statement ('A mutation does not change the board.', 'A mutation changes one entry.', 'On a simply laced board the two games still differ.', 'A mutation needs no sign condition.'). Read literally, the page calls its own corrections wrong.",
+   "where": "site/src/content/pages/not-quiver-mutation.mdx:106",
+   "evidence": "Built text, read with JavaScript off: 'These statements about the mutation game are sometimes made, and each is wrong in the way described.' The next line is the bullet 'A mutation does not change the board. A mutation at a city changes the population of that city ...'",
+   "specRef": "SPEC 2.16; Appendix D; D16; 8.4 (plain declarative sentences)",
+   "proposedFix": "Introduce the list as corrections, for example 'Each item below corrects a statement about the mutation game that is sometimes made.' Alternatively, state the wrong claim inside each item and then its correction."
+  },
+  {
+   "severity": "major",
+   "what": "Both pages build a quiver by giving 'each road' a direction. On this site a road already has a direction: a line between joined nodes is one road each way. So the sentence mixes the two meanings of 'arrow', which 2.16 requires the site to keep apart. Taken literally, it orients both roads of every line and gives a 2-cycle at each edge, not an orientation. The M8 sidebar also says 'an arrowhead on a double or triple road'. The site's term is a double or triple line, which is two or three roads one way and one back.",
+   "where": "site/src/content/pages/not-quiver-mutation.mdx:45; site/src/content/modules/m8-lie-algebras.mdx:143-144",
+   "evidence": "SPEC 2.1: 'A_ij = number of edges from i to j ... one undirected edge counts as one road each way'; '(2,1) and (3,1) are a double and a triple line with an arrowhead'. Page and sidebar: 'Give each road of a simply laced board a direction, and the result is a quiver'. Sidebar: 'An arrowhead on a double or triple road of this site says something else'.",
+   "specRef": "SPEC 2.16 ('The site must keep the two meanings of \"arrow\" apart'), 2.1, SOURCES 11.3 caution; instruction 9 trap 'Two meanings of arrow'",
+   "proposedFix": "Write 'Keep one of the two roads of each line of a simply laced board (choose a direction for each line), and the result is a quiver'. In the sidebar, write 'an arrowhead on a double or triple line'."
+  },
+  {
+   "severity": "major",
+   "what": "Beat 4 says 'A board has det C-1 minuscule nodes'. That statement has no hypothesis. F11 is a fact about connected boards of finite type, and the sentence is false off them. On affine boards det C - 1 = -1. On the disconnected A1+A1, which the oracle's classify calls finite component by component, both nodes are minuscule by the orbit definition, but det C - 1 = 3. The range sits only in the provenance clause, not in the claim. Earlier rounds treated a dropped finite-type hypothesis this way (RT-FIX-P3-lesson-m5, RT-FIX-P4-lesson-m7).",
+   "where": "site/src/content/modules/m8-lie-algebras.mdx:97",
+   "evidence": "python3 scratchpad/p5-a3-review/oracle_extra.py: 'A1+A1 minuscule nodes by the orbit definition [1, 2] det C - 1 = 3'; 'A2+A1 ... [1, 2, 3] det C - 1 = 5'; 'A2~ det C - 1 = -1'. Connected types A1..A8, B2..B8, C3..C8, D4..D8, E6..E8, F4, G2 all agree with det C - 1 (oracle_m8.py).",
+   "specRef": "SPEC 2.7 F11 ('Facts about play on a finite-type board'), 0.3, 8.4; RT-FIX-P3-lesson-m5 and RT-FIX-P4-lesson-m7 (the finite-type hypothesis)",
+   "proposedFix": "'A connected board of finite type has det C-1 minuscule nodes, verified by computation for every board of finite type of rank at most eight.'"
+  },
+  {
+   "severity": "minor",
+   "what": "Beat 5 opens with 'Firing node k permutes the positions of the orbit, so its matrix ... is E_k+F_k+P_k^0' and does not say the orbit is minuscule. The nearest antecedent of 'the orbit' is the last sentence of beat 4, which is about the orbit of node 2 of D4. On that orbit the identity fails at every node.",
+   "where": "site/src/content/modules/m8-lie-algebras.mdx:106",
+   "evidence": "oracle_extra.py: 'D4 omega_2, node 1..4: firing matrix == E+F+P0 ? False' (all four). On the 18 minuscule records it is True (oracle_m8.py; verify.py section 14).",
+   "specRef": "SPEC 2.18 ('in a minuscule representation'), 8.4",
+   "proposedFix": "'On a minuscule orbit, firing node k permutes the positions, so its matrix ...'"
+  },
+  {
+   "severity": "minor",
+   "what": "The reflection-functor sentence leaves out the hypothesis of [BGP73] Theorem 1.1: the representation must be indecomposable and not the simple one at that vertex. As written, 'its dimension changes exactly as the population of a city changes when that city mutates' is false for the simple representation at a sink.",
+   "where": "site/src/content/modules/m8-lie-algebras.mdx:143; site/src/content/pages/not-quiver-mutation.mdx:45",
+   "evidence": "Quiver 1->2 with sink 2 and V = simple at 2, dimension (0,1). The reflection functor gives 0, dimension (0,0). Oracle: mutate(A2, (0,1), city 2) = (0, -1). SPEC 2.16 and SOURCES 11.3 compress the theorem the same way.",
+   "specRef": "SPEC 2.16; 8.4 (provenance carries the hypothesis); SOURCES 11.3 [BGP73]",
+   "proposedFix": "Add 'for an indecomposable representation other than the simple one at that vertex' (and consider proposing the same wording for SPEC 2.16)."
+  },
+  {
+   "severity": "minor",
+   "what": "The convention of [BKR16] is stated only for the sign. SPEC 2.9 translates it as a = -u together with C = c^T, so the matrix is transposed as well. 'negating every number translates one convention into the other' is incomplete for a reader who opens the paper.",
+   "where": "site/src/content/pages/not-quiver-mutation.mdx:41",
+   "evidence": "SPEC 2.9 row [BKR16]: 'u'_j=u_j-c_ij u_i | fire negative | a=-u, C=c^T'. SOURCES 11.2: 'the same translation applies (section 2.9)'.",
+   "specRef": "SPEC 8.4 bullet 3, 2.9",
+   "proposedFix": "'That paper fires negative numbers and writes the transpose of C: negate every number and transpose its matrix to read it in this site's convention.'"
+  },
+  {
+   "severity": "minor",
+   "what": "Some provenance on the not-quiver page names no range, and part of it rests on a check outside reference/verify.py. (1) 'What every move keeps is the form value, verified by computation': no range, and the linked glossary entry defines the form value (p,p) of a population, not of a position. (2) 'CS_i=R_iC ... and R_i(C)=S_i(C^T)^T, both verified by computation': no range. These are identities for every C, and verify.py checks them on 32 types. (3) The Hasse-diagram statement in 'All three statements are verified by computation for every simply laced board of finite type of rank at most eight' is checked only by the agent's Playwright test, not by verify.py. SPEC 0.3 [V] means checked by verify.py, and the instruction said to compute nothing new. (4) The Kostant section cites nothing for the game or its moods, while SPEC 2.9 and SOURCES 11.3 give [Ele16] and [Che17], which M1 cites.",
+   "where": "site/src/content/pages/not-quiver-mutation.mdx:33-35, 41, 111",
+   "evidence": "grep of reference/verify.py: line 216 checks 'C.S_i = R_i.C' and 'R_i(C) = S_i(C^T)^T' per type of TYPES. Lines 890 and 893 check positivity and the rise of 1 with random plays. No check of the Hasse diagram. M8.spec.ts:1302 computes it with the TS engine.",
+   "specRef": "SPEC 0.3, 8.4; RT-FIX-P3-lesson-m1/m3 and RT-FIX-P4-lesson-m7 (name the range checked); SOURCES 11.3",
+   "proposedFix": "Name the range ('on every board of finite type of rank at most eight'). Say that the form value is that of the population p with a = Cp. For the identities give the one-line argument or cite 2.4. Cite [Ele16] and [Che17] for Kostant's game and its moods. Either have the Hasse statement added to verify.py by its owner, or state it without 'verified' and cite a source."
+  },
+  {
+   "severity": "minor",
+   "what": "'On a simply laced board ... R_i=S_i^T: the two moves are transposes of each other, two different matrices.' This is false at a node with no neighbour: on A1, and at every node of A1+A1, S_i = R_i.",
+   "where": "site/src/content/pages/not-quiver-mutation.mdx:111",
+   "evidence": "oracle_extra.py: 'A1 S_i == R_i per node: [True]', 'A1+A1 ... [True, True]', 'A2 ... [False, False]'. The wording follows Appendix D main correction 3.",
+   "specRef": "SPEC Appendix D 3, 2.4(c), 8.4",
+   "proposedFix": "'... two different matrices at any node joined to another'."
+  },
+  {
+   "severity": "minor",
+   "what": "The comparison table (both pages) describes Wildberger's mutation as holding 'one whole number for each city' and changing 'one number'. The site's word for this is population, and 'numbers' is the name of the other view (Appendix C, P8). On the not-quiver page this sits a few lines after 'Firing a node in the numbers game changes numbers only'. SPEC 2.16 writes 'integer'.",
+   "where": "site/src/content/pages/not-quiver-mutation.mdx:58-59; site/src/content/modules/m8-lie-algebras.mdx:155-156",
+   "evidence": "Built table: 'What you hold | one whole number for each city'; 'What a move changes | one number'.",
+   "specRef": "SPEC 2.16 table, Appendix C, 8.1 P8, 8.4 bullet 2",
+   "proposedFix": "'the population of each city' and 'the population of one city' (or 'one integer', as 2.16 has it)."
+  },
+  {
+   "severity": "minor",
+   "what": "Two of the four challenges are answered in the text above them. Beat 4 lists 'nodes 1 and 6 of E6' (answer to the b11 challenge) and says 'Node 2 of D4 is not a minuscule node ... the recipe fails' (answer to the b10 challenge), and the Seen box repeats the D4 answer. The b10 explanation also reverses the argument: 'contains a number 2, so a single step there is no firing'. On that orbit, single steps at positions with a number 1 are firings. What fails is that the firing of a 2 is not a single step.",
+   "where": "site/src/content/modules/m8-lie-algebras.mdx:95, 97, 174, 192, 196",
+   "evidence": "Built text, beat 4: '... nodes 1, 3 and 4 of D4, nodes 1 and 5 of D5, nodes 1 and 6 of E6 and node 7 of E7.' and 'Node 2 of D4 is not a minuscule node'. b10 explanation: 'Its orbit has 24 positions and contains a number 2, so a single step there is no firing'. Browser checks (scratchpad probe/alt.spec.ts) accept exactly D4 node 2, E6 node 6 and A3 node 2, and reject D4 nodes 1 and 3, D5 node 2, E6 node 1, A3 node 3 and A4 node 2.",
+   "specRef": "SPEC 8.1 P6, 8.5; RT-FIX-P3-lesson-m5 (do not give the answer)",
+   "proposedFix": "Ask about cases the prose does not print, for example a node of D5 or E7 where the recipe fails, or the minuscule node of D5 whose orbit is largest. Reword the explanation: 'so firing there moves a position by two steps, which no single step gives'."
+  },
+  {
+   "severity": "minor",
+   "what": "'The site shows the positions of such representations' follows a sentence naming the 26 of F4. No page shows the weights of the 26 of F4. T12 on F4 node 4 shows the 24-position orbit as 'Dimension: 24' and never mentions 26 or the repeated zero.",
+   "where": "site/src/content/modules/m8-lie-algebras.mdx:113",
+   "evidence": "Playwright probe tools/rep/?g=F4&k=4: dimension = 24; caption 'On F4, node 4 is not minuscule ... for the 24 by 24 matrices'; 'mentions 26: false'.",
+   "specRef": "SPEC 2.18 'Out of reach' [D]; 8.4",
+   "proposedFix": "Limit the sentence to what exists ('The figure below shows the positions of the adjoint representation of E8'), or link only to what the site shows."
+  },
+  {
+   "severity": "minor",
+   "what": "Several theorem-like statements have no provenance, or a provenance narrower than the statement. (1) 'Apart from the trivial one, its smallest representation has dimension 248' (beat 6) and 'The smallest nontrivial representation of E8 is its adjoint' (Lie theory paragraph): no citation and no check of minimality. verify.py only checks dim V(omega_8) = 248. (2) Seen statement 1 is stated for every minuscule node, but its provenance covers 18 representations plus a theorem cited 'for simply laced boards'. So B_n for n >= 5 and C_n for n >= 4 rest on neither. (3) Beat 1 and Seen 3 say 'the positions on the line through mu ... form an unbroken run'. That should be the weights of the representation on that line, with mu one of them. As written it is a claim about all lattice points.",
+   "where": "site/src/content/modules/m8-lie-algebras.mdx:63, 113, 173, 175, 182",
+   "evidence": "grep of reference/verify.py: 248 only at line 334 (Weyl dimension of omega_8). SPEC 0.3: 'where the statement is a theorem for all boards, the source of the theorem is named beside it'.",
+   "specRef": "SPEC 8.4 bullet 4, 0.3, 2.18",
+   "proposedFix": "Mark the E8 statements as standard or cite them, or scope them. Restrict Seen statement 1 to the boards covered ('for these 18 representations, and on simply laced boards in general ([W03a], [Gre13])'). Write 'the weights of the representation on the line through a weight mu'."
+  }
+ ],
+ "checked": [
+  "1 Mathematics: 18 of 18 minuscule records reproduced with lie_games.py (CS relations, move = E+F+P0, signed = exp(E)exp(-F)exp(E), square = (-1)^H at every node). Strings on A2: (1,0) gives 2 positions, (2,0) gives 3, the orbit of (2,0) has 3 positions, (3,0) gives 4, the b1 reveal gives 1. A1 and A2 matrices, [E1,F1]=H1, [E1,F2]=0 and the signed-move caption all match. Minuscule nodes agree with det C - 1 on 31 connected types (counterexamples off them). The D4 node 2 orbit has 24 positions with a number 2 and the relations fail. E8: 240 roots, det 1, no minuscule node, link r = 0.0.0.0.0.0.0.1, 240 dots on 8 rings. F4 and G2: det 1. Triangle (1,1,0) to (1,1,2) correct. The C^T update equals firing on C^T (B3). Result: 3 statements false as written (findings 1-3), 6 with missing hypotheses or provenance (findings 4-8, 12).",
+  "2 Not-quiver page: 7 of 7 table rows and both columns match 2.16 in substance (one term issue, finding 9). The illustration's arrows are correct (1->2, 2->3 become 2->1, 3->2, 1->3), with 2 SVGs that have title and desc. D16: 0 mentions of the note, 'algebraic data' or the software. Appendix F: 0 statements repeated. The two meanings of arrow are blurred in 2 sentences (finding 2).",
+  "3 Writing rules: 0 em-dashes and 0 en-dashes in the 4 files and the 2 built pages. Golden numbers go through <G>, fmt or {{path}}; numbers-in-prose reports 0. E10: 2 wraps, release fallbacks true and silent on the item's status. E13 not used. Cite keys all resolve. Word count 1711 by my rule, 1761 by the agent's, 1867 if challenge explanations are counted. Bridge sentence verbatim twice on the page.",
+  "4 Pedagogy: question and 8 beats in the order of SPEC 3 M8; figure table rows 1-6 and 8 present; 2 predictions, 4 challenges. b1's board is frozen before the answer (clicks do nothing). Other right answers for b9 are accepted: node 2 at (0,3), (-3,0) and (3,5). Wrong answers for b10, b11 and b12 are rejected (6 tries) and right ones accepted (3). The sandbox link ?g=A2 opens A2 and the T10 link opens E8 with 240 vertices and no notice. Seen, LieTheory and Sources present. 2 challenges are answered in the prose (finding 10).",
+  "5 Build and browser: npm run build ok (35 pages, 1279 links, 0 problems). M8.spec.ts 23/23 passed. nojs.spec.ts and a11y.spec.ts 119/119 passed, both routes included. RELEASE=1 OUT_DIR=dist-release build ok and reports 'open item E10 used on /modules/m8-lie-algebras/ (fallback shown)'; Hum72 section numbers are absent there. Beat 7 carries data-released=\"false\" in both builds with no visible mark (the M7 precedent, since Beat ignores the released prop). The not-quiver page loads only the shell's theme script."
+ ],
+ "notes": [
+  "Typed numbers are hidden from scripts/numbers-in-prose.mjs by putting them in brace strings ({'26'}, {'1'}, {'9.4 and 21.3'}) and in <Tex src>. Commit 27ccb19 says this was done 'so the numbers report lists nothing', and the report shows 0 for every lesson. The owner's review instrument (SPEC 7.7, Content row) therefore sees nothing; M8.spec.ts holds the allowlist instead. This is a system-wide practice for the owner or MERGE to judge, not a P5-A3 defect alone.",
+  "Out of scope (T16, phase 2): the sandbox opened by ModuleLinks with ?g=A2 shows the default caption 'Two cities joined by three roads each way, a board the verdict calls indefinite ...' on A2. Every lesson's sandbox link is affected.",
+  "Out of scope (T12, P5-A2): on a non-minuscule node T12 labels the orbit size 'Dimension' (F4 node 4: 'Dimension: 24'), which suggests a representation of that dimension.",
+  "The b5 prediction (orbit size of D4 node 3) has the same answer, 8, as the dimension the figure shows for node 1 before the reader answers. This is a judgement call for P3-RT-13-01, which is held for the owner.",
+  "Positions are spaced inconsistently within one sentence: typed Tex gives '(2,0)', <G> gives '(0, 1)', as in 'The string through (2,0) has three, (2,0), (0, 1) and (-2,2)'.",
+  "In the release build [Hum72] stays in the Sources list but is no longer cited in the text, because both cites are inside E10 wraps.",
+  "Cleanup done: preview on port 7740 stopped (port free); node_modules, site/node_modules, packages/engine/node_modules, site/dist and site/dist-release deleted; git status --porcelain is empty. Scratch files are in /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p5-a3-review/ (oracle_m8.py, oracle_extra.py, probe/alt.spec.ts, probe/freeze.spec.ts, probe/f4.spec.ts, m8.txt, nq.txt, logs)."
+ ]
+}
