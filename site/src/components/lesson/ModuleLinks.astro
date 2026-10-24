@@ -1,11 +1,14 @@
 ---
 // The links that close a lesson (P1-A4; SPEC.md 8.2 item 7): "the sandbox with this module's board
 // loaded; the Atlas page; the next module. (A link whose target has not been released yet is left
-// out by the build; section 7.3.)" In that order, each only when released: the sandbox route with
-// the bare key g of SPEC.md 6.6 (tools/sandbox/?g=<board>; P1-A2's encodeState replaces the hand-
-// written query once it has merged), the Atlas page of the board, and the module numbered
-// module + 1 (never a later one). With no link it renders an empty wrapper with no heading and no
-// landmark. Hooks: data-anatomy="links", data-count, data-link (sandbox, atlas, next).
+// out by the build; section 7.3.)" Each only when released: the sandbox route with the bare key g
+// of SPEC.md 6.6 (tools/sandbox/?g=<board>; P1-A2's encodeState replaces the hand-written query once
+// it has merged), the Atlas page of the board, and the module numbered module + 1 (never a later
+// one). Order: the Atlas page, the next module, then the sandbox, which closes the block (SPEC.md 4
+// T16 "It is the last link of every module from M2 on"; 8.1 P6 "The sandbox link closes each
+// module"); the other two keep the order of 8.2 item 7. With no link it renders an empty wrapper
+// with no heading and no landmark. Hooks: data-anatomy="links", data-count, data-link (sandbox,
+// atlas, next).
 import { linkIfReleased, nextModule, siteInventory } from '@lib/pages/released';
 
 interface Props {
@@ -21,9 +24,9 @@ if (typeof board !== 'string' || board === '') throw new Error('<ModuleLinks> ne
 
 const next = nextModule(module, siteInventory());
 const candidates = [
-  { link: 'sandbox', href: linkIfReleased({ kind: 'tool', id: 'sandbox', query: `g=${board}` }), text: `Open the sandbox with the board ${board}` },
   { link: 'atlas', href: linkIfReleased({ kind: 'atlas', board }), text: `The Atlas page of ${board}` },
   { link: 'next', href: next ? linkIfReleased({ kind: 'module', slug: next.slug }) : null, text: next ? `Next: ${next.title ?? next.slug}` : '' },
+  { link: 'sandbox', href: linkIfReleased({ kind: 'tool', id: 'sandbox', query: `g=${board}` }), text: `Open the sandbox with the board ${board}` },
 ];
 const links = candidates.filter((c): c is typeof c & { href: string } => c.href !== null);
 const headingId = `links-heading-${module}`;
