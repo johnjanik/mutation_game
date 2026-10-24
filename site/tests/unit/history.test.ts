@@ -173,6 +173,77 @@ describe('history', () => {
   });
 });
 
+/** A press inside the frame of `instanceId` (ToolFrame's root carries data-frame and data-instance). */
+function readerPresses(instanceId: string): void {
+  const frame = { getAttribute: (name: string) => (name === 'data-instance' ? instanceId : null), parentElement: null };
+  const target = { closest: (selectors: string) => (selectors === '[data-frame]' ? frame : null) };
+  for (const fn of listeners.get('pointerdown') ?? []) (fn as (event: unknown) => void)({ target });
+}
+
+describe('a link applied after registration', () => {
+  // regression: P4-RT-04-03
+  it('nothing is written on load when a tool applies its link after registering', () => {
+    // The page opens with a link for b2; ToolFrame registers b1 and b2 with their configured states,
+    // then b2's tool applies the link (its state holds every key, so it encodes differently from the
+    // bar), as T10 does a task after hydration.
+    loc.search = '?utm_source=mail&b2.g=A2&b2.w=1';
+    registerInstance('b1', A2);
+    registerInstance('b2', A2);
+    stateChanged('b2', withMoves([1]));
+    // b3 follows b2 (linkTo): its change comes from the link too, not from the reader.
+    registerInstance('b3', A2);
+    stateChanged('b3', withMoves([1]));
+    vi.advanceTimersByTime(REPLACE_DELAY_MS * 4);
+    expect(calls).toEqual([]);
+    expect(loc.search).toBe('?utm_source=mail&b2.g=A2&b2.w=1');
+    // Copy link still encodes the current state of the instance asked for.
+    expect(linkFor('b2')).toBe('https://example.org/base/modules/m0-start/?utm_source=mail&b2.z=1&b2.g=A2&b2.c=p&b2.s=1,0&b2.w=1#beat-3');
+  });
+
+  // regression: P4-RT-04-03
+  it('after the reader acts, only the instances the reader has changed are written', () => {
+    loc.search = '?utm_source=mail&b2.g=A2&b2.w=1';
+    registerInstance('b1', A2);
+    registerInstance('b2', A2);
+    stateChanged('b2', withMoves([1])); // the link, applied
+    // The reader plays on b1: b1 is written; b2 keeps the keys of its link as the bar holds them.
+    readerPresses('b1');
+    stateChanged('b1', withMoves([2]));
+    vi.advanceTimersByTime(REPLACE_DELAY_MS);
+    expect(calls).toEqual([{ how: 'replace', url: '/base/modules/m0-start/?utm_source=mail&b2.g=A2&b2.w=1&b1.z=1&b1.g=A2&b1.c=p&b1.s=1,0&b1.w=2#beat-3' }]);
+    // The reader plays on b2: from now on b2 is written from its state.
+    readerPresses('b2');
+    stateChanged('b2', withMoves([1, 2]));
+    vi.advanceTimersByTime(REPLACE_DELAY_MS);
+    expect(calls[1]).toEqual({ how: 'replace', url: '/base/modules/m0-start/?utm_source=mail&b1.z=1&b1.g=A2&b1.c=p&b1.s=1,0&b1.w=2&b2.z=1&b2.g=A2&b2.c=p&b2.s=1,0&b2.w=1.2#beat-3' });
+  });
+
+  it('on a tool route the bare link is kept until the reader acts', () => {
+    loc.pathname = '/base/tools/board/';
+    loc.search = '?g=A2&w=1';
+    loc.hash = '';
+    registerInstance('', A2);
+    stateChanged('', withMoves([1]));
+    vi.advanceTimersByTime(REPLACE_DELAY_MS * 4);
+    expect(calls).toEqual([]);
+    readerPresses('');
+    stateChanged('', withMoves([1, 2]));
+    vi.advanceTimersByTime(REPLACE_DELAY_MS);
+    expect(calls).toEqual([{ how: 'replace', url: '/base/tools/board/?z=1&g=A2&c=p&s=1,0&w=1.2' }]);
+  });
+
+  it('loading an example is the reader acting', () => {
+    loc.search = '?b2.g=A2&b2.w=1';
+    registerInstance('b2', A2);
+    stateChanged('b2', withMoves([1]));
+    exampleLoaded('b2', withMoves([2, 1]));
+    expect(calls).toEqual([{ how: 'push', url: '/base/modules/m0-start/?b2.z=1&b2.g=A2&b2.c=p&b2.s=1,0&b2.w=2.1#beat-3' }]);
+    stateChanged('b2', withMoves([2]));
+    vi.advanceTimersByTime(REPLACE_DELAY_MS);
+    expect(calls[1]!.url).toContain('b2.w=2#');
+  });
+});
+
 describe('load and hydration', () => {
   let loader: SsrLoader;
   beforeAll(async () => {
