@@ -41,6 +41,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import Frac from '../math/Frac.svelte';
   import Bridge from './t01/Bridge.svelte';
@@ -426,16 +427,15 @@
     highlight.set({ kind: 'node', board: boardName, value: game.labels[position]! });
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const game = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= game.moves.length; k++) {
+    return historyNames(game.moves.length, game.cursor, (k) => {
       const s = game.shownAt(k);
       const v = s.populations !== null && game.view === 'populations' ? s.populations : s.numbers;
       const noun = s.populations !== null && game.view === 'populations' ? 'populations' : 'numbers';
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${inLabelOrder(game.board, v).map(spokenValue).join(', ')}`);
-    }
-    return out;
+      return `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${inLabelOrder(game.board, v).map(spokenValue).join(', ')}`;
+    });
   });
 
   const labelsInOrder = $derived([...game.labels].sort((a, b) => a - b));

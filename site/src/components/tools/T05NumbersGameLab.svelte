@@ -17,6 +17,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { nodePositions } from '../draw/layouts';
@@ -210,13 +211,10 @@
     `Numbers Game Lab on ${title}: numbers ${inLabelOrder(named, shown).map(spokenValue).join(', ')} after ${applied.length} ${applied.length === 1 ? 'move' : 'moves'}.`,
   );
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: numbers ${g.valuesInLabelOrder(k).map(spokenValue).join(', ')}`);
-    }
-    return out;
+    return historyNames(g.moves.length, g.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: numbers ${g.valuesInLabelOrder(k).map(spokenValue).join(', ')}`);
   });
 
   // The wave's shapes over the board, in the same box and grid units as Board.svelte (6.1).

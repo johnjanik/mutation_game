@@ -17,7 +17,7 @@
 //   caption, notice, noscript, moveCounter, historyStrip, historyCounter, mood (data-label, data-shape),
 //   goal (data-met), goalMet, bridgeSentence, endPanel, endName, moveCount, hMinus2, finalNumbers,
 //   marked, returnCounts, affineCaption, affineBoard (phase 2, P2-A7), limit, predictResult,
-//   predictReveal
+//   predictReveal, exportNotice (ToolFrame)
 // data-control names: step, playToEnd, startCity, picker, undo, redo, reset, historySlider,
 //   copyLink, downloadData, predictAnswer, predictCheck, predictShow, openLab (phase 2, P2-A7)
 //

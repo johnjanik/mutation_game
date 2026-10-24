@@ -53,6 +53,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { CAPS, boardFromName, fire, orbitGraph, separatingRoots, toLabels, toPositions, wordTo } from '../../../packages/engine/src/index';
 import type { Board } from '../../../packages/engine/src/index';
+import { T08_OUTS } from '../../src/tools/registry/T08';
 
 const ROUTE = 'tools/weyl/';
 const NOTICE = 'The link could not be read, so the tool shows its default state.';
@@ -584,5 +585,20 @@ test.describe('regressions', () => {
     expect(r.page, 'page colour after the system change').toBe('#121212');
     expect(r.lightThemeInk, `opaque canvas pixels still in #1A1A1A (the light --text) on the ${r.page} page`).toBe(0);
     expect(r.darkThemeInk, 'opaque canvas pixels in the dark --text #E8E8E8').toBeGreaterThan(0);
+  });
+
+  // regression: P3-RT-10-06 (sibling): the registry's outs hold every data-out name T8 renders, the
+  // drawing above 192 elements after hydration included (CONTRACTS 5.2 "every data-out name the tool renders").
+  test('every data-out name T8 renders, in the SVG and the canvas drawing, is in the registry outs', async ({ page }) => {
+    const present = new Set<string>();
+    const collect = async (): Promise<void> => {
+      for (const name of await root(page).evaluate((el) => [...el.querySelectorAll('[data-out]')].map((e) => e.getAttribute('data-out') ?? ''))) present.add(name);
+    };
+    await open(page);
+    await collect();
+    await pick(page, 'A5');
+    await expect(out(page, 'canvas')).toHaveAttribute('data-scale', /.+/);
+    await collect();
+    expect([...present].filter((n) => !(T08_OUTS as readonly string[]).includes(n))).toEqual([]);
   });
 });

@@ -184,6 +184,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import LinearForm, { formSpoken } from '../math/LinearForm.svelte';
   import T07SymbolicBoard from './T07SymbolicBoard.svelte';
@@ -359,13 +360,10 @@
     load(t07State(name, onesStart(resolveBoard(name)), []));
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: numbers ${inLabelOrder(g.board, g.shownAt(k).numbers).map(spokenValue).join(', ')}`);
-    }
-    return out;
+    return historyNames(g.moves.length, g.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: numbers ${inLabelOrder(g.board, g.shownAt(k).numbers).map(spokenValue).join(', ')}`);
   });
 
   /** A signed value as text with the true minus sign, shortened above 12 digits (4.0 Long numbers). */

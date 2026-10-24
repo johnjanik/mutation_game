@@ -18,6 +18,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { nodePositions } from '../draw/layouts';
@@ -368,14 +369,13 @@
     announce(`One Martian in city ${label}.`);
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
+    return historyNames(g.moves.length, g.cursor, (k) => {
       const s = g.shownAt(k);
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: populations ${inLabelOrder(g.board, s.populations ?? []).map(spokenValue).join(', ')}`);
-    }
-    return out;
+      return `${k === 0 ? 'Start' : `After move ${k}`}: populations ${inLabelOrder(g.board, s.populations ?? []).map(spokenValue).join(', ')}`;
+    });
   });
 
   const display = (v: string): string => v.replace(/^-/, '−');

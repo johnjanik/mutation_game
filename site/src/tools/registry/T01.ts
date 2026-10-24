@@ -34,11 +34,14 @@ export const T01_OUTS = [
   'predictResult',
   'predictReveal',
   'noscript',
+  'exportNotice', // ToolFrame's export notice (phase 2, P2-A6), on every tool (RT-FIX P3-RT-10-06)
+  'colourClasses', // the phase-3 panel of P3-A5, drawn when a page lists 'colours' in `panels` (RT-FIX P3-RT-10-06)
 ] as const;
 
 /** The outs that only properties can produce (script, rounds, goal, prediction): checked by server render. */
-// The phase-2 panels appear only when a page names them in `panels`, and the fate only off the finite types (P2-A7).
-export const T01_PROP_ONLY_OUTS: readonly string[] = ['scriptCaption', 'roundCounter', 'goal', 'goalMet', 'goalNote', 'predictResult', 'predictReveal', 'formValue', 'level', 'lengths', 'fate'];
+// The phase-2 panels appear only when a page names them in `panels`, and the fate only off the finite types (P2-A7);
+// so does the phase-3 colour-class panel.
+export const T01_PROP_ONLY_OUTS: readonly string[] = ['scriptCaption', 'roundCounter', 'goal', 'goalMet', 'goalNote', 'predictResult', 'predictReveal', 'formValue', 'level', 'lengths', 'fate', 'colourClasses'];
 
 export default {
   number: 1,

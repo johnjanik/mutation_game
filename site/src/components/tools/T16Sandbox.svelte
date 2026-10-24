@@ -185,6 +185,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import BoardEditor from '../board/BoardEditor.svelte';
   import Frac from '../math/Frac.svelte';
   import Bridge from './t01/Bridge.svelte';
@@ -388,16 +389,15 @@
     else redo(announce);
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
+    return historyNames(g.moves.length, g.cursor, (k) => {
       const s = g.shownAt(k);
       const pops = s.populations !== null && g.view === 'populations';
       const v = pops ? s.populations! : s.numbers;
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: ${pops ? 'populations' : 'numbers'} ${inLabelOrder(g.board, v).map(spokenValue).join(', ')}`);
-    }
-    return out;
+      return `${k === 0 ? 'Start' : `After move ${k}`}: ${pops ? 'populations' : 'numbers'} ${inLabelOrder(g.board, v).map(spokenValue).join(', ')}`;
+    });
   });
 
   const labelsInOrder = $derived([...cur().labels].sort((a, b) => a - b));

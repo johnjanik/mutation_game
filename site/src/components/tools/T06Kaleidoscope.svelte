@@ -18,6 +18,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import Frac from '../math/Frac.svelte';
   import { shortcutOf } from '../board/keyboard';
@@ -142,14 +143,10 @@
     if (h === null || h.kind !== 'root' || h.board !== name || !Array.isArray(h.value)) return null;
     return h.value.join(',');
   });
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const gm = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= gm.moves.length; k++) {
-      const s = gm.readoutAt(k);
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: numbers ${s.numbers.map(spoken).join(', ')}`);
-    }
-    return out;
+    return historyNames(gm.moves.length, gm.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: numbers ${gm.readoutAt(k).numbers.map(spoken).join(', ')}`);
   });
 
   /** Exact digits in the tooltip of a long number (4.0 Long numbers), by position. */
