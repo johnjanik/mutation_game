@@ -399,7 +399,7 @@
         />
       </section>
       <section class="panel symbolic" data-out="symbolicBoard" aria-label="Letters">
-        <p class="panel-title">{@render icon(POPULATIONS_ICON)} Letters</p>
+        <p class="panel-title">{@render icon(NUMBERS_ICON)} Letters</p>
         <T07SymbolicBoard board={symBoard} entries={sym.entries} {signs} name="Symbolic board on {title}, following the numbers board" />
       </section>
     </div>
@@ -591,8 +591,9 @@
   .panel.numbers {
     box-shadow: inset 0 0 0 2px var(--accent-numbers);
   }
+  /* The right board plays the numbers game with letters (SPEC 4 T7): the Numbers accent (6.3, 8.3). */
   .panel.symbolic {
-    box-shadow: inset 0 0 0 2px var(--accent-populations);
+    box-shadow: inset 0 0 0 2px var(--accent-numbers);
   }
   .panel-title {
     display: flex;
