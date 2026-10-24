@@ -1,0 +1,93 @@
+{
+ "branch": "rtfix-p4/tool-t10",
+ "results": [
+  {
+   "findingId": "P4-RT-10-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Worktree detached at ea02053 (rtfix-p4/tool-t10). npm ci --prefer-offline ran once and npm run build exited 0 (32 pages, links 0 problems). Scratch Playwright config on port 6320, workers 1. The lens reproducer site/tests/e2e/redteam-RT-10-t10-turning-cap.spec.ts (taken from worktree-agent-aab844354de5ee7b3) passed. The regression is T10.spec.ts:902 'while 2_41 is being turned at most 8000 edges are drawn...', with the comment '// regression: P4-RT-10-01'. It passed in the full T10.spec.ts run on the branch and again in the merged run (45/45). The finding was a missing test, so the test is the fix. Scratch revert R2: I applied the lens mutation (drawPicture turning: false) to the fixed component and built with OUT_DIR=dist-r2 on port 6323. The test then failed with 'Expected: \"8000\" Received: \"69120\"'. Restored with git checkout."
+  },
+  {
+   "findingId": "P4-RT-10-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "The lens reproducer redteam-RT-10-t10-uniform-drawn.spec.ts passed on the fix build. The regression is T10.spec.ts:931 'make uniform changes the drawn points: one edge length on B3 (0,1,1)', with '// regression: P4-RT-10-02'. It passes. The finding was a missing test, so the test is the fix. Scratch revert R2: the lens mutation t10-uniform-not-drawn (const positions = v) on the fixed component. The test failed with 'squared lengths of the drawn edges with make uniform on / Expected length: 1 / Received array: [2, 4]'. Restored."
+  },
+  {
+   "findingId": "P4-RT-07-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Lens script on the fix build: 'BLOCK=/fonts/ node redteam/redteam-RT-07-hydration-shift.mjs site/dist 6321 /modules/m7-geometry/ 4,6,12,14' exited 0 with CLS 0.0000 and no shifts on islands 4, 6, 12 and 14. The finding had 0.3002, 0.3161, 0.3002 and 0.3002. The only height changes left are the canvas appearing (0 to 360) and the drawMs span (0 to 17), with no shift. The regressions are T10.spec.ts:1129 'M7: hydration keeps every output line...' and :1165 'M7: Cumulative Layout Shift at most 0.1...', both marked '// regression: P4-RT-07-01'. Both pass. Scratch revert R2: keepServerLines forced to false. Then :1129 failed with every root's outs emptied while the data files are held ('-source=preset +source=', '-sharedEdges=4 +sharedEdges=', '-pointsDrawn=6 +pointsDrawn=', '-edgesDrawn=6 +edgesDrawn=') and :1165 failed with 'M7 b5: CLS ... Received: 0.30019892578125'. Restored."
+  },
+  {
+   "findingId": "P4-RT-07-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Lens script on the fix build: 'BLOCK_FONTS=1 node redteam/redteam-RT-07-predict-shift.mjs site/dist 6321 360 3' exited 0. Over 3 runs, island 3 (b4) stayed 2392 -> 2392 and island 6 (b7) 2383 -> 2383, with the prediction block 278 -> 278 px and CLS 0.0000. 'rt07-box-diff.mjs ... 320 /modules/m7-geometry/ 6 6' gave the next element top 2596.2 -> 2596.2 and the summary 44 -> 44. The regressions are T10.spec.ts:1108 'M7 b4 and b7 (with a prediction) keep their height when they hydrate' at 360 and 320 px, with '// regression: P4-RT-07-02'. Both pass. Scratch revert R1: I removed the static answer form markup and T10's copy of Predict's CSS. Both widths then failed: 'b4: height 2242 before hydration, 2392 after' (Received 150), and '2395 ... 2545' at 320. The CLS test :1165, also marked for this finding, still passed in R1, so it does not catch 07-02 on its own; the height test does. Merge with rtfix-p4/a11y: no conflict (ort; local commit 217c250, not pushed). After the rebuild: 'keep their height' 2 passed. predict-invalid.spec.ts passed 5 of 5. disabled-look.spec.ts passed 10 of 10, including 'Predict Check in T10, answered' on b4 and the no-JS shared look over every page, which covers the disabled static forms of b4 and b7. A scratch check of b4 ('1.5' and '') and b7 (no choice): 2392 and 2383 px before hydration, after hydration and after Check, with the sentences 'Type a whole number.' and 'Choose one of the answers.'. The lens predict-shift on the merged build at 360: 2392 and 2383, CLS 0. At 320: 2545 and 2571, blocks 302 and 354, CLS 0. No drift. The a11y Predict.svelte changes add attributes and result text only after a failed Check, not to the unanswered box."
+  },
+  {
+   "findingId": "P4-RT-05-03",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "The lens reproducer redteam-RT-05-p4-t10-shortcuts.spec.ts (from worktree-agent-aabc584b26c56d8cb) passed. The regression is T10.spec.ts:962 'u and r on a ring node of T10 undo and redo the ring edit', with '// regression: P4-RT-05-03'. It passes. Scratch revert R1: I removed onkeydown={(e) => onRingKeydown(...)} from div.rings. The test failed with 'u with the focus on ring node 1 ... Expected: \"Node 1, value 1, ringed\" Received: \"Node 1, value 0, not ringed\"', which is the finding's symptom. Restored."
+  },
+  {
+   "findingId": "P4-RT-05-06",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "The lens reproducer redteam-RT-05-p4-frozen-may-act.spec.ts passed 2 of 2. The regression is T10.spec.ts:986 'the frozen ring board of M7 b4/b7 shows no node as able to act', with '// regression: P4-RT-05-06'. Both pass. Scratch revert R1: canActAll = values.map(() => true). Both failed with 'node 1: aria-disabled=true data-can-act=true data-ring=true'. Restored. The unfrozen tool route still shows data-can-act=true: the T10.spec 'hooks' test passed in the full run."
+  },
+  {
+   "findingId": "P4-RT-05-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Split finding: this branch fixes only its T10 part, which I confirm. The T2, T5, T7, board editor and Challenge controls belong to rtfix-p4/a11y. Lens reproducer redteam-RT-05-p4-ownpress-focus.spec.ts -g T10 on the branch: 'No rotation' (?g=D4) and 'Draw the orbit' (?g=E8&r=0.1.0.0.0.0.0.0) both passed. The regressions are T10.spec.ts:1004 and :1019, with '// regression: P4-RT-05-01'. Both pass. Scratch revert R2: rotateReset back to disabled={!api.hydrated || rotation === null} without aria-disabled, and drawOrbit's onclick back to startLoad with no focus move. Both failed with 'Expected: not \"BODY\"'. Restored. On the build merged with rtfix-p4/a11y, the full reproducer passed 8 of 8 controls."
+  },
+  {
+   "findingId": "P4-RT-05-07",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Split finding: this branch fixes only its T10 part, which I confirm. T6 belongs to rtfix-p4/a11y. Lens reproducer redteam-RT-05-p4-label-in-name.spec.ts on the branch alone: tools/geometry/ passed. tools/mirror/ (T6) still failed, as expected for the split. The regression is T10.spec.ts:1033 'every labelled control of tools/geometry/ has its visible text in its name', with '// regression: P4-RT-05-07'. It passes. Scratch revert R1: the old aria-labels of ringUp, ringDown, turnUp and turnDown. The test failed listing exactly 'ringUp: shows \"ring 1 up\", named \"raise the ring of node 1\"', ringDown, turnUp and turnDown. Restored. On the merged build both routes pass."
+  },
+  {
+   "findingId": "P4-RT-04-04",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Lens unit reproducer site/tests/unit/redteam-RT-04-p4-lengths.test.ts: 3 passed. Lens browser reproducer redteam-RT-04-p4-findings.spec.ts 'finding 4': r=1306.1306.1306 gave '3411272' with data-count 1 (pass). r=999999.999999.999999 gave data-count 1 and title '1999996000002', but the text '1.9999... x 10^12 (13 digits)' fails the lens's 13-digit assertion. I agree with the fixer's recorded deviation, since SPEC.md 4.0 Long numbers (line 1055) requires the shortened form above 12 digits. The regressions (T10.test.ts 3 cases and T10.spec.ts 2 cases, with '// regression: P4-RT-04-04') pass. Unit revert: I removed the exact path of baseEdgeLengths. 3 failed with \"['3411272','3411271.999999',...]\", \"['1999996000001.7036',...]\" and \"['1999996000001.9995',...]\". Browser revert R1 (the float lengths line, the exact path and the integer lengthText): both browser cases failed. The base-source build (967118d, OUT_DIR=dist-base) reproduced the original symptom: data-count 2 '3411271.999999, 3411272' and data-count 3 '1999996000001.7036, 1999996000002.15, ...'. Extra check: lie_games.weight_inner (scratch lengths_oracle.py) on 19 boards and rings, among them A3 (999999,1,777777); B3 (999999,1,777777), (0,999999,999999) and (12345,0,999998); C3 (123457,0,999999), (999999 x3) and (1,2,3); F4 (999999,3,999998,5), (1,1,1,1) and (0,0,0,999999); G2 (999999,1), (1,999999) and (707107,707106); D4 (2,999999,0,314159) and (14017 x4); E8 (2220,0,...,999999); B4 (999999 x4); C4 (5,0,707107,999999). shownEdgeLengths matched every value exactly, plain and with make uniform, as text and as exported numbers. Browser spot checks agree: G2 999999.999999 has title '1999996000002, 5999988000006' and exports those numbers; F4 exports [3999992000004,36,1999992000008,50]; uniform G2 707107.707106 gives 1000000618898 twice. On rings of 2^26 and more: the largest value reachable is 2*3*999999^2 = 5999988000006 (43 bits), below 2^53, because RING_MAX = 999999. A link with a larger ring is refused with a stated limit. ?g=B3&r=67108864.0.0 and ?g=G2&r=0.67108864 both give 'The link could not be read, so the tool shows its default state. It asks for a ring of 67108864, more than 999999, the largest the studio takes.' Typing 67108864 into the table field gives 'Node 1 held at 999999: ...'. Calling shownEdgeLengths directly with 2^26 throws EngineOverflow ('mul gave 18014398509481984, which is not a safe integer') from SafeInt's checked mul. The value is never rounded and never switches to Big, which T10 does not need on named boards."
+  },
+  {
+   "findingId": "P4-RT-04-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Lens unit reproducer redteam-RT-04-p4-links.test.ts: the 'j angle' cases passed. Lens browser 'finding 1': 2 passed, logging 'turn 33, 0, 0; ... bar ?z=1&g=A3&r=1.0.1&j=xyz:1,2,3@33,0,0&e=p' and, for 400 nines, '@279,0,0' with Copy link the same and no NaN. The regressions (T10.test.ts 2 cases and T10.spec.ts 2 cases, with '// regression: P4-RT-04-01') pass. Unit revert: projector.ts degrees() back to 'return t + 0'. 2 failed with \"expected 'xyz:1,2,3@32,0,0' to be 'xyz:1,2,3@33,0,0'\" and \"... not to contain 'NaN'\". Browser revert R1 failed with 'Received: \"32, 0, 0\"' and the bar '?z=1&g=A3&r=1.0.1&j=xyz:1,2,3@NaN,0,0&e=p'. Restored. Extra check: 29 angles through decodeState, admit, encodeState and decode again. Negative and long integers are kept exactly mod 360 and read back with no notice: -30 -> 330, -0 -> 0, 00030 -> 30, -361 -> 359, -9007199254740993 -> 327, 2^53 -> 32, 2^53+1 -> 33, -(400 nines) -> 81, 10^308 and 10^309 -> 280. Every non-integer is refused with the 6.6 notice and the default state: 1.5, -1.5, 30.0, 1e3, 1E3, -1e3, 0.0000000000000000001, a 304-character fraction, 0x1E, +30, a leading space, Infinity, NaN and the empty string. Browser: -30 shows turn '330, 0, 0' and writes 330 to the bar and Copy link; -9007199254740993 gives 327; -(400 nines) gives 81. 1.5, 1e3, -1e3, 0.5 and the long fraction show 'The link could not be read, so the tool shows its default state.' with turn '20, 30, 0'. The bar is left as typed, and Copy link gives /tools/geometry/. The 6.6 validation still holds."
+  },
+  {
+   "findingId": "P4-RT-04-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Lens unit 'form values' passed. Lens browser 'finding 2' passed 5 of 5, each logging []: tools/geometry/, G2 coxeter, tools/fold/, the A5 flip and D4. The regressions are T11.test.ts, T11.spec.ts (3 routes) and T10.spec.ts (2 routes), with '// regression: P4-RT-04-02'. All pass. Unit revert: t11/model.ts export back to classes.map(c => ({...c})). It failed with \"expected [ '1', '2' ] to deeply equal [ 1, 2 ]\". Browser revert R2 (T10 export back to lengthText): failed with 'derived.edgeLengthsSquared[0].squared=\"2\", [1]=\"2\"' and '\"2\", \"6\"', and the 999999 export showed strings. On the base-source build, T11.spec failed on all 3 routes with form_value \"1\"/\"2\". The existing T11.test.ts assertion was changed to compare under the integer rule, a recorded deviation. I agree, since it encoded the reported defect. Restored."
+  },
+  {
+   "findingId": "P4-RT-06-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "The lens reproducer redteam-RT-06-nojs-t10-figure.spec.ts still fails on the branch (3 failed). That is by construction: it carries its own copy of the gate's old toolReport. Its output matches the finding: 'b1 as \"board\"' to 'b13 as \"board\"', '(tool route) as \"board\"', and 'b1 as \"drawing\"' to 'b13 as \"drawing\"'. The adopted regression in nojs.spec.ts:431 (3 cases, '// regression: P4-RT-06-02') uses the file's live predicate and passed 3 of 3. Scratch revert of the fix, which is the predicate in the test file: I built a scratch spec from the 967118d nojs.spec.ts (old predicate) with the branch's 06-02 block appended unchanged, and ran it on the fix build. It failed 3 of 3 with exactly those lists. The scratch spec was then deleted. The full nojs.spec.ts passed 77 of 77."
+  },
+  {
+   "findingId": "P4-RT-06-03",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "The lens reproducer redteam-RT-06-t10-drawms-text.spec.ts passed 2 of 2 on the fix build. The regressions are nojs.spec.ts:462 'T10 shows no time sentence without a time before hydration' for tools/geometry/ and modules/m7-geometry/, with '// regression: P4-RT-06-03'. Both pass. Scratch revert R2: I put back 'edges, in <span drawMs> ms; edits:' and removed the 'Drawing time' line. Both failed, listing '(tool route)' and 'b1' to 'b13'. Restored. data-out drawMs keeps data-measured. The T10 'nojs drawMs is a measured time' test passed within the 77."
+  }
+ ],
+ "sideEffects": [
+  "None that breaks anything. Engine suite: the first run, at load 23, had 1 timeout (p7-roots-signs 'isRootPopulation ...' at 6011 ms against 5000). The file passed alone, and a full rerun gave 65 files and 2218 tests passed. The branch changes nothing under packages/.",
+  "npm run check -w site: 0 errors and 0 warnings in astro check. svelte-check: 0 errors and 1 warning, in t02/LayerChart.svelte, which this branch does not touch. Site unit files touched (T10.test.ts, T11.test.ts, projector.test.ts): 99 passed.",
+  "Browser on the fix build: T10.spec.ts 43 passed. 2 'no long task' tests failed at load 27. Alternating 3 runs each between the base build (967118d source, OUT_DIR=dist-base) and the fix build: base failed 4 of 6, fix failed 4 of 6, with long tasks of 52 to 100 ms in both. I judge this load noise. The full T10.spec.ts on the merged build at load 3.5 passed 45 of 45. Also passed: M6, M7, T11, draw-time, nojs (77), play-focus, prediction-links, registry-outs, export and toolframe-hydration, 247 in all. a11y.spec on geometry, fold, M6 and M7: 4 passed.",
+  "npm run size: 0 over budget. /tools/geometry/ and /modules/m7-geometry/ grow from 82.4 to 83.4 kB gzip (limits 90 and 120), from the static answer form.",
+  "Expected consequence of P4-RT-07-02: the server markup of M7 b4 and b7 is taller (b4 2219 to 2392 px at 360), because the box is now reserved before hydration. Nothing shifts. T10's static block duplicates Predict.svelte's form and rules, so any future Predict layout change must be mirrored there. The 'keep their height' test guards this, and the CLS test alone does not catch it: it passed with only 07-02 reverted.",
+  "Observation, not a defect: under SPEC 4.0 Long numbers, two different 13-digit lengths can be shortened to the same visible text, for example 1999996000002 and 1999992000008 both as '1.9999... x 10^12 (13 digits)'. data-count, the title tooltip and the export keep them apart.",
+  "Process: no em-dash, .only or .skip in added lines. No golden file, convention, reference/, SPEC.md, CONTRACTS.md or DECISIONS.md touched. Every change outside T10's directory is recorded in decisions/RT-FIX-P4-tool-t10.md: projector.ts (P4-RT-04-01), t11/model.ts and its tests (P4-RT-04-02), nojs.spec.ts (06-02 and 06-03). The merge with rtfix-p4/a11y had no conflict. It is local commit 217c250 on the detached HEAD and was not pushed. The two branches' ownpress-focus tests do not overlap.",
+  "Cleanup: the scratch reverts were restored with git checkout. Reproducers, scratch specs, redteam/, dist-r1, dist-r2, dist-base, site/dist and all node_modules were deleted. No server is left on ports 6320 to 6323, and git status --porcelain is empty."
+ ]
+}
