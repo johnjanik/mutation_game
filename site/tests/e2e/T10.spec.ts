@@ -889,6 +889,36 @@ test.describe('regressions', () => {
     return clsOf(shifts);
   }
 
+  // SPEC 4 T10 Limits: "while it is being turned at most 8000 are drawn"; 5.6 "Edges drawn (T10) | 70000 at rest;
+  // 8000 while turning". On E8 with a ring on node 1 (2_41, 69120 edges, drawn after "Draw the orbit"), a drag
+  // holds the picture in the turning state; data-out edgesDrawn (the last canvas draw) reads CAPS.edgesTurning
+  // while the pointer is down, and every edge again at rest.
+  // regression: P4-RT-10-01
+  test('while 2_41 is being turned at most 8000 edges are drawn, and all of them at rest', async ({ page }) => {
+    test.setTimeout(240000);
+    const edges = golden.wythoff.find((w) => w.type === 'E8' && w.rings.join('.') === '1.0.0.0.0.0.0.0')!.f_vector[1]!;
+    expect(edges).toBeGreaterThan(CAPS.edgesTurning);
+    expect(edges).toBeLessThanOrEqual(CAPS.edgesAtRest);
+    await page.goto(`${ROUTE}?g=E8&r=1.0.0.0.0.0.0.0&j=coxeter`);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await control(page, 'drawOrbit').click();
+    await expect(out(page, 'edgesDrawn')).toHaveText(String(edges), { timeout: 180000 });
+    const canvas = root(page).locator('canvas');
+    await canvas.scrollIntoViewIfNeeded();
+    const box = (await canvas.boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 40, y + 10, { steps: 4 });
+    // Still turning (the pointer is down): the last draw is the turning subset.
+    await expect(out(page, 'edgesDrawn')).toHaveText(String(CAPS.edgesTurning));
+    await page.mouse.up();
+    await page.mouse.move(x + 41, y + 10);
+    // At rest again: every edge.
+    await expect(out(page, 'edgesDrawn')).toHaveText(String(edges), { timeout: 10000 });
+  });
+
   // SPEC 7.5 A-1: "the shortcuts u (undo) and r (redo) work only while focus is inside the board"; T10's undo
   // and redo act on the ring edits (decisions/P4-A3.md "history semantics and the picker").
   // regression: P4-RT-05-03
