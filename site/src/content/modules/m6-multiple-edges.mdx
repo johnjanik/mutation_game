@@ -202,7 +202,7 @@ The arrow of a Dynkin diagram points from the long simple root to the short one.
 
 <Challenge client:visible for="b11" goal={`On G2, reach the highest root population ${fmt('types.G2.highest_root')} from one Martian in city 2.`} explanation={`City 2 is the long city. Mutate city 1: three roads bring three Martians from city 2, which gives ${fmt('types.G2.positive_roots[4]')}. Then mutate city 2: it changes type and receives three Martians from city 1, which gives ${fmt('types.G2.highest_root')}. From one Martian in the short city 1 this population is out of reach, because no mutation changes the form value.`} check={{ kind: 'reach', board: 'populations', values: gv('types.G2.highest_root') }} />
 
-<T01GameBoard client:visible id="b11" board="G2" view="populations" mode="free" coords="populations" start={[0, 1]} caption="One Martian in city 2 of G2, the long city; the challenge above names the population to reach." />
+<T01GameBoard client:visible id="b11" board="G2" view="populations" mode="free" coords="populations" start={[0, 1]} caption={`One Martian in city 2 of G2, the long city; every population it reaches is a long root population, with form value ${G2_LENGTHS[1]}.`} />
 
 <Challenge client:visible for="b12" goal={`On B2, find all ${SHORT_ROOTS} short root populations from one Martian in city 2.`} explanation={`From ${show(SHORT_START)}, mutating city 1 gives ${SHORT_TOUR[0]} and mutating city 2 gives ${SHORT_TOUR[1]}; from ${SHORT_TOUR[1]}, mutating city 1 gives ${SHORT_TOUR[2]}. These ${SHORT_ROOTS}, the short root populations and their negatives, are all that one Martian in city 2 can reach: each has form value 2.`} check={{ kind: 'distinct', board: 'populations', count: SHORT_ROOTS }} />
 
@@ -210,7 +210,7 @@ The arrow of a Dynkin diagram points from the long simple root to the short one.
 
 <Challenge client:visible for="b13" goal="On G2, find weights that the builder accepts." explanation={`City 2 is long, with squared length ${G2_LENGTHS[1]}, ${fmt('types.G2.long_to_short_ratio')} times that of the short city 1, so the city weights must be in the ratio ${G2D[0]} to ${G2D[1]}, as the weights ${fmt('types.G2.symmetrizer')} say, and the road weight must equal the weight of city 2: ${G2_LENGTHS[0]}, ${G2_LENGTHS[1]} and ${G2_LENGTHS[1]}, or ${G2D[0]}, ${G2D[1]} and ${G2D[1]}.`} check={{ kind: 'out', name: 'testVerdict', equals: BUILDER_TEXT.pass }} />
 
-<T03FormFinder client:visible id="b13" preset="builder" board="G2" linkTo="b11" coords="populations" start={[0, 1]} caption="The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test." />
+<T03FormFinder client:visible id="b13" preset="builder" board="G2" linkTo="b11" coords="populations" start={[0, 1]} caption="The builder on G2 starts from every weight 1, which passes on A2 and fails here: with three roads one way, the city weights must differ. Its meter reads the G2 board of the first challenge." />
 
 <Challenge client:visible for="b14" goal={`Find a board and a symmetry that fold to ${fmt(`${D4S}.folds_to`)}.`} explanation={`D4 with the swap of nodes 3 and 4 has the orbits {1}, {2} and {3, 4}, and it folds to ${fmt(`${D4S}.folds_to`)}: the pattern of D with n + 1 nodes folding to C with n nodes, for n = 3. Its averaged roots are of type ${fmt(`${D4S}.averaged_roots_type`)}. The other two swaps of two outer nodes of D4 fold to the same board.`} check={{ kind: 'out', name: 'folded-name', equals: fmt(`${D4S}.folds_to`) }} />
 
