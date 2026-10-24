@@ -888,6 +888,28 @@ test.describe('regressions', () => {
     return clsOf(shifts);
   }
 
+  // SPEC 7.5 A-1: "the shortcuts u (undo) and r (redo) work only while focus is inside the board"; T10's undo
+  // and redo act on the ring edits (decisions/P4-A3.md "history semantics and the picker").
+  // regression: P4-RT-05-03
+  test('u and r on a ring node of T10 undo and redo the ring edit (/tools/geometry/, A3)', async ({ page }) => {
+    await page.goto(ROUTE);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    const edits = out(page, 'edits');
+    const node1 = root(page).locator('[data-board-group] button[data-node="1"]');
+    await expect(node1).toHaveAttribute('aria-label', 'Node 1, value 1, ringed');
+    await node1.focus();
+    await page.keyboard.press('Enter');
+    await expect(node1, 'Enter on node 1 unrings it').toHaveAttribute('aria-label', 'Node 1, value 0, not ringed');
+    await expect(edits).toHaveText('1');
+    // Focus is still on node 1, inside the board group: u must undo the edit (A-1).
+    await expect(node1).toBeFocused();
+    await page.keyboard.press('u');
+    await expect(node1, 'u with the focus on ring node 1 of /tools/geometry/ (A3) must undo the ring edit').toHaveAttribute('aria-label', 'Node 1, value 1, ringed', { timeout: 3000 });
+    await expect(edits).toHaveText('0');
+    await page.keyboard.press('r');
+    await expect(node1, 'r with the focus on ring node 1 must redo the ring edit').toHaveAttribute('aria-label', 'Node 1, value 0, not ringed', { timeout: 3000 });
+  });
+
   // SPEC 6.3 ("May act here ... is shown by a second ring"), 4.0 Predict ("The board is frozen until the reader
   // has answered or pressed show me") and 4.0 Test hooks (data-can-act): a frozen ring board shows no node as
   // able to act (data-ring is Board.svelte's hook of the second ring).

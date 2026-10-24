@@ -27,6 +27,7 @@
   import type { OrbitGraph } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
+  import { shortcutOf } from '../board/keyboard';
   import type PredictType from '../board/Predict.svelte';
   import { predictionAnswerText } from './t01/interop';
   import { isLong, shortValue } from './t01/longNumber';
@@ -723,6 +724,15 @@
     announce('Rotation in coordinate planes undone.');
   }
 
+  /** u and r while the focus is inside the ring board (A-1): undo and redo the ring edits. */
+  function onRingKeydown(event: KeyboardEvent, announce: (t: string) => void): void {
+    const action = shortcutOf(event);
+    if (action === null) return;
+    event.preventDefault();
+    if (action === 'undo') undo(announce);
+    else redo(announce);
+  }
+
   function setGraph(g: T10Graph, announce: (t: string) => void): void {
     if (g === current.graph) return;
     setView({ graph: g });
@@ -1070,8 +1080,10 @@
         </div>
       {/if}
     {/if}
-    <!-- The node the ring buttons act on is the last one focused (keyboard or click), never one merely hovered. -->
-    <div class="rings" onfocusin={onRingFocus}>
+    <!-- The node the ring buttons act on is the last one focused (keyboard or click), never one merely hovered.
+         u and r undo and redo the ring edits while the focus is inside the board (A-1). -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="rings" onfocusin={onRingFocus} onkeydown={(e) => onRingKeydown(e, api.announce)}>
       <Board
         board={ringBoard}
         {values}
