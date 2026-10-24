@@ -10,6 +10,7 @@ import { T05_BOARDS } from '../components/tools/t05/boards';
 import { KOSTANT_AFFINE_EXTRA, KOSTANT_BOARDS } from '../components/tools/t09/boards';
 import { T10_BOARDS } from '../components/tools/t10/boards';
 import { T11_BOARDS } from '../components/tools/t11/boards';
+import { T12_BOARDS } from '../components/tools/t12/boards';
 import { AFFINE_BOARDS } from '../components/tools/t15/boards';
 
 /** The 32 named types grouped by letter (registry/T07.ts). */
@@ -36,6 +37,7 @@ export const BOARDS_OFFERED: Readonly<Partial<Record<ToolId, 'all' | readonly st
   kostant: [...KOSTANT_BOARDS, ...AFFINE_BOARDS.filter((n) => n !== 'square' && n !== 'pentagon'), ...KOSTANT_AFFINE_EXTRA],
   geometry: T10_BOARDS,
   fold: T11_BOARDS,
+  rep: T12_BOARDS,
   affine: AFFINE_BOARDS,
   sandbox: 'all',
 };

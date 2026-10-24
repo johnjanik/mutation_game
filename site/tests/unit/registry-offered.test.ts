@@ -23,7 +23,7 @@ describe('regressions', () => {
 
   // regression: P3-RT-07-04
   it('a tool without a registry entry offers every board, and an entries argument still decides', () => {
-    expect(boardsOffered('rep')).toBe('all');
+    expect(boardsOffered('satake')).toBe('all');
     expect(boardsOffered('weyl', [])).toBe('all');
     const weyl = registry.find((e) => e.id === 'weyl')!;
     expect(boardsOffered('weyl', [weyl])).toEqual(weyl.boards);
