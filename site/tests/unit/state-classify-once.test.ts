@@ -76,6 +76,30 @@ describe('RT-03 attack 23: classify is called once when the board is loaded', ()
   }
 });
 
+/**
+ * The classify calls of T01GameBoard loading a board by link. On hydration the island's first $effect
+ * decodes the URL (decodeState resolves the board to check it) and loads the state it read (load: new
+ * T1Game(configOf(decoded)), which resolves the board again), in one run of synchronous code. Those two
+ * steps are made here through the same modules, after the run that built the defaults (the island's
+ * script) has ended, as on the page; only the calls of the link's load are counted.
+ */
+async function t01ByLinkCalls(cartan: number[][]): Promise<number> {
+  type T1 = new (config: Record<string, unknown>) => { state(): unknown };
+  const model = (await server.ssrLoadModule('/src/components/tools/t01/model.ts')) as { T1Game: T1; configOf: (s: unknown) => Record<string, unknown> };
+  const codec = (await server.ssrLoadModule('/src/lib/urlCodec.ts')) as {
+    encodeBoard: (b: unknown) => string;
+    decodeState: (search: string, tool: string, defaults: unknown, opts: { prefix: string }) => { state: unknown; notice: string | null };
+  };
+  // T01GameBoard's defaults: board A2, linked view, free play, populations.
+  const defaults = new model.T1Game({ board: 'A2', view: 'linked', mode: 'free', coords: 'populations' }).state();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  (globalThis as Counter).__rt03Classify = 0;
+  const { state, notice } = codec.decodeState(`?z=1&g=${codec.encodeBoard({ cartan })}`, 'board', defaults, { prefix: '' });
+  expect(notice, 'the link of the 12-cycle is read').toBeNull();
+  new model.T1Game(model.configOf(state));
+  return (globalThis as Counter).__rt03Classify ?? 0;
+}
+
 // The same count on the largest board the editor allows, the 12-cycle (affine A11~), which the RT-07 lens
 // loaded by link into T1, T2, T4 and T16 (attack 24): its verdict was computed 2, 3, 4 and 5 times per
 // load (one classify per resolveBoard of the spec, each a new board object). SPEC.md 5.6, last sentence.
@@ -91,6 +115,12 @@ describe('classify is called once when a 12-node board is loaded', () => {
     it(`${path.split('/').pop()!} on the 12-cycle`, async () => {
       const n = await classifyCalls(path, props);
       expect(n, `classify calls while rendering ${path} on the 12-cycle`).toBe(1);
+      // T1 rendered with the board as a property resolves it once, so the render alone cannot show the
+      // repeated classify of the lens, which T1 made when the board came by link (2 per load): its
+      // hydration resolves the spec in decodeState and again in T1Game (RT-FIX residual P3-RT-07-02).
+      if (path.endsWith('/T01GameBoard.svelte')) {
+        expect(await t01ByLinkCalls(ring12), 'classify calls while T01GameBoard loads the 12-cycle by link').toBe(1);
+      }
     }, 120_000);
   }
 });
