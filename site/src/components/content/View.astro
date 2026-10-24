@@ -1,0 +1,24 @@
+---
+// <View v="numbers"/> or <View v="populations"/>: the name of a view in lesson prose (SPEC.md 8.3 [D]: the
+// accents mark "the underlines of the two words"; the icons are "used wherever the view is named"; 8.1 P8).
+// One implementation for every lesson (RT-FIX-P4 lesson M7, P4-RT-13-02), lifted from the helper `View` of
+// m0-start.mdx (decisions/RT-FIX-P3-lesson-m0.md) with the same markup: a span data-view-word, the view's icon
+// from draw/palette.ts first (1em high, stroked in the accent, aria-hidden), then the word, underlined in the
+// accent by text-decoration; the word keeps the text colour. Build-time HTML: no JavaScript.
+import { NUMBERS_ICON, POPULATIONS_ICON } from '@components/draw/palette';
+
+interface Props {
+  /** The view named. */
+  v?: 'populations' | 'numbers';
+}
+
+const VIEWS = {
+  populations: { word: 'Populations', icon: POPULATIONS_ICON, accent: 'var(--accent-populations)' },
+  numbers: { word: 'Numbers', icon: NUMBERS_ICON, accent: 'var(--accent-numbers)' },
+} as const;
+
+const { v = 'numbers' } = Astro.props;
+if (v !== 'populations' && v !== 'numbers') throw new Error(`<View> names the view populations or numbers, not ${String(v)}`);
+const view = VIEWS[v];
+---
+<span data-view-word={v} style={{ textDecorationLine: 'underline', textDecorationColor: view.accent, textDecorationThickness: '2px', textUnderlineOffset: '0.2em', whiteSpace: 'nowrap' }}><svg viewBox={view.icon.viewBox} width="16" height="16" aria-hidden="true" focusable="false" style={{ width: '1em', height: '1em', marginInlineEnd: '0.2em', verticalAlign: '-0.125em', stroke: view.icon.stroke, fill: view.icon.fill, strokeWidth: 1.5 }}><path d={view.icon.d} /></svg>{view.word}</span>

@@ -5,3 +5,5 @@ export { default as G } from './G.astro';
 export { default as Unverified } from './Unverified.astro';
 export { default as Cite } from './Cite.astro';
 export { default as Tex } from '../math/Tex.astro';
+// The name of a view in prose, with its icon and accent underline (SPEC.md 8.3; RT-FIX-P4 lesson M7).
+export { default as View } from './View.astro';

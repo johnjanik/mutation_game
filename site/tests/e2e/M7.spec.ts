@@ -25,6 +25,9 @@
 //   this lesson's own markup: table[data-table="solids"] with tr[data-solid]; figure[data-figure="shells"]
 //     with table[data-table="shells"], tr[data-shell] and a[data-shell-link]; data-seen-statement;
 //     data-released="false" inside beat 8 (the placeholder, decisions/P4-A6.md)
+//   content components: data-view-word (populations | numbers: the name of a view in prose, with its icon and
+//     accent underline; site/src/components/content/View.astro); in the regressions also data-name on T10's
+//     boardName, and data-tool="sandbox" with its data-node buttons (T16)
 //
 // Word-counting rule (as M5.spec.ts and M6.spec.ts): the words of the <article> after removing every tool
 // root ([data-tool]), every <details>, every live or status region, the draft mark and the list of sources
@@ -755,13 +758,14 @@ test('anatomy of 8.2', async ({ page }) => {
   expect(plain(await statements.nth(2).textContent())).toContain(
     `verified by computation against exact convex hulls of ${GOLDEN.wythoff_hull_checks} polytopes and the recorded face counts of ${GOLDEN.wythoff.length} polytopes.`,
   );
-  // No link to the golden tab of T11, to M8 or to the Atlas (unreleased in phase 4); the sandbox loads B3.
+  // No link to the golden tab of T11, to M8 or to the Atlas (unreleased in phase 4); the sandbox loads A2, the
+  // board of the first figure (SPEC 8.2 item 7; RT-FIX-P4 lesson M7, P4-RT-13-01).
   await expect(article.locator('a[href*="tools/fold"]')).toHaveCount(0);
   await expect(article.locator('a[href*="m8"], a[href*="atlas/"]')).toHaveCount(0);
   await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"], [data-anatomy="links"] a[data-link="next"]')).toHaveCount(0);
   const sandbox = article.locator('[data-anatomy="links"] a[data-link="sandbox"]');
   await expect(sandbox).toHaveCount(1);
-  expect((await sandbox.getAttribute('href')) ?? '').toMatch(/tools\/sandbox\/\?g=B3$/);
+  expect((await sandbox.getAttribute('href')) ?? '').toMatch(/tools\/sandbox\/\?g=A2$/);
   const source = readFileSync(LESSON_PATH, 'utf8');
   const front = /^---\n([\s\S]*?)\n---/.exec(source)![1]!;
   expect(front).toMatch(/^draft: true$/m);
@@ -1279,4 +1283,194 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red team, phase 4 round; RT-FIX-P4 lesson M7)
+// ---------------------------------------------------------------------------------------------
+
+/** A number of a start as the caption prints it ("0", "1", "√2", "1/√2") or as TeX ("\sqrt2", "\sqrt{2}"). */
+function startEntry(s: string): number {
+  const t = s.replace(/\\sqrt\{?(\d+)\}?/g, '√$1').replace(/\s+/g, '');
+  const value = (x: string): number => (x.startsWith('√') ? Math.sqrt(Number(x.slice(1))) : Number(x));
+  const [num, den] = t.split('/');
+  return den === undefined ? value(num!) : value(num!) / value(den);
+}
+
+test.describe('regressions', () => {
+  // RT-09, attack 16 (a challenge check that rejects a right answer), from
+  // site/tests/e2e/redteam-RT-09-p4-m7-b12-challenge.spec.ts of the lens branch. The goal of b12 read "Find rings
+  // on B3, other than those of beat 5, that also give 24 vertices and 36 edges.", and its check (polytopeName
+  // equals "truncated octahedron") is met by B3 (1, 1, 0) alone: T10 names a polytope only for the rings of a
+  // golden record (t10/names.ts). The rings (2, 1, 0) give 24 vertices and 36 edges (oracle
+  // wythoff_f_vector(cartan('B',3), [2,1,0]) = [24, 36, 14, 1], the same as for [1,1,0]) and the challenge never
+  // reported success. The play reaches (2, 1, 0) without passing through (1, 1, 0), because a met challenge stays
+  // met: (0, 1, 1) -> click node 1 -> (1, 1, 1) -> Ring up -> (2, 1, 1) -> click node 3 -> (2, 1, 0).
+  // Adoption: the reproducer's last assertion (success at (2, 1, 0)) holds while the goal admits those rings; a
+  // goal that asks for rings of one makes (2, 1, 0) a near miss, on which the check stays silent.
+  // regression: P4-RT-09-03
+  test('M7 b12 challenge rejects the rings (2, 1, 0), which give 24 vertices and 36 edges', async ({ page }) => {
+    await page.goto(ROUTE);
+    const challenge = await challengeFor(page, 'b12');
+    await hydrate(page, 'b12');
+    await expect(out(page, 'b12', 'polytopeName')).toHaveText(W('B3', [0, 1, 1]).name);
+    const goal = (await challengeProps(page)).find((c) => c.for === 'b12')!.goal;
+    const all = W('B3', [1, 1, 1]);
+    const octahedron = W('B3', [1, 1, 0]);
+    await node(page, 'b12', 1).click(); // (1, 1, 1), focus on node 1
+    await expect(out(page, 'b12', 'vertexCount')).toHaveText(String(all.f_vector[0]));
+    await control(page, 'b12', 'ringUp').click(); // (2, 1, 1)
+    await expect(out(page, 'b12', 'vertexCount')).toHaveText(String(all.f_vector[0]));
+    await node(page, 'b12', 3).click(); // (2, 1, 0)
+    expect(await rings(tool(page, 'b12'))).toEqual(['2', '1', '0']);
+    await expect(out(page, 'b12', 'vertexCount')).toHaveText(String(octahedron.f_vector[0]));
+    await expect(out(page, 'b12', 'edgeCount')).toHaveText(String(octahedron.f_vector[1]));
+    await expect(out(page, 'b12', 'fVector')).toHaveText(octahedron.f_vector.join(', '));
+    await expect(out(page, 'b12', 'edgeLengths')).toHaveText([...b3Lengths([2, 1, 0])].reverse().join(', '));
+    await page.waitForTimeout(1000);
+    const met = await challenge.getAttribute('data-met');
+    if (!/\brings? of one\b/i.test(goal)) {
+      // The goal admits (2, 1, 0): rings on B3 other than those of beat 5, with 24 vertices and 36 edges.
+      expect(
+        met,
+        `M7 b12: the rings (2, 1, 0) on B3 give 24 vertices and 36 edges, the goal as printed ("${goal}"), but the check (polytopeName equals "truncated octahedron") does not report success`,
+      ).toBe('true');
+    } else {
+      // The goal asks for rings of one, so (2, 1, 0) is a near miss and the check stays silent.
+      expect(met, `M7 b12: (2, 1, 0) is not an answer to "${goal}"`).toBeNull();
+      await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
+    }
+  });
+
+  test('(control) the b12 challenge reports success for (1, 1, 0)', async ({ page }) => {
+    await page.goto(ROUTE);
+    const challenge = await challengeFor(page, 'b12');
+    await hydrate(page, 'b12');
+    await node(page, 'b12', 3).click(); // (0, 1, 0)
+    await node(page, 'b12', 1).click(); // (1, 1, 0)
+    await expect(out(page, 'b12', 'polytopeName')).toHaveText(W('B3', [1, 1, 0]).name);
+    await expect(challenge).toHaveAttribute('data-met', 'true');
+  });
+
+  // RT-09, attack 25 (a drawn object that contradicts its caption), from
+  // site/tests/e2e/redteam-RT-09-p4-m7-uniform.spec.ts of the lens branch. Beat 5 said make uniform replays "the
+  // same moves from (0,1,\sqrt2) in floating point", and the caption of b7 "Make uniform ... redraws it from
+  // (0, 1, √2) with one edge length". T10 replays from a_i = c / sqrt(d_i), c the largest ringed integer
+  // (t10/uniform.ts, uniformStart; decisions/P4-A3.md), which on B3 with rings (0, 1, 1) and d = (2, 2, 1) is
+  // (0, 1/sqrt2, 1) = (0, 1, sqrt2) / sqrt2. The squared length of the edge at the start is 2 d_i a_i^2 (SPEC
+  // 2.14): 4 from (0, 1, sqrt2), 2 from (0, 1/sqrt2, 1).
+  //   oracle: 2 * symmetrizer(cartan('B',3))[1] * 1**2 = 4; 2 * 1 * sqrt(2)**2 = 4.
+  // Adoption: the expected length, 4 in the reproducer, is computed from the start each statement names; a
+  // statement that names "a multiple of" a start is held to the shape it fixes (one length, as the studio shows).
+  // regression: P4-RT-09-04
+  test('M7 b7 make uniform draws from the start its caption and beat 5 state', async ({ page }) => {
+    await page.goto(ROUTE);
+    await hydrate(page, 'b7');
+    const caption = norm(await out(page, 'b7', 'caption').textContent());
+    const beat5 = norm(await proseText(page, '[data-beat="5"]'));
+    const statements = [
+      { where: 'the caption of b7', m: /redraws it from (a multiple of )?\(([^()]*)\)/.exec(caption), text: caption },
+      { where: 'beat 5', m: /replaying the same moves (?:in floating point )?from (a multiple of )?\(([^()]*)\)/.exec(beat5), text: beat5 },
+    ];
+    const showMe = tool(page, 'b7').getByRole('button', { name: /show me/i });
+    if (await showMe.count()) await showMe.first().click();
+    await expect(out(page, 'b7', 'edgeLengths')).toHaveText([...b3Lengths(W('B3', [0, 1, 1]).rings)].reverse().join(', '));
+    await control(page, 'b7', 'uniform').click();
+    await expect(out(page, 'b7', 'uniform')).toHaveText('on');
+    const lengths = (await out(page, 'b7', 'edgeLengths').textContent())?.trim();
+    const count = await out(page, 'b7', 'edgeLengths').getAttribute('data-count');
+    for (const { where, m, text } of statements) {
+      expect(m, `${where} names the start of make uniform: ${text}`).not.toBeNull();
+      const start = m![2]!.split(',').map(startEntry);
+      expect(start.length, where).toBe(B3_WEIGHTS.length);
+      // 2.14 Edge lengths: the squared length of the edge from the start at ringed node i is 2 d_i a_i^2.
+      const squares = [...new Set(start.flatMap((a, i) => (a === 0 ? [] : [Math.round(2 * B3_WEIGHTS[i]! * a * a * 1e6) / 1e6])))];
+      if (m![1] === undefined) {
+        expect(
+          lengths,
+          `${where}: make uniform draws from (${m![2]}); from it every edge at the start has squared length ${squares.join(' or ')} (2 d_i a_i^2 with d = (${B3_WEIGHTS.join(', ')})); the studio reads "${lengths}"`,
+        ).toBe(squares.sort((x, y) => x - y).join(', '));
+      } else {
+        // A multiple t of the start has squared lengths t^2 2 d_i a_i^2: one length exactly when the start has one.
+        expect(squares, `${where}: the start (${m![2]}) gives one edge length`).toHaveLength(1);
+        expect(count, `${where}: the studio shows one edge length`).toBe('1');
+      }
+    }
+  });
+
+  // RT-13, attack 17 (and the retest of P3-RT-13-05), the M7 case of site/tests/e2e/redteam-RT-13-p4-links.spec.ts
+  // of the lens branch: the sandbox link that closes the module opens T16 with "this module's board loaded" (SPEC
+  // 8.2 item 7; 8.1 P6; 4 T16), read as the board of the module's first figure, as the round 1 fixes of M1, M3 and
+  // M4 read it (decisions/RT-FIX-P3-lesson-m1.md, -m3.md, -m4.md). SPEC 3 M7 table, row 1: T10, root polytope of
+  // A2; the lesson's b1 is A2. Adoption: the first figure's board is read from its boardName hook.
+  // regression: P4-RT-13-01
+  test('m7-geometry closes with the sandbox on its first board A2', async ({ page }) => {
+    await page.goto(ROUTE);
+    const first = await page.locator('main [data-tool]').first().locator('[data-out="boardName"]').getAttribute('data-name');
+    expect(first, 'the first figure is the root polytope of A2 (SPEC 3 M7 table, row 1)').toBe(FIGURES[0]!.board);
+    const sandbox = page.locator('[data-anatomy="links"] a[href*="tools/sandbox"]');
+    await expect(sandbox).toHaveCount(1);
+    const href = (await sandbox.getAttribute('href')) ?? '';
+    const g = new URL(href, page.url()).searchParams.get('g');
+    await sandbox.click();
+    const t = page.locator('[data-tool="sandbox"]').first();
+    await expect(t).toHaveAttribute('data-hydrated', 'true', { timeout: 20000 });
+    const nodes = await t.locator('[data-node]').evaluateAll((els) => new Set(els.map((e) => e.getAttribute('data-node'))).size);
+    expect(g, `m7-geometry: the sandbox opens ${g}, the module's first board is ${first}`).toBe(first);
+    expect(nodes, `the sandbox shows the ${nodes} nodes of ${g}`).toBe(T(first!).cartan.length);
+  });
+
+  // RT-13, attack 27 (and the retest of P3-RT-13-08), the M7 case of
+  // site/tests/e2e/redteam-RT-13-p4-accents.spec.ts of the lens branch: wherever lesson prose names the
+  // Populations view or the Numbers view, the word carries the underline in its accent and the icon of its view
+  // (SPEC 8.3: the accents "mark the borders and icons of panels and the underlines of the two words"; "Icons: a
+  // small city for Populations, a small numbered disc for Numbers, used wherever the view is named"; 8.1 P8), and
+  // the text of the word keeps the text colour (never an accent). Light theme.
+  // regression: P4-RT-13-02
+  test('m7-geometry: every prose naming of a view is underlined in its accent with its icon', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto(ROUTE);
+    const accent = { populations: 'rgb(0, 158, 115)', numbers: 'rgb(204, 121, 167)' };
+    const found = await page.evaluate((accent) => {
+      const res: { text: string; marked: boolean; underline: string; icon: boolean; colour: string }[] = [];
+      const article = document.querySelector('main article')!;
+      const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const el = n.parentElement!;
+        if (el.closest('[data-tool], [data-anatomy="lie-theory"], [data-anatomy="sources"], .katex, script, style, nav, [data-challenge]')) continue;
+        const re = /\b(Populations|Numbers)\b(?=\s+(view|board|record|panel))/g;
+        for (const m of (n.nodeValue ?? '').matchAll(re)) {
+          const word = m[1]!.toLowerCase() as 'populations' | 'numbers';
+          const span = el.closest('[data-view-word]') as HTMLElement | null;
+          const cs = getComputedStyle(span ?? el);
+          res.push({
+            text: (n.nodeValue ?? '').slice(Math.max(0, m.index! - 40), m.index! + 30).replace(/\s+/g, ' '),
+            marked: !!span && span.getAttribute('data-view-word') === word,
+            underline: `${cs.textDecorationLine} ${cs.textDecorationColor}`,
+            icon: !!span?.querySelector('svg'),
+            colour: getComputedStyle(el).color,
+          });
+          if (getComputedStyle(el).color === accent[word]) res.at(-1)!.text += ' [TEXT IN ACCENT]';
+        }
+      }
+      return res;
+    }, accent);
+    const bad = found.filter((f) => !f.marked || !f.icon || !f.underline.includes('underline') || f.text.includes('[TEXT IN ACCENT]'));
+    expect(bad.map((b) => b.text), 'm7-geometry: view words without the accent underline and icon').toEqual([]);
+    // The page names a view (beat 2: "this module uses the Numbers view"), so the check is not vacuous: the marked
+    // word carries the underline in its accent, its icon, and the text colour.
+    const marked = await page.locator('main article [data-view-word]').evaluateAll(
+      (els, accent) =>
+        els.map((e) => {
+          const cs = getComputedStyle(e);
+          const v = e.getAttribute('data-view-word') as 'populations' | 'numbers';
+          return { v, word: e.textContent?.trim(), underline: cs.textDecorationLine, accent: cs.textDecorationColor === accent[v], icon: e.querySelector('svg') !== null, textInAccent: cs.color === accent[v] };
+        }),
+      accent,
+    );
+    expect(marked.length, 'M7 marks its naming of a view').toBeGreaterThan(0);
+    for (const m of marked) {
+      expect(m, `the view word ${m.word}`).toEqual({ v: m.v, word: m.v === 'numbers' ? 'Numbers' : 'Populations', underline: 'underline', accent: true, icon: true, textInAccent: false });
+    }
+  });
 });
