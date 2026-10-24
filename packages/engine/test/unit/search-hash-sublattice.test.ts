@@ -3,10 +3,10 @@
 // position of an orbit whose entries are all multiples of 2^30 (the orbit of a seed that is such a multiple:
 // every move is an integer combination) has the same hash, and each lookup walks every earlier position:
 // the search becomes quadratic in its cap. The generic loop (a Map keyed by the decimal text, which the
-// fast path replaced) stays linear. Measured here on named E8 (SafeInt), firing, from 2^30 (1, ..., 1),
-// against the generic loop on the same board with a copy of its arithmetic (which the fast path does not
-// recognise), and against the fast path from (1, ..., 1). Same items in both; the fast path must not be
-// more than 5 times slower than the generic loop on the same input.
+// fast path replaced) stays linear. The timed comparison (named E8, firing, from 2^30 (1, ..., 1): the fast
+// path not 5 times slower than the generic loop on the same input) runs alone in
+// test/bench/search-hash-sublattice.bench.ts, since no assertion of the parallel suite rests on a clock
+// reading (site/tests/unit/scripts.test.ts); this file measures the same cause by counting comparisons.
 import { describe, expect, it } from 'vitest';
 import * as E from '../../src/index';
 import type { Arith, Board } from '../../src/index';
@@ -15,30 +15,7 @@ import { positionHash } from '../../src/search';
 function generic<T>(b: Board<T>): Board<T> {
   return { ...b, arith: { ...(b.arith as Arith<T>) } };
 }
-function time(f: () => unknown): number {
-  const t0 = performance.now();
-  f();
-  return performance.now() - t0;
-}
 
-describe('RT-03 P4: orbitGraph fast path on a seed that is a multiple of 2^30', () => {
-  // regression: P4-RT-03-02
-  it('E8, firing, from 2^30 (1,...,1), cap 40000: same items as the generic loop, and not 5 times slower', () => {
-    const e8 = E.boardFromName('E8') as Board<number>;
-    const k = 2 ** 30;
-    const seed = [[k, k, k, k, k, k, k, k]];
-    const CAP = 40000;
-    let fast: E.OrbitGraph<number> | null = null;
-    let slow: E.OrbitGraph<number> | null = null;
-    const tFast = time(() => (fast = E.orbitGraph(e8, seed, 'firing', CAP)));
-    const tSlow = time(() => (slow = E.orbitGraph(generic(e8), seed, 'firing', CAP)));
-    const tPlain = time(() => E.orbitGraph(e8, [[1, 1, 1, 1, 1, 1, 1, 1]], 'firing', CAP));
-    expect(fast!.items.length).toBe(CAP);
-    expect(fast!.items.map(String)).toEqual(slow!.items.map(String));
-    const times = `cap ${CAP}: fast path from 2^30 rho ${tFast.toFixed(0)} ms; generic loop, same seed ${tSlow.toFixed(0)} ms; fast path from rho ${tPlain.toFixed(0)} ms`;
-    expect(tFast, times).toBeLessThan(5 * tSlow);
-  }, 900_000);
-});
 
 // RT-FIX P4: the same cause measured without a clock, and the fast path checked against the generic loop
 // on the seeds that collided. A lookup walks the earlier positions with the same hash, so the comparisons

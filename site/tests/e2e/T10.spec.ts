@@ -1095,9 +1095,10 @@ test.describe('regressions', () => {
     const copied = await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied.at(-1) ?? '');
     expect(bar).not.toContain('NaN');
     expect(copied).not.toContain('NaN');
-    // Following the copied link gives no notice.
+    // Following the copied link gives no notice. The copied link is absolute, with the site's base in its
+    // path (/<repo>/ in CI, SPEC 7.2 item 10), so it is opened as it stands (MERGE, sibling of P4-RT-12-02).
     const page2 = await page.context().newPage();
-    await openRecorded(page2, new URL(copied).pathname.slice(1) + new URL(copied).search);
+    await openRecorded(page2, copied);
     expect(await page2.locator('[data-tool] [data-out="notice"]').count(), 'notice on the copied link').toBe(0);
   });
 
