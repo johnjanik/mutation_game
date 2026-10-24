@@ -24,7 +24,9 @@
 //     question, draft, beat, figure, seen, lie-theory, links, sources; data-beat; data-provenance;
 //     data-challenge, data-met, data-challenge-result (text "Goal reached."); data-source;
 //     data-unverified and a.unverified-mark (P0-A4 Unverified)
-//   this lesson's own markup: data-seen-statement
+//   this lesson's own markup: data-seen-statement, data-seen-scope
+//   the figure of each tool root (role figure; its aria-label is the text alternative of A-10, which
+//     names the board the figure opens on), read by the regressions at the end of this file
 //
 // No linked view (both boards of T1 at once) is placed on this page, so the bridge sentence of 2.4(a)
 // has no test here (instruction 5.15 item 14).
@@ -37,7 +39,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
-import { boardFromName, commutationClassSize, fire, heapKey, toPositions } from '../../../packages/engine/src/index';
+import { boardFromName, commutationClassSize, fire, fromAdjacency, heapKey, play, symbolicPlay, toPositions } from '../../../packages/engine/src/index';
 import type { Board } from '../../../packages/engine/src/index';
 import { distDir } from './routes';
 
@@ -71,6 +73,8 @@ const TOOLS: [string, Kind][] = [
 ];
 const BEAT_OF: Record<string, number> = { b1: 1, b2: 1, b3: 2, b4: 3, b5: 4, b6: 5, b7: 6, b8: 6, b9: 7, b10: 7, b11: 8 };
 const COUNTER_BOARDS = ['A2', 'A3', 'A4', 'B3', 'D4'];
+/** The board of the tally challenge b15: one with single roads, since multiple roads arrive in M6 (SPEC 8.1 P4). */
+const TALLY_BOARD = 'D4';
 
 interface TypeRecord {
   weyl_order: number;
@@ -90,6 +94,9 @@ interface Golden {
 }
 const GOLDEN = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8')) as Golden;
 const T = (name: string): TypeRecord => GOLDEN.types[name]!;
+/** The value at a dotted golden path of plain keys (site/src/lib/golden.ts imports the JSON without the
+ * import attribute Playwright's loader needs, so the regressions walk the parsed file here). */
+const goldenAt = (path: string): unknown => path.split('.').reduce<unknown>((v, key) => (v as Record<string, unknown>)[key], GOLDEN);
 const dimensionOf = (type: string, hw: number[]): number => GOLDEN.weyl_dimension.find((r) => r.type === type && r.highest_weight.join(',') === hw.join(','))!.dimension;
 
 // ---------------------------------------------------------------------------------------------
@@ -642,18 +649,18 @@ test('challenge: a lambda of dimension 10 on A2', async ({ page }) => {
   await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
 });
 
-test('challenge: the exponents of B3', async ({ page }) => {
+test(`challenge: the exponents of ${TALLY_BOARD}`, async ({ page }) => {
   await page.goto(ROUTE);
   const challenge = await challengeFor(page, 'b15');
   await hydrate(page, 'b15');
-  const n = T('B3').n_positive_roots;
-  await playWord(page, 'b15', T('B3').longest_word.slice(0, n - 1));
+  const n = T(TALLY_BOARD).n_positive_roots;
+  await playWord(page, 'b15', T(TALLY_BOARD).longest_word.slice(0, n - 1));
   await expect(out(page, 'b15', 'exponents')).toHaveCount(0);
   await page.waitForTimeout(300);
   await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
   await control(page, 'b15', 'step').click();
   await expect(tool(page, 'b15')).toHaveAttribute('data-moves', String(n));
-  await expect(out(page, 'b15', 'exponents')).toHaveText(T('B3').exponents.join(', '));
+  await expect(out(page, 'b15', 'exponents')).toHaveText(T(TALLY_BOARD).exponents.join(', '));
   await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
 });
 
@@ -679,4 +686,169 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions: red team round 1, findings confirmed on this lesson and fixed by RT-FIX P3 lesson-m5
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from site/tests/unit/redteam-RT-09-02-m5-finite-type-dropped.test.ts (lens RT-09). The two
+  // counterexamples are kept as the reproducer computes them, with the values it observed (the oracle
+  // agrees: wave_play(board_from_name('A3~')[0], (1,1,1,1), 0, cap=500) raises OverflowError, still
+  // running; play([[2,0],[-1,2]], (1,1)) gives word [0,1]; symbolic_play gives [(1,0),(1,1)]), and the
+  // assertion is the finding's expected: the lesson states F6 and F8 only for boards of finite type
+  // (SPEC 2.7 opening), in the beats and in the Seen box.
+  const WAVE = 'On a board with at least two nodes every firing of this <Term a="wave">wave</Term>';
+  const WAVE_TEXT = 'On a board with at least two nodes every firing of this **wave** is legal, and the game ends after the same number of rounds whichever colour starts';
+  const FORMS = 'On any board the forms fired are the positive root populations of the **reversed board**';
+  const sentences = (text: string): string[] => norm(text).split(/(?<=\.)\s+/);
+  /** Each statement of the Seen box, preceded by the box's scope line when it has one. */
+  const seenStatements = async (page: Page): Promise<string[]> => {
+    const seen = page.locator('[data-anatomy="seen"]');
+    const scope = (await seen.locator('[data-seen-scope]').allTextContents()).map(norm).join(' ');
+    return (await seen.locator('[data-seen-statement]').allTextContents()).map((s) => norm(`${scope} ${s}`));
+  };
+
+  // regression: P3-RT-09-02
+  test('M5 states F6 and F8 for every board, dropping the finite-type hypothesis of section 2.7', async ({ page }) => {
+    // F8 off the finite types: on the square (the affine board A3~, colour classes {0, 2} and {1, 3} by
+    // position) the wave from all ones fires legally and never ends.
+    const square = boardFromName('square') as Board<unknown>;
+    const { arith } = square;
+    const classes = [[0, 2], [1, 3]];
+    let a: unknown[] = [1, 1, 1, 1].map((x) => arith.fromInt(x));
+    let rounds = 0;
+    let illegal = 0;
+    while (a.some((x) => arith.sign(x) > 0) && rounds < 1000) {
+      for (const i of classes[rounds % 2]!) {
+        if (arith.sign(a[i]) <= 0) illegal += 1;
+        a = fire(square, a, i);
+      }
+      rounds += 1;
+    }
+    expect(illegal, 'every firing of the wave was legal here').toBe(0);
+    expect(a.some((x) => arith.sign(x) > 0), `after ${rounds} rounds the wave on the square still has a positive number`).toBe(true);
+    // F6 off the finite types: on the one-way road (C = [[2,0],[-1,2]], SPEC 2.11) the complete game from
+    // (1, 1) fires the forms x1 and x1 + x2 only, never the simple root (0, 1) of the reversed board.
+    const oneWay = fromAdjacency([
+      [0, 1],
+      [0, 0],
+    ]) as Board<unknown>;
+    const g = play(oneWay, [1, 1].map((x) => oneWay.arith.fromInt(x)));
+    expect(g.status).toBe('ended');
+    expect(g.word).toEqual([0, 1]);
+    const forms = symbolicPlay(oneWay, g.word).map((f) => f.join(','));
+    expect(forms).toEqual(['1,0', '1,1']);
+    expect(forms).not.toContain('0,1');
+    // So the lesson may state F6 and F8 only with the hypothesis of SPEC 2.7.
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    expect(source.includes(WAVE_TEXT) || source.includes(WAVE), `M5 beat 7 states F8 for every board: "${WAVE_TEXT}"`).toBe(false);
+    expect(source, `M5 beat 5 states F6 for every board: "${FORMS}"`).not.toContain(FORMS);
+    await page.goto(ROUTE);
+    const f6 = sentences(await proseText(page, '[data-beat="5"]')).filter((s) => /forms fired/.test(s) && /reversed board/.test(s));
+    const f8 = sentences(await proseText(page, '[data-beat="7"]')).filter((s) => /every firing of this wave is legal/.test(s));
+    expect(f6.length, 'beat 5 states F6').toBeGreaterThanOrEqual(1);
+    expect(f8.length, 'beat 7 states F8').toBeGreaterThanOrEqual(1);
+    for (const s of [...f6, ...f8]) expect(s, 'a statement of F6 or F8 in the beats').toMatch(/\bfinite type\b/);
+    // In the Seen box a statement carries the hypothesis itself or under the box's scope line
+    // (data-seen-scope, this lesson's markup), which the reader meets before the list.
+    const scoped = await seenStatements(page);
+    const seenF6 = scoped.filter((s) => /reversed board/.test(s));
+    const seenF8 = scoped.filter((s) => /\bwave\b/.test(s));
+    expect(seenF6.length, 'the Seen box states F6').toBe(1);
+    expect(seenF8.length, 'the Seen box states F8').toBe(1);
+    for (const s of [...seenF6, ...seenF8]) expect(s, 'a statement of F6 or F8 in the Seen box').toMatch(/\bfinite type\b/);
+  });
+
+  // regression: P3-RT-09-02 (sibling)
+  test('the other facts of section 2.7 in the Seen box, and the claims of computation, name the finite type', async ({ page }) => {
+    await page.goto(ROUTE);
+    const scoped = await seenStatements(page);
+    // Every statement but the one on heaps (Stembridge's, true for every board) is a fact of SPEC 2.7.
+    const facts = scoped.filter((s) => !/\bheap\b/.test(s));
+    expect(facts.length).toBe(scoped.length - 1);
+    for (const s of facts) expect(s, 'a statement of SPEC 2.7 in the Seen box').toMatch(/\bfinite type\b/);
+    // verify.py checks the types of rank at most 8 (SPEC 2.7), not every board of that rank.
+    const text = norm(await proseText(page, 'article'));
+    expect(text).not.toMatch(/every board of rank at most/);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-08-number-words.test.ts (lens RT-08), the cases of this lesson;
+  // the cases of M2 and M3 belong to those lessons.
+  const NUMBER_WORDS = [
+    // M5 beat 5, prose: the number of moves of a complete game on A3 = the number of positive roots.
+    { phrase: 'The six moves fire', path: 'types.A3.n_positive_roots', value: 6 },
+    // M5 beat 6, prose: "the value 1 <G k="types.A3.fired_tally.1"/> times, 2 twice, 3 once".
+    { phrase: '<Tex src="2"/> twice', path: 'types.A3.fired_tally.2', value: 2 },
+    { phrase: '<Tex src="3"/> once', path: 'types.A3.fired_tally.3', value: 1 },
+  ];
+  for (const c of NUMBER_WORDS) {
+    // regression: P3-RT-08-05
+    test(`m5-weyl.mdx: "${c.phrase}" states ${c.path} as a typed word`, () => {
+      expect(goldenAt(c.path), `${c.path} is the quantity the phrase states`).toBe(c.value);
+      expect(readFileSync(LESSON_PATH, 'utf8').includes(c.phrase), `m5-weyl.mdx types ${c.path} as a word`).toBe(false);
+    });
+  }
+
+  // regression: P3-RT-08-05 (sibling)
+  test('m5-weyl.mdx: the heap goal "four different plays" states the largest of heaps.A3.games_per_heap as a typed word', () => {
+    expect(Math.max(...(goldenAt('heaps.A3.games_per_heap') as number[])), 'the value the check of b13 compares with').toBe(4);
+    expect(readFileSync(LESSON_PATH, 'utf8').includes('shared by four different plays'), 'm5-weyl.mdx types the goal of b13 as a word').toBe(false);
+  });
+
+  // regression: P3-RT-08-09
+  test('no fallback of M5 carries TeX notation that a release build prints raw', () => {
+    // Adopted from site/tests/unit/redteam-RT-08-fallbacks.test.ts (lens RT-08), the part of this lesson;
+    // the E4 fallback of the open-problem page belongs to that page. Unverified.astro prints a fallback as
+    // plain text in a release build (SPEC 7.3), so TeX in it reaches the reader raw.
+    const fallbacks = [...readFileSync(LESSON_PATH, 'utf8').matchAll(/<Unverified item="(E\d+)" fallback="([^"]*)"/g)].map((m) => ({ item: m[1], text: m[2]! }));
+    expect(fallbacks.length).toBeGreaterThanOrEqual(2);
+    const raw = fallbacks.filter((f) => /[_^\\$]/.test(f.text)).map((f) => `modules/m5-weyl.mdx ${f.item}: ${f.text}`);
+    // Observed at 69546f0: modules/m5-weyl.mdx E16 "... each count on A_n equals ...".
+    expect(raw).toEqual([]);
+  });
+
+  // regression: P3-RT-08-08
+  test("four M5 tool captions give an instruction or a description and state no result, including the first figure's", async ({ page }) => {
+    // Adopted from redteam/redteam-RT-08-captions.mjs (lens RT-08), which printed these captions for a
+    // reader. SPEC 8.1 P1, CONTRACTS 7: a caption states the result its tool demonstrates; 8.2 item 2:
+    // the first figure's caption is one sentence.
+    const OBSERVED: Record<string, string> = {
+      b1: 'Legal play on A3 from (1, 1, 1): fire any node whose number is positive, until none is.',
+      b12: 'Legal play on A3 from (1, 1, 1); the challenge above names the position to reach.',
+      b13: 'The heap view on A3, from no moves: fire nodes on the board and watch the heap and its count of plays.',
+      b15: 'The tally game on B3 from all ones, before the first move.',
+    };
+    // The result each caption states, with its golden value where it has one.
+    const RESULT: Record<string, RegExp[]> = {
+      b1: [/ends at \(−1, −1, −1\)/, /every order/, /same number of moves/],
+      b12: [new RegExp(`reaches each of the ${T('A3').weyl_order} positions`)],
+      b13: [/same heap/],
+      b15: [/tally read sideways gives the exponents/, new RegExp(`multiply to ${T(TALLY_BOARD).weyl_order}\\b`)],
+    };
+    await page.goto(ROUTE);
+    for (const [id, observed] of Object.entries(OBSERVED)) {
+      const caption = norm(await out(page, id, 'caption').textContent());
+      expect(caption, `${id} caption`).not.toBe(observed);
+      for (const re of RESULT[id]!) expect(caption, `${id} caption states its result`).toMatch(re);
+    }
+    const first = norm(await out(page, 'b1', 'caption').textContent());
+    expect(first.split(/(?<=\.)\s+/), 'the first figure has a one-sentence caption').toHaveLength(1);
+  });
+
+  // regression: P3-RT-13-07
+  test('/modules/m5-weyl/: no figure opens on a multiply laced board', async ({ page }) => {
+    // Adopted from site/tests/e2e/redteam-RT-13-one-mechanic.spec.ts (lens RT-13), the case of this
+    // lesson. SPEC 8.1 P4: multiple roads arrive in M6. The figure's text alternative names its board.
+    await page.goto(ROUTE);
+    const roots = page.locator('[data-tool]');
+    const found: { id: string | null; tool: string | null; label: string }[] = [];
+    for (let k = 0; k < (await roots.count()); k++) {
+      const root = roots.nth(k);
+      const label = norm(await root.getByRole('figure').first().getAttribute('aria-label'));
+      if (/\b[BCFG][2-8]\b/.test(label)) found.push({ id: await root.getAttribute('data-instance'), tool: await root.getAttribute('data-tool'), label });
+    }
+    expect(found, JSON.stringify(found)).toEqual([]);
+  });
 });
