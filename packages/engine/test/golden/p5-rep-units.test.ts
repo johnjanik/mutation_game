@@ -10,7 +10,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { Board } from '../../src/board';
-import { cartan, cartanNumbers } from '../../src/board';
+import { boardFromName, cartan, cartanNumbers } from '../../src/board';
 import { CAPS } from '../../src/caps';
 import { fire } from '../../src/moves';
 import type { RelationCheck, SparseMatrix } from '../../src/rep';
@@ -26,6 +26,7 @@ import {
   spScale,
   stringThrough,
 } from '../../src/rep';
+import { orbitSize } from '../../src/weyl';
 import { bigBoard } from '../helpers/p1';
 import { boardOf, golden, intEq, matchRecord } from './_harness';
 
@@ -93,11 +94,37 @@ describe('sparse operations', () => {
     for (const M of [spMul(x, y), spMul(y, x), cancel]) expect(zeroFree(M)).toBe(true);
   });
 
-  it('spMul refuses a key that is not two decimal integers joined by one comma', () => {
-    for (const bad of ['0, 1', '0;1', 'a,1', '01,1', '1', '1,2,3', '-1,0', '']) {
-      expect(() => spMul(sp([[bad, 1]]), sp([['0,0', 1]])), bad).toThrow(RangeError);
-      expect(() => spMul(sp([['0,0', 1]]), sp([[bad, 1]])), bad).toThrow(RangeError);
+  it('every sparse operation refuses a key that spKey would not write, in the same way (RangeError)', () => {
+    const good = (): SparseMatrix => sp([['0,0', 1], ['1,0', 2]]);
+    // each operation with the Map under test on either side
+    const ops: [string, (M: SparseMatrix) => unknown][] = [
+      ['spMul left', (M) => spMul(M, good())],
+      ['spMul right', (M) => spMul(good(), M)],
+      ['spAdd left', (M) => spAdd(M, good())],
+      ['spAdd right', (M) => spAdd(good(), M, -1n)],
+      ['spAdd right, cy 0', (M) => spAdd(good(), M, 0n)],
+      ['spComm left', (M) => spComm(M, good())],
+      ['spComm right', (M) => spComm(good(), M)],
+      ['spScale', (M) => spScale(M, 3n)],
+      ['spScale by 0', (M) => spScale(M, 0n)],
+      ['spEq left', (M) => spEq(M, good())],
+      ['spEq right', (M) => spEq(good(), M)],
+    ];
+    const bad = ['0, 1', ' 0,1', '0,1 ', '0;1', 'a,1', '01,1', '1,00', '1', '1,2,3', '-1,0', '', '9007199254740992,0'];
+    for (const key of bad) {
+      // the key of an explicit zero entry is checked too
+      for (const value of [1, 0]) {
+        for (const [name, f] of ops) {
+          expect(() => f(sp([['0,0', 1], [key, value]])), `${name}: ${JSON.stringify(key)} = ${value}`).toThrow(RangeError);
+        }
+      }
     }
+    // the keys spKey writes pass every operation
+    const keys = sp([[spKey(0, 0), 1], [spKey(12, 3), 2], [spKey(3, 12), 0]]);
+    for (const [name, f] of ops) expect(() => f(keys), name).not.toThrow();
+    // the same entry written two ways is refused, not stored twice (spAdd) or called different (spEq)
+    expect(() => spAdd(sp([['0, 1', 1]]), sp([['0,1', 1]]), -1n)).toThrow(RangeError);
+    expect(() => spEq(sp([['0, 1', 1]]), sp([['0,1', 1]]))).toThrow(RangeError);
   });
 
   it('spAdd: X + cy Y with cy defaulting to 1, zeros dropped', () => {
@@ -284,6 +311,30 @@ describe('the Serre exponent is 1 - C[i][j], with i the operator applied', () =>
       expect(r.holds).toBe(true);
     }
   });
+
+  it('serre-e is built from E alone and serre-f from F alone: with E and F different, one fails while the other holds', () => {
+    // Z = e_3 e_0^T commutes with N and with X (both products vanish each way), so of ad(N)^2 X = Z, ad(X)^2 Z,
+    // ad(N)^2 Z and ad(X)^2 X only the first is not zero. With E and F given as different lists, a Serre side
+    // built from the wrong list, or started from the wrong list's matrix j, changes which record fails.
+    const Z = (): SparseMatrix => new Map([['3,0', 1n]]);
+    const b = boardOf('A2');
+    // E = (N, X), F = (X, Z): ad(E_1)^2 E_2 = ad(N)^2 X = Z fails; ad(F_1)^2 F_2 = ad(X)^2 Z = 0 holds
+    const eFails = chevalleySerre(b, [N(), X()], [X(), Z()], none());
+    // E = (X, Z), F = (N, X): the reverse, ad(E_1)^2 E_2 = ad(X)^2 Z = 0 holds; ad(F_1)^2 F_2 = ad(N)^2 X = Z fails
+    const fFails = chevalleySerre(b, [X(), Z()], [N(), X()], none());
+    for (const [records, failing, holding] of [
+      [eFails, 'serre-e', 'serre-f'],
+      [fFails, 'serre-f', 'serre-e'],
+    ] as const) {
+      const bad = recordOf(records, failing, 0, 1);
+      expect(dump(bad.left), failing).toEqual([['3,0', '1']]);
+      expect(bad.right.size).toBe(0);
+      expect(bad.holds, failing).toBe(false);
+      const ok = recordOf(records, holding, 0, 1);
+      expect(ok.left.size, holding).toBe(0);
+      expect(ok.holds, holding).toBe(true);
+    }
+  });
 });
 
 describe('stringThrough examples', () => {
@@ -352,8 +403,42 @@ describe('cap', () => {
     expect(exact).not.toBeNull();
     intEq(exact!.basis.length, size);
     expect(minusculeMatrices(e7, 6, size + 1)!.basis.length).toBe(size);
-    expect(minusculeMatrices(boardOf('A1'), 0, 2)).not.toBeNull();
-    expect(minusculeMatrices(boardOf('A1'), 0, 1)).toBeNull();
+    // the smallest orbit: A1 node 1, built at a cap equal to its size and null one below
+    const a1 = sizes('A1')[0]!;
+    expect(minusculeMatrices(boardOf('A1'), 0, a1)).not.toBeNull();
+    expect(minusculeMatrices(boardOf('A1'), 0, a1 - 1)).toBeNull();
+  });
+
+  it('the default cap is pinned next to CAPS.repOrbit: A13 node 5 (just above) is null, B32 node 2 (just below) is built', () => {
+    // On A_n the orbit of omega_k has C(n + 1, k) positions (the k-element subsets of n + 1 things), and on B_n
+    // 2^k C(n, k) for k < n. So node 5 of A13 (position 4) has C(14, 5) positions, just above 2000, and node 2
+    // of B32 (position 1) has 4 C(32, 2), just below: together they hold the default cap between the two. No
+    // board of at most 100 nodes has an orbit of omega_i whose size lies strictly between them, and an orbit of
+    // exactly 2000 positions needs a board of about 1000 nodes (the smallest are node 1 of B1000, C1000 and
+    // D1000, with 2n positions; both computed for this test from the formulas above), so the boundary itself is
+    // covered by the cases with a cap equal to the orbit size (E7 node 7 above, A13 node 5 here).
+    const binomial = (m: number, k: number): number => {
+      let out = 1;
+      for (let t = 1; t <= k; t++) out = (out * (m - k + t)) / t;
+      return out;
+    };
+    const unit = (n: number, i: number): number[] => Array.from({ length: n }, (_, k) => (k === i ? 1 : 0));
+    const a13 = boardFromName('A13');
+    const above = binomial(14, 5);
+    expect(above).toBeGreaterThan(CAPS.repOrbit);
+    // the engine's exact count agrees (orbitSize, |W| / |W_J|, no enumeration)
+    intEq(orbitSize(a13, unit(13, 4)), above, 'orbitSize of A13 node 5');
+    expect(minusculeMatrices(a13, 4)).toBeNull();
+    expect(minusculeMatrices(a13, 4, above - 1)).toBeNull();
+    const built = minusculeMatrices(a13, 4, above);
+    expect(built).not.toBeNull();
+    expect(built!.basis.length).toBe(above);
+    const b32 = boardFromName('B32');
+    const below = 4 * binomial(32, 2);
+    expect(below).toBeLessThanOrEqual(CAPS.repOrbit);
+    // (no orbitSize here: it forms |W(B32)|, which is past 2^53 on this SafeInt board and throws EngineOverflow)
+    expect(minusculeMatrices(b32, 1)?.basis.length).toBe(below);
+    expect(minusculeMatrices(b32, 1, below - 1)).toBeNull();
   });
 
   it('the default cap is CAPS.repOrbit: E8 node 1 and E7 node 3 give null, E8 node 8 is built', () => {

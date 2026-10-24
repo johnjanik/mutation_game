@@ -9,7 +9,7 @@
 // and runs alone in the bench run, test/bench/p5-minuscule.bench.ts, as the E8 timing of phase 3 does.
 import { describe, expect, it } from 'vitest';
 import type { Board } from '../../src/board';
-import { toLabels, toPositions } from '../../src/board';
+import { cartanNumbers, toLabels, toPositions } from '../../src/board';
 import { minusculeNodes } from '../../src/guards';
 import { fire } from '../../src/moves';
 import type { RelationCheck, SparseMatrix } from '../../src/rep';
@@ -155,6 +155,65 @@ describe('basis equals weights_dynkin_labels in order', () => {
   it('the counts: 18 records, 17 with weights', () => {
     expect(LISTED.length).toBe(18);
     expect(LISTED.filter(([type, node]) => caseOf(type, node).rec.weights_dynkin_labels !== null).length).toBe(17);
+  });
+});
+
+/** The rows in the order of their text (entries joined by commas), largest first: a sort without a numeric comparator. */
+function byText(basis: readonly (readonly number[])[]): string[] {
+  return basis.map((a) => a.join(',')).sort().reverse();
+}
+
+/** The roots in Dynkin labels, as text: a = C p (the translator, SPEC 2.4(a)) and -a for each positive root p of the golden file. */
+function rootTexts(type: string, C: number[][]): string[] {
+  const out: string[] = [];
+  for (const p of golden.types[type]!.positive_roots!) {
+    const a = C.map((row) => row.reduce((s, c, j) => s + c * p[j]!, 0));
+    out.push(a.join(','), a.map((x) => 0 - x).join(','));
+  }
+  return out;
+}
+
+describe('the basis is in numeric order where 2 and -2 occur, not in the order of the text (trap 2)', () => {
+  // The 18 orbits of the golden list hold only -1, 0 and 1, where the order of the joined text agrees with the
+  // numeric order ('-' sorts before every digit), so they cannot tell the two apart. These two orbits hold 2
+  // and -2, and "-2" sorts after "-1" as text although -2 < -1. Node 2 of D4 and node 8 of E8 are the highest
+  // root (omega_i is numbers_of_highest_root), so the orbit is the set of the roots in Dynkin labels.
+  for (const [type, node] of [['D4', 2], ['E8', 8]] as [string, number][]) {
+    it(`${type} node ${node}: the rows are the roots, each numerically larger than the next`, () => {
+      const board = boardOf(type);
+      const pos = toPositions(board, [node])[0]!;
+      const m = minusculeMatrices(board, pos);
+      expect(m).not.toBeNull();
+      const basis = m!.basis;
+      intEq(basis.length, golden.types[type]!.fundamental_orbit_sizes[pos], 'orbit size');
+      intEq(omega(board.n, pos), golden.types[type]!.numbers_of_highest_root, 'omega_i is the highest root');
+      expect(new Set(basis.map((a) => a.join(',')))).toEqual(new Set(rootTexts(type, cartanNumbers(board))));
+      for (let r = 1; r < basis.length; r++) expect(lexCompare(basis[r - 1]!, basis[r]!), `${type} rows ${r - 1}, ${r}`).toBe(1);
+      // the check can tell: entries -2 occur, and the order of the text differs from the basis
+      expect(basis.some((a) => a.includes(-2))).toBe(true);
+      expect(byText(basis)).not.toEqual(basis.map((a) => a.join(',')));
+    });
+  }
+
+  it('D4 node 2, row 5: the sum of the simple roots (1, -1, 1, 1), where the order of the text puts -alpha_2 (1, -2, 1, 1)', () => {
+    // From the oracle (reference/lie_games.py, minuscule_matrices(C, 1), whose basis is
+    // sorted(orbit(C, [unit(4, 1)], fire), reverse=True), computed for this test): rows 0 to 4 are the same in the
+    // order of the text, row 5 is alpha_1 + alpha_2 + alpha_3 + alpha_4 and row 8 is -alpha_2, while the order of
+    // the text puts -alpha_2 at row 5. The two vectors are computed here from the Cartan matrix (a = C p): the
+    // sum of the simple roots is the row sums of C, -alpha_2 is minus column 1 of C (0 - x, so no entry is -0).
+    const d4 = boardOf('D4');
+    const C = cartanNumbers(d4);
+    const sumOfSimpleRoots = C.map((row) => row.reduce((s, x) => s + x, 0));
+    const minusAlpha2 = C.map((row) => 0 - row[1]!);
+    // they first differ at node position 1, where -1 meets -2
+    const k = sumOfSimpleRoots.findIndex((x, j) => x !== minusAlpha2[j]);
+    expect([k, sumOfSimpleRoots[k], minusAlpha2[k]]).toEqual([1, -1, -2]);
+    const basis = minusculeMatrices(d4, 1)!.basis;
+    expect(basis[5]).toEqual(sumOfSimpleRoots);
+    expect(basis[8]).toEqual(minusAlpha2);
+    const text = byText(basis);
+    expect(text.slice(0, 5)).toEqual(basis.slice(0, 5).map((a) => a.join(',')));
+    expect(text[5]).toBe(minusAlpha2.join(','));
   });
 });
 

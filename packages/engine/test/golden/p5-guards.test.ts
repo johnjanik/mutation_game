@@ -10,7 +10,7 @@ import { EngineError, EngineOverflow, NeedsTwoWayRoads, NotFiniteType } from '..
 import type { SparseMatrix } from '../../src/rep';
 import { chevalleySerre, minusculeMatrices, signedMoves, spEq, stringThrough } from '../../src/rep';
 import { bigBoard } from '../helpers/p1';
-import { boardOf } from './_harness';
+import { boardOf, golden } from './_harness';
 
 function caught(f: () => unknown): unknown {
   try {
@@ -78,7 +78,8 @@ describe('argument errors', () => {
     for (const cap of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(() => minusculeMatrices(a2, 0, cap), String(cap)).toThrow(RangeError);
     }
-    expect(minusculeMatrices(a2, 0, 3)).not.toBeNull();
+    // a cap equal to the orbit of omega_1 (read from the golden file) is a valid cap
+    expect(minusculeMatrices(a2, 0, golden.types.A2!.fundamental_orbit_sizes[0]!)).not.toBeNull();
   });
 
   it('signedMoves: E and F of different lengths, or a basis vector shorter than E', () => {
@@ -93,6 +94,14 @@ describe('argument errors', () => {
     expect(() => chevalleySerre(a2, empties(2), empties(3), empties(2))).toThrow(RangeError);
     expect(() => chevalleySerre(a2, empties(2), empties(2), empties(1))).toThrow(RangeError);
     expect(chevalleySerre(a2, empties(2), empties(2), empties(2)).length).toBe(20);
+  });
+
+  it('signedMoves and chevalleySerre: a matrix key that spKey would not write (the check of the sparse operations)', () => {
+    const m = minusculeMatrices(a2, 0)!;
+    const badE = [new Map([['0, 2', 1n]]), m.E[1]!];
+    expect(() => signedMoves(m.basis, badE, m.F)).toThrow(RangeError);
+    expect(() => chevalleySerre(a2, badE, m.F, m.H)).toThrow(RangeError);
+    expect(() => chevalleySerre(a2, m.E, m.F, [m.H[0]!, new Map([['01,1', -1n]])])).toThrow(RangeError);
   });
 
   it('stringThrough: wrong length, an entry that is not a safe integer, a position out of range, mu_i < 0', () => {
