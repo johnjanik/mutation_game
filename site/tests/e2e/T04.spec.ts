@@ -489,6 +489,44 @@ test.describe('regressions', () => {
     expect(regions, '/tools/lab/ star with five arms, after "keep counting": live regions inside [data-tool]').toHaveLength(1);
   });
 
+  // SPEC 7.5 A-1 (WCAG 2.4.3 cited there): the sibling of P3-RT-05-09 in T4. "keep counting" took the
+  // HTML disabled attribute while the count ran, with the focus on it, and was then removed, so the focus
+  // fell to the page. It keeps the focus while it counts (aria-disabled), and when it goes the focus moves
+  // to the counter, inside the tool. The star with five arms (centre 1 joined to 2 to 6, SPEC 6.6 `c:`).
+  // regression: P3-RT-05-09
+  test('keep counting keeps the focus in the Classification Lab while it counts and after (/tools/lab/, star with five arms)', async ({ page }) => {
+    const C = Array.from({ length: 6 }, (_, i) => Array.from({ length: 6 }, (_, j) => (i === j ? 2 : i === 0 || j === 0 ? -1 : 0)));
+    await page.goto(`tools/lab/?z=1&g=c:${C.map((r) => r.join(',')).join(';')}`);
+    await page.locator('[data-tool][data-hydrated="true"]').waitFor();
+    const where = () =>
+      page.evaluate(() => {
+        const a = document.activeElement as HTMLElement | null;
+        return { tag: a?.tagName ?? null, control: a?.dataset.control ?? null, inTool: a !== null && a.closest('[data-tool]') !== null };
+      });
+    await page.locator('[data-control="keepCounting"]').focus();
+    await page.keyboard.press('Enter');
+    await page.locator('[data-out="counterStatus"]').waitFor({ timeout: 10000 });
+    expect(await where(), 'while counting').toEqual({ tag: 'BUTTON', control: 'keepCounting', inTool: true });
+    await expect(page.locator('[data-control="keepCounting"]')).toHaveCount(0, { timeout: 60000 });
+    const after = await where();
+    expect(after.tag, 'after the count: document.activeElement').not.toBe('BODY');
+    expect(after.inTool, 'after the count: the focus is inside the tool').toBe(true);
+  });
+
+  // SPEC 7.5 A-4 ("one polite live region per tool") and 4.0 ("a polite live region announces each
+  // result"): the sibling of P3-RT-05-07 found with P3-RT-05-09. When the count in the worker fails, the
+  // notice data-out="counterNotice" was shown but never announced. The worker's script is refused here.
+  // regression: P3-RT-05-09
+  test('a count that could not be continued is announced in the live region (/tools/lab/)', async ({ page }) => {
+    await page.route(/engine\.worker/, (route) => route.abort());
+    const C = Array.from({ length: 6 }, (_, i) => Array.from({ length: 6 }, (_, j) => (i === j ? 2 : i === 0 || j === 0 ? -1 : 0)));
+    await page.goto(`tools/lab/?z=1&g=c:${C.map((r) => r.join(',')).join(';')}`);
+    await page.locator('[data-tool][data-hydrated="true"]').waitFor();
+    await page.locator('[data-control="keepCounting"]').click();
+    await expect(page.locator('[data-out="counterNotice"]')).toContainText('The count could not be continued', { timeout: 30000 });
+    await expect(page.locator('[data-tool] [data-live]')).toContainText('The count could not be continued');
+  });
+
   // regression: P3-RT-04-05
   test('export of the default state: integer rule, engine version, commit, state agrees with Copy link', async ({ page }) => {
     await openForExport(page, 'tools/lab/');

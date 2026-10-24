@@ -1,5 +1,6 @@
 // `follow` (SPEC.md 4 T2 "Modes of growth": vertices appear as the reader visits them). Pure. The
-// garden starts with the followed board's position when it attaches; each move the reader makes adds
+// garden starts with the play the followed board holds when it attaches, its start and every position
+// the play reached (followPlay); each move the reader makes adds
 // the position it reaches when that position is new, and the edge it travelled (labelled by the node)
 // when that edge is new; undo, redo, scrubbing and revisits add no vertex. A vertex keeps its place
 // as others appear: it is ranked by its depth in the bounded orbitGraph of the followed start,
@@ -79,6 +80,56 @@ export function followStep(model: FollowModel, board: AnyBoard, from: Vector | n
     }
   }
   return next;
+}
+
+/**
+ * The model of a play already made: `play` holds the start and the position after each move, `nodes` the
+ * position of the node of each move. The result is the model that followStart at the start and one
+ * followStep per move give (the same vertices in the same order, ranks, edges and cap), built in one
+ * pass. SPEC 4 T2: "vertices appear as the reader visits them on the linked T1"; 3 M1 row 1 and M4 row 5
+ * count every position the board reached, so a garden that attaches to a board already played (a
+ * client:visible garden hydrates only when it is scrolled to) holds the whole play.
+ */
+export function followPlay(board: AnyBoard, play: readonly Vector[], nodes: readonly number[], game: Game, bound: number | undefined): FollowModel {
+  const m = followStart(board, play[0]!, game, bound);
+  const items = [...m.items];
+  const keys = [...m.keys];
+  const index = new Map(m.index);
+  const rank = [...m.rank];
+  const inRankGraph = [...m.inRankGraph];
+  const edges: GardenEdge[] = [];
+  const edgeIds = new Set<string>();
+  let full = false;
+  for (let k = 0; k < nodes.length; k++) {
+    const toKey = keyOf(board, play[k + 1]!);
+    const fromIdx = index.get(keyOf(board, play[k]!));
+    let toIdx = index.get(toKey);
+    if (toIdx === undefined) {
+      if (items.length >= CAPS.gardenPositions) {
+        full = true;
+        continue;
+      }
+      const r = m.rankIndex.get(toKey);
+      toIdx = items.length;
+      index.set(toKey, toIdx);
+      items.push(play[k + 1]!);
+      keys.push(toKey);
+      rank.push(r !== undefined ? m.rankGraph.depth[r]! : fromIdx !== undefined ? rank[fromIdx]! + 1 : 0);
+      inRankGraph.push(r ?? null);
+    }
+    if (fromIdx !== undefined && fromIdx !== toIdx) {
+      const node = nodes[k]!;
+      const a = Math.min(fromIdx, toIdx);
+      const b = Math.max(fromIdx, toIdx);
+      const label = board.labels[node]!;
+      const id = `${a}|${b}|${label}`;
+      if (!edgeIds.has(id)) {
+        edgeIds.add(id);
+        edges.push({ from: a, to: b, node, label });
+      }
+    }
+  }
+  return { ...m, items, keys, index, edges, rank, inRankGraph, full };
 }
 
 /**

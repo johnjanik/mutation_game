@@ -124,6 +124,12 @@
   /** Phase 2: a "play on" is running (in the worker); the board waits for it. */
   let busy = $state(false);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
 
   const touch = (): void => {
     version++;
@@ -226,7 +232,12 @@
       return;
     }
     notice = n;
-    if (encodeState(admitted) !== encodeState(toState(game))) load(admitted);
+    if (encodeState(admitted) === encodeState(toState(game))) return;
+    if (!predictionResolved && encodeState(admitted) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(admitted);
   }
 
   // Hydration: read the URL once with the instance prefix (6.6). Never a move by itself (4.0).
@@ -414,7 +425,7 @@
   <div class="t09" data-board-name={title} onkeydown={(e) => onKeydown(e, api.announce)}>
     <p class="line" data-out="goal" data-met={goalMet ? 'true' : 'false'}>Goal: make no city unhappy.</p>
     <p class="line" data-out="goalMet">{goalMet ? 'Goal reached.' : ''}</p>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     <div class="board-host">
@@ -515,13 +526,24 @@
 {/snippet}
 
 {#snippet controls(api: FrameApi)}
-  <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || atEnd || busy} onclick={() => step(api.announce)}>Step</button>
+  <!-- A play control that its own press makes inactive (a play running, the end reached) keeps the focus:
+       aria-disabled, its handler doing nothing then; the disabled attribute only before hydration (7.4)
+       and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+  <button
+    type="button"
+    class="control"
+    data-control="step"
+    disabled={!api.hydrated || frozen}
+    aria-disabled={!frozen && (atEnd || busy) ? 'true' : undefined}
+    onclick={() => step(api.announce)}>Step</button
+  >
   <button
     type="button"
     class="control"
     data-control="playToEnd"
     data-play={playLabel.play}
-    disabled={playDisabled({ hydrated: api.hydrated, frozen, busy, atEnd, playOn: control === 'play on', cursor: cur().cursor })}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={!frozen && playDisabled({ hydrated: true, frozen: false, busy, atEnd, playOn: control === 'play on', cursor: cur().cursor }) ? 'true' : undefined}
     onclick={() => playToEnd(api.announce)}>{playLabel.text}</button
   >
   <label class="setting">
@@ -710,7 +732,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   /* Phase 2: the "add the city" link is a 44-pixel target like the buttons (A-7), placed at the start. */

@@ -15,6 +15,8 @@
 //   strip:    data-step (History.svelte)
 //   live:     [data-live] (ToolFrame's polite live region)
 //   site bar: data-theme-switch (the theme switch; the canvas regression reads the canvas pixels)
+//   lessons:  data-instance on a tool's root (regressions: M5, T8 b2 following b1); the follower
+//             regression also counts the engine's moves (engineMoves.ts, the browser's coverage)
 // data-out names (every one T8 renders; the registry's `outs`):
 //   layerSizes (children data-layer, data-count), vertex (data-position, data-layer, data-on-path; SVG
 //   mode, at most 192 elements), edge (data-from, data-to, data-label, data-on-path; inside the SVG,
@@ -54,6 +56,7 @@ import { readFileSync } from 'node:fs';
 import { CAPS, boardFromName, fire, orbitGraph, separatingRoots, toLabels, toPositions, wordTo } from '../../../packages/engine/src/index';
 import type { Board } from '../../../packages/engine/src/index';
 import { T08_OUTS } from '../../src/tools/registry/T08';
+import { engineMoves } from './engineMoves';
 
 const ROUTE = 'tools/weyl/';
 const NOTICE = 'The link could not be read, so the tool shows its default state.';
@@ -600,5 +603,39 @@ test.describe('regressions', () => {
     await expect(out(page, 'canvas')).toHaveAttribute('data-scale', /.+/);
     await collect();
     expect([...present].filter((n) => !(T08_OUTS as readonly string[]).includes(n))).toEqual([]);
+  });
+
+  // SPEC 7.4 "extends it by one position per move, so a move costs one engine call however long the play
+  // is", for T8 following a Game Board (M5: b2 with linkTo="b1", whose legal play starts from (1, 1, 1) on
+  // A3). T8 rebuilt its game from the whole followed play on every move of b1 and checked the play from
+  // the start; its subscription, tracked by its effect, then ran once more (the cause of P3-RT-04-04 in T2
+  // and T3). The engine's moves of one move of b1 (engineMoves.ts) are counted after a link of 1 move and
+  // after a link of 4 moves (the legal play 1, 2, 1, 3; oracle: (1,1,1) -> (-1,2,1) -> (1,-2,3) ->
+  // (-1,-1,3) -> (-1,2,-3)); they must be equal.
+  // regression: P3-RT-13-04
+  test('M5: one move of b1 costs the following T8 b2 the same engine moves after 1 move and after 4', async ({ page }) => {
+    const counts: number[] = [];
+    for (const word of ['1', '1.2.1.3']) {
+      await page.goto(`modules/m5-weyl/?b1.w=${word}`);
+      const leader = page.locator('[data-tool][data-instance="b1"]');
+      const follower = page.locator('[data-tool][data-instance="b2"]');
+      await follower.scrollIntoViewIfNeeded();
+      await expect(follower).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+      await leader.scrollIntoViewIfNeeded();
+      await expect(leader).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+      const n = word.split('.').length;
+      await expect(leader).toHaveAttribute('data-moves', String(n));
+      await expect(follower.locator('[data-out="vertex"][data-on-path="true"]')).toHaveCount(n + 1);
+      counts.push(
+        await engineMoves(page, async () => {
+          await leader.locator('button[data-board="numbers"][data-can-act="true"]').first().click();
+          await expect(leader).toHaveAttribute('data-moves', String(n + 1));
+          await expect(follower.locator('[data-out="vertex"][data-on-path="true"]')).toHaveCount(n + 2);
+          await page.waitForTimeout(300);
+        }),
+      );
+    }
+    expect(counts[0], 'engine moves of one move of b1 after a link of 1 move').toBeGreaterThan(0);
+    expect(counts[1], `engine moves of one move of b1 after a link of 4 moves (after 1 move: ${counts[0]})`).toBe(counts[0]);
   });
 });

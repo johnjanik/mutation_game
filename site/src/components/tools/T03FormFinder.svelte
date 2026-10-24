@@ -113,6 +113,11 @@
   let version = $state(0);
   let notice = $state<string | null>(null);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction belongs to the configured state (SPEC 4.0 Predict). A link or the back button that
+   * loads another state before the reader has answered withdraws it (as T1 does).
+   */
+  let predictionWithdrawn = $state(false);
   let weights = $state(untrack(() => initialWeights(initialGame.board, cityWeights, roadWeights, instanceId)));
   let verdict = $state<{ invariant: boolean; witness: WitnessView | null } | null>(null);
   let rows = $state<string[][]>(untrack(() => authorRows(initialGame.board)));
@@ -186,7 +191,12 @@
       return;
     }
     notice = n;
-    if (encodeState(admitted) !== encodeState(toState(game))) load(admitted);
+    if (encodeState(admitted) === encodeState(toState(game))) return;
+    if (!predictionResolved && encodeState(admitted) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(admitted);
   }
 
   // Hydration: read the URL once with the instance prefix (6.6). Never a move by itself (4.0).
@@ -323,7 +333,7 @@
 {#snippet figure(api: FrameApi)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="t03" data-board-name={title} onkeydown={(e) => onKeydown(e, api.announce)}>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     {#each parts as part (part)}

@@ -10,6 +10,7 @@ import {
   EngineOverflow,
   applyWord,
   boardFromName,
+  fire,
   mutate,
   orbitGraph,
   orbitSize,
@@ -55,7 +56,7 @@ import {
 import { followStopMessage, layersGrownText, stopMessage } from '../../../src/components/tools/t02/limits';
 import { gardenLayersBound, gardenTotal } from '../../../src/components/tools/t02/phase2';
 import { layeredEntries, positiveView } from '../../../src/components/tools/t02/poset';
-import { extendPlay, followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
+import { extendPlay, followPlay, followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
 import { exactText, shortNumber, vertexText } from '../../../src/components/tools/t02/numbers';
 import { PICKER_TYPES, PRESETS, pickedState, pickerGroups, presetOf } from '../../../src/components/tools/t02/presets';
 import { drawGarden, nextVertex } from '../../../src/components/tools/t02/drawing';
@@ -746,5 +747,46 @@ describe('regressions', () => {
     expect(changed[long.length - 1]).toBe(held[long.length - 1]);
     // The held list is not changed.
     expect(held).toHaveLength(long.length + 1);
+  });
+
+  // SPEC 4 T2 "follow (vertices appear as the reader visits them on the linked T1)"; 3 M1 row 1 ("counting
+  // the populations found (6)") and M4 row 5 ("3 positions"). A garden that attached to a board already
+  // played started from the board's current position and dropped the play before it. It now builds the
+  // model of the whole play it holds (followPlay), which must be the model of following that play from its
+  // start: followStart, then one followStep per move. Plays: the M1 play 2, 1, 2, 1, 2, 1 from (1, 0) on A2
+  // with revisits; the M4 play 1, 2 in the numbers game; and 2100 moves on the triangle (A2~), past
+  // CAPS.gardenPositions, where the model is full. Expected counts: golden types.A2.n_roots and
+  // types.A2.fundamental_orbit_sizes[0].
+  // regression: P3-RT-13-04
+  it('followPlay is followStart and one followStep per move: the garden holds the whole play', () => {
+    const cases: { board: AnyBoard; start: number[]; game: 'mutation' | 'firing'; labels: number[] }[] = [
+      { board: named('A2'), start: [1, 0], game: 'mutation', labels: [2, 1, 2, 1, 2, 1, 1, 2, 2] },
+      { board: named('A2'), start: [1, 0], game: 'firing', labels: [1, 2] },
+      // The triangle's labels are 0, 1, 2 (an affine board numbers its nodes from 0, E-7).
+      { board: resolveBoard('A2~'), start: [1, 0, 0], game: 'mutation', labels: Array.from({ length: 2100 }, (_, k) => [0, 1, 2, 1][k % 4]!) },
+    ];
+    const results: number[] = [];
+    for (const c of cases) {
+      const b = c.board as Board<unknown>;
+      const bound = gardenLayersBound(c.board);
+      const nodes = toPositions(c.board, c.labels);
+      const play: Vector[] = [startVector(c.board, c.start).v];
+      for (const k of nodes) play.push((c.game === 'mutation' ? mutate : fire)(b, play[play.length - 1]!, k));
+      let stepped = followStart(c.board, play[0]!, c.game, bound);
+      for (let k = 0; k < nodes.length; k++) stepped = followStep(stepped, c.board, play[k]!, play[k + 1]!, nodes[k]!);
+      const built = followPlay(c.board, play, nodes, c.game, bound);
+      expect(built.keys).toEqual(stepped.keys);
+      expect(built.items).toEqual(stepped.items);
+      expect([...built.index]).toEqual([...stepped.index]);
+      expect(built.rank).toEqual(stepped.rank);
+      expect(built.inRankGraph).toEqual(stepped.inRankGraph);
+      expect(built.edges).toEqual(stepped.edges);
+      expect(built.full).toBe(stepped.full);
+      results.push(built.items.length);
+    }
+    expect(results[0]).toBe(resolveGoldenPath('types.A2.n_roots'));
+    expect(results[1]).toBe(resolveGoldenPath('types.A2.fundamental_orbit_sizes[0]'));
+    expect(results[2]).toBe(CAPS.gardenPositions);
+    expect(followPlay(cases[2]!.board, [startVector(cases[2]!.board, [1, 0, 0]).v], [], 'mutation', gardenLayersBound(cases[2]!.board)).items).toHaveLength(1);
   });
 });

@@ -100,6 +100,12 @@
   let notice = $state<string | null>(null);
   let busy = $state(false);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
   let generation = 0;
 
   const touch = (): void => {
@@ -215,7 +221,12 @@
   function readLink(): void {
     const { state, notice: n } = admitLink(window.location.search, defaults, instanceId);
     notice = n;
-    if (encodeState(state) !== encodeState(bench.state())) load(configOf(state));
+    if (encodeState(state) === encodeState(bench.state())) return;
+    if (!predictionResolved && encodeState(state) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(configOf(state));
   }
 
   // Hydration: read the URL once with the instance prefix (6.6).
@@ -371,7 +382,7 @@
 {#snippet figure(api: FrameApi)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="t11" data-view={cur().view} data-tab-shown={tab} onkeydown={(e) => onKeydown(e, api.announce)}>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={bigLabels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     <p class="line" data-out="symmetry">Symmetry of {spec}: <span class="numeral">{symmetryText(ctx)}</span>.</p>

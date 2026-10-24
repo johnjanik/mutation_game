@@ -12,7 +12,7 @@
 // reset, copyLink, downloadData (ToolFrame). Board hooks: data-node, data-board, data-value,
 // data-can-act on node buttons; data-tool, data-moves, data-hydrated on the root; data-table-node on
 // the table's node buttons; data-live on the live region. On lesson pages (regressions): data-instance
-// on a tool's root, data-control predictShow (Predict).
+// on a tool's root, data-control predictShow (Predict), data-out vertex with data-on-path (T8's graph).
 // Properties beyond the common ones of 4.0 (id, board, coords, start, moves, linkTo, prediction,
 // preset, caption, layers): grown, grows ('roots' | 'orbit'), growth ('follow' | 'explore'),
 // positiveOnly, vertexLabels, boardChoices.
@@ -20,6 +20,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { engineMoves } from './engineMoves';
 
 interface LayerGrowth {
   label: string;
@@ -602,5 +603,100 @@ test.describe('regressions', () => {
       // is the following garden. The lens's margin for a replay is a ratio of 10 (plan).
       expect(t2 / plain, `T2 follower page ${t2.toFixed(1)} ms against the plain tool ${plain.toFixed(1)} ms`).toBeLessThan(10);
     });
+  });
+
+  // SPEC 7.4 "extends it by one position per move, so a move costs one engine call however long the play
+  // is", for the followers of a Game Board: T2 on M1 b2 and T3 on M2 b2, both with linkTo="b1". The
+  // engine's moves made by one move of b1 are counted (engineMoves.ts) after a link of 1 move and after
+  // a link of 600 moves; they must be equal. The timing test above did not see a follower that replays
+  // the play on every move once its effect no longer looped (a component that stopped calling extendPlay
+  // or followPlay passed it); this count does: such a follower makes 600 more moves.
+  test.describe('engine moves of one move of the leader do not grow with the play', () => {
+    const word = (n: number, labels: readonly number[]): string => Array.from({ length: n }, (_, k) => labels[k % labels.length]).join('.');
+    for (const [route, what, labels] of [
+      ['modules/m1-mutation/', 'T2 garden b2', [1, 2]],
+      ['modules/m2-form/', 'T3 meter b2', [1, 2, 3]],
+    ] as const) {
+      // regression: P3-RT-04-04
+      test(`${route}: ${what} following b1`, async ({ page }) => {
+        const counts: number[] = [];
+        for (const n of [1, 600]) {
+          await page.goto(`${route}?b1.w=${word(n, labels)}`);
+          const leader = page.locator('[data-tool][data-instance="b1"]');
+          const follower = page.locator('[data-tool][data-instance="b2"]');
+          await follower.scrollIntoViewIfNeeded();
+          await expect(follower).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+          await leader.scrollIntoViewIfNeeded();
+          await expect(leader).toHaveAttribute('data-hydrated', 'true', { timeout: 60000 });
+          await expect(leader).toHaveAttribute('data-moves', String(n));
+          counts.push(
+            await engineMoves(page, async () => {
+              await leader.locator('button[data-board="populations"][data-node="1"]').click();
+              await expect(leader).toHaveAttribute('data-moves', String(n + 1));
+              await page.waitForTimeout(300);
+            }),
+          );
+        }
+        expect(counts[0], 'engine moves of one move of b1 after a link of 1 move').toBeGreaterThan(0);
+        expect(counts[1], `engine moves of one move of b1 after a link of 600 moves (after 1 move: ${counts[0]})`).toBe(counts[0]);
+      });
+    }
+  });
+
+  // RT-13 (reader playtest), attack 9, adopted from its reproducer: M1 beat 1 says "the garden below it
+  // records each population the board reaches. There are exactly 6, and you can find them all" (SPEC 3 M1
+  // table row 1: "T1, A2, populations, free play, p = (1, 0), with T2 beside it in "follow" mode counting
+  // the populations found (6)"); M4 row 5: "T2 "follow" mode beside it (3 positions)". A reader at 360 by
+  // 800 plays on the board (client:idle) and then scrolls to the garden (client:visible, linkTo), which
+  // hydrated then and started from the board's last position. Oracle: the orbit of (1, 0) on A2 under
+  // mutation has 6 populations and the play 2, 1, 2, 1, 2, 1 visits all of them; firing 1, 2 from (1, 0)
+  // visits the 3 positions of its orbit. The M5 case (T8 following b1) is the reproducer's control.
+  test.describe('a follower that hydrates after the board was played', () => {
+    // regression: P3-RT-13-04
+    test('M4 beat 5: playing b6 first, then scrolling to the garden b7, counts the 3 positions of the orbit of (1, 0)', async ({ page }) => {
+      await page.goto('modules/m4-numbers/');
+      const b6 = page.locator('[data-tool][data-instance="b6"]');
+      await b6.scrollIntoViewIfNeeded();
+      await expect(b6).toHaveAttribute('data-hydrated', 'true');
+      await b6.locator('[data-control="predictShow"]').click();
+      for (const l of [1, 2]) await b6.locator(`button[data-board="numbers"][data-node="${l}"]`).click(); // oracle: (1,0) -> (-1,1) -> (0,-1), the whole orbit
+      const b7 = page.locator('[data-tool][data-instance="b7"]');
+      await b7.scrollIntoViewIfNeeded();
+      await expect(b7).toHaveAttribute('data-hydrated', 'true');
+      await expect(b7.locator('[data-out="found"]')).toHaveText('3');
+    });
+
+    test('M5 beat 1: playing b1 first, then scrolling to the Weyl Explorer b2, marks the game as a path', async ({ page }) => {
+      await page.goto('modules/m5-weyl/');
+      const b1 = page.locator('[data-tool][data-instance="b1"]');
+      await expect(b1).toHaveAttribute('data-hydrated', 'true');
+      await b1.locator('[data-control="predictShow"]').click();
+      for (const l of [1, 2, 1]) await b1.locator(`button[data-board="numbers"][data-node="${l}"]`).click(); // oracle: (1,1,1) -> (-1,2,1) -> (1,-2,3) -> (-1,-1,3)
+      const b2 = page.locator('[data-tool][data-instance="b2"]');
+      await b2.scrollIntoViewIfNeeded();
+      await expect(b2).toHaveAttribute('data-hydrated', 'true');
+      await expect(b2.locator('[data-out="vertex"][data-on-path="true"]')).toHaveCount(4);
+    });
+
+    for (const order of ['play first, then scroll to the garden', 'garden hydrated first, then play'] as const) {
+      // regression: P3-RT-13-04
+      test(`M1 beat 1: ${order}: the garden counts the 6 populations the board visited`, async ({ page }) => {
+        await page.goto('modules/m1-mutation/');
+        const b1 = page.locator('[data-tool][data-instance="b1"]');
+        const b2 = page.locator('[data-tool][data-instance="b2"]');
+        await expect(b1).toHaveAttribute('data-hydrated', 'true');
+        if (order === 'garden hydrated first, then play') {
+          await b2.scrollIntoViewIfNeeded();
+          await expect(b2).toHaveAttribute('data-hydrated', 'true');
+          await b1.scrollIntoViewIfNeeded();
+        }
+        await b1.locator('[data-control="predictShow"]').click();
+        for (const l of [2, 1, 2, 1, 2, 1]) await b1.locator(`button[data-board="populations"][data-node="${l}"]`).click();
+        await expect(b1).toHaveAttribute('data-moves', '6');
+        await b2.scrollIntoViewIfNeeded();
+        await expect(b2).toHaveAttribute('data-hydrated', 'true');
+        await expect(b2.locator('[data-out="found"]')).toHaveText('6');
+      });
+    }
   });
 });

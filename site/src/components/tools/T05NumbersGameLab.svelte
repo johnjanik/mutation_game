@@ -135,6 +135,12 @@
   let fundamentalChoice = $state(0);
   let version = $state(0);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
 
   const touch = (): void => {
     version++;
@@ -251,6 +257,10 @@
     if (encodeState(admitted.state) === encodeState(toolState)) return;
     const s = admitted.state;
     const sameAsAuthor = encodeState(s) === encodeState(defaults);
+    if (!sameAsAuthor && !predictionResolved) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
     load({ board: String(s.board), start: s.start ?? [], moves: s.moves ?? [], lambda: s.lambda }, sameAsAuthor ? author.second : []);
   }
 
@@ -534,7 +544,7 @@
 {#snippet figure(api: FrameApi)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="t05" data-board-name={title} onkeydown={(e) => onKeydown(e, api.announce)}>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     <p class="line" data-out="startKind" data-kind={startKindOf(cur().start)}>
@@ -797,11 +807,16 @@
 
 {#snippet controls(api: FrameApi)}
   {@const waveTab = tab === 'wave'}
+  <!-- At the end of the game (or of the wave) the two controls are done but keep the focus the reader left
+       on them: aria-disabled, the handlers doing nothing then; disabled only before hydration (7.4) and
+       while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+  {@const done = !frozen && (ended || (waveTab && (!progress.follows || progress.nextEnd === null)))}
   <button
     type="button"
     class="control"
     data-control="step"
-    disabled={!api.hydrated || frozen || ended || (waveTab && (!progress.follows || progress.nextEnd === null))}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={done ? 'true' : undefined}
     onclick={() => step(api.announce)}>{waveTab ? 'Step one round' : 'Step'}</button
   >
   <button
@@ -809,7 +824,8 @@
     class="control"
     data-control="playToEnd"
     data-play="end"
-    disabled={!api.hydrated || frozen || ended || (waveTab && (!progress.follows || progress.nextEnd === null))}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={done ? 'true' : undefined}
     onclick={() => playToEnd(api.announce)}>Play to the end</button
   >
   <label class="setting">
@@ -1035,7 +1051,8 @@
     text-decoration: underline;
   }
   .tab:disabled,
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .tab:focus-visible,

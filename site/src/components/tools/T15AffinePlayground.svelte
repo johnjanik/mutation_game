@@ -150,6 +150,12 @@
   let busy = $state(false);
   let martianCity = $state<number | null>(null);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
   let loadToken = 0;
 
   const touch = (): void => {
@@ -363,12 +369,19 @@
       return;
     }
     const token = ++loadToken;
+    // A state other than the configured one withdraws a prediction still open (SPEC 4.0 Predict; as T1).
+    const withdraw = (): void => {
+      if (predictionResolved || encodeState(s) === encodeState(defaults)) return;
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    };
     try {
       const name = typeof s.board === 'string' ? s.board : '';
       const nextTab = tabForState(s);
       const b = info(name).board;
       if (nextTab === 'marks-comarks') {
         notice = null;
+        withdraw();
         commit(nextTab, name, null);
         return;
       }
@@ -396,6 +409,7 @@
       if (token !== loadToken) return;
       notice = null;
       convention = nextTab === 'pentagon' ? 'olympiad' : 'site';
+      withdraw();
       commit(nextTab, name, g);
     } catch {
       if (token !== loadToken) return;
@@ -443,7 +457,7 @@
   }
 
   function step(announce: (t: string) => void): void {
-    if (legal.length > 0) act(legal[0]!, announce);
+    if (legal.length > 0 && !atLinkCap) act(legal[0]!, announce);
   }
 
   async function playOn(announce: (t: string) => void): Promise<void> {
@@ -568,7 +582,7 @@
     <p class="line">
       Board <span data-out="boardName">{boardName}</span>: <span data-out="verdict">{inf.verdict}</span>.
     </p>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     {#if tab === 'marks-comarks'}
@@ -616,14 +630,23 @@
 
 {#snippet controls(api: FrameApi)}
   {#if isNumbers}
-    <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || busy || legal.length === 0 || atLinkCap} onclick={() => step(api.announce)}
-      >Step</button
+    <!-- A play control that its own press makes inactive (a play running in the worker, the end or the
+         link maximum reached) keeps the focus: aria-disabled, its handler doing nothing then; the disabled
+         attribute only before hydration (7.4) and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+    <button
+      type="button"
+      class="control"
+      data-control="step"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && (busy || legal.length === 0 || atLinkCap) ? 'true' : undefined}
+      onclick={() => step(api.announce)}>Step</button
     >
     <button
       type="button"
       class="control"
       data-control="playOn"
-      disabled={!api.hydrated || frozen || busy || (cur()?.cursor ?? 0) >= CAPS.playMoves}
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && (busy || (cur()?.cursor ?? 0) >= CAPS.playMoves) ? 'true' : undefined}
       onclick={() => void playOn(api.announce)}>Play on</button
     >
   {/if}
@@ -772,7 +795,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,

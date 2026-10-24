@@ -6,7 +6,9 @@
   // (same box, no shift), and the keyboard works on one focusable button outside the canvas that moves
   // to the focused vertex (A-1: focus is never trapped in a canvas); hover and click on the canvas are a
   // hit test on the nearest dot within its hit area. The box has a fixed height and scrolls (A-11).
-  // Nothing moves by itself (A-9); there is no transition.
+  // Nothing moves by itself (A-9); there is no transition. The buttons are rendered disabled until the
+  // island hydrates (7.4); afterwards `disabled` (a graph frozen by a prediction) sets aria-disabled and
+  // activating a vertex jumps nowhere, so the graph keeps its tab stop (A-1), as Board.svelte does.
   import { tick } from 'svelte';
   import type { WeylModel } from './graph';
   import { VERTEX_KEYS, hitTest, nextVertex, type GraphLayout, type Scene, type VertexKey } from './layout';
@@ -171,7 +173,8 @@
             data-highlighted={k === highlighted ? 'true' : undefined}
             style="left: {layout.cx[k]! - layout.hit / 2}px; top: {layout.cy[k]! - layout.hit / 2}px; width: {layout.hit}px; height: {layout.hit}px;"
             tabindex={k === stop ? 0 : -1}
-            disabled={!hydrated || disabled}
+            disabled={!hydrated}
+            aria-disabled={hydrated && disabled ? 'true' : undefined}
             aria-label={vertexName(k)}
             data-out="vertex"
             data-position={positionText(k)}
@@ -179,7 +182,7 @@
             data-on-path={onPath.has(k) ? 'true' : 'false'}
             onclick={() => {
               tabStop = k;
-              onJump(k);
+              if (!disabled) onJump(k);
             }}
             onfocus={() => {
               tabStop = k;
@@ -223,13 +226,16 @@
           bind:this={cursorButton}
           class="vertex cursor"
           style="left: {layout.cx[cursorAt]! - layout.hit / 2}px; top: {layout.cy[cursorAt]! - layout.hit / 2}px; width: {layout.hit}px; height: {layout.hit}px;"
-          disabled={!hydrated || disabled}
+          disabled={!hydrated}
+          aria-disabled={hydrated && disabled ? 'true' : undefined}
           aria-label={vertexName(cursorAt)}
           data-control="graphFocus"
           data-position={positionText(cursorAt)}
           data-layer={model.graph.depth[cursorAt]}
           data-on-path={onPath.has(cursorAt) ? 'true' : 'false'}
-          onclick={() => onJump(cursorAt)}
+          onclick={() => {
+            if (!disabled) onJump(cursorAt);
+          }}
           onfocus={() => onInspect(cursorAt)}
           onblur={() => onInspect(null)}
           onkeydown={onCursorKey}
@@ -282,7 +288,8 @@
     cursor: pointer;
     pointer-events: auto;
   }
-  .vertex:disabled {
+  .vertex:disabled,
+  .vertex[aria-disabled='true'] {
     cursor: default;
   }
   .vertex.cursor {

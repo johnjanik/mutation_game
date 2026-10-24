@@ -30,8 +30,10 @@
   const answerText = $derived(predictionAnswerText(prediction));
   const fields = $derived(prediction.answer.type === 'position' ? prediction.answer.value.length : 0);
 
+  /** The answer closing a sentence: a full stop is added unless the answer already ends one (a choice is often a sentence). */
+  const closed = $derived(/[.!?]$/.test(answerText) ? answerText : `${answerText}.`);
   const resultText = $derived(
-    resolved === 'correct' ? `Right: ${answerText}.` : resolved === 'wrong' ? `Not quite: the answer is ${answerText}.` : resolved === 'shown' ? `The answer is ${answerText}.` : '',
+    resolved === 'correct' ? `Right: ${closed}` : resolved === 'wrong' ? `Not quite: the answer is ${closed}` : resolved === 'shown' ? `The answer is ${closed}` : '',
   );
 
   function read(): PredictionAnswer | null {
@@ -52,7 +54,7 @@
   function finish(outcome: 'correct' | 'wrong' | 'shown'): void {
     if (resolved !== null) return;
     resolved = outcome;
-    announce?.(`${outcome === 'correct' ? 'Right' : outcome === 'wrong' ? 'Not quite' : 'Shown'}. The answer is ${answerText}. ${prediction.reveal}`);
+    announce?.(`${outcome === 'correct' ? 'Right' : outcome === 'wrong' ? 'Not quite' : 'Shown'}. The answer is ${closed} ${prediction.reveal}`);
     onResolved?.(outcome);
   }
 
@@ -86,8 +88,13 @@
         </label>
       {/each}
     {/if}
-    <button type="button" class="control" data-control="predictCheck" disabled={!hydrated || resolved !== null} onclick={check}>Check</button>
-    <button type="button" class="control" data-control="predictShow" disabled={!hydrated || resolved !== null} onclick={() => finish('shown')}>Show me</button>
+    <!-- Once answered, the two buttons are done but keep the focus the reader left on one of them (A-1,
+         WCAG 2.4.3): aria-disabled, not the disabled attribute, which is for the time before hydration
+         (7.4) and would drop the focus to the page; finish() ignores a second answer. -->
+    <button type="button" class="control" data-control="predictCheck" disabled={!hydrated} aria-disabled={resolved !== null ? 'true' : undefined} onclick={check}>Check</button>
+    <button type="button" class="control" data-control="predictShow" disabled={!hydrated} aria-disabled={resolved !== null ? 'true' : undefined} onclick={() => finish('shown')}
+      >Show me</button
+    >
   </div>
   <p class="line" data-out="predictResult">{resultText}</p>
   {#if resolved !== null}
@@ -157,7 +164,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,

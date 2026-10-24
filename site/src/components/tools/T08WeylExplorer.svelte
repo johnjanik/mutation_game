@@ -36,7 +36,7 @@
   import { sceneToSvg } from './t08/svgScene';
   import { heapData } from './t08/heapView';
   import { PANELS, pickerGroups, presetOf, weylState, type WeylPanel } from './t08/presets';
-  import { LINK_FOLLOWING, LINK_OUTSIDE, admitLink, followedGame } from './t08/link';
+  import { LINK_FOLLOWING, LINK_OUTSIDE, admitLink, followMoves, followedGame } from './t08/link';
   import WeylGraph from './t08/WeylGraph.svelte';
   import VertexDetails from './t08/VertexDetails.svelte';
   import HeapView from './t08/HeapView.svelte';
@@ -240,19 +240,33 @@
     });
   });
 
-  // The linked Game Board (7.4): its state drives T8's path when it is a legal game from all ones.
+  // The linked Game Board (7.4): its state drives T8's path when it is a legal game from all ones. The
+  // game T8 holds is extended move by move (followMoves: one engine call per new move, none for an undo);
+  // another game is checked from the start (followedGame) and loaded. The subscription is untracked:
+  // followToolState calls back at once with the state already published, and that call reads and writes
+  // the game; tracked, the effect would depend on what it writes and subscribe again after every move,
+  // handling each state twice (the same cause as T2's and T3's follow, P3-RT-04-04).
   $effect(() => {
     if (linkTo === undefined) return;
-    return followToolState(linkTo, (s) => {
-      followed = s;
-      const g = followedGame(s, OFFERED);
-      if (g === null) {
-        linkOk = false;
-        return;
-      }
-      linkOk = true;
-      if (g.board !== game.spec || g.moves.join('.') !== game.applied.join('.')) load(g.board, g.moves);
-    });
+    return untrack(() =>
+      followToolState(linkTo, (s) => {
+        followed = s;
+        const held = followMoves(game, s);
+        if (held !== null) {
+          linkOk = held !== 'outside';
+          if (held === 'changed') inspect = null;
+          if (held !== 'unchanged') touch();
+          return;
+        }
+        const g = followedGame(s, OFFERED);
+        if (g === null) {
+          linkOk = false;
+          return;
+        }
+        linkOk = true;
+        if (g.board !== game.spec || g.moves.join('.') !== game.applied.join('.')) load(g.board, g.moves);
+      }),
+    );
   });
 
   // ------------------------------------------------------------------------------------------
@@ -521,8 +535,24 @@
 
 {#snippet controls(api: FrameApi)}
   {#if linkTo === undefined}
-    <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || atEnd} onclick={() => step(api.announce)}>Step</button>
-    <button type="button" class="control" data-control="playToEnd" disabled={!api.hydrated || frozen || atEnd} onclick={() => playToEnd(api.announce)}>Play to the end</button>
+    <!-- At the end of the game the two controls are done but keep the focus: aria-disabled; disabled only
+         before hydration (7.4) and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+    <button
+      type="button"
+      class="control"
+      data-control="step"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && atEnd ? 'true' : undefined}
+      onclick={() => step(api.announce)}>Step</button
+    >
+    <button
+      type="button"
+      class="control"
+      data-control="playToEnd"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && atEnd ? 'true' : undefined}
+      onclick={() => playToEnd(api.announce)}>Play to the end</button
+    >
     <label class="setting">
       <span>Board</span>
       <select data-control="picker" disabled={!api.hydrated || frozen} onchange={(e) => pickBoard((e.currentTarget as HTMLSelectElement).value, api.announce)}>
@@ -683,7 +713,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,
