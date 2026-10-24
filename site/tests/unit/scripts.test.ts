@@ -438,7 +438,7 @@ describe('timing checks run alone', () => {
   });
 
   it('the timing configuration takes only the timing files, one file at a time, with the aliases of site-unit', async () => {
-    type Project = { test?: { name?: string; include?: string[] }; resolve?: { alias?: unknown } };
+    type Project = { test?: { name?: string; include?: string[] }; resolve?: { alias?: unknown; tsconfigPaths?: boolean } };
     const timing = (await import('../timing/vitest.config')).default as Project & { test?: { fileParallelism?: boolean; environment?: string } };
     const rootConfig = (await import('../../../vitest.config')).default as { test?: { projects?: unknown[] } };
     const siteUnit = (rootConfig.test?.projects ?? []).find((p): p is Project => typeof p === 'object' && p !== null && (p as Project).test?.name === 'site-unit');
@@ -447,7 +447,16 @@ describe('timing checks run alone', () => {
     expect(timing.test?.fileParallelism).toBe(false);
     expect(timing.test?.environment).toBe('node');
     expect(timing.resolve?.alias).toEqual(siteUnit!.resolve?.alias);
-    expect(Object.keys(timing.resolve?.alias as Record<string, string>).sort()).toEqual(['@components', '@engine', '@lib']);
+    expect(timing.resolve).toEqual(siteUnit!.resolve);
+    // The aliases the timing run resolves: listed in resolve.alias, or, since RT-FIX P3-RT-12-05, read by both
+    // runs from the paths of site/tsconfig.json (resolve.tsconfigPaths); either way exactly the three of CONTRACTS 1.
+    const aliasNames =
+      timing.resolve?.alias !== undefined
+        ? Object.keys(timing.resolve.alias as Record<string, string>)
+        : timing.resolve?.tsconfigPaths === true
+          ? Object.keys((JSON.parse(readFileSync(join(ROOT, 'site/tsconfig.json'), 'utf8')) as { compilerOptions: { paths: Record<string, string[]> } }).compilerOptions.paths).map((k) => k.replace(/\/\*$/, ''))
+          : [];
+    expect(aliasNames.sort()).toEqual(['@components', '@engine', '@lib']);
     // npm test never collects a timing file: the site-unit project includes site/tests/unit only, and the
     // engine project lives under packages/engine.
     for (const pattern of siteUnit!.test?.include ?? []) expect(pattern.startsWith('site/tests/unit/'), pattern).toBe(true);
