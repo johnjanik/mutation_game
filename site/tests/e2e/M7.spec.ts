@@ -1294,6 +1294,60 @@ function startEntry(s: string): number {
 }
 
 test.describe('regressions', () => {
+  // RT-09, attack 16 (a challenge check that rejects a right answer), from
+  // site/tests/e2e/redteam-RT-09-p4-m7-b12-challenge.spec.ts of the lens branch. The goal of b12 read "Find rings
+  // on B3, other than those of beat 5, that also give 24 vertices and 36 edges.", and its check (polytopeName
+  // equals "truncated octahedron") is met by B3 (1, 1, 0) alone: T10 names a polytope only for the rings of a
+  // golden record (t10/names.ts). The rings (2, 1, 0) give 24 vertices and 36 edges (oracle
+  // wythoff_f_vector(cartan('B',3), [2,1,0]) = [24, 36, 14, 1], the same as for [1,1,0]) and the challenge never
+  // reported success. The play reaches (2, 1, 0) without passing through (1, 1, 0), because a met challenge stays
+  // met: (0, 1, 1) -> click node 1 -> (1, 1, 1) -> Ring up -> (2, 1, 1) -> click node 3 -> (2, 1, 0).
+  // Adoption: the reproducer's last assertion (success at (2, 1, 0)) holds while the goal admits those rings; a
+  // goal that asks for rings of one makes (2, 1, 0) a near miss, on which the check stays silent.
+  // regression: P4-RT-09-03
+  test('M7 b12 challenge rejects the rings (2, 1, 0), which give 24 vertices and 36 edges', async ({ page }) => {
+    await page.goto(ROUTE);
+    const challenge = await challengeFor(page, 'b12');
+    await hydrate(page, 'b12');
+    await expect(out(page, 'b12', 'polytopeName')).toHaveText(W('B3', [0, 1, 1]).name);
+    const goal = (await challengeProps(page)).find((c) => c.for === 'b12')!.goal;
+    const all = W('B3', [1, 1, 1]);
+    const octahedron = W('B3', [1, 1, 0]);
+    await node(page, 'b12', 1).click(); // (1, 1, 1), focus on node 1
+    await expect(out(page, 'b12', 'vertexCount')).toHaveText(String(all.f_vector[0]));
+    await control(page, 'b12', 'ringUp').click(); // (2, 1, 1)
+    await expect(out(page, 'b12', 'vertexCount')).toHaveText(String(all.f_vector[0]));
+    await node(page, 'b12', 3).click(); // (2, 1, 0)
+    expect(await rings(tool(page, 'b12'))).toEqual(['2', '1', '0']);
+    await expect(out(page, 'b12', 'vertexCount')).toHaveText(String(octahedron.f_vector[0]));
+    await expect(out(page, 'b12', 'edgeCount')).toHaveText(String(octahedron.f_vector[1]));
+    await expect(out(page, 'b12', 'fVector')).toHaveText(octahedron.f_vector.join(', '));
+    await expect(out(page, 'b12', 'edgeLengths')).toHaveText([...b3Lengths([2, 1, 0])].reverse().join(', '));
+    await page.waitForTimeout(1000);
+    const met = await challenge.getAttribute('data-met');
+    if (!/\brings? of one\b/i.test(goal)) {
+      // The goal admits (2, 1, 0): rings on B3 other than those of beat 5, with 24 vertices and 36 edges.
+      expect(
+        met,
+        `M7 b12: the rings (2, 1, 0) on B3 give 24 vertices and 36 edges, the goal as printed ("${goal}"), but the check (polytopeName equals "truncated octahedron") does not report success`,
+      ).toBe('true');
+    } else {
+      // The goal asks for rings of one, so (2, 1, 0) is a near miss and the check stays silent.
+      expect(met, `M7 b12: (2, 1, 0) is not an answer to "${goal}"`).toBeNull();
+      await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
+    }
+  });
+
+  test('(control) the b12 challenge reports success for (1, 1, 0)', async ({ page }) => {
+    await page.goto(ROUTE);
+    const challenge = await challengeFor(page, 'b12');
+    await hydrate(page, 'b12');
+    await node(page, 'b12', 3).click(); // (0, 1, 0)
+    await node(page, 'b12', 1).click(); // (1, 1, 0)
+    await expect(out(page, 'b12', 'polytopeName')).toHaveText(W('B3', [1, 1, 0]).name);
+    await expect(challenge).toHaveAttribute('data-met', 'true');
+  });
+
   // RT-09, attack 25 (a drawn object that contradicts its caption), from
   // site/tests/e2e/redteam-RT-09-p4-m7-uniform.spec.ts of the lens branch. Beat 5 said make uniform replays "the
   // same moves from (0,1,\sqrt2) in floating point", and the caption of b7 "Make uniform ... redraws it from

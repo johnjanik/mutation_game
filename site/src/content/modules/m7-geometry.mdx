@@ -178,7 +178,7 @@ Populations lie in the root lattice and positions are weights in Dynkin labels; 
 
 <T10GeometryStudio client:visible id="b11" preset="face-table" board="B3" caption="B3 with rings on nodes 1 and 3, the rhombicuboctahedron of beat 3. Change the rings to reach the goal above." />
 
-<Challenge client:visible for="b12" goal={`Find rings on B3, other than those of beat 5, that also give ${f('B3', B3_UNIFORM, 0)} vertices and ${f('B3', B3_UNIFORM, 1)} edges.`} explanation={`Ring the two long nodes, (1, 1, 0): the ${fmt(`${W('B3', B3_OCTAHEDRON)}.name`)}, with ${f('B3', B3_OCTAHEDRON, 0)} vertices, ${f('B3', B3_OCTAHEDRON, 1)} edges and ${f('B3', B3_OCTAHEDRON, 2)} faces. Both ringed nodes are long, so its edges have one length.`} check={{ kind: 'out', name: 'polytopeName', equals: gv(`${W('B3', B3_OCTAHEDRON)}.name`) }} />
+<Challenge client:visible for="b12" goal={`Move the rings of one to another pair of nodes of B3, keeping ${f('B3', B3_UNIFORM, 0)} vertices and ${f('B3', B3_UNIFORM, 1)} edges.`} explanation={`Ring the two long nodes, (1, 1, 0): the ${fmt(`${W('B3', B3_OCTAHEDRON)}.name`)}, with ${f('B3', B3_OCTAHEDRON, 0)} vertices, ${f('B3', B3_OCTAHEDRON, 1)} edges and ${f('B3', B3_OCTAHEDRON, 2)} faces. Both ringed nodes are long, so its edges have one length.`} check={{ kind: 'out', name: 'polytopeName', equals: gv(`${W('B3', B3_OCTAHEDRON)}.name`) }} />
 
 <T10GeometryStudio client:visible id="b12" preset="make-uniform" board="B3" caption="B3 with rings on nodes 2 and 3: the truncated cube of beat 5. Find the other choice of rings." />
 
