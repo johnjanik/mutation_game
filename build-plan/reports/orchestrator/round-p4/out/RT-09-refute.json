@@ -1,0 +1,76 @@
+{
+ "lens": "RT-09",
+ "mode": "refute",
+ "verdicts": [
+  {
+   "findingId": "P4-RT-09-01",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 2.14: 'Euclidean coordinates (finite type)', '[V for every type of rank 2 to 8; oracle function euclidean_basis]' and, for the Coxeter plane, '[V for every type of rank 2 to 8]'; SPEC 2.7: 'Finite type means one of the boards of section 2.8'; SPEC 0.3 [V]: 'the range of boards checked is stated with the claim'. These passages support the finding's expected.",
+   "evidence": "Read at b9b8504 (git show into scratch): site/src/content/modules/m7-geometry.mdx. Beat 1 has the page's only finite-type clause: 'on a board of finite type every nonzero population has a positive form value'. It governs its own sentence and sets no scope for the page. Beat 2 opens 'Start from a position with no negative number' and says 'Free play from the position reaches finitely many positions, its orbit, whose convex hull is a polytope' with no restriction on the board. Seen 2 is just as general. Beat 6, Seen 1 and Seen 4 quantify outright: 'verified by computation on every board of rank two to eight' and 'every board of rank two to eight'. SPEC 4 T10 'For the named finite types' limits the tool, not the prose or the Seen box. The plan (build-plan/agents/P4-A6-lesson-m7.md, Seen items 1 and 4) asked for 'every type of rank 2 to 8'; the page wrote 'board'. decisions/P4-A6.md and DECISIONS.md record no choice on these sentences. The only [D] marks in 2.14 cover make uniform and the graph switch. Oracle on copies taken from the gate commit: L.board_from_name('A2~') gives C=[[2,-1,-1],[-1,2,-1],[-1,-1,2]] and cartan_class 'affine'; L.orbit(C,[(1,0,0)],L.fire,cap=5000) raises OverflowError ('orbit exceeds cap'). Golden types[T].coxeter_plane exists for 31 of the 32 types (every finite type except A1). reports/gate-G4.md names gate commit b9b8504 and has no open item on M7 wording. No phase 4 red-team merge report is on disk.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 failed, since no earlier sentence clearly scopes beat 2 or the Seen box to finite type, and Seen 1, Seen 4 and beat 6 say 'every board' outright (the 8.4 example 'all boards of rank at most 8' is a model for how to word a provenance, it cannot cover beat 2 or Seen 2, and 0.3 makes the range part of the claim); R2 failed, the finding reads 2.14 and 2.7 correctly; R3 failed, M7 is phase 4 and the gate is G4; R4 failed, the oracle confirms an infinite orbit on the affine triangle; R5 failed, no [D] mark or recorded decision covers these sentences; R6 failed, no record. A wrong mathematical statement presented as fact is a blocker, as in round 1's P3-RT-09-02."
+  },
+  {
+   "findingId": "P4-RT-09-02",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 2.5, Long and short: 'short roots have (β,β)=2 and long roots have 4 (types B, C, F) or 6 (type G)'. This is a statement about the finite types, and SPEC 2.12's twisted table lists other weights. It supports the finding's expected.",
+   "evidence": "Read at b9b8504: m6-multiple-edges.mdx, Seen bullet 2: 'Exactly the balanced boards have a form with positive city weights that no mutation changes ([W20], Theorems 8.4, 8.7); short roots have form value 2, long ones 4 or 6, verified by computation.' The Seen box has no scope line. Bullet 1 is general too. The sentence's own first clause ranges over balanced boards. Beat 3's '4 and 2 here' is scoped to B2 and covers only its own sentence. The module title names B, C, F, G but no sentence limits the Seen box to them. Neither Appendix C nor the glossary defines long and short only for finite types. The plan (P4-A5-lesson-m6.md 5.10) suggested '(β,β) in {2,4,6}', but that is the plan's text, not a [D] of SPEC. decisions/P4-A5.md has no entry on this clause. Oracle on scratch copies: board_from_name('A2^(2)') is affine with symmetrizer (1,4); the simple roots have form values 2 and 8, and all roots up to depth 6 have 2 or 8. board_from_name('A4^(2)') has symmetrizer (1,2,4) and values 2, 4, 8. For comparison B2 has symmetrizer (2,1) and G2 has (1,3).",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 failed, no qualifier limits the clause to the finite types and the earlier clause scopes it to every balanced board; R2 failed, 2.5 ties 4 and 6 to types B, C, F and G; R3 failed, M6 is phase 4; R4 failed, the oracle gives form value 8 on the balanced board A2^(2); R5 failed, not [D] and no recorded decision; R6 failed, no record. A wrong mathematical statement is a blocker."
+  },
+  {
+   "findingId": "P4-RT-09-03",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 8.2 item 6: 'Challenges: three to five goals, each with a check that reports success'. SPEC 4 T10 Input: 'a non-negative integer on each node (click to ring)'. SPEC 2.14: 'combinatorics depend only on which nodes are ringed'. Appendix C, ring: 'nonzero Dynkin label of a dominant weight'. These support the finding's expected.",
+   "evidence": "Read at b9b8504: m7-geometry.mdx, b12 goal: 'Find rings on B3, other than those of beat 5, that also give 24 vertices and 36 edges.' Its check is {kind:'out', name:'polytopeName', equals: gv(wythoff[type=B3;rings=1,1,0].name)}. Beat 2 defines 'A node is ringed when its number is positive, that number being its ring', so (2,1,0) counts as rings. Beat 5 itself names both (1,1,0) and (0,1,1), so 'other than those of beat 5' can even be read as ruling out (1,1,0). decisions/P4-A6.md ('challenges ... and their checks') records 'the name check is met only by B3 (1, 1, 0)', and polish (7) keeps 'on B3' because the name's only record is B3 (1,1,0). These are a builder's records about other boards, not about other ring values on B3. They are not a [D] sentence of SPEC, a section 10 default or an owner's answer. The lens's exclusion for recorded choices also excepts a choice that is wrong. MERGE P4 wave 4.4 passed a board-aware check to P1-A4, which is a different cause. Oracle: wythoff_f_vector(cartan('B',3), r) = [24,36,14,1] for r = [1,1,0], [2,1,0], [1,2,0] and [0,1,1]. The only golden wythoff record named 'truncated octahedron' is (B3, [1,1,0]).",
+   "severityAdjustment": "lower to major",
+   "reason": "not refuted: R1 failed, nothing allows a check that ignores valid ring values; R2 failed, the finding reads the goal and 8.2 correctly; R3 failed, phase 4; R4 failed, the oracle gives the same face counts for (2,1,0); R5 failed, P4-A6's record is a builder's choice outside any [D] text; R6 failed, no record. Severity: RED-TEAM-COMMON 4 lists no challenge check among its blockers; a check that does not report success is 'a behaviour the specification states (8.2 item 6) ... wrong', which is major, as round 1's P3-RT-13-09 was graded. The lens file's attack 16 grades it blocker, but that is the plan's level, not the rubric's."
+  },
+  {
+   "findingId": "P4-RT-09-04",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 4 T10, Make uniform: 'a_i=c/√d_i on the ringed nodes' (c is not fixed). SPEC 2.14, Edge lengths: squared length '2d_ia_i^2' and 'the uniform truncated cube is B3 with numbers (0,1,√2)'. SPEC 4.0 'Starts meaningful': 'the surrounding prose states the result it demonstrates'. decisions/P4-A3.md, 'make uniform': c is the largest ringed integer.",
+   "evidence": "The studio's start is a recorded choice filling a gap T10 leaves open. P4-A3 sets c to the largest ring, which is 1 on (0,1,1), so a=(0,1/√2,1). The finding does not dispute that. The defect is the lesson text at b9b8504. Beat 5 says 'replaying the same moves from (0,1,√2) in floating point', and the b7 caption says 'redraws it from (0, 1, √2) with one edge length'. Neither sentence is covered by a [D] or a decision: decisions/P4-A6.md lists (0,1,√2) only as an allowed typed number ('numbers typed without a golden value'; polish (6)), which says nothing about whether it is true. The 2.14 [D] covers offering make uniform, not the wording. The lens exclusion for floating-point make-uniform values covers differences beyond the sixth decimal, not a factor of 2. Oracle: symmetrizer(cartan('B',3)) = (2,2,1). The squared lengths 2d_ia_i^2 at the ringed nodes are 4 and 4 from (0,1,√2), and 2 and 2 from (0,1/√2,1).",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 failed, T10 leaves c free and P4-A3 fixes it at 1, so nothing allows the prose to name a start the studio does not use; R2 failed, the finding reads T10 and P4-A3 correctly; R3 failed, phase 4; R4 failed, the oracle gives 4 for the stated start against 2 for the studio's; R5 failed, P4-A3's record covers the studio's c, not the lesson's sentences, and P4-A6 records only the typing; R6 failed, no record. Severity: the rubric does not clearly name a caption that misstates the tool's start by a scale factor while the shape it names is right. That is major as claimed, or blocker if read as a mathematical statement presented as fact."
+  },
+  {
+   "findingId": "P4-RT-09-05",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 2.10, first table, column 'Lists compared': 'n=3,4' for B and C, 'n=4,5' for D, under '[V for every row; golden key wildberger_lists]'. SPEC 0.3 [V]: 'the range of boards checked is stated with the claim or is every type of rank at most 8'. SPEC 8.4: every statement carries its provenance. These support the finding's expected.",
+   "evidence": "Read at b9b8504: M6 Seen bullet 5: 'For rank at least 3, Wildberger's B and C are Bourbaki's C and B. Verified by computation.' The box's provenance line reads 'Verified by computation, except the E6 diagram ...'. The names table has rows 'n≥3' and no 'Lists compared' column. No range of ranks appears anywhere on the page. Recorded choice: the plan (P4-A5-lesson-m6.md 5.8) says the column 'may be kept or dropped [D]', and decisions/P4-A5.md 'beat 7, the warning box' records it as dropped '[D, allowed by the instruction]'. That is the plan's mark, not a [D] sentence of SPEC (2.10 carries none), a section 10 default or an owner's answer. It also covers only the table column, not the Seen bullet. SPEC 2.10's own 'So for rank at least 3 ...' stands beside the table that gives the range. Golden: wildberger_lists.names has the keys A4, B2, C2, B3, B4, C3, C4, D4, D5, E6, E7, F4, G2, so no B or C of rank 5 or more was compared. Under 0.3's default range, an unqualified 'Verified by computation' claims ranks up to 8.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 failed, no passage allows omitting the range; R2 failed, the finding reads 2.10 and 0.3 correctly; R3 failed, phase 4; R4 failed, the golden file shows only ranks 3 and 4 for B and C; R5 failed, the dropped column is a [D] of the plan only, recorded by P4-A5, and it does not reach the Seen bullet; R6 failed, no record. Severity left at the finding's major: the round 1 precedents differ (P3-RT-09-07 major, P3-RT-08-01 blocker)."
+  },
+  {
+   "findingId": "P4-RT-09-06",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 8.4: 'State the convention whenever a result is quoted from a source that uses another one (section 2.9)'. SPEC 2.9, Donnelly row: 'a = λ, C = M^T'. These support the finding's expected.",
+   "evidence": "Read at b9b8504. M6 beat 4 says '... x_2: the positive roots of the reversed board [Don08] (Theorem 5.2)', and Seen 3 says 'Firing is mutation on the reversed board, transposed. Verified by computation; [Don08].' M6 contains no 'Donnelly' and no sentence that his matrix is C^T. Its Lie theory paragraph states only the Kac and SageMath convention and Bourbaki's transpose. m5-weyl.mdx line 93 does state the convention ('Donnelly fires positive numbers, as this site does; his matrix is the transpose of the Cartan matrix used here.'), but on another page, and 8.4 says 'whenever'. No M6 sentence points the reader to it. decisions/P4-A5.md has no entry on Donnelly or Don08 (grep over all fragments). Oracle: symbolic_play(cartan('B',2),[0,1,0,1]) = (1,0),(2,1),(1,1),(0,1), so the quoted statement is true in the site's convention. That makes it the case 'true as printed but carries no convention' of lens attack 22, which is major under 8.4. RT-08 attack 31 covers the same rule, but nothing at the gate commit or in gate-G4.md records an earlier report.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 failed, 8.4 says 'whenever' and no M6 sentence states the convention; R2 failed, 2.9 lists Donnelly with C=M^T; R3 failed, phase 4; R4 is not applicable, since the finding does not dispute the statement's truth and the oracle agrees it is true; R5 failed, not [D] and no recorded decision; R6 failed, the RT-08 overlap has no record. Major: a prose rule of 8.4 broken."
+  },
+  {
+   "findingId": "P4-RT-09-07",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 2.1: a board is bidirected when 'A_ij>0 exactly when A_ji>0, so every road has at least one road back', and a one-way board is one 'on which some road has no road back'. SPEC 3 preamble: 'M6 to M9 can be read in any order after M5'. These support the finding's expected.",
+   "evidence": "Read at b9b8504: M6 beat 1: 'Until now every road had a road back, as on A2. Here the one-way counts of two cities ... differ: two roads run from city 1 to city 2 and one runs back.' M3 beat 6, which is in the core path every M6 reader has passed, says 'Take a single road from city 1 to city 2 and none back.' The b9 caption and challenge b11 of M3 also have the reader remove the road back on A2. So the opening clause is false as a statement about the earlier lessons. decisions/P4-A5.md 'deviation, P3 against the figure table of M6' records the sentence as the recall of A2 (default: the plan's resolution, instruction 5.12). That is a builder's and plan's record about the P3 conflict, not a [D] sentence of SPEC, a section 10 default or an owner's answer, and the lens's exclusion for recorded choices excepts a choice that states something false. Oracle: cartan('B',2) = [[2,-1],[-2,2]], so A_12=2 and A_21=1 are both positive and B2 is bidirected.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 failed, no passage allows the claim that every earlier road had a road back; R2 failed, the part about M3 is a plain fact, though the finding's reading of the implied contrast is interpretive; R3 failed, phase 4; R4 failed, the oracle confirms B2 is bidirected; R5 failed, P4-A5's recorded deviation covers the choice to open on B2, not the truth of the clause; R6 failed, no record. Minor wording, as claimed."
+  }
+ ]
+}

@@ -1,0 +1,106 @@
+{
+ "lens": "RT-08",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P4-RT-08-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.3 '<G>' and '<Tex>' bullets; 8.4 numbers bullet; CONTRACTS 7 'Numbers'; golden types.A2/B2/G2.coxeter_number",
+   "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a6ee40106d86c0974 (it started on branch worktree-agent-a6ee40106d86c0974 at aea1802). Detached at b9b8504c1b893dc73a25b46fe62382d59eb9cdf1, status clean, node v22.22.0. Lens branch worktree-agent-a5ac953e1a01ff603 (539d159) adds 20 files and changes no existing file. Applied site/tests/unit/redteam-RT-08-p4-typed-rounds.test.ts; status: 'A  site/tests/unit/redteam-RT-08-p4-typed-rounds.test.ts'. npm --prefix <wt> ci --prefer-offline: ok. Ran from <wt>: npx --prefix <wt> vitest run site/tests/unit/redteam-RT-08-p4-typed-rounds.test.ts; exit 1. 'Tests  1 failed | 1 passed (2)': the engine-and-golden test passes. 'AssertionError: M6 types the Coxeter numbers of A2, B2, G2 (and 2h) instead of reading the golden file' received 7 phrases: '<Tex src=\"3\"/>, <Tex src=\"4\"/> or <Tex src=\"6\"/> rounds', 'when the round counter reads <Tex src=\"4\"/>', 'after eight moves', 'the return takes twelve moves', 'After 8 moves, 4 rounds', 'needs 12 moves, 6 rounds', 'needs 6 rounds, 12 moves'. grep places them at m6-multiple-edges.mdx lines 88, 90 (three), 92, 93 (two) and 183. The observed value matches: 7 typed occurrences.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the engine's rounds to return equal types.A2/B2/G2.coxeter_number, and M6 types those values in 7 places. A broken 8.4 numbers rule is major under the rubric."
+  },
+  {
+   "findingId": "P4-RT-08-04",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.9; D4; lens attack 28",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied site/tests/unit/redteam-RT-08-p4-credits-bundled.test.ts (added; the only other files present were earlier applied reproducers, which do not affect this run). npm ci --prefer-offline: ok. npm --prefix <wt> run build: exit 0, '32 page(s) built', 'links: 1040 internal links on 32 pages of site/dist checked, 0 problems'. Then npx --prefix <wt> vitest run site/tests/unit/redteam-RT-08-p4-credits-bundled.test.ts; exit 1. 'Tests  1 failed | 2 passed (3)': the svelte-imports-clsx and no-package.json test passes. 'AssertionError: credits page lists clsx, shipped in client.sNPtvj1U.js: expected ... to match /clsx/'. grep -c clsx on site/dist/credits/index.html: 0. The credits table lists @astrojs/svelte, astro, katex, nanostores and svelte as shipped, and site/dist/_astro contains preload-helper.DHhhL8Zf.js, which is not listed. The observed value matches: clsx is in client.sNPtvj1U.js and /credits/ does not name it.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: clsx's toVal is in client.sNPtvj1U.js and the credits page never names clsx. A stated behaviour of 7.9 that is missing is major."
+  },
+  {
+   "findingId": "P4-RT-08-05",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 8.1 P1; CONTRACTS 7; lens attack 21 (second part)",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied redteam/redteam-RT-08-p4-captions.mjs (added). Ran from <wt>: node redteam/redteam-RT-08-p4-captions.mjs . ; exit 0, as designed: the script prints and asserts nothing. Output: 'm6-multiple-edges.mdx:202 b11: caption=\"One Martian in city 2 of G2, the long city; the challenge above names the population to reach.\"' and 'm6-multiple-edges.mdx:210 b13: caption=\"The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test.\"'. For comparison b12 (line 206) reads '... every population it reaches has form value 2.'. SPEC.md:1914 P1 'a caption that states its point' and CONTRACTS.md:430 'a caption prop stating the result it demonstrates (P1)' are quoted correctly. The observed value matches: both captions are word for word as the finding quotes them, and neither states a result.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: b11 and b13 give a setting and an instruction and no result, against P1 and CONTRACTS 7. A missing stated behaviour is major."
+  },
+  {
+   "findingId": "P4-RT-08-06",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.3; 2.14 table of ring sizes; golden types.E8.coxeter_plane.rings",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied site/tests/unit/redteam-RT-08-p4-ring-path.test.ts (added). Ran: npx --prefix <wt> vitest run site/tests/unit/redteam-RT-08-p4-ring-path.test.ts; exit 1. 'Tests  1 failed | 1 passed (2)': the D4 test passes, with golden rings [18, 6] and coxeter_number 6, so the two fields differ. 'AssertionError: M7: \"circles of <h>\" for the number of roots on each circle: expected [ 'line 116', 'line 120', 'line 160' ] to deeply equal []'. In context: 116 'circles of <G k=\"types.E8.coxeter_number\"/>', 120 'circles of ${fmt('types.E8.coxeter_number')} points', 160 'circles of <G k=\"types.E8.coxeter_number\"/> distinct roots'. The observed value matches: lines 116, 120 and 160.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: M7 prints the roots per circle of E8 from types.E8.coxeter_number at lines 116, 120 and 160. The rubric does not clearly name a golden path whose field is wrong while its digits agree, so the claimed level stands."
+  },
+  {
+   "findingId": "P4-RT-08-07",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.3; 8.4; golden twisted_affine (10 records)",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied site/tests/unit/redteam-RT-08-p4-fallback-word.test.ts (added). Ran: npx --prefix <wt> vitest run site/tests/unit/redteam-RT-08-p4-fallback-word.test.ts; exit 1. 'Tests  1 failed | 1 passed (2)': twisted_affine has length 10. 'AssertionError: expected 'On every board with two-way roads tha…' not to match /\\bten twisted affine boards\\b/', received '... of every untwisted affine board of rank at most 8 and of ten twisted affine boards.' The wrap is at m3-classification.mdx:112. The release build made for P4-RT-08-10 prints the phrase: 'ten twisted affine boards' appears once in rt08-rel/modules/m3-classification/index.html. DECISIONS.md:2936 reads 'Carried to a polish pass: the M3 E4 fallback types ... 'ten''. The observed value matches.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the E4 fallback types the golden count 10 as 'ten', and the release build prints it. A broken 8.4 numbers rule is major."
+  },
+  {
+   "findingId": "P4-RT-08-08",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 8.4 provenance bullet; 2.14 'Edge lengths' [V]; lens attack 26",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied redteam/redteam-RT-08-p4-provenance.mjs (added). Ran from <wt>: node redteam/redteam-RT-08-p4-provenance.mjs . ; exit 0 (the script prints). Output: 'm7-geometry.mdx:105 (beat 5, first paragraph): The edge from $\\lambda$ to the position after firing node $i$ has squared length <Tex src=\"a_i^2(\\alpha_i,\\alpha_i)=2d_ia_i^2\"/> ... A polytope is **uniform** when all its edges have one length, which needs <Tex src=\"a_i\\sqrt{d_i}\"/> to be the same on every ringed node. ...', then 'provenance in the paragraph: none'. Seen box statements (one empty line, then five on the coordinates, Wythoff's construction, the face rule, the Coxeter plane and E8). Last line: 'a Seen statement on edge lengths or uniform polytopes: none'. sed of lines 100-110 shows no <Cite> or 'verified by computation' in beat 5's first paragraph. The observed value matches.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the edge-length rule and the uniformity condition in M7 beat 5 carry no provenance in the paragraph or the Seen box. A broken 8.4 provenance rule is major."
+  },
+  {
+   "findingId": "P4-RT-08-09",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.3 <Unverified> bullet; Appendix E item 7; lens attacks 15 and 19",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied redteam/redteam-RT-08-p4-e7-wrap.mjs (added). Ran from <wt>: node redteam/redteam-RT-08-p4-e7-wrap.mjs . ; exit 0 (the script prints). Output: 'm7-geometry.mdx:158 wrapped: The rule is of the kind described in <Cite k=\"CKPS95\"/>; it has not yet been compared with that paper. fallback: The rule was checked by computation against exact convex hulls and against the face counts of the known polytopes; its attribution is being checked.' Beat 3 (line 89), outside the wrap: '...as the checking script records them.' Appendix E item 7: '...were typed from memory; look them up before the site calls them published values'. In the release build made for P4-RT-08-10, M7 shows that fallback exactly, without 'recorded'. The finding's scratch-copy observation with E7 closed is not part of the stated reproduction and was not run; a verifier may not close an item. The observed value matches the wrapped sentence and the fallback.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the E7 wrap states the item's open status, and its fallback drops the beat 3 hedge on the face counts. Wording of a wrap is minor."
+  },
+  {
+   "findingId": "P4-RT-08-10",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.3 (release report); 9.1 G4 owner's part (items 7 and 9)",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied redteam/redteam-RT-08-p4-release-report.mjs (added). As the orchestrator directed, /tmp/rt08-rel was replaced by <scratch>=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt08-reproduce. Ran: OUT_DIR=<scratch>/rt08-rel npm --prefix <wt> run build:release 2> <scratch>/rt08-rel-stderr.txt > <scratch>/rt08-rel-stdout.txt && node redteam/redteam-RT-08-p4-release-report.mjs <scratch>/rt08-rel-stderr.txt <scratch>/rt08-rel. The stdout redirect only kept the build log out of the terminal. Exit 1. Output: 'MISMATCH: \"open item E7 used on /modules/m7-geometry/ (nothing shown)\" but /modules/m7-geometry/ shows 1 fallback(s) of E7 in its HTML', plus two info lines for E6 (T15), then '1 report line(s) disagree with the release pages'. stderr line 10: 'open item E7 used on /modules/m7-geometry/ (nothing shown)'. The release page has '<span class=\"unverified-fallback\" data-unverified=\"E7\" ...>The rule was checked by computation ...'. The gate report (commit 4e3e839, gate commit b9b8504) line 130 reads 'Appendix E item 7 (... used on /modules/m7-geometry/, open, nothing shown in a release build)'. The observed value matches.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the release report says E7 shows nothing on M7 while the page shows the E7 fallback, and gate G4's owner checklist repeats it. A wrong report line is minor."
+  },
+  {
+   "findingId": "P4-RT-08-11",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.3 <Cite>; lens attacks 18 and 34",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied site/tests/unit/redteam-RT-08-p4-cite-title-tex.test.ts (added). Ran: npx --prefix <wt> vitest run site/tests/unit/redteam-RT-08-p4-cite-title-tex.test.ts; exit 1. 'AssertionError: expected [ …(3) ] to deeply equal []', received '[W03c] N. J. Wildberger, \"A combinatorial construction of $G_2$\", J. Lie Theory 13 (2003), no. 1, 155-165.', '[Pro99b] ... classification of $\\lambda$-minuscule Bruhat lattices ...' and '[RV20] ... subalgebras of $U_q(\\mathfrak g)$ ...'. The built /modules/m4-numbers/ has data-cite=\"W03c\" with title=\"N. J. Wildberger, &quot;A combinatorial construction of $G_2$&quot;, J. Lie Theory 13 (2003), no. 1, 155-165.\". The observed value matches: [W03c] is shown, and [Pro99b] and [RV20] carry TeX too.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the Cite title of [W03c] on /modules/m4-numbers/ shows the raw TeX '$G_2$'. This is wording, so minor."
+  },
+  {
+   "findingId": "P4-RT-08-12",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 4 T10; 4.0",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied site/tests/e2e/redteam-RT-08-p4-ring-sizes.spec.ts (added). npm --prefix <wt> run build: exit 0, 32 pages. The root playwright.config.ts names port 4321, so, as P4-VERIFY-INSTRUCTIONS directs, it was copied to <scratch>/verify-rt08-reproduce/playwright.config.ts with port 6144, absolute testDir and import paths, and webServer cwd at <wt>. Nothing else changed. Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test -c <scratch>/verify-rt08-reproduce/playwright.config.ts site/tests/e2e/redteam-RT-08-p4-ring-sizes.spec.ts; exit 1, '2 failed'. 'M7 b2 (A3 turned in space), JavaScript off' and 'JavaScript on' both fail with 'Expected pattern: not /innermost first: \\./ Received string: \"Ring sizes in this plane, innermost first: .\"'. In the JavaScript-on case the test first waited for data-hydrated=true. The test counts only a paragraph with checkVisibility() true. The run is not timing-dependent, so it ran once. The observed value matches, with JavaScript off and on. After the run the preview server on 6144 was gone, and status lists only the applied files. Cleanup: node_modules, site/node_modules, packages/engine/node_modules, site/dist, test-results and the generated build outputs were deleted. The final git status --porcelain shows only the 10 applied reproducer files, each 'A'.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: T10 on M7 b2 shows the visible sentence 'Ring sizes in this plane, innermost first: .' with JavaScript off and on. A tool text defect of this kind is minor."
+  }
+ ]
+}

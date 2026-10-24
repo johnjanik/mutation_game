@@ -37,3 +37,39 @@
 - RT-01 verdicts: 01 CONFIRMED (major); 02 CONFIRMED, raised to major by both verifiers.
 - RT-05 verdicts: 01, 02, 03, 05 CONFIRMED (major); 06 CONFIRMED (refuter: major; reproducer: minor; fixed in the T10 cluster either way); 07 CONFIRMED (minor); 04 DROPPED (refuted).
 - RT-07 verdicts: 01, 02, 05 CONFIRMED; 03 CONFIRMED for the TBT half (reproduced: M7 TBT medians 423/427 as built against 196/207 with the three font preloads; the CLS half is not a 7.6 violation); 04 DROPPED (refuted).
+## RT-09: 7 findings (3 blocker, 3 major, 1 minor), verifying. Retests hold: 09-01, 02, 03, 04, 06, 07.
+- P4-RT-09-01 blocker: M7 states the finite-type geometry (orbit polytope, Coxeter plane) for every board; 'verified ... every board of rank two to eight'.
+- P4-RT-09-02 blocker: M6 Seen 2 gives the root lengths 2/4/6 for every balanced board (A2^(2): 2, 8).
+- P4-RT-09-03 blocker: M7 b12 challenge rejects (2,1,0) and other rings with 24 vertices and 36 edges (check reads polytopeName).
+- P4-RT-09-04 major: M7 says make uniform replays from (0,1,sqrt2); T10 uses (0,1/sqrt2,1).
+- P4-RT-09-05 major: M6 says Wildberger's B/C translation verified for every rank >= 3; compared for 3 and 4 only.
+- P4-RT-09-06 major: M6 quotes [Don08] without the transpose convention (M5 states it). Merge with RT-08 attack 31 if reported.
+- P4-RT-09-07 minor: M6 beat 1 'every road had a road back' contrast misstates B2.
+- Notes: M6 beat 2 'finite cases ... up to rank eight' ambiguous; 'shape' vs 'combinatorics' in M7; T11 picker lists D4's two rotations with the same text.
+- RT-09 reproduce: all 7 reproduced (03 suggested lower to major: a missing success message, no false sentence). Refute pending.
+- RT-09 verdicts: all 7 CONFIRMED. 01, 02 blocker; 03 lowered to major by both verifiers (missing success message); 04, 05, 06 major; 07 minor.
+## RT-08: 12 findings (1 blocker, 7 major, 4 minor). Retests hold: 08-01 to 08-11 (siblings below).
+- P4-RT-08-01 DUPLICATE of P4-RT-09-01 (M7 'every board of rank two to eight'; same location and claim): merged, not verified again.
+- P4-RT-08-03 DUPLICATE of P4-RT-09-05 (M6 Wildberger range): merged.
+- To verify: 02 major (M6 typed round/move counts = coxeter_number), 04 major (credits omit clsx, vite preload helper), 05 major (M6 b11, b13 captions state no result), 06 major (M7 'circles of 30' path is coxeter_number, not rings), 07 major (M3 E4 fallback 'ten'), 08 major (M7 beat 5 edge-length rule without provenance), 09 minor (M7 Seen E7 wrap/fallback), 10 minor (release report says E7 'nothing shown' on M7; gate-G4 sect. 11 repeats it), 11 minor (Cite title raw TeX $G_2$), 12 minor incidental (T10 empty 'Ring sizes ... : .' outside the Coxeter plane).
+- Notes: M1, M3, M5 at 1796/1789/1791 words (no room); gate-G4 section 9 miscounts the fallback numbers (also M7 line 137 '7'); /dev pages ship in release; M7 b4/b7 answers in the table (held 13-01).
+## RT-04: 4 findings (1 major, 3 minor), verifying. Retests hold: 04-01 to 04-05 (siblings in T10/T11).
+- P4-RT-04-01 minor: j turning angles unbounded: rounded beyond 2^53, NaN at 400 digits, written back into the bar and Copy link.
+- P4-RT-04-02 minor: T11 form_value and T10 squared edge lengths exported as text.
+- P4-RT-04-03 minor: link applied after registerInstance: replaceState on load before the reader acts (T10, T11, T1, T4, T5, T6, T15, T16).
+- P4-RT-04-04 major (incidental): T10 squared edge lengths from floats: wrong from rings of 4 digits, equal lengths listed as several.
+- Notes: foreign keys on T1 can withdraw an open prediction (code reading); T10 ring cap 999999 not in 6.6 (owner); T10 g-only link keeps the configured projection (owner reading).
+## RT-03: 4 findings. Retests hold: 03-01, 02, 03, 05, 06. Residual engine fix checked against the oracle at the 2^53 hand-over, caps and Bareiss fallback: equal.
+- P4-RT-03-01 DUPLICATE of P4-RT-01-01 (wythoffEdges toNumber): merged.
+- To verify: 02 minor (orbitGraph fast path hash linear mod 2^30: quadratic on 2^30 Z^n orbits, 85-103 s at cap 100000), 03 minor (symmetries/relabellings at the limit not the lexicographically first; P2-A1 decision chose it), 04 minor (averagedRootsType on a finite board in pieces throws bare EngineError).
+- Notes: T15 Play on fate from the cursor misses a repeat before the cursor (owner); fold gives SafeInt to unnamed folded boards; wythoffFVector/orbitSize/weylOrder throw EngineOverflow from A18 (|W| as number).
+- RT-04 refute: none refuted; 01 and 02 raised to major; 03 and 04 as stated. Reproduce pending.
+## RT-06: 3 findings (1 major, 2 minor), verifying. Retests hold: 06-01, 02, 03. 0 workers before interaction on 32 routes; 14 T10 snapshots match golden.
+- P4-RT-06-01 major: disabled and aria-disabled controls look identical to enabled ones (all :disabled rules change only the cursor).
+- P4-RT-06-02 minor: nojs.spec.ts figure predicate accepts T10's ring board or hidden canvas box, so a blank snapshot passes.
+- P4-RT-06-03 minor: without JS T10 shows 'Drawn: 12 points, 24 edges, in  ms' (the words outside data-measured).
+- Notes: release build ships /dev pages (also RT-08); data-measured not in CONTRACTS 5.1/5.2 (MERGE to record); T11 codec rejects v=p&s without c=p.
+- RT-08 reproduce: all 10 reproduced. Refute pending.
+- RT-08 refute: 06, 07, 11, 12 refuted (06: E8 rings hold h by golden h_points_on_every_ring; 07: the M3 'ten' is recorded and carried to polish; 11: citeTitle keeps $...$ by P0-A4 decision; 12: no SPEC rule on the xyz view). 09 raised to major.
+- RT-08 verdicts: CONFIRMED 02, 04, 05, 08 major; 09 major (raised); 10 minor. REFUTED 06, 07, 11, 12 (to the owner as notes: 12 a blemish).
+- RT-03 refute: 02 not refuted; 03 refuted (P2-A1 limit semantics, oracle's first_only agrees); 04 refuted (E-10 has no class for this case; P4-A1 ported raises as EngineError). Reproduce of 02 pending.
