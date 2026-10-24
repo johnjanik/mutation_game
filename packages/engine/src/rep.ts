@@ -9,7 +9,9 @@
 // boards included (E-1, E-4). Rows and columns are basis indices from 0; the row of an entry is the image
 // and the column the source, so the matrices act on column vectors and spMul(X, Y) is "first Y, then X".
 // No stored entry is zero: every operation drops zeros from its result, as the oracle's final
-// `{k: v for k, v in out.items() if v != 0}` does, and the empty Map is the zero matrix.
+// `{k: v for k, v in out.items() if v != 0}` does, and the empty Map is the zero matrix. Every exported
+// operation (spMul, spAdd, spScale, spEq, and spComm through them) checks every key of every Map it is given
+// in the same way, explicit zero entries included, and throws RangeError on a key that spKey would not write.
 //
 // Conventions at this boundary (E-5, E-7): node positions in and out (i, k, RelationCheck.i and .j); pure
 // functions that never write into a board, a vector or a Map they are given and always return new arrays
@@ -71,6 +73,15 @@ function parseKey(key: string): [number, number] {
   return [r, c];
 }
 
+/**
+ * RangeError unless every key of X, the keys of explicit zero entries included, is written as spKey writes
+ * it: the one key check of spMul, spAdd, spScale and spEq (a key "0, 1" would otherwise silently miss its
+ * partner "0,1").
+ */
+function checkKeys(X: SparseMatrix): void {
+  for (const key of X.keys()) parseKey(key);
+}
+
 /** The entries of `out` that are not zero, in the order of `out` (the oracle's final filter). */
 function zeroFree(out: Map<string, bigint>): SparseMatrix {
   const res: SparseMatrix = new Map();
@@ -81,7 +92,7 @@ function zeroFree(out: Map<string, bigint>): SparseMatrix {
 /**
  * The product XY: (XY)[r][c] = sum_k X[r][k] Y[k][c] (oracle sp_mul): the entries of Y grouped by row k,
  * then for each entry (r, k) of X and each (c, w) in row k of Y, v * w added to (r, c); zeros dropped.
- * Each key is parsed once (RangeError on a key that spKey would not write).
+ * Each key is parsed once, which is also its check (RangeError on a key that spKey would not write).
  */
 export function spMul(X: SparseMatrix, Y: SparseMatrix): SparseMatrix {
   const byRow = new Map<number, [number, bigint][]>();
@@ -107,20 +118,31 @@ export function spMul(X: SparseMatrix, Y: SparseMatrix): SparseMatrix {
   return zeroFree(out);
 }
 
-/** X + cy Y, cy defaulting to 1n (oracle sp_add): a copy of X, then cy * v added for each entry of Y; zeros dropped. */
-export function spAdd(X: SparseMatrix, Y: SparseMatrix, cy: bigint = 1n): SparseMatrix {
+/** X + cy Y on keys already checked (internal; spAdd checks, spComm adds two products of spMul). */
+function add(X: SparseMatrix, Y: SparseMatrix, cy: bigint): SparseMatrix {
   const out = new Map<string, bigint>(X);
   for (const [k, v] of Y) out.set(k, (out.get(k) ?? 0n) + cy * v);
   return zeroFree(out);
 }
 
-/** The commutator [X, Y] = XY - YX (oracle sp_comm). */
-export function spComm(X: SparseMatrix, Y: SparseMatrix): SparseMatrix {
-  return spAdd(spMul(X, Y), spMul(Y, X), -1n);
+/**
+ * X + cy Y, cy defaulting to 1n (oracle sp_add): a copy of X, then cy * v added for each entry of Y; zeros
+ * dropped. RangeError on a key that spKey would not write, in X or in Y.
+ */
+export function spAdd(X: SparseMatrix, Y: SparseMatrix, cy: bigint = 1n): SparseMatrix {
+  checkKeys(X);
+  checkKeys(Y);
+  return add(X, Y, cy);
 }
 
-/** cX (oracle sp_scale); the empty Map when c is 0n. */
+/** The commutator [X, Y] = XY - YX (oracle sp_comm); the keys are checked by spMul. */
+export function spComm(X: SparseMatrix, Y: SparseMatrix): SparseMatrix {
+  return add(spMul(X, Y), spMul(Y, X), -1n);
+}
+
+/** cX (oracle sp_scale); the empty Map when c is 0n. RangeError on a key that spKey would not write. */
 export function spScale(X: SparseMatrix, c: bigint): SparseMatrix {
+  checkKeys(X);
   const out: SparseMatrix = new Map();
   for (const [k, v] of X) {
     const x = c * v;
@@ -132,9 +154,12 @@ export function spScale(X: SparseMatrix, c: bigint): SparseMatrix {
 /**
  * Whether X and Y have the same nonzero entries: Python's `==` on zero-free dictionaries, independent of
  * insertion order. An explicit 0n entry in either counts as absent (plan), so that a Map built without the
- * invariant still compares correctly.
+ * invariant still compares correctly. Every key of both is checked first, explicit zeros included, whatever
+ * the answer would be (RangeError on a key that spKey would not write).
  */
 export function spEq(X: SparseMatrix, Y: SparseMatrix): boolean {
+  checkKeys(X);
+  checkKeys(Y);
   let nx = 0;
   for (const [k, v] of X) {
     if (v === 0n) continue;
