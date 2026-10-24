@@ -1,0 +1,187 @@
+[
+ {
+  "id": "P4-RT-04-03",
+  "severity": "minor",
+  "title": "Opening a valid link rewrites the address bar with replaceState before the reader acts (T10, T11, and T1, T4, T5, T6, T15, T16)",
+  "location": "site/src/components/board/ToolFrame.svelte:99-110 (registerInstance takes the toolState of the moment as initial, then every later change goes through stateChanged); site/src/components/tools/T10GeometryStudio.svelte:535-550 (the link is applied in a task after hydration); site/src/components/tools/T11FoldingBench.svelte:221-235",
+  "claim": "ToolFrame registers the instance before the tool has applied its link. The link's state then reaches history.ts through stateChanged as if the reader had changed it, so 500 ms after load the bar is rewritten, normalised, and on lesson pages written for an instance the reader never touched.",
+  "expected": "Plan, P1-A2 instruction 5.6: 'Nothing is written on load or hydration; the address bar changes only after the reader acts.' Its fragment decisions/P1-A2.md: 'initial the state shown now; registering writes nothing'. SPEC 7.4: replaceState 'after a move'. SPEC 6.6: 'only instances the reader has changed are written'.",
+  "observed": "With no action, one replaceState about 0.7 to 1.5 s after load. /tools/geometry/?r=1.0.0 becomes ?z=1&g=A3&r=1.0.0&j=xyz:1,2,3@20,30,0&e=p. /tools/geometry/?j=xyz:1,2,3@370,0,0 becomes ...j=xyz:1,2,3@10,0,0... /tools/fold/?g=A5 becomes ?z=1&g=A5&v=n&c=n&s=1,1,1,1,1&w=&y=5.4.3.2.1. /modules/m7-geometry/?b1.r=0.1 becomes ?b1.z=1&b1.g=A2&b1.r=0.1&b1.j=coxeter&b1.e=p. The same happens on /tools/board/, /tools/lab/, /tools/affine/, /tools/sandbox/, /tools/numbers/ and /tools/mirror/. It does not happen on /tools/garden/, /tools/kostant/, /tools/form/, /tools/symbolic/ or /tools/weyl/, which apply the link before registering. Combined with P4-RT-04-01, this write puts '@NaN' into the bar of a reader who only opened a link.",
+  "reproduction": "From a clean checkout of b9b8504 plus commit c365fa0: npm ci --prefer-offline; npm run build; PLAYWRIGHT_BROWSERS_PATH=<browsers> npx playwright test -c redteam/RT-04/playwright.p4.config.ts redteam-RT-04-p4-findings.spec.ts -g 'finding 3' (10 failing; each prints the replaceState call and the new bar).",
+  "specRef": "build-plan/agents/P1-A2-site-infra.md 5.6 ('Nothing is written on load or hydration') (plan); decisions/P1-A2.md registerInstance entry; SPEC.md 7.4 History API; SPEC.md 6.6 'only instances the reader has changed are written'; RT-04 attack 21",
+  "proposedFix": "Let a tool that applies a link after hydration record it without a write: register with the link's state as initial, or add a history.ts call that sets the recorded state and its defaults comparison without scheduling replaceState. Extend history.test.ts 'nothing is written on load' to a link.",
+  "reproducer": "site/tests/e2e/redteam-RT-04-p4-findings.spec.ts",
+  "lens": "RT-04",
+  "branch": "worktree-agent-a8f55ff76458a0b92",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-04-03",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "build-plan/agents/P1-A2-site-infra.md 5.6 ('Nothing is written on load or hydration') (plan); decisions/P1-A2.md registerInstance entry; SPEC.md 7.4 History API; SPEC.md 6.6 'only instances the reader has changed are written'; RT-04 attack 21",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1, detached. Applied findings.spec.ts and playwright.p4.config.ts (links.test.ts was also present and is not used by this run). npm ci --prefer-offline and npm run build: ok. Ran PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/verify-rt04-reproduce/playwright.p4.config.ts redteam-RT-04-p4-findings.spec.ts -g 'finding 3' (config copied with port 6164). It was run twice because the result depends on waits. Run 1: exit 1, '10 failed'. Run 2: exit 1, '10 failed' (load average 17). Run 1 logs (one replaceState each, no pushState, ms after navigation): tools/geometry/?r=1.0.0 at 845 -> '?z=1&g=A3&r=1.0.0&j=xyz:1,2,3@20,30,0&e=p'; tools/fold/?g=A5 at 757 -> '?z=1&g=A5&v=n&c=n&s=1,1,1,1,1&w=&y=5.4.3.2.1'; tools/geometry/?j=xyz:1,2,3@370,0,0 at 826 -> '...&j=xyz:1,2,3@10,0,0&e=p'; tools/board/?g=A3&v=p&m=f&c=p&s=1,0,0&w=1 at 2062 -> '?z=1&g=A3&v=p&m=f&c=p&s=1,0,0&w=1'; tools/lab/?g=A4 at 1185 -> '?z=1&g=A4'; tools/affine/?g=A3~ at 1322 -> '?z=1&g=A3~&c=p&s=1,1,1,1&w='; tools/sandbox/?g=A3 at 725 -> '?z=1&g=A3&v=p&m=f&c=p&s=1,0,0&w='; tools/numbers/?g=A3&c=n&s=1,1,1&w=1 at 835 -> '?z=1&g=A3&c=n&s=1,1,1&w=1'; tools/mirror/?g=B2 at 970 -> '?z=1&g=B2&c=n&s=1,1&w='; modules/m7-geometry/?b1.r=0.1 at 1558 -> '?b1.z=1&b1.g=A2&b1.r=0.1&b1.j=coxeter&b1.e=p'. Run 2 gave the same URLs at 819 to 1532 ms. Comparison: the finding's rewrites for geometry, fold, j@370->@10 and M7 b1 match exactly, and the times fall in or near its 0.7 to 1.5 s (board was 2062 ms in run 1 and 1096 ms in run 2). The routes the finding says are unaffected (garden, kostant, form, symbolic, weyl) are not in the reproducer and were not run. Afterwards the tree held only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: on all 10 routes one replaceState rewrites the address bar after load with no reader action (for example /tools/geometry/?r=1.0.0 -> ?z=1&g=A3&r=1.0.0&j=xyz:1,2,3@20,30,0&e=p), in two runs"
+   },
+   "refute": {
+    "findingId": "P4-RT-04-03",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.4 History API: 'After a move the address bar is updated with replaceState, half a second after the last move of a burst'. SPEC.md 6.6: 'only instances the reader has changed are written'. build-plan/agents/P1-A2-site-infra.md 5.6 (line 173): 'Nothing is written on load or hydration; the address bar changes only after the reader acts.' decisions/P1-A2.md 'History API'. None of these permits a write on load.",
+    "evidence": "Read at b9b8504 (clean detached worktree). (1) ToolFrame.svelte:99-110 calls registerInstance(id, defaults ?? toolState, ..., toolState) once at hydration, and every later change of toolState goes to stateChanged. (2) history.ts:68-78: stateChanged schedules one replaceState whenever encodeState(state) differs from the recorded state. (3) T10GeometryStudio.svelte:535-550 decodes window.location.search in nextTask after hydration and calls applyLink. The link's state therefore reaches stateChanged as a change, and a write follows about 500 ms later. (4) Records: P1-A2 says '`initial` the state shown now; registering writes nothing'. That record covers registration only, not a link applied after registration. The plan forbids any write on load or hydration (line 173 and checklist line 278). P4-A3 'repair, wave 4.3' records only the scheduling ('A link is read one task after hydration') and nothing about the address bar. P4-A2 records the j normalisation (370 written as 10), which this write makes visible but does not cause. (5) 7.4 has no [D] mark (the heading of 7.6 does). No section 10 default concerns history. (6) History is phase 1 and the tools named are phases 1 to 4, all within G4. gate-G4.md has no item on it. A grep of round1-confirmed-A.json, round1-confirmed-B.json, round1-deferred.json and RESULTS.md for replaceState and 'on load' finds no such finding.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed because 7.4 ties replaceState to moves and 6.6 to instances the reader changed, and nothing permits normalising the bar on load. R2 failed because the finding quotes 7.4, 6.6 and the P1-A2 plan line correctly, and the P1-A2 record ('registering writes nothing') does not cover a link applied after registration. R3 failed because every part is within phases 1 to 4. R4 does not apply, since no oracle function covers history. R5 failed because no [D] passage or recorded decision allows the write. R6 failed because there is no record. Severity none: SPEC 7.4 says when the bar is written but does not in words forbid a write on load; that prohibition is the plan's (P1-A2 5.6), so the rubric does not clearly name this major or minor."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-07-03",
+  "severity": "major",
+  "title": "KaTeX fonts (font-display: block, not preloaded) arrive after the first paint: a lesson reloaded mid-page shifts by CLS 0.30 to 0.33, and the whole-document relayout adds about 40 percent of M7's TBT",
+  "location": "site/src/layouts/Lesson.astro and the shared head (no preload of the KaTeX woff2 files); /katex/0.16.47/katex.min.css (20 @font-face rules with font-display:block). The fonts are requested only during the first style and layout of the document.",
+  "claim": "The KaTeX fonts are discovered late. When they replace the fallback after the first paint, the mathematics in view is laid out again: content in view shifts at a restored reading position, and the whole document is laid out and painted again after FCP.",
+  "expected": "SPEC 7.6: Cumulative Layout Shift at most 0.1 and Total Blocking Time at most 200 ms on the G4 routes M6 and M7 (360 by 800, 4x). The lens's attack 19 names 'text reflowing when the KaTeX web fonts replace the fallback'.",
+  "observed": "Reload with the restored scroll position and no input, 4x. M6 y=8178: CLS 0.3334 (2 of 2 runs, one shift at 1170 to 1265 ms, just after FCP at 1032 to 1072 ms; fonts finished 947 to 967 ms). M6 y=14891: 0.3044 (2 of 2). M7 y=19000: 0.3037. M2 y=8000: 0.3015. M7 y=0: 0.0770. With the KaTeX fonts blocked, M6: 0.0000 at both positions. In a copy of M7 that preloads its three fonts (Main-Regular, Math-Italic, SansSerif-Regular): 0.0000 at y=0 and y=19000 (fonts at 115 to 154 ms instead of about 1700 ms). Effect on TBT, from traces of M7 load with Lighthouse categories (3 runs): after FCP the font arrival re-lays out the 37079-px document (Layout 62 to 158 ms) and repaints it (PrePaint and Paint 89 to 134 ms). Alternated observer runs on M7 (5 each, load 1.2 to 1.5): TBT median 319 ms as built against 199 ms with the three preloads. Lighthouse's load at the top reports CLS 0.0000 on M7 and 0.0003 on M6, so the lab run does not see the shift.",
+  "reproduction": "npm ci --prefer-offline; npm run build; PLAYWRIGHT_BROWSERS_PATH=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/pw-browsers node redteam/redteam-RT-07-font-swap-shift.mjs site/dist 5000 /modules/m6-multiple-edges/ 8178,14891 2 (exits 1). Control: BLOCK_FONTS=1 with the same command gives CLS 0. Counterfactual: node redteam/rt07-variant.mjs site/dist /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/rt-07-p4/dist-preload /modules/m7-geometry/ preload-fonts, then the font-swap script on that directory with /modules/m7-geometry/ 0,19000 2, and redteam/rt07-load-profile.mjs <dir> /modules/m7-geometry/ 5000 5 <out.json> --cats none on both directories for TBT.",
+  "specRef": "SPEC.md 7.6 'Lab timings' (CLS at most 0.1; TBT at most 200 ms); 9.1 G4 'lab timings on M6 and M7'",
+  "proposedFix": "Add <link rel=\"preload\" as=\"font\" type=\"font/woff2\" crossorigin> to each page for the KaTeX fonts it uses. The build knows these from the katex classes in its HTML. The self-hosted KaTeX CSS stays at the installed version.",
+  "reproducer": "redteam/redteam-RT-07-font-swap-shift.mjs (counterfactual redteam/rt07-variant.mjs, timing redteam/rt07-load-profile.mjs)",
+  "lens": "RT-07",
+  "branch": "worktree-agent-abccbeb9a8cf2b4de",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-07-03",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.6 'Lab timings' (CLS at most 0.1; TBT at most 200 ms); 9.1 G4 'lab timings on M6 and M7'",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied from worktree-agent-abccbeb9a8cf2b4de: redteam/redteam-RT-07-font-swap-shift.mjs, redteam/rt07-variant.mjs and redteam/rt07-load-profile.mjs. The helpers rt07-serve.mjs and rt07-cls-lib.mjs were already applied. status: 'A  ' for each. Same npm ci and build; port 6044. Two substitutions: the variant's output directory is my own scratch directory, <scratch>/verify-rt07-reproduce/dist-preload, not the lens's rt-07-p4/dist-preload (I may write only in my own scratch directory, and the script deletes the directory it writes). The <out.json> placeholders are files in my scratch directory. SHIFT, run 1 (load 2.27 before, 2.17 after): 'PLAYWRIGHT_BROWSERS_PATH=<pw> node redteam/redteam-RT-07-font-swap-shift.mjs site/dist 6044 /modules/m6-multiple-edges/ 8178,14891 2' exited 1. Output: 'reloaded at y=8178 (restored 8008), run 1: FCP 1192 ms, fonts at 1062,...,1067 ms; CLS 0.3334; shifts 0.3334@1367'; run 2 'CLS 0.3334'; 'y=14891 (restored 14841) run 1: CLS 0.3044'; run 2 'CLS 0.3044'. Run 2 of the command (load 1.20 before, 1.39 after): exit 1, again 0.3334 x2 and 0.3044 x2. CONTROL with BLOCK_FONTS=1 and the same command (load 2.08 before, 1.30 after): exit 0, 'CLS 0.0000; shifts none' in all 4 runs. VARIANT: 'node redteam/rt07-variant.mjs site/dist <scratch>/dist-preload /modules/m7-geometry/ preload-fonts' exited 0 and added 3 preloads (Main-Regular, Math-Italic, SansSerif-Regular). The font-swap script on the preload copy, '/modules/m7-geometry/ 0,19000 2' (load 1.16 before, 2.27 after): exit 0, 'CLS 0.0000' in 4 of 4 runs, fonts at 101 to 201 ms. As built, for comparison, with the same arguments (load 2.27): exit 1; y=0 'CLS 0.0770' x2 with fonts at 1647 to 1729 ms; y=19000 'CLS 0.3037' x2. TBT as written: 'rt07-load-profile.mjs <dir> /modules/m7-geometry/ 6044 5 <out.json> --cats none'. As built (load 2.50 before, 2.06 after): observer TBT 729, 260, 510, 423, 272; '\"medianTBTobserver\":423'. Preload (load 1.98 before, 2.16 after): 193, 343, 227, 128, 196; median 196. ALTERNATED, single runs of the same script with as built and preload in turn, 5 pairs, load at or below 3 before each run (2.11 to 2.97): as built 319, 246, 436, 439, 427 (median 427); preload 616, 118, 207, 542, 162 (median 207). In 2 of the 5 pairs the preload run was higher. Comparison: the CLS values match exactly (0.3334, 0.3044, 0.3037, 0.0770; 0 with fonts blocked; 0 with preloads). The TBT medians as built are 423 and 427 ms against the finding's 319; with the preloads they are 196 and 207 ms against its 199. So the preloads remove 220 to 227 ms (52 to 54 percent), where the finding says about 40 percent. Tree after the run: only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced with a different observed value: the shifts match exactly (M6 CLS 0.3334 and 0.3044 in 2 of 2 runs, twice; 0 with the fonts blocked; M7 0.3037 as built and 0 with the three preloads), but the TBT medians on M7 are 423 and 427 ms as built (finding 319) against 196 and 207 ms with the preloads (finding 199), which still contradicts the expected 200 ms and shows the font swap as the cause"
+   },
+   "refute": {
+    "findingId": "P4-RT-07-03",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.6 'Lab timings' [D]: 'on the built site with a mobile profile (360 by 800 pixels, processor slowed four times): ... Total Blocking Time at most 200 ms, Cumulative Layout Shift at most 0.1 ... The intended tool is Lighthouse CI'. SPEC 9.1 G4: 'lab timings on M6 and M7'. The TBT half of the finding stands on these. The CLS half does not, because 7.6's CLS line is a lab timing and the recorded lab method (decisions/P3-A7.md) is a Lighthouse navigation of the route, not a reload at a restored scroll position.",
+    "evidence": "Read at b9b8504. CLS half: 7.6 puts CLS among the three 'Lab timings' and names Lighthouse CI as the tool. It separates lab numbers from field data ('Interaction to Next Paint, which only field data can measure, is checked by hand'). decisions/P3-A7.md 'the lab tool is Lighthouse CI (Branch A)' and 'the three numbers and the end of the measurement' record that CLS is 'the numericValue of Lighthouse's audits ... cumulative-layout-shift' of a run on the route. That is a fresh navigation at the top. gate-G4.md section 8 (report commit 4e3e839) measured CLS 0.0003 on M6 and 0.0000 on M7, and the finding agrees ('the lab run does not see the shift'; M7 y=0 0.0770). The reproducer (522fae9:redteam/redteam-RT-07-font-swap-shift.mjs, read as text) loads the page, scrolls with window.scrollTo, then reloads. That scenario is outside the measurement 7.6 and P3-A7 define. The reserved-box sentence covers hydration, not font loading. font-display:block is in KaTeX 0.16.47's own stylesheet, which 7.2 item 2 and CLAUDE.md require to be shipped from the installed version (P0-A3: 'the stylesheet and fonts are copied from that package'). No KaTeX decision in P0-A3, P1-A2 or P0-A5 addresses preloading. TBT half: DECISIONS.md 'P3-X1: other load work looked at (c)' records 'no repeated layout from late fonts was large in the traces, so no preload was added'. That was measured on M0 to M3 before M6 and M7 existed. MERGE P3 stage 3.3 kept the render hint and named the first tool's hydration as what remains. The owner's acceptance ('OWNER: gate G3's lab item accepted as machine-bound') covers G3 on M0 to M5 only. gate-G4.md is RED on M7's TBT (381.3 ms), puts it down to 'likely hydration' and sends it to this round. The known-and-decided list says 'M7's number ... is' still open. The cause the finding names (font relayout after FCP adding about 120 ms on M7) is therefore not recorded or accepted. A builder's no-preload record cannot cover a TBT over the 200 ms of the [D] text.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: the cause, late KaTeX fonts relaid out after FCP, stands for M7's Total Blocking Time over 200 ms at G4, which no record accepts (owner's acceptance limited to G3 M0 to M5; gate-G4 sends M7 to this round; P3-X1's no-preload record predates M7 and cannot cover a departure from 7.6). Part note: the CLS half (0.30 to 0.33 on a reload at a restored scroll position) is not a violation of 7.6, because 7.6's CLS line is a lab timing, recorded by P3-A7 as Lighthouse's navigation of the route, where M6 and M7 measure 0.0003 and 0.0000 (R2 and R5 hold for that half only). R1 no permitting clause for TBT; R3 M7 is phase 4; R4 not an oracle quantity; R6 gate-G4 records the symptom with a different presumed cause. Major matches the rubric for the TBT half: a stated threshold is exceeded at a gate that requires it."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-07-05",
+  "severity": "minor",
+  "title": "offered.ts pulls t10/config.ts and t11/config.ts, with T10's preset table and all its captions, into the ToolFrame chunk that every tool route and lesson fetches",
+  "location": "site/src/tools/offered.ts:12-13 (imports T10_BOARDS from ../components/tools/t10/config and T11_BOARDS from t11/config); site/src/components/tools/t10/config.ts (its header says the module 'stays small')",
+  "claim": "The P3-RT-07-04 fix imports the 'light board lists' from the T10 and T11 config modules. Those modules also hold T10_PRESETS with every caption and T10_OUTS, and the T10 and T11 components share them, so the bundler places them whole in the shared ToolFrame chunk.",
+  "expected": "SPEC 7.6 table: a tool route consists of the shell, the shared code and 'the tool's own code with the engine functions only it uses'. The fix's own rule says offered.ts imports 'never an entry, a preset module'.",
+  "observed": "SHOWPIECE_CAPTION ('The roots of E8 in its Coxeter plane ...') and TWO_GRAPHS_CAPTION are in _astro/ToolFrame.DrEQkxlY.js (9162 B gzip). The chunk is fetched by all 13 tool routes and all 8 lessons, among them /tools/board/, /tools/garden/, /tools/weyl/, M0 and M6, which do not show T10. Marginal cost, measured by removing the source-mapped bytes: 1100 B gzip per route (751 B for t10/config and about 350 B for t11/config). Every route stays within its limit.",
+  "reproduction": "npm ci --prefer-offline; npm run build; node redteam/redteam-RT-07-shared-config.mjs site/dist /tools/board/ /modules/m0-start/ /tools/garden/ /tools/weyl/ /modules/m6-multiple-edges/ (exits 1). Bytes: node redteam/rt07-chunk-share.mjs <dist-maps>/_astro/ToolFrame.<hash>.js t10/config.ts t11/config.ts",
+  "specRef": "SPEC.md 7.6 table ('each tool alone' and 'any lesson page' rows); decisions/RT-FIX-P3-perf-b.md (P3-RT-07-04)",
+  "proposedFix": "Move T10_BOARDS and T11_BOARDS into modules of their own (as t05/boards.ts and t09/boards.ts do) and have offered.ts import those.",
+  "reproducer": "redteam/redteam-RT-07-shared-config.mjs",
+  "lens": "RT-07",
+  "branch": "worktree-agent-abccbeb9a8cf2b4de",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-07-05",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.6 table ('each tool alone' and 'any lesson page' rows); decisions/RT-FIX-P3-perf-b.md (P3-RT-07-04)",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied from worktree-agent-abccbeb9a8cf2b4de: redteam/redteam-RT-07-shared-config.mjs and redteam/rt07-chunk-share.mjs. status: 'A  ' for each. Same npm ci and 'npm --prefix <wt> run build' (exit 0). 'node redteam/redteam-RT-07-shared-config.mjs site/dist /tools/board/ /modules/m0-start/ /tools/garden/ /tools/weyl/ /modules/m6-multiple-edges/' exited 1. Output: '/tools/board/ (shows T10: false): T10 captions in _astro/ToolFrame.DrEQkxlY.js (9179 B gzip)', and the same line for /modules/m0-start/, /tools/garden/, /tools/weyl/ and /modules/m6-multiple-edges/. Bytes, on the source-map build made for -04 (<scratch>/dist-maps): 'node redteam/rt07-chunk-share.mjs <dist-maps>/_astro/ToolFrame.CxOCOiXu.js t10/config.ts t11/config.ts' exited 0. Output: 'ToolFrame.CxOCOiXu.js: 24040 B (gzip 9220); bytes mapped to [site/src/components/tools/t10/config.ts, site/src/components/tools/t11/config.ts]: 3226 B; gzip without them 8120 (marginal 1100 B)'. With t10/config.ts alone the marginal is 751 B; with t11/config.ts alone, 326 B. The measurement is static and not timing-dependent, so I ran it once. Comparison: the same hashed chunk (ToolFrame.DrEQkxlY.js) carries T10's captions on all 5 routes, none of which shows T10. The marginal costs of 1100 B and 751 B match exactly. The script prints the chunk's gzip-9 size as 9179 B, where the finding says 9162 B. Tree after the run: only the applied files. Cleanup: I deleted node_modules, site/node_modules, packages/engine/node_modules and site/dist, and nothing listens on 6044 to 6047. The final 'git status --porcelain' shows only the 14 applied reproducer files, all 'A '.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: T10's captions sit in _astro/ToolFrame.DrEQkxlY.js on /tools/board/, M0, /tools/garden/, /tools/weyl/ and M6 (exit 1), marginal 1100 B gzip (751 B t10/config, about 350 B t11/config); the chunk's gzip size prints 9179 B against the finding's 9162 B"
+   },
+   "refute": {
+    "findingId": "P4-RT-07-05",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.6 table: '/tools/<id>': 'shell, shared code, and the tool's own code with the engine functions only it uses'; 'any lesson page': 'shell, shared code, the first tool of the page, and any other tool in view'. decisions/RT-FIX-P3-perf-b.md, 'the browser never loads the tool registry (P3-RT-07-04)'. Both support the finding's expected.",
+    "evidence": "Read at b9b8504. The finding's expected matches site/src/tools/offered.ts: its header says it imports 'only the small lists the registry entries themselves read, never an entry, a preset module or an engine function', and its lines 11 and 12 import T10_BOARDS from t10/config and T11_BOARDS from t11/config. t10/config.ts exports T10_PRESETS (eight presets with board, rings, projection and caption), the eight *_CAPTION strings and T10_OUTS. t11/config.ts exports T11_PRESETS, CONSTRUCTION and the FOLD and AVERAGE captions. So both are preset-holding modules. The RT-FIX-P3-perf-b record does name t10/config and t11/config, but as 'the light board lists'. Its stated reason was that the registry 'put every tool's registry entry and presets ... into the ToolFrame chunk of every tool route and lesson'. T10's preset table and captions in the ToolFrame chunk on routes without T10 depart from that record's own rule, so the record does not cover them (R5 holds only for a choice within the text). In the 7.6 table, another tool's preset captions on /tools/board/ or M0 are not the shell, not the shared code 7.6 names (Svelte runtime, engine core, board components) and not that route's tool. All routes stay within their limits. The lens file's section 6 excludes only the 45 kB and 30 kB sub-figures when the limit holds, not the composition. Attack 12 counts unused code within the limit as minor. T10 and T11 are phase 4, at gate G4. No record in gate-G4.md, the known-and-decided list, or the round 1 files: round 1's P3-RT-07-04 fix is the source of this import.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1, the 7.6 table's composition columns do not allow another tool's presets and captions in the chunk every route fetches, and the limits holding only keeps this minor; R2, the finding reads the table and the RT-FIX-P3-perf-b rule ('never ... a preset module') correctly; R3, T10 and T11 are phase 4 at G4; R4, the oracle is not involved; R5, RT-FIX-P3-perf-b names t10/config and t11/config only as 'light board lists', and the build departs from that record's own rule; R6, no record. Minor matches the rubric: unused bytes within the limit."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-08-04",
+  "severity": "major",
+  "title": "Attack 28, sibling of P3-RT-08-10: the credits page omits clsx (MIT), which the Svelte runtime bundles into the client chunk of every island",
+  "location": "site/src/lib/pages/dependencies.ts (the list is built from the three package.json files only); /credits/",
+  "claim": "svelte/src/internal/shared/attributes.js imports clsx, and its code ships in the islands' client chunk. No package.json names clsx, so the credits page never lists it or its licence.",
+  "expected": "SPEC 7.9: 'A credits page lists ... the licences of bundled libraries and fonts'. The clsx MIT licence (Copyright Luke Edwards) is required with copies.",
+  "observed": "site/dist/_astro/client.sNPtvj1U.js contains clsx's toVal function verbatim (minified). /credits/ has no 'clsx'. Vite's preload helper (preload-helper.*.js, MIT) also ships unlisted.",
+  "reproduction": "npm ci && npm run build && npx vitest run site/tests/unit/redteam-RT-08-p4-credits-bundled.test.ts",
+  "specRef": "SPEC.md 7.9; D4; lens attack 28",
+  "proposedFix": "Build the shipped list from the client bundle (for example from the chunk module ids or a bundle analysis), not only from the package.json files, and add clsx (and vite's helper) with their licences.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p4-credits-bundled.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a5ac953e1a01ff603",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-08-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.9; D4; lens attack 28",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied site/tests/unit/redteam-RT-08-p4-credits-bundled.test.ts (added; the only other files present were earlier applied reproducers, which do not affect this run). npm ci --prefer-offline: ok. npm --prefix <wt> run build: exit 0, '32 page(s) built', 'links: 1040 internal links on 32 pages of site/dist checked, 0 problems'. Then npx --prefix <wt> vitest run site/tests/unit/redteam-RT-08-p4-credits-bundled.test.ts; exit 1. 'Tests  1 failed | 2 passed (3)': the svelte-imports-clsx and no-package.json test passes. 'AssertionError: credits page lists clsx, shipped in client.sNPtvj1U.js: expected ... to match /clsx/'. grep -c clsx on site/dist/credits/index.html: 0. The credits table lists @astrojs/svelte, astro, katex, nanostores and svelte as shipped, and site/dist/_astro contains preload-helper.DHhhL8Zf.js, which is not listed. The observed value matches: clsx is in client.sNPtvj1U.js and /credits/ does not name it.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: clsx's toVal is in client.sNPtvj1U.js and the credits page never names clsx. A stated behaviour of 7.9 that is missing is major."
+   },
+   "refute": {
+    "findingId": "P4-RT-08-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.9 [D; open decision in section 10]: 'A credits page lists every third-party asset with title, author, source and licence, and the licences of bundled libraries and fonts.' 7.3: 'about and credits (phase 0, extended at each release)'. The sentence supports the finding's expected.",
+    "evidence": "The lockfile at b9b8504 lists clsx 2.1.1 (MIT) as a dependency of svelte 5.57.2 (\"clsx\": \"^2.1.1\"). No package.json names it. decisions/P0-A5.md 'the credits list is generated at build time' takes rows only from the dependencies and devDependencies of the three package.json files. RT-FIX-P3-pages added nanostores only. The regression site/tests/unit/dependencies-shipped.test.ts (// regression: P3-RT-08-10) checks only the nanostores row. The MERGE entry 'dependency records completed' attributes the client chunk to svelte and records no licence for clsx. The [D] on 7.9 covers how the page is built, but leaving out a bundled library's licence departs from the [D] text. On R3: 9.1 row 6 lists 'credits, licences', but 7.3 creates the page in phase 0 and extends it at each release. Release 0.5 (G3) has already happened, and round 1 confirmed P3-RT-08-10 on this same page at phase 3. The bundle content itself is for the reproducer to show.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 7.9 asks for the licences of bundled libraries and nothing excludes transitive ones. R2 the finding quotes 7.9 correctly. R3 the credits page is phase 0, extended at each release, and release 0.5 has passed. R4 not an oracle matter. R5 the P0-A5 package.json rule departs from the [D] text rather than lying within it. R6 the P3-RT-08-10 regression covers nanostores only."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-08-10",
+  "severity": "minor",
+  "title": "Attack 3 (e): the release report on standard error says E7 shows 'nothing' on M7, although the page shows the E7 fallback; gate G4's owner's part repeats it",
+  "location": "site/src/lib/unverifiedRegistry.ts:203-207 (one line per item and page, decided by the first use only); reports/gate-G4.md section 11",
+  "claim": "M7 has two E7 wraps. The first, in beat 3, has no fallback; the second, in the Seen box, has one. The printed report takes the first, says '(nothing shown)', and the owner's checklist inherits the error. open-items-report.json is right (fallbackShown true).",
+  "expected": "SPEC 7.3: a release build 'prints a report of the open items and the pages that use them'. That report should say what each page shows.",
+  "observed": "'open item E7 used on /modules/m7-geometry/ (nothing shown)', while the release page contains <span class=\"unverified-fallback\" data-unverified=\"E7\">The rule was checked by computation ...</span>. P4-A6 asked P0-A4 for this fix (decisions/P4-A6.md, request 4); it is not done.",
+  "reproduction": "npm ci && OUT_DIR=/tmp/rt08-rel npm run build:release 2> /tmp/rt08-rel-stderr.txt && node redteam/redteam-RT-08-p4-release-report.mjs /tmp/rt08-rel-stderr.txt /tmp/rt08-rel (exit 1, one MISMATCH line for E7)",
+  "specRef": "SPEC.md 7.3 (release report); 9.1 G4 owner's part (items 7 and 9)",
+  "proposedFix": "Aggregate per (item, page): print 'fallback shown' when any use on the page shows a fallback, or print one line per use.",
+  "reproducer": "redteam/redteam-RT-08-p4-release-report.mjs",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a5ac953e1a01ff603",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-08-10",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.3 (release report); 9.1 G4 owner's part (items 7 and 9)",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied redteam/redteam-RT-08-p4-release-report.mjs (added). As the orchestrator directed, /tmp/rt08-rel was replaced by <scratch>=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt08-reproduce. Ran: OUT_DIR=<scratch>/rt08-rel npm --prefix <wt> run build:release 2> <scratch>/rt08-rel-stderr.txt > <scratch>/rt08-rel-stdout.txt && node redteam/redteam-RT-08-p4-release-report.mjs <scratch>/rt08-rel-stderr.txt <scratch>/rt08-rel. The stdout redirect only kept the build log out of the terminal. Exit 1. Output: 'MISMATCH: \"open item E7 used on /modules/m7-geometry/ (nothing shown)\" but /modules/m7-geometry/ shows 1 fallback(s) of E7 in its HTML', plus two info lines for E6 (T15), then '1 report line(s) disagree with the release pages'. stderr line 10: 'open item E7 used on /modules/m7-geometry/ (nothing shown)'. The release page has '<span class=\"unverified-fallback\" data-unverified=\"E7\" ...>The rule was checked by computation ...'. The gate report (commit 4e3e839, gate commit b9b8504) line 130 reads 'Appendix E item 7 (... used on /modules/m7-geometry/, open, nothing shown in a release build)'. The observed value matches.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: the release report says E7 shows nothing on M7 while the page shows the E7 fallback, and gate G4's owner checklist repeats it. A wrong report line is minor."
+   },
+   "refute": {
+    "findingId": "P4-RT-08-10",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.3: a release build 'prints a report of the open items and the pages that use them, which the owner reads at each release (section 9.1)'. 9.1 G4 owner's part: Appendix E items 7 and 9. The finding's second sentence ('should say what each page shows') goes beyond 7.3, but the cause stands.",
+    "evidence": "site/src/lib/unverifiedRegistry.ts at b9b8504 prints the console.warn line only when isNew, with the annotation taken from the first usage. M7 has two E7 wraps: beat 3 with no fallback, then the Seen box with one. So the line reads '(nothing shown)'. The registry's own logged design (DECISIONS.md, P0-A4 'release mode, unknown items, and the open-items report') says the annotation exists 'so that the report and the stderr line can say whether the fallback was shown', and here it says so wrongly. reports/gate-G4.md section 11 passes the error to the owner ('Appendix E item 7 ... open, nothing shown in a release build'), although the owner must read and accept fallback text (9.1 G6). P4-A6's request (4) to P0-A4 (DECISIONS.md line 2449) was not carried to any tracked list: the MERGE P4 wave 4.4 entry does not list it, and the gate report repeats the error rather than recording it.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 no sentence permits a false annotation. R2 7.3 does not require the annotation, but the report the owner reads states something false, contrary to the build's own logged purpose for it, so the cause stands. R3 the E7 wraps are phase 4. R4 n/a. R5 the P0-A4 per-pair design does not license a wrong label. R6 the P4-A6 request is not a tracked open item."
+   }
+  }
+ }
+]

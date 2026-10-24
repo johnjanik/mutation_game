@@ -1,0 +1,277 @@
+[
+ {
+  "id": "P4-RT-09-02",
+  "severity": "blocker",
+  "title": "M6's Seen box gives the root lengths of the finite types B, C, F, G for every balanced board: 'short roots have form value 2, long ones 4 or 6'",
+  "location": "site/src/content/modules/m6-multiple-edges.mdx, route /modules/m6-multiple-edges/, Seen bullet 2",
+  "claim": "The bullet reads: 'Exactly the balanced boards have a form with positive city weights that no mutation changes ([W20], Theorems 8.4, 8.7); short roots have form value 2, long ones 4 or 6, verified by computation.' The first clause sets the scope to balanced boards, and the length statement keeps that scope with no restriction to the finite types. It is false on balanced boards that the site itself offers (T15, T16).",
+  "expected": "SPEC 2.5, Long and short: 'short roots have (beta,beta)=2 and long roots have 4 (types B, C, F) or 6 (type G)', a statement about the finite types. Off them a balanced board can have other lengths, and more than two (SPEC 2.12 twisted table, column 'weights d'). Lens attack 1. Precedent: round 1 P3-RT-09-02.",
+  "observed": "A2^(2) (balanced, symmetrizer (1,4)): the simple root populations have form values 2 and 8. A4^(2) (symmetrizer (1,2,4)): 2, 4 and 8. T1's own lengths panel on A4^(2) reads 'More than two lengths; the squared lengths 2d are 2 at node 0, 4 at node 1, 8 at node 2.'",
+  "reproduction": "npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p4-m6-lengths.test.ts. Test 1 passes (the bullet is on the page); tests 2 and 3 fail with form values 2, 8 on A2^(2) and 2, 4, 8 on A4^(2). Oracle: python3 redteam/RT-09/redteam-RT-09-p4-oracle.py reference (INFO M6-seen2-*). Preview build.",
+  "specRef": "SPEC 2.5 (Long and short; normalisation min d_i = 1); 2.12 twisted boards table (weights d); golden twisted_affine. Oracle: bil(gram(board_from_name('A2^(2)')[0]), e_1, e_1) = 8.",
+  "proposedFix": "Write 'on a board of finite type, short roots have form value 2 and long ones 4 (B, C, F) or 6 (G)'.",
+  "reproducer": "site/tests/unit/redteam-RT-09-p4-m6-lengths.test.ts",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a271fd128e69144b1",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-09-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 2.5 (Long and short; normalisation min d_i = 1); 2.12 twisted boards table (weights d); golden twisted_affine. Oracle: bil(gram(board_from_name('A2^(2)')[0]), e_1, e_1) = 8.",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied from worktree-agent-a271fd128e69144b1: site/tests/unit/redteam-RT-09-p4-m6-lengths.test.ts, which is absent at the gate commit. redteam/RT-09/redteam-RT-09-p4-oracle.py, also named here, was already applied for 01. All applied files are separate files, and no run reads another finding's file. Status: 'A  redteam/RT-09/redteam-RT-09-p4-oracle.py', 'A  site/tests/unit/redteam-RT-09-p4-m6-lengths.test.ts', 'A  site/tests/unit/redteam-RT-09-p4-m7-finite-type.test.ts'. The imported site/src/components/tools/t01/phase2.ts exists at the gate commit. Ran: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p4-m6-lengths.test.ts. Exit 1, 'Tests  2 failed | 1 passed (3)'. Test 1 passes (the bullet is on the page). Test 2 fails: '... on the balanced board A2^(2) the simple root populations have form values 2, 8: expected false to be true'. Test 3 fails: '... A4^(2) has 2, 4, 8; T1's panel: \"More than two lengths; the squared lengths 2d are 2 at node 0, 4 at node 1, 8 at node 2.\": expected false to be true'. Side note: the reproducer's T1 check looks for a lowercase 'more than two lengths', so test 3 fails on the form values alone. The panel text still equals the finding's quotation. Lens oracle script output: 'INFO M6-seen2-A2^(2): ... [2, 8]', 'INFO M6-seen2-A4^(2): ... [2, 4, 8]'. My own oracle run gave: A2^(2) C = [[2,-4],[-1,2]], labels [0,1], symmetrizer (1,4), is_symmetrizable True, cartan_class 'affine', bil(gram, e_1, e_1) = 8 (label 1 = position 1). A4^(2) has symmetrizer (1,2,4) and form values 2, 4, 8. Golden twisted_affine gives symmetrizer [1,4] for A2^(2) and [1,2,4] for A4^(2). Observed matches.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: form values 2, 8 on A2^(2) and 2, 4, 8 on A4^(2), both balanced boards, against the Seen bullet's '2, long ones 4 or 6'. A wrong mathematical statement presented as fact is a blocker."
+   },
+   "refute": {
+    "findingId": "P4-RT-09-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 2.5, Long and short: 'short roots have (β,β)=2 and long roots have 4 (types B, C, F) or 6 (type G)'. This is a statement about the finite types, and SPEC 2.12's twisted table lists other weights. It supports the finding's expected.",
+    "evidence": "Read at b9b8504: m6-multiple-edges.mdx, Seen bullet 2: 'Exactly the balanced boards have a form with positive city weights that no mutation changes ([W20], Theorems 8.4, 8.7); short roots have form value 2, long ones 4 or 6, verified by computation.' The Seen box has no scope line. Bullet 1 is general too. The sentence's own first clause ranges over balanced boards. Beat 3's '4 and 2 here' is scoped to B2 and covers only its own sentence. The module title names B, C, F, G but no sentence limits the Seen box to them. Neither Appendix C nor the glossary defines long and short only for finite types. The plan (P4-A5-lesson-m6.md 5.10) suggested '(β,β) in {2,4,6}', but that is the plan's text, not a [D] of SPEC. decisions/P4-A5.md has no entry on this clause. Oracle on scratch copies: board_from_name('A2^(2)') is affine with symmetrizer (1,4); the simple roots have form values 2 and 8, and all roots up to depth 6 have 2 or 8. board_from_name('A4^(2)') has symmetrizer (1,2,4) and values 2, 4, 8. For comparison B2 has symmetrizer (2,1) and G2 has (1,3).",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, no qualifier limits the clause to the finite types and the earlier clause scopes it to every balanced board; R2 failed, 2.5 ties 4 and 6 to types B, C, F and G; R3 failed, M6 is phase 4; R4 failed, the oracle gives form value 8 on the balanced board A2^(2); R5 failed, not [D] and no recorded decision; R6 failed, no record. A wrong mathematical statement is a blocker."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-09-05",
+  "severity": "major",
+  "title": "M6 states Wildberger's B/C translation as 'verified by computation' for every rank of at least 3; the lists were compared for ranks 3 and 4 only",
+  "location": "site/src/content/modules/m6-multiple-edges.mdx: Seen bullet 5, and the last line of the beat 7 box ('Verified by computation, except the E6 diagram ...'), whose table drops SPEC 2.10's column 'Lists compared'",
+  "claim": "The Seen bullet reads 'For rank at least 3, Wildberger's B and C are Bourbaki's C and B. Verified by computation.' The box marks the rows '“B_n”, n >= 3' and '“C_n”, n >= 3' as verified by computation, but gives no range of ranks anywhere on the page.",
+  "expected": "SPEC 2.10: [V for every row; golden key wildberger_lists], with the column 'Lists compared': n = 3, 4 for B and C, and n = 4, 5 for D. SPEC 0.3: 'the range of boards checked is stated with the claim'. Lens attack 29. Precedent: P3-RT-09-07, graded major.",
+  "observed": "golden wildberger_lists.names holds B3, B4, C3, C4 (and D4, D5). No B or C list of rank 5 or more was compared. The page names no range.",
+  "reproduction": "npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p4-m6-wildberger-range.test.ts. Test 1 passes (both sentences on the page, no range named); test 2 fails ('ranks 3, 4 only'). Preview build.",
+  "specRef": "SPEC 2.10 first table (column 'Lists compared'); 0.3; 8.4; golden wildberger_lists.names; lens attack 29.",
+  "proposedFix": "Write 'verified by computation for ranks 3 and 4' (and 4 and 5 for D), or restore the column 'Lists compared'. The general statement can rest on the shape of Wildberger's diagrams, with the computation as a check.",
+  "reproducer": "site/tests/unit/redteam-RT-09-p4-m6-wildberger-range.test.ts",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a271fd128e69144b1",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-09-05",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 2.10 first table (column 'Lists compared'); 0.3; 8.4; golden wildberger_lists.names; lens attack 29.",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied from worktree-agent-a271fd128e69144b1: site/tests/unit/redteam-RT-09-p4-m6-wildberger-range.test.ts, absent at the gate commit. Status: 'A  site/tests/unit/redteam-RT-09-p4-m6-wildberger-range.test.ts' plus the earlier files. The test reads only M6 and reference/golden_data.json. Ran: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p4-m6-wildberger-range.test.ts. Exit 1, 'Tests  1 failed | 1 passed (2)'. Test 1 passes: both sentences are on the page, and nothing matches /Lists compared|n=3,4|ranks? 3 and 4/. Test 2 fails: 'M6 Seen: \"For rank at least {'3'}, Wildberger's B and C are Bourbaki's C and B. Verified by computation.\" — the lists compared for B and C of rank at least 3 have ranks 3, 4 only; SPEC 2.10 gives \"Lists compared: n = 3, 4\": expected false to be true'. My own oracle run gave golden wildberger_lists.names keys A4, B2, C2, B3, B4, C3, C4, D4, D5, E6, E7, F4, G2. For B and C of rank 3 or more only B3, B4, C3, C4 are present, and for D only D4 and D5. Observed matches.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: golden wildberger_lists.names holds B and C lists of ranks 3 and 4 only (and D4, D5), and M6 names no range while saying 'For rank at least 3 ... Verified by computation'."
+   },
+   "refute": {
+    "findingId": "P4-RT-09-05",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 2.10, first table, column 'Lists compared': 'n=3,4' for B and C, 'n=4,5' for D, under '[V for every row; golden key wildberger_lists]'. SPEC 0.3 [V]: 'the range of boards checked is stated with the claim or is every type of rank at most 8'. SPEC 8.4: every statement carries its provenance. These support the finding's expected.",
+    "evidence": "Read at b9b8504: M6 Seen bullet 5: 'For rank at least 3, Wildberger's B and C are Bourbaki's C and B. Verified by computation.' The box's provenance line reads 'Verified by computation, except the E6 diagram ...'. The names table has rows 'n≥3' and no 'Lists compared' column. No range of ranks appears anywhere on the page. Recorded choice: the plan (P4-A5-lesson-m6.md 5.8) says the column 'may be kept or dropped [D]', and decisions/P4-A5.md 'beat 7, the warning box' records it as dropped '[D, allowed by the instruction]'. That is the plan's mark, not a [D] sentence of SPEC (2.10 carries none), a section 10 default or an owner's answer. It also covers only the table column, not the Seen bullet. SPEC 2.10's own 'So for rank at least 3 ...' stands beside the table that gives the range. Golden: wildberger_lists.names has the keys A4, B2, C2, B3, B4, C3, C4, D4, D5, E6, E7, F4, G2, so no B or C of rank 5 or more was compared. Under 0.3's default range, an unqualified 'Verified by computation' claims ranks up to 8.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, no passage allows omitting the range; R2 failed, the finding reads 2.10 and 0.3 correctly; R3 failed, phase 4; R4 failed, the golden file shows only ranks 3 and 4 for B and C; R5 failed, the dropped column is a [D] of the plan only, recorded by P4-A5, and it does not reach the Seen bullet; R6 failed, no record. Severity left at the finding's major: the round 1 precedents differ (P3-RT-09-07 major, P3-RT-08-01 blocker)."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-08-03",
+  "severity": "major",
+  "title": "Attack 16: M6 says Wildberger's B and C are Bourbaki's C and B 'for rank at least 3. Verified by computation.', but only the lists of ranks 3 and 4 were compared",
+  "location": "site/src/content/modules/m6-multiple-edges.mdx:187 (Seen box, fifth statement)",
+  "claim": "The computation covered Wildberger's printed lists B3, B4, C3, C4. The statement claims a computation for every rank from 3 up.",
+  "expected": "SPEC 2.10 first table, column 'Lists compared': 'n=3,4' for 'B_n' and 'C_n' ([V for every row; golden key wildberger_lists]). SPEC 0.3 [V]: 'the range of boards checked is stated with the claim'. The exchange for general n follows from his definitions of the graphs, not from a computation.",
+  "observed": "'For rank at least 3, Wildberger's B and C are Bourbaki's C and B. Verified by computation.' Golden wildberger_lists.names has swapped entries for B3, B4, C3 and C4 only.",
+  "reproduction": "npm ci && npx vitest run site/tests/unit/redteam-RT-08-p4-wildberger-range.test.ts",
+  "specRef": "SPEC.md 2.10 (table, 'Lists compared'); 0.3 [V]; 8.4 provenance bullet; lens attack 16",
+  "proposedFix": "Say 'verified by computation for ranks 3 and 4, the lists printed in his texts', and give the general rank as following from his definitions of the graphs.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p4-wildberger-range.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a5ac953e1a01ff603",
+  "verification": {}
+ },
+ {
+  "id": "P4-RT-09-06",
+  "severity": "major",
+  "title": "M6 quotes Donnelly's theorem on the forms fired without saying that his matrix is the transpose of the site's",
+  "location": "site/src/content/modules/m6-multiple-edges.mdx: beat 4 ('... x_2: the positive roots of the reversed board [Don08] (Theorem 5.2)') and Seen bullet 3 ('Firing is mutation on the reversed board, transposed. Verified by computation; [Don08].')",
+  "claim": "The quoted result turns on which board is 'reversed', and in Donnelly's convention the matrix is C^T. The M6 page never states this. M5, which quotes the same theorem, does: 'Donnelly fires positive numbers, as this site does; his matrix is the transpose of the Cartan matrix used here.'",
+  "expected": "SPEC 8.4: 'State the convention whenever a result is quoted from a source that uses another one (section 2.9)'. SPEC 2.9: 'Donnelly [Don08] ... a = lambda, C = M^T'. Lens attack 22: a quoted statement true as printed but with no convention is major.",
+  "observed": "M6 contains neither 'Donnelly' nor any statement that M = C^T. The statement is true in the site's convention, verified by oracle symbolic_play(cartan('B',2), [0,1,0,1]) = (1,0), (2,1), (1,1), (0,1).",
+  "reproduction": "npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p4-m6-donnelly-convention.test.ts. Test 1 passes (M5 states the convention); test 2 fails (M6 quotes [Don08] and never states it). Preview build.",
+  "specRef": "SPEC 8.4; 2.9 (Donnelly row); F6; lens attack 22. RT-08 attack 31 covers the same rule from the wording side, so the two reports should be merged.",
+  "proposedFix": "Add M5's sentence after the [Don08] citation in beat 4.",
+  "reproducer": "site/tests/unit/redteam-RT-09-p4-m6-donnelly-convention.test.ts",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a271fd128e69144b1",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-09-06",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.4; 2.9 (Donnelly row); F6; lens attack 22. RT-08 attack 31 covers the same rule from the wording side, so the two reports should be merged.",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied from worktree-agent-a271fd128e69144b1: site/tests/unit/redteam-RT-09-p4-m6-donnelly-convention.test.ts, absent at the gate commit. Status: 'A  site/tests/unit/redteam-RT-09-p4-m6-donnelly-convention.test.ts' plus the earlier files. Ran: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p4-m6-donnelly-convention.test.ts. Exit 1, 'Tests  1 failed | 1 passed (2)'. Test 1 passes: M5 contains 'his matrix is the transpose of the Cartan matrix used here'. Test 2 fails: 'M6 quotes [Don08] (Theorem 5.2) for \"the positive roots of the reversed board\" but nowhere says that Donnelly's matrix M is the transpose of C (SPEC 2.9, 8.4): expected false to be true'. grep -n -i 'transpos|Donnelly|Don08' on m6-multiple-edges.mdx finds no 'Donnelly'. Lines 111 and 185 cite Don08. The transpose sentences at lines 109, 140 and 194 concern the reversed board, folding and Bourbaki, and none says that Donnelly's matrix is C^T. My own oracle run gave symbolic_play(cartan('B',2), [0,1,0,1]) = [(1,0), (2,1), (1,1), (0,1)], as the finding says (true in the site's convention). Observed matches.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: M6 quotes [Don08] in beat 4 and Seen 3 and contains neither 'Donnelly' nor any statement that his matrix is C^T, while M5 states it. Breaking the 8.4 rule is major."
+   },
+   "refute": {
+    "findingId": "P4-RT-09-06",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 8.4: 'State the convention whenever a result is quoted from a source that uses another one (section 2.9)'. SPEC 2.9, Donnelly row: 'a = λ, C = M^T'. These support the finding's expected.",
+    "evidence": "Read at b9b8504. M6 beat 4 says '... x_2: the positive roots of the reversed board [Don08] (Theorem 5.2)', and Seen 3 says 'Firing is mutation on the reversed board, transposed. Verified by computation; [Don08].' M6 contains no 'Donnelly' and no sentence that his matrix is C^T. Its Lie theory paragraph states only the Kac and SageMath convention and Bourbaki's transpose. m5-weyl.mdx line 93 does state the convention ('Donnelly fires positive numbers, as this site does; his matrix is the transpose of the Cartan matrix used here.'), but on another page, and 8.4 says 'whenever'. No M6 sentence points the reader to it. decisions/P4-A5.md has no entry on Donnelly or Don08 (grep over all fragments). Oracle: symbolic_play(cartan('B',2),[0,1,0,1]) = (1,0),(2,1),(1,1),(0,1), so the quoted statement is true in the site's convention. That makes it the case 'true as printed but carries no convention' of lens attack 22, which is major under 8.4. RT-08 attack 31 covers the same rule, but nothing at the gate commit or in gate-G4.md records an earlier report.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, 8.4 says 'whenever' and no M6 sentence states the convention; R2 failed, 2.9 lists Donnelly with C=M^T; R3 failed, phase 4; R4 is not applicable, since the finding does not dispute the statement's truth and the oracle agrees it is true; R5 failed, not [D] and no recorded decision; R6 failed, the RT-08 overlap has no record. Major: a prose rule of 8.4 broken."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-09-07",
+  "severity": "minor",
+  "title": "M6 beat 1 sets B2 against 'every road had a road back', but B2 is bidirected and M3 already showed a one-way road",
+  "location": "site/src/content/modules/m6-multiple-edges.mdx, beat 1, first sentence",
+  "claim": "'Until now every road had a road back, as on A2. Here the one-way counts of two cities, the numbers of roads each way, differ ...' In SPEC 2.1's words this contrast says that B2 has a road with no road back, which would make it a one-way board. It is not one. The opening clause is also not so: M3 beat 6 played on a single road with none back.",
+  "expected": "SPEC 2.1: a board is bidirected when 'every road has at least one road back'; B2 (two roads from 1 to 2 and one back) is bidirected. 'Two roads one way, one back' is the intended contrast with 'one road each way'.",
+  "observed": "B2: adjacency has A_12 = 2 and A_21 = 1 (boardKind 'gcm'). M3 contains 'Take a single road from city 1 to city 2 and none back.'",
+  "reproduction": "npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p4-m6-road-back.test.ts. Test 1 passes (the sentence is on the page); tests 2 and 3 fail.",
+  "specRef": "SPEC 2.1 (bidirected, one-way board); Appendix C; M3 beat 6.",
+  "proposedFix": "Write 'Until now every road was matched by exactly one road back, as on A2.'",
+  "reproducer": "site/tests/unit/redteam-RT-09-p4-m6-road-back.test.ts",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a271fd128e69144b1",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-09-07",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 2.1 (bidirected, one-way board); Appendix C; M3 beat 6.",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied from worktree-agent-a271fd128e69144b1: site/tests/unit/redteam-RT-09-p4-m6-road-back.test.ts, absent at the gate commit. Status: 'A  site/tests/unit/redteam-RT-09-p4-m6-road-back.test.ts' plus the earlier files. Ran: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p4-m6-road-back.test.ts. Exit 1, 'Tests  2 failed | 1 passed (3)'. Test 1 passes: the sentence is on the page, at M6 line 76 'Until now every <Term a=\"roads\">road</Term> had a road back, as on <Tex src=\"A_2\"/>.'. Test 2 passes its check that boardKind is 'gcm', then fails at line 29: '... B2 is such a board (two roads from 1 to 2, one back): expected false to be true'. Test 3 fails: '... M3 beat 6 (before M6) plays on a single road with none back: expected true to be false'. M3 line 110, inside <Beat n={6}> (which starts at line 106), reads 'Take a single road from city <Tex src=\"1\"/> to city <Tex src=\"2\"/> and none back.'. My own oracle run gave cartan('B',2) = [[2,-1],[-2,2]], adjacency = [[0,2],[1,0]] (A_12 = 2, A_21 = 1 in labels) and board_kind = 'gcm'. Observed matches. Cleanup after all runs: node_modules, site/node_modules, packages/engine/node_modules and site/dist were deleted. The Python oracle import had created reference/__pycache__, which was removed. The reference hashes are unchanged (golden_data.json c4547463..., lie_games.py 485caee8...). No server is running on ports 6124 to 6127. Final git status --porcelain lists only the 8 applied files: redteam/RT-09/redteam-RT-09-p4-oracle.py, the 2 e2e specs and the 5 unit tests.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: B2 has A_12 = 2 and A_21 = 1 with boardKind 'gcm' (bidirected), and M3 beat 6 contains 'Take a single road from city 1 to city 2 and none back.'. This is a wording issue, so minor is right."
+   },
+   "refute": {
+    "findingId": "P4-RT-09-07",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 2.1: a board is bidirected when 'A_ij>0 exactly when A_ji>0, so every road has at least one road back', and a one-way board is one 'on which some road has no road back'. SPEC 3 preamble: 'M6 to M9 can be read in any order after M5'. These support the finding's expected.",
+    "evidence": "Read at b9b8504: M6 beat 1: 'Until now every road had a road back, as on A2. Here the one-way counts of two cities ... differ: two roads run from city 1 to city 2 and one runs back.' M3 beat 6, which is in the core path every M6 reader has passed, says 'Take a single road from city 1 to city 2 and none back.' The b9 caption and challenge b11 of M3 also have the reader remove the road back on A2. So the opening clause is false as a statement about the earlier lessons. decisions/P4-A5.md 'deviation, P3 against the figure table of M6' records the sentence as the recall of A2 (default: the plan's resolution, instruction 5.12). That is a builder's and plan's record about the P3 conflict, not a [D] sentence of SPEC, a section 10 default or an owner's answer, and the lens's exclusion for recorded choices excepts a choice that states something false. Oracle: cartan('B',2) = [[2,-1],[-2,2]], so A_12=2 and A_21=1 are both positive and B2 is bidirected.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, no passage allows the claim that every earlier road had a road back; R2 failed, the part about M3 is a plain fact, though the finding's reading of the implied contrast is interpretive; R3 failed, phase 4; R4 failed, the oracle confirms B2 is bidirected; R5 failed, P4-A5's recorded deviation covers the choice to open on B2, not the truth of the clause; R6 failed, no record. Minor wording, as claimed."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-08-02",
+  "severity": "major",
+  "title": "Attack 12: M6 types the Coxeter numbers of A2, B2 and G2 (the round counts 3, 4, 6) and the move counts 8 and 12 instead of reading the golden file",
+  "location": "site/src/content/modules/m6-multiple-edges.mdx:88, :90 (beat 2 prose), :92 (b3 caption), :93 (b4 caption and prediction reveal), :183 (Seen box); decisions/P4-A5.md 'typed numbers'",
+  "claim": "The number of rounds after which the pair of moves returns is golden types.<T>.coxeter_number. A round is s1 s2, the two-colour Coxeter element, and its order is h. M6 types it in <Tex src=\"3\"/>, <Tex src=\"4\"/>, <Tex src=\"6\"/>, in props ('After 8 moves, 4 rounds', 'needs 12 moves, 6 rounds') and as words ('eight moves', 'twelve moves'). The agent's fragment says these round counts have no golden value.",
+  "expected": "SPEC 7.3: 'Every number in a lesson that has a golden value is written this way [<G>]' and '<Tex> is the only way a golden value enters a formula'. 8.4: 'never typed'. M5 prints the same quantity (rounds of the wave) from fmt('types.A3.coxeter_number'), and M7 prints it from <G k=\"types.E8.coxeter_number\"/> ('h being the number of rounds of the wave').",
+  "observed": "Seven typed occurrences in the source. The engine confirms the quantity: alternating mutations return after 4 rounds on B2 from (2,1), 6 on G2 from (1,2) and 3 on A2. These equal types.B2/G2/A2.coxeter_number = 4, 6, 3.",
+  "reproduction": "npm ci && npx vitest run site/tests/unit/redteam-RT-08-p4-typed-rounds.test.ts (the engine-and-golden assertion passes; the source assertion fails, listing 7 phrases)",
+  "specRef": "SPEC.md 7.3 '<G>' and '<Tex>' bullets; 8.4 numbers bullet; CONTRACTS 7 'Numbers'; golden types.A2/B2/G2.coxeter_number",
+  "proposedFix": "Print the round counts from {{types.<T>.coxeter_number}} in <Tex> and fmt() in props, and the move counts as twice that value or from the export that builds the scripts.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p4-typed-rounds.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a5ac953e1a01ff603",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-08-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.3 '<G>' and '<Tex>' bullets; 8.4 numbers bullet; CONTRACTS 7 'Numbers'; golden types.A2/B2/G2.coxeter_number",
+    "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a6ee40106d86c0974 (it started on branch worktree-agent-a6ee40106d86c0974 at aea1802). Detached at b9b8504c1b893dc73a25b46fe62382d59eb9cdf1, status clean, node v22.22.0. Lens branch worktree-agent-a5ac953e1a01ff603 (539d159) adds 20 files and changes no existing file. Applied site/tests/unit/redteam-RT-08-p4-typed-rounds.test.ts; status: 'A  site/tests/unit/redteam-RT-08-p4-typed-rounds.test.ts'. npm --prefix <wt> ci --prefer-offline: ok. Ran from <wt>: npx --prefix <wt> vitest run site/tests/unit/redteam-RT-08-p4-typed-rounds.test.ts; exit 1. 'Tests  1 failed | 1 passed (2)': the engine-and-golden test passes. 'AssertionError: M6 types the Coxeter numbers of A2, B2, G2 (and 2h) instead of reading the golden file' received 7 phrases: '<Tex src=\"3\"/>, <Tex src=\"4\"/> or <Tex src=\"6\"/> rounds', 'when the round counter reads <Tex src=\"4\"/>', 'after eight moves', 'the return takes twelve moves', 'After 8 moves, 4 rounds', 'needs 12 moves, 6 rounds', 'needs 6 rounds, 12 moves'. grep places them at m6-multiple-edges.mdx lines 88, 90 (three), 92, 93 (two) and 183. The observed value matches: 7 typed occurrences.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: the engine's rounds to return equal types.A2/B2/G2.coxeter_number, and M6 types those values in 7 places. A broken 8.4 numbers rule is major under the rubric."
+   },
+   "refute": {
+    "findingId": "P4-RT-08-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.3 <G> bullet ('Every number in a lesson that has a golden value is written this way') and <Tex> bullet ('the only way a golden value enters a formula'); 8.4 ('Numbers that have a golden value are written with <G>, never typed'); 2.14 [V] ('The product of all mutations of one colour class followed by all of the other rotates this plane by exactly 2π/h'); golden types.A2/B2/G2.coxeter_number = 3, 4, 6. The passages support the finding's expected.",
+    "evidence": "At b9b8504, m6-multiple-edges.mdx line 90 reads 'B_2 is back at (2,1) after eight moves, when the round counter reads <Tex src=\"4\"/>'. The b3 caption (line 92) reads 'After 8 moves, 4 rounds'. Line 93 (b4 prediction and caption) reads 'after 4 rounds', 'needs 6 rounds, 12 moves' and '12 moves, 6 rounds'. Lines 88 and 183 read <Tex src=\"3\"/>, <Tex src=\"4\"/>, <Tex src=\"6\"/> 'as on A_2, B_2 and G_2'. On a rank-2 board an M6 round (one mutation at each of the two cities) is the two-colour product of 2.14. 2.14 [V] says that product rotates the Coxeter plane by 2π/h, so its order is h. M7's Lie theory paragraph says the same: c is 'of order the Coxeter number h'. Oracle (copies from the gate commit): alternating L.mutate at positions 0 and 1 returns A2 from (1,0) after 3 rounds, L.cartan('B',2) from (2,1) after 4 rounds (8 moves) and G2 from (1,2) after 6 rounds (12 moves). L.coxeter_number gives 3, 4 and 6, the same as golden coxeter_number. decisions/P4-A5.md 'typed numbers' (folded in DECISIONS.md line 2360) lists 'the round counts 3, 4, 6' among 'Numbers with no golden value'. The plan's instruction build-plan/agents/P4-A5-lesson-m6.md line 163 says the same. That reason is contradicted by 2.14 and the golden value. 7.3 and 8.4 carry no [D] mark, and RT-08 section 6 says a fragment's reason for a typed number is 'the place to check the reason'. No regression test covers M6: the P3-RT-08-05 regressions are in M2, M3 and M5 only. gate-G4.md records nothing on this.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 no sentence permits typing a golden number. R2 the finding reads 7.3 and 8.4 correctly; only the general pair statement of lines 88 and 183 (orders of S_iS_j, SPEC 2.2, no golden key) can be argued, and the B2 and G2 counts of lines 90 to 93 stand. R3 M6 is phase 4 at G4. R4 the oracle agrees with the finding (4 and 6 rounds, coxeter_number 4 and 6). R5 the P4-A5 logged decision rests on a wrong premise and departs from non-[D] text. R6 no record or regression test."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-08-05",
+  "severity": "major",
+  "title": "Attack 21, sibling of P3-RT-08-08: two M6 challenge tools have captions that give a setting and an instruction but state no result",
+  "location": "site/src/content/modules/m6-multiple-edges.mdx:202 (b11), :210 (b13)",
+  "claim": "The captions of b11 and b13 say what is on screen and what to do. They state no result the tool demonstrates.",
+  "expected": "SPEC 8.1 P1: 'Each tool has a meaningful starting state and a caption that states its point'. CONTRACTS 7: 'Every tool has a caption prop stating the result it demonstrates (P1)'. b12 on the same page does this: 'every population it reaches has form value 2'.",
+  "observed": "b11: 'One Martian in city 2 of G2, the long city; the challenge above names the population to reach.' b13: 'The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test.'",
+  "reproduction": "node redteam/redteam-RT-08-p4-captions.mjs .",
+  "specRef": "SPEC.md 8.1 P1; CONTRACTS 7; lens attack 21 (second part)",
+  "proposedFix": "State the point without giving away the answer, for example b11: 'From one Martian in the long city 2 of G2 the long root populations are within reach'; b13: 'With equal weights the builder fails on G2: the long city must weigh three times the short one.'",
+  "reproducer": "redteam/redteam-RT-08-p4-captions.mjs",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a5ac953e1a01ff603",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-08-05",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 8.1 P1; CONTRACTS 7; lens attack 21 (second part)",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied redteam/redteam-RT-08-p4-captions.mjs (added). Ran from <wt>: node redteam/redteam-RT-08-p4-captions.mjs . ; exit 0, as designed: the script prints and asserts nothing. Output: 'm6-multiple-edges.mdx:202 b11: caption=\"One Martian in city 2 of G2, the long city; the challenge above names the population to reach.\"' and 'm6-multiple-edges.mdx:210 b13: caption=\"The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test.\"'. For comparison b12 (line 206) reads '... every population it reaches has form value 2.'. SPEC.md:1914 P1 'a caption that states its point' and CONTRACTS.md:430 'a caption prop stating the result it demonstrates (P1)' are quoted correctly. The observed value matches: both captions are word for word as the finding quotes them, and neither states a result.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: b11 and b13 give a setting and an instruction and no result, against P1 and CONTRACTS 7. A missing stated behaviour is major."
+   },
+   "refute": {
+    "findingId": "P4-RT-08-05",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 8.1 P1: 'Each tool has a meaningful starting state and a caption that states its point.' CONTRACTS.md 7: 'Every tool has a caption prop stating the result it demonstrates (P1).' The passages support the finding.",
+    "evidence": "At b9b8504 the m6-multiple-edges.mdx b11 caption (line 202) reads 'One Martian in city 2 of G2, the long city; the challenge above names the population to reach.' The b13 caption (line 210) reads 'The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test.' Neither states a result. b12 on the same page does ('every population it reaches has form value 2'). The recorded resolution of the round 1 sibling, DECISIONS.md line 2722 (RT-FIX-P3-lesson-m5, P3-RT-08-08), requires challenge-tool captions to 'state the point of their tool and leave the answer ... unsaid'. 4.0 [D] lets the surrounding prose state the result, but 8.1 P1 still requires the caption itself to state the point. 9.2 gives the P1 check for tools to the owner, but 8.1 says the principles 'are requirements'. P4-A5's b13 repair entry records the caption's wording only, not an exemption. No regression test covers M6.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 4.0 [D] does not remove 8.1 P1's caption requirement. R2 the finding reads P1 and CONTRACTS 7 correctly. R3 M6 is phase 4. R4 n/a. R5 no [D] choice or logged exemption. R6 the P3-RT-08-08 regression covers M5 only."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-13-03",
+  "severity": "major",
+  "title": "Attacks 35 (LO6) and 26: M6 draws multiple roads as a Dynkin double or triple line with an arrow but never tells the primary reader how to read it; M0's only drawing rule reads the B2 drawing as two roads each way",
+  "location": "site/src/content/modules/m6-multiple-edges.mdx, beats 1 to 3. Only b1 and b12 use roads style (M6-q04: 'every road drawn as an arrow'). b3 (B2) and b4, b11 (G2) render data-road-style=\"dynkin\": two or three lines and a chevron. The only sentence about the arrow is in the Lie theory paragraph (M6-q29).",
+  "claim": "From beat 2 on, the reader sees B2 as a double line with a chevron and G2 as a triple line, and M7 draws B3 the same way. No primary-reader sentence says what the lines and the arrow mean. The only rule in the notebook, M0-q04 ('A line between two nodes stands for one road running each way'), reads the B2 drawing as two roads each way. That is a different board, C = [[2,−2],[−2,2]].",
+  "expected": "SPEC 1.3 LO6: 'read a multiple edge with an arrow as long and short roots'. 1.2: 'the ability to read a Dynkin ... diagram'. 2.1: '(2,1) and (3,1) are a double and a triple line with an arrowhead pointing from i to j, the direction in which the extra roads run'. SPEC 3 M6 assigns LO6 to this module.",
+  "observed": "0 primary-reader sentences on M0 to M6 explain a double or triple line with an arrow. Road styles: b1 roads, b3 dynkin, b4 dynkin, b11 dynkin, b12 roads. The arrow appears only in 'For readers who know Lie theory': 'The arrow of a Dynkin diagram points from the long simple root to the short one.'",
+  "reproduction": "npm ci; npm run build; serve the preview on port 5020; node redteam/rt13-read.mjs http://localhost:5020/ preview <out.json>; node redteam/rt13-lo6-arrow.mjs <out.json> site/dist. It prints the drawing sentences of M0 to M6 and the road styles, then exits 1 with 'FAIL: 3 M6 figures draw a multiple road as a double or triple line with an arrow, and no primary-reader sentence says how to read it'.",
+  "specRef": "SPEC.md 1.3 LO6; 1.2; 2.1; 3 M6 beats 1 and 3; 8.4",
+  "proposedFix": "In M6 beat 1 or 2, where the drawing changes, add one sentence in the site's words. For example: 'From here on a board is drawn as a Dynkin diagram: a double or triple line with an arrowhead stands for two or three roads in the direction of the arrow and one road back, so the arrow points from the long city to the short one.'",
+  "reproducer": "redteam/rt13-lo6-arrow.mjs (with redteam/rt13-read.mjs)",
+  "lens": "RT-13",
+  "branch": "worktree-agent-a666e09c0973563f9",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-13-03",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 1.3 LO6; 1.2; 2.1; 3 M6 beats 1 and 3; 8.4",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1, detached. Applied from worktree-agent-a666e09c0973563f9: redteam/rt13-lo6-arrow.mjs and redteam/rt13-read.mjs. rt13-read imports only ../node_modules/playwright/index.mjs, which npm ci provides, and lo6-arrow imports only node built-ins. Status as for P4-RT-13-01 (six 'A ' lines, nothing else). npm ci: exit 0. npm run build: exit 0. Preview served on my port 6024 instead of 5020, with the astro preview command of P4-RT-13-01. Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers node <wt>/redteam/rt13-read.mjs http://localhost:6024/ preview <scratch>/verify-rt13-reproduce/read-preview.json; exit 0. It read M0 to M7 as 46, 45, 46, 49, 51, 54, 43 and 47 blocks, 381 in all, the same as the lens. Ran: node <wt>/redteam/rt13-lo6-arrow.mjs <scratch>/verify-rt13-reproduce/read-preview.json <wt>/site/dist; exit 1. Output: the drawing sentences M0-q04 ('A line between two nodes stands for one road running each way.'), M2-q04, M4-q19, M6-q04 ('This is $B_2$, every road drawn as an arrow.'), M6-q24, and M6-q29 [lie-theory] ('The arrow of a Dynkin diagram points from the long simple root to the short one.'). 'Primary-reader sentences that explain a double or triple line with an arrow: 0'. 'M6 road styles by instance: {\"b1\":\"roads\",\"b3\":\"dynkin\",\"b4\":\"dynkin\",\"b11\":\"dynkin\",\"b12\":\"roads\"}'. 'FAIL: 3 M6 figures draw a multiple road as a double or triple line with an arrow, and no primary-reader sentence says how to read it; M0-q04 reads a line as one road each way.' Observed matches the finding: 0 primary-reader sentences; styles b1 roads, b3, b4 and b11 dynkin, b12 roads; the arrow appears only in the Lie theory paragraph. After cleanup, status lists only the six applied paths.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: 0 primary-reader sentences explain the double or triple line with an arrow, while M6 b3, b4 and b11 render data-road-style dynkin and the only arrow sentence is in the Lie theory section; a missing stated behaviour (LO6) is major under RED-TEAM-COMMON 4"
+   },
+   "refute": {
+    "findingId": "P4-RT-13-03",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 1.3 LO6: 'read a multiple edge with an arrow as long and short roots'. 1.2: the primary reader should leave with 'the ability to read a Dynkin or Satake diagram'. 2.1 (unlabelled, so a definition under 0.3): '(2,1) and (3,1) are a double and a triple line with an arrowhead pointing from i to j, the direction in which the extra roads run'. SPEC 3 M6 assigns LO6. 6.2 [D] covers only which drawing style is used, not whether it is explained.",
+    "evidence": "Read at b9b8504 with git show. m0-start.mdx:37: 'A line between two nodes stands for one road running each way.' This is the only drawing rule in M0 to M6; a grep for line, lines, arrowhead, chevron and 'drawn as' finds no other. M6 sets roadStyle=\"roads\" only on b1 (line 82) and b12 (line 206). b3 (B2), b4 (G2) and b11 (G2) pass no roadStyle, so they take 6.2's default `dynkin` style: 'one, two or three parallel lines ... a chevron'. DECISIONS.md:520 records that roadGlyphs draws `lines` with a chevron. Roads.svelte is aria-hidden, and the tool shows no legend. The only arrow sentence is in the LieTheory paragraph (m6:194): 'The arrow of a Dynkin diagram points from the long simple root to the short one.' Beat 3 says 'more roads run from the long city to the short one' but never ties this to the double line or the chevron. The glossary has no entry for the drawing (only black, white and arrows for Satake). 6.2 [D] allows `dynkin` as the default and names M6 for `roads` 'where the counts in each direction are the subject'. That permits the drawing, not the missing reading rule. decisions/P4-A5.md records the roads style of b1 and nothing on explaining the dynkin drawing. No MERGE, OWNER or gate-G4 record touches it. The finding's matrix [[2,-2],[-2,2]] for two roads each way is correct under 2.1 (C = 2I - A^T).",
+    "severityAdjustment": "none",
+    "reason": "not refuted. R1 fails: no sentence permits leaving the double or triple line and the chevron unexplained to the primary reader, and 6.2 [D] governs the choice of style, not its explanation. R2 fails: LO6, 1.2 and 2.1 say what the finding says, and the only rule M0 gives contradicts the drawing on b3, b4 and b11. R3 fails: M6 is phase 4 and SPEC 3 gives it LO6. R4 does not apply: the claim is about teaching, not a value. R5 fails: the build follows the [D] of 6.2, but the defect is the missing reading rule, which no [D] text, section 10 default or record covers. R6 fails: there is no record. A stated behaviour that is missing, or a prose rule of 8.4 broken (define on first use), is major, as claimed."
+   }
+  }
+ }
+]

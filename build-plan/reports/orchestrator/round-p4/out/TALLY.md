@@ -73,3 +73,6 @@
 - RT-08 refute: 06, 07, 11, 12 refuted (06: E8 rings hold h by golden h_points_on_every_ring; 07: the M3 'ten' is recorded and carried to polish; 11: citeTitle keeps $...$ by P0-A4 decision; 12: no SPEC rule on the xyz view). 09 raised to major.
 - RT-08 verdicts: CONFIRMED 02, 04, 05, 08 major; 09 major (raised); 10 minor. REFUTED 06, 07, 11, 12 (to the owner as notes: 12 a blemish).
 - RT-03 refute: 02 not refuted; 03 refuted (P2-A1 limit semantics, oracle's first_only agrees); 04 refuted (E-10 has no class for this case; P4-A1 ported raises as EngineError). Reproduce of 02 pending.
+- RT-06 refute: none refuted (01 on SPEC 7.4 'a control never looks usable before it is'; 02 the nojs predicate never reads T10's snapshot, though T10.spec and M7.spec count b3, b8, b9; 03 the words outside data-measured). Reproduce pending.
+- RT-06 verdicts: all 3 CONFIRMED (01 major, 02 minor, 03 minor).
+- RT-04 verdicts: all 4 CONFIRMED. 01, 02 major (raised by the refuter); 03 minor; 04 major (oracle: one exact value 2 d_i a_i^2).
