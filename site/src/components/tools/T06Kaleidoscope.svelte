@@ -291,17 +291,18 @@
     {#if r.offView}
       <p class="line off-view" data-out="offView">The point lies outside the drawn window; its numbers and its population are shown below.</p>
     {/if}
+    <!-- Each name starts with the button's visible text (WCAG 2.5.3 Label in Name; RT-FIX P4-RT-05-07). -->
     <div class="place" role="group" aria-label="Place the point">
-      <button type="button" class="control" data-control="a1-minus" disabled={!active} aria-label="Move the point: number at node 1 minus 1" onclick={() => step(0, -1, api.announce)}
+      <button type="button" class="control" data-control="a1-minus" disabled={!active} aria-label="a1 − 1: move the point, number at node 1 minus 1" onclick={() => step(0, -1, api.announce)}
         ><i>a</i><sub>1</sub> − 1</button
       >
-      <button type="button" class="control" data-control="a1-plus" disabled={!active} aria-label="Move the point: number at node 1 plus 1" onclick={() => step(0, 1, api.announce)}
+      <button type="button" class="control" data-control="a1-plus" disabled={!active} aria-label="a1 + 1: move the point, number at node 1 plus 1" onclick={() => step(0, 1, api.announce)}
         ><i>a</i><sub>1</sub> + 1</button
       >
-      <button type="button" class="control" data-control="a2-minus" disabled={!active} aria-label="Move the point: number at node 2 minus 1" onclick={() => step(1, -1, api.announce)}
+      <button type="button" class="control" data-control="a2-minus" disabled={!active} aria-label="a2 − 1: move the point, number at node 2 minus 1" onclick={() => step(1, -1, api.announce)}
         ><i>a</i><sub>2</sub> − 1</button
       >
-      <button type="button" class="control" data-control="a2-plus" disabled={!active} aria-label="Move the point: number at node 2 plus 1" onclick={() => step(1, 1, api.announce)}
+      <button type="button" class="control" data-control="a2-plus" disabled={!active} aria-label="a2 + 1: move the point, number at node 2 plus 1" onclick={() => step(1, 1, api.announce)}
         ><i>a</i><sub>2</sub> + 1</button
       >
     </div>
