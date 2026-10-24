@@ -76,3 +76,11 @@
 - RT-06 refute: none refuted (01 on SPEC 7.4 'a control never looks usable before it is'; 02 the nojs predicate never reads T10's snapshot, though T10.spec and M7.spec count b3, b8, b9; 03 the words outside data-measured). Reproduce pending.
 - RT-06 verdicts: all 3 CONFIRMED (01 major, 02 minor, 03 minor).
 - RT-04 verdicts: all 4 CONFIRMED. 01, 02 major (raised by the refuter); 03 minor; 04 major (oracle: one exact value 2 d_i a_i^2).
+- RT-03 verdicts: 02 CONFIRMED (minor; 40000 positions in one bucket, 930x the chain steps); 03, 04 REFUTED (recorded decisions).
+## RT-12: 5 findings (3 major, 2 minor), verifying. Retests hold: 12-01 to 12-07 (siblings below).
+- P4-RT-12-01 major: links.yml fails every weekly run (lychee without root dir on local files; report too long for an issue body); real run 39258486524 failed, no issue opened.
+- P4-RT-12-02 major: npm run e2e fails in CI: registry-weight.spec.ts keeps the /<repo>/ base in the file path.
+- P4-RT-12-03 major: on Node 22.12 to 22.17 npm run build (postbuild links.mjs), size and lab exit 1: plain node imports astro.config.mjs, which imports a .ts file.
+- P4-RT-12-04 minor: npm run report accepts the report of a release build that failed in postbuild (complete marked at build:done).
+- P4-RT-12-05 minor: scripts/presets.mjs declares its own '@engine' alias.
+- Notes: shared /tmp Vite caches not keyed by checkout (P2 2.1 rule); load-sensitive e2e (board-load long task, T10 ring click, T15 capped play); github-pages environment may refuse tag deploys (owner to check when DEPLOY_PAGES is set); reuseExistingServer outside CI.
