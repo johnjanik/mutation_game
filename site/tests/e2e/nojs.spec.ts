@@ -389,3 +389,18 @@ test('T10 drawMs is a measured time: present in the server markup and marked dat
     }
   }
 });
+
+// SPEC 4.0 "Works before and without JavaScript" and 8.1 P1; RT-FIX-P3-nojs-phase4: the measured drawing time is
+// empty in the server markup, so no sentence states a drawing time without a number ("in ms").
+for (const route of ['tools/geometry/', 'modules/m7-geometry/']) {
+  // regression: P4-RT-06-03
+  test(`T10 shows no time sentence without a time before hydration: ${route}`, async ({ page }) => {
+    await page.goto(route);
+    const texts = await page.locator('[data-tool="geometry"]').evaluateAll((roots) =>
+      roots.map((r) => `${r.getAttribute('data-instance') || '(tool route)'}: ${(r as HTMLElement).innerText.replace(/\s+/g, ' ').trim()}`),
+    );
+    expect(texts.length).toBeGreaterThan(0);
+    const dangling = texts.filter((l) => /\bin\s+ms\b/.test(l)).map((l) => l.slice(0, l.indexOf(':')));
+    expect(dangling, `${route}: T10 roots that state a drawing time with no number`).toEqual([]);
+  });
+}

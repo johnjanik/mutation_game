@@ -1049,9 +1049,15 @@
       </p>
       <p class="line small">
         Drawn: <span data-out="pointsDrawn">{pointsDrawn ?? (ssr !== null ? ssr.points : '')}</span> points,
-        <span data-out="edgesDrawn">{edgesDrawn ?? (ssr !== null ? ssr.segments : '')}</span> edges, in
-        <span data-out="drawMs" data-measured="">{drawMs === null ? '' : (Math.round(drawMs * 10) / 10).toFixed(1)}</span> ms; edits:
+        <span data-out="edgesDrawn">{edgesDrawn ?? (ssr !== null ? ssr.segments : '')}</span> edges; edits:
         <span data-out="edits">{past.length}</span>.
+      </p>
+      <!-- The time is measured on the reader's machine (data-measured): its words are shown with it, never around an
+           empty time (before hydration, without JavaScript; RT-FIX P4-RT-06-03). The line keeps its height while
+           empty, so that the time arriving moves nothing (7.6). -->
+      <p class="line small">
+        {drawMs === null ? '' : 'Drawing time: '}<span data-out="drawMs" data-measured="">{drawMs === null ? '' : (Math.round(drawMs * 10) / 10).toFixed(1)}</span
+        >{drawMs === null ? '' : ' ms.'}
       </p>
     </div>
     <div class="legend" data-out="legend">
