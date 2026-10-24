@@ -17,9 +17,11 @@ import { G, Tex, Cite, Unverified } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased } from '@lib/pages/released';
 import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
+import { POPULATIONS_ICON, NUMBERS_ICON } from '@components/draw/palette';
 
 export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
 export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
+export const ViewWord = ({ v = 'numbers', children } = {}) => { const icon = v === 'populations' ? POPULATIONS_ICON : NUMBERS_ICON; return <span data-view-word={v} style={`white-space: nowrap; text-decoration-line: underline; text-decoration-color: var(--accent-${v}); text-decoration-thickness: 2px; text-underline-offset: 0.2em;`}><svg viewBox={icon.viewBox} width="16" height="16" aria-hidden="true" focusable="false" style="width: 1em; height: 1em; margin-inline-end: 0.25em; vertical-align: -0.125em;"><path d={icon.d} stroke={icon.stroke} fill={icon.fill} /></svg>{children}</span>; };
 export const fmt = (k, as) => formatGoldenValue(resolveGoldenPath(k), as);
 export const orbitSize = resolveGoldenPath('types.A2.fundamental_orbit_sizes[0]');
 export const pentagonEnds = resolveGoldenPath('pentagon_example.complete_games') > 0 && resolveGoldenPath('pentagon_example.moves') > 0;
@@ -37,7 +39,7 @@ export const SEEN_LEVEL = 'verified by computation on every affine board the sit
 
 <Beat n={1}>
 
-Module zero showed the board in a second record, the **Numbers** view. Here that record becomes a game. A **position** is a list of whole numbers, one on each node. To **fire** node $i$, the node sends its number down every road that leaves it, then changes sign:
+Module zero showed the board in a second record, the **<ViewWord v="numbers">Numbers</ViewWord>** view. Here that record becomes a game. A **position** is a list of whole numbers, one on each node. To **fire** node $i$, the node sends its number down every road that leaves it, then changes sign:
 
 $$
 \begin{aligned} a_i &\longmapsto -a_i, \\ a_j &\longmapsto a_j - C_{ji}\, a_i \quad (j \ne i), \end{aligned}
@@ -58,7 +60,7 @@ Now <Tex src="A_3"/> from <Tex src="(1,1,1)"/>, where any node can fire first. A
 
 Every order lasts <G k="types.A3.n_positive_roots"/> moves and ends at <Tex src="(-1,-1,-1)"/>. Two facts lie behind this. On these boards any two legal plays from one start end at the same position after the same number of moves, and fire the same numbers. Eriksson calls this strong convergence (<Cite k="Eri95b"/>, {'Definition 1.1'}); the theorem is attributed to Mozes and Eriksson. Donnelly proves it in this site's sign convention (<Cite k="Don08"/>, {'Theorem 2.1'}). Second, from a start with every number positive, every legal play has as many moves as there are positive root populations. It ends at the start with every sign changed and the entries permuted by a symmetry of the board, which on <Tex src="A_3"/> reverses the nodes, <G k="types.A3.minus_w0" as="word"/>. This is verified by computation on every board of finite type of rank at most eight.
 
-The Numbers Game Lab sets the lowest-node game, <G k="types.A3.longest_word" as="word"/>, beside the highest-node game, <Tex src="3,2,3,1,2,3"/>. Their tapes of fired numbers agree once sorted; the order of firing need not agree.
+The second figure below sets the lowest-node game, <G k="types.A3.longest_word" as="word"/>, beside the highest-node game, <Tex src="3,2,3,1,2,3"/>. Their tapes of fired numbers agree once sorted; the order of firing need not agree.
 
 <T01GameBoard slot="figure" client:visible id="b2" board="A3" view="numbers" mode="legal" coords="numbers" start={[1, 1, 1]} prediction={{ question: 'From (1, 1, 1) on A3 in legal play, what will a different order of moves change?', answer: { type: 'choice', options: ['Nothing: the same end after the same number of moves', 'The same end, after a different number of moves', 'A different end'], correct: 0 }, reveal: `Nothing. Every legal play from (1, 1, 1) lasts ${fmt('types.A3.n_positive_roots')} moves and ends at (−1, −1, −1), and the numbers fired agree once they are sorted.` }} caption={`On A3 from (1, 1, 1), every legal play lasts ${fmt('types.A3.n_positive_roots')} moves and ends at (−1, −1, −1), whatever the order.`} />
 <T05NumbersGameLab slot="figure" client:visible id="b3" preset="compared" caption={`Two games on A3 from (1, 1, 1), one at the lowest positive node and one at the highest: both last ${fmt('types.A3.n_positive_roots')} moves and end at (−1, −1, −1), and their tapes agree once sorted.`} />
@@ -66,7 +68,7 @@ The Numbers Game Lab sets the lowest-node game, <G k="types.A3.longest_word" as=
 
 <Beat n={3}>
 
-This board shows the population <Tex src="(1,1,0)"/> on the Populations board and, below it, its numbers, computed by the **translator** $a=Cp$, entry by entry <Tex src="a_i=2p_i-\sum_{j\ne i}A_{ji}\,p_j"/>. They are <Tex src="(1,1,-1)"/>.
+This board shows the population <Tex src="(1,1,0)"/> on the <ViewWord v="populations">Populations</ViewWord> board and, below it, its numbers, computed by the **translator** $a=Cp$, entry by entry <Tex src="a_i=2p_i-\sum_{j\ne i}A_{ji}\,p_j"/>. They are <Tex src="(1,1,-1)"/>.
 
 <p data-bridge-prose><strong>The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.</strong></p>
 
@@ -133,7 +135,7 @@ Play detects two fates exactly: a game that has ended, and a position that has c
 <Seen provenance={['W03c', 'Eri95b', 'Don08', 'GSS12', SEEN_F4, SEEN_LINK, SEEN_LEVEL]}>
 
 <ul data-seen-statements>
-<li data-seen-statement>A firing negates the fired number and adds it, once per road, to each neighbour; legal play fires only positive numbers. Both games were first published by Wildberger (<Cite k="W03c"/>, section two), who credits the numbers game to Mozes.</li>
+<li data-seen-statement>A firing negates the fired number and adds it, once per road, to each neighbour; legal play fires only positive numbers. Wildberger gave the first published definition of both games on directed graphs (<Cite k="W03c"/>, section two), crediting the numbers game to Mozes.</li>
 <li data-seen-statement>On a board of finite type, legal plays from one start end at one position, after one number of moves, firing the same numbers: strong convergence (<Cite k="Eri95b"/>, {'Definition 1.1'}), attributed to Mozes and Eriksson. Donnelly proves it (<Cite k="Don08"/>, {'Theorem 2.1'}).</li>
 <li data-seen-statement>From an all-positive start every legal play has as many moves as there are positive root populations and ends at the start negated and permuted: {SEEN_F4}.</li>
 <li data-seen-statement><strong>The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.</strong> Under $a=Cp$ the moves correspond, $CS_i=R_iC$: {SEEN_LINK}.</li>
@@ -163,7 +165,7 @@ Play detects two fates exactly: a game that has ended, and a position that has c
 
 <T15Route id="b12" hydrate="visible" preset="three-fates" caption={`The pentagon from ${fmt('pentagon_example.start')}, level ${fmt('pentagon_example.level')}: change a number to change the level and the fate.`} />
 
-<ModuleLinks module={4} board="A3" />
+<ModuleLinks module={4} board="A2" />
 
 <Sources keys={['Moz90', 'Eri95b', 'Don08', 'GSS12', 'W-MS', 'W03c', 'IMO86', 'Pro84']}>
 
