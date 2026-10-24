@@ -19,7 +19,7 @@ export const NO_FILES = 'No lesson files found under site/src/content/modules/.'
 const NUMBER = /(?:(?<![\p{L}\p{N}_])[-−])?\d+(?:[,   ]\d{3}(?!\d))*(?:\.\d+)?/gu;
 
 /**
- * @typedef {{ file: string; line: number; number: string; context: string; kind: 'prose' | 'formula' }} Finding
+ * @typedef {{ file: string; line: number; number: string; context: string; kind: 'prose' | 'formula' | 'fallback' }} Finding
  */
 
 /** Replaces the characters of [start, end) by spaces, keeping line breaks. */
@@ -84,6 +84,88 @@ function braceEnd(text, start) {
   return text.length;
 }
 
+/**
+ * The literal text inside a JavaScript expression between `start` and `end`: the insides of its
+ * string literals, and the text parts of its template literals without their ${...} interpolations.
+ * Comments are skipped. Returns [from, to) index pairs.
+ * @returns {[number, number][]}
+ */
+function literalParts(text, start, end) {
+  /** @type {[number, number][]} */
+  const parts = [];
+  for (let i = start; i < end; i++) {
+    const comment = commentEnd(text, i);
+    if (comment >= 0) { i = comment - 1; continue; }
+    const c = text[i];
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < end && text[j] !== c) j += text[j] === '\\' ? 2 : 1;
+      parts.push([i + 1, Math.min(j, end)]);
+      i = j;
+    } else if (c === '`') {
+      let j = i + 1;
+      let from = j;
+      while (j < end && text[j] !== '`') {
+        if (text[j] === '\\') { j += 2; continue; }
+        if (text[j] === '$' && text[j + 1] === '{') {
+          parts.push([from, j]);
+          let depth = 0;
+          for (; j < end; j++) {
+            if (text[j] === '{') depth++;
+            else if (text[j] === '}' && --depth === 0) break;
+          }
+          from = j + 1;
+        }
+        j++;
+      }
+      parts.push([from, Math.min(j, end)]);
+      i = j;
+    }
+  }
+  return parts;
+}
+
+/**
+ * The literal text of the prop `prop` of the tag that occupies [start, end) of `text`: the inside of
+ * a quoted value, or the literal parts (literalParts) of a brace value. Empty when the tag has no
+ * such prop. A release build prints the fallback of <Unverified> as prose (SPEC.md 7.3), so its
+ * numbers are reported like the numbers of prose.
+ * @returns {[number, number][]}
+ */
+function propLiterals(text, start, end, prop) {
+  let i = start + 1;
+  while (i < end && /[\w.:-]/.test(text[i])) i++;
+  while (i < end) {
+    while (i < end && /\s/.test(text[i])) i++;
+    if (i >= end || text[i] === '/' || text[i] === '>') break;
+    if (text[i] === '{') { i = braceEnd(text, i); continue; }
+    const nameStart = i;
+    while (i < end && /[^\s=/>{"']/.test(text[i])) i++;
+    const name = text.slice(nameStart, i);
+    if (name === '') { i++; continue; }
+    while (i < end && /\s/.test(text[i])) i++;
+    if (text[i] !== '=') continue;
+    i++;
+    while (i < end && /\s/.test(text[i])) i++;
+    /** @type {[number, number][]} */
+    let ranges = [];
+    let valueEnd = i;
+    if (text[i] === '"' || text[i] === "'") {
+      const close = text.indexOf(text[i], i + 1);
+      valueEnd = close < 0 ? end : close + 1;
+      ranges = [[i + 1, Math.max(i + 1, valueEnd - 1)]];
+    } else if (text[i] === '{') {
+      valueEnd = braceEnd(text, i);
+      ranges = literalParts(text, i + 1, valueEnd - 1);
+    } else {
+      while (valueEnd < end && /[^\s/>]/.test(text[valueEnd])) valueEnd++;
+    }
+    if (name === prop) return ranges;
+    i = Math.max(valueEnd, i + 1);
+  }
+  return [];
+}
+
 function lineStarts(text) {
   const starts = [0];
   for (let i = 0; i < text.length; i++) if (text[i] === '\n') starts.push(i + 1);
@@ -112,7 +194,8 @@ function contextOf(lineText, col, len) {
 /**
  * Finds the numbers of an MDX source: in prose (outside frontmatter, import and export lines,
  * fenced code, code spans, tags and their props, <G> and <Tex> elements, brace expressions,
- * heading ids and link destinations) and, separately, inside $...$ and $$...$$ formulas.
+ * heading ids and link destinations), separately inside $...$ and $$...$$ formulas, and separately
+ * in the fallback prop of <Unverified>, which a release build prints in place of the sentence.
  * @param {string} text
  * @param {string} fileName
  * @returns {Finding[]}
@@ -156,11 +239,15 @@ export function scanSource(text, fileName) {
   for (const m of masked.matchAll(/(`+)[^`]*?\1/g)) blank(chars, m.index, m.index + m[0].length);
   masked = chars.join('');
 
-  // 4. Tags with their props; <G> and <Tex> elements with their contents.
+  // 4. Tags with their props; <G> and <Tex> elements with their contents. The fallback prop of
+  //    <Unverified> is read first, from the source text (its literal parts; listed apart).
+  /** @type {[number, number][]} */
+  const fallbacks = [];
   for (let i = 0; i < masked.length; i++) {
     if (masked[i] !== '<' || !/[A-Za-z/!]/.test(masked[i + 1] ?? '')) continue;
     const end = tagEnd(masked, i);
     const name = /^<\/?([A-Za-z][\w.:-]*)/.exec(masked.slice(i, end))?.[1];
+    if (name === 'Unverified' && masked[i + 1] !== '/') fallbacks.push(...propLiterals(text, i, end, 'fallback'));
     let stop = end;
     if ((name === 'G' || name === 'Tex') && masked[i + 1] !== '/' && !/\/>$/.test(masked.slice(i, end))) {
       const close = masked.indexOf(`</${name}>`, end);
@@ -209,6 +296,9 @@ export function scanSource(text, fileName) {
   for (const [s, e] of formulas.sort((a, b) => a[0] - b[0])) {
     for (const m of text.slice(s, e).matchAll(NUMBER)) add(s + m.index, m[0], 'formula');
   }
+  for (const [s, e] of fallbacks) {
+    for (const m of text.slice(s, e).matchAll(NUMBER)) add(s + m.index, m[0], 'fallback');
+  }
   return findings;
 }
 
@@ -234,8 +324,9 @@ export function renderReport(findings, fileCount, date) {
   }
   const prose = findings.filter((f) => f.kind === 'prose');
   const formulas = findings.filter((f) => f.kind === 'formula');
+  const fallbacks = findings.filter((f) => f.kind === 'fallback');
   const files = new Set(prose.map((f) => f.file));
-  out.push(`${prose.length} numbers in prose in ${files.size} of ${fileCount} lesson files; ${formulas.length} numbers inside formulas.`, '');
+  out.push(`${prose.length} numbers in prose in ${files.size} of ${fileCount} lesson files; ${formulas.length} numbers inside formulas; ${fallbacks.length} numbers in the fallbacks of <Unverified>.`, '');
   const section = (title, list) => {
     out.push(`## ${title}`, '');
     if (list.length === 0) { out.push('None.', ''); return; }
@@ -249,6 +340,7 @@ export function renderReport(findings, fileCount, date) {
   };
   section('Numbers in prose not written with <G>', prose);
   section('Numbers inside formulas not written with <Tex>', formulas);
+  section('Numbers in the fallbacks of <Unverified> (printed as prose by a release build)', fallbacks);
   return out.join('\n');
 }
 
@@ -265,14 +357,15 @@ export function writeNumbersReport(opts = {}) {
   mkdirSync(dirname(report), { recursive: true });
   writeFileSync(report, renderReport(findings, files.length, new Date().toISOString().slice(0, 10)));
   const prose = findings.filter((f) => f.kind === 'prose');
-  return { numbers: prose.length, files: new Set(prose.map((f) => f.file)).size, lessonFiles: files.length, report };
+  const fallbacks = findings.filter((f) => f.kind === 'fallback').length;
+  return { numbers: prose.length, files: new Set(prose.map((f) => f.file)).size, fallbacks, lessonFiles: files.length, report };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const r = writeNumbersReport();
     if (r.lessonFiles === 0) console.log(`numbers-in-prose: ${NO_FILES}`);
-    console.log(`numbers-in-prose: ${r.numbers} numbers in ${r.files} files; report written to ${relative(ROOT, r.report).split(sep).join('/')}`);
+    console.log(`numbers-in-prose: ${r.numbers} numbers in ${r.files} files, ${r.fallbacks} in fallbacks; report written to ${relative(ROOT, r.report).split(sep).join('/')}`);
   } catch (err) {
     // A report for a person: a failure is printed, never turned into a failing exit status.
     console.error(`numbers-in-prose: ${err instanceof Error ? err.message : err}`);

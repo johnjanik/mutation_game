@@ -26,13 +26,19 @@ export const COUNTER_BOARDS = ['A2', 'A3', 'A4', 'B3', 'D4'];
 export const DIM10 = 'weyl_dimension[type=A2;highest_weight=3,0].dimension';
 export const BIGGEST_HEAP = Math.max(...resolveGoldenPath('heaps.A3.games_per_heap'));
 export const SEEN_POSITIONS = 'verified by computation for every board whose group has at most 60000 elements';
-export const SEEN_RANK = 'verified by computation for every board of finite type of rank at most 8';
+export const RANK_CHECKED = Math.max(...Object.values(gv('types')).map((t) => t.cartan.length));
+export const STAIRCASE_RANK = Math.max(...Object.entries(gv('types')).filter(([name, t]) => name.startsWith('A') && 'n_reduced_words_w0' in t).map(([, t]) => t.cartan.length));
+export const SEEN_RANK = `verified by computation for every board of finite type of rank at most ${RANK_CHECKED}`;
 export const SEEN_DIM = `verified by computation on ${fmt('weyl_dimension', 'count')} representations`;
 
 {/* P3-A9: lesson M5, drafted from SPEC.md 2.6, 2.7 (F4 to F9, F12), 3 M5 and Appendix A.2 and A.3 in
     the words of the site (D17: a draft until the owner approves it). Every number with a golden value
     goes through G, Tex with a golden path, or resolveGoldenPath; every formula that holds a digit goes
-    through Tex, so scripts/numbers-in-prose.mjs finds nothing in this file. Theorem and page numbers of
+    through Tex, so scripts/numbers-in-prose.mjs finds nothing in this file, fallbacks included. The
+    ranks of the computed checks come from the golden file: RANK_CHECKED (the largest rank of its types,
+    one source for beat six and the Seen box) and STAIRCASE_RANK (the largest A with a count of complete
+    games, the boards on which verify.py compares the count with the staircase tableaux; E16 fallback,
+    RT-FIX residual). Theorem and page numbers of
     the sources are locators, written as brace strings. Instance ids b1 to b15 in reading order; b1 is
     client:idle, every other island client:visible. No apostrophe in this comment: the scanner reads
     one as the start of a string. */}
@@ -66,7 +72,7 @@ The length of a position is always the number of mirrors that separate it from t
 
 Legal play leaves choices. Each complete game is a path from the top dot of the explorer to the bottom one, and the counter counts them: <G k="types.A2.n_reduced_words_w0"/>, <G k="types.A3.n_reduced_words_w0"/> and <G k="types.A4.n_reduced_words_w0"/> on <Tex src="A_2"/>, <Tex src="A_3"/> and <Tex src="A_4"/>; <G k="types.B3.n_reduced_words_w0"/> on <Tex src="B_3"/>; <G k="types.D4.n_reduced_words_w0"/> on <Tex src="D_4"/>.
 
-On the boards <Tex src="A_n"/> the counts are OEIS sequence {'A005118'}. <Unverified item="E16" fallback="The script that checks this site confirms that each count on these boards equals the number of standard Young tableaux of a staircase shape, up to rank 7.">That they count standard Young tableaux of a staircase shape is Stanley's theorem <Cite k="Sta84"/>.</Unverified> On <Tex src="B_n"/> and <Tex src="C_n"/> they are OEIS sequence {'A039622'}, and Billey and Haiman match these games with shifted staircase tableaux <Cite k="BH95"/> ({'Proposition 3.3'}). The count on <Tex src="D_4"/> was computed here, with no published value found; the site's checking script asserts every count.
+On the boards <Tex src="A_n"/> the counts are OEIS sequence {'A005118'}. <Unverified item="E16" fallback={`The script that checks this site confirms that each count on these boards equals the number of standard Young tableaux of a staircase shape, up to rank ${STAIRCASE_RANK}.`}>That they count standard Young tableaux of a staircase shape is Stanley's theorem <Cite k="Sta84"/>.</Unverified> On <Tex src="B_n"/> and <Tex src="C_n"/> they are OEIS sequence {'A039622'}, and Billey and Haiman match these games with shifted staircase tableaux <Cite k="BH95"/> ({'Proposition 3.3'}). The count on <Tex src="D_4"/> was computed here, with no published value found; the site's checking script asserts every count.
 
 <T08WeylExplorer slot="figure" client:visible id="b4" preset="counter" boardChoices={COUNTER_BOARDS} caption={`Complete games from all ones: ${fmt('types.A3.n_reduced_words_w0')} on A3; the picker gives ${fmt('types.A2.n_reduced_words_w0')} on A2, ${fmt('types.A4.n_reduced_words_w0')} on A4, ${fmt('types.B3.n_reduced_words_w0')} on B3 and ${fmt('types.D4.n_reduced_words_w0')} on D4.`} />
 </Beat>
@@ -99,7 +105,7 @@ On <Tex src="E_8"/> the game has <G k="types.E8.n_positive_roots"/> moves. The v
 
 <Tex display src="\begin{gathered}({{types.E8.exponents[0]}}+1)({{types.E8.exponents[1]}}+1)({{types.E8.exponents[2]}}+1)({{types.E8.exponents[3]}}+1)\\({{types.E8.exponents[4]}}+1)({{types.E8.exponents[5]}}+1)({{types.E8.exponents[6]}}+1)({{types.E8.exponents[7]}}+1)\\={{types.E8.weyl_order}}\end{gathered}"/>
 
-that is, <G k="types.E8.weyl_order"/>. Steinberg recorded this pattern for roots without a proof <Cite k="Ste59"/> ({'9.1'}); Kostant gave the first proof for all boards of finite type at once <Cite k="Kos59"/>, and Macdonald another <Cite k="Mac72"/>. The version for coroots, which the game gives, was verified by computation for every board of finite type of rank at most eight.
+that is, <G k="types.E8.weyl_order"/>. Steinberg recorded this pattern for roots without a proof <Cite k="Ste59"/> ({'9.1'}); Kostant gave the first proof for all boards of finite type at once <Cite k="Kos59"/>, and Macdonald another <Cite k="Mac72"/>. The version for coroots, which the game gives, was {SEEN_RANK}.
 
 <T05NumbersGameLab slot="figure" client:visible id="b7" preset="tally" board="A3" caption={`Fire the ${fmt('types.A3.n_positive_roots')} moves on A3 by hand: when the game ends, the tally read sideways gives the exponents ${fmt('types.A3.exponents', 'plain')} and the order ${fmt('types.A3.weyl_order')}.`} />
 <T05NumbersGameLab slot="figure" client:visible id="b8" preset="tally" board="E8" caption={`Press play to the end on E8: after ${fmt('types.E8.n_positive_roots')} moves the tally gives the exponents ${fmt('types.E8.exponents', 'plain')} and the order ${fmt('types.E8.weyl_order')}.`} />

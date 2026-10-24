@@ -47,6 +47,7 @@ const ROUTE = 'modules/m5-weyl/';
 const LESSON_PATH = fileURLToPath(new URL('../../src/content/modules/m5-weyl.mdx', import.meta.url));
 const UNVERIFIED_PATH = fileURLToPath(new URL('../../src/content/unverified.json', import.meta.url));
 const GOLDEN_PATH = fileURLToPath(new URL('../../../reference/golden_data.json', import.meta.url));
+const VERIFY_PATH = fileURLToPath(new URL('../../../reference/verify.py', import.meta.url));
 const BUILT = `${distDir()}/modules/m5-weyl/index.html`;
 
 /** New items of Appendix E proposed by this lesson (equal to proposedUnverifiedItems of the report). */
@@ -77,6 +78,7 @@ const COUNTER_BOARDS = ['A2', 'A3', 'A4', 'B3', 'D4'];
 const TALLY_BOARD = 'D4';
 
 interface TypeRecord {
+  cartan: number[][];
   weyl_order: number;
   n_positive_roots: number;
   longest_word: number[];
@@ -98,6 +100,14 @@ const T = (name: string): TypeRecord => GOLDEN.types[name]!;
  * import attribute Playwright's loader needs, so the regressions walk the parsed file here). */
 const goldenAt = (path: string): unknown => path.split('.').reduce<unknown>((v, key) => (v as Record<string, unknown>)[key], GOLDEN);
 const dimensionOf = (type: string, hw: number[]): number => GOLDEN.weyl_dimension.find((r) => r.type === type && r.highest_weight.join(',') === hw.join(','))!.dimension;
+
+/** The fallback props of the <Unverified> tags of the source: a quoted string, or a template literal
+ * in braces whose ${NAME} parts are values the lesson computes (RT-FIX residual: the E16 fallback takes
+ * its rank from the golden file). `text` keeps each interpolation as written. */
+const FALLBACK = /<Unverified item="(E\d+)" fallback=(?:"([^"]*)"|\{`([^`]*)`\})/g;
+const fallbacksOf = (source: string): { item: string; text: string }[] => [...source.matchAll(FALLBACK)].map((m) => ({ item: m[1]!, text: m[2] ?? m[3]! }));
+/** The fallback text of one tag's attributes, as fallbacksOf reads it ('' when there is none). */
+const fallbackIn = (attrs: string): string => /\bfallback=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(attrs)?.slice(1).find((x) => x !== undefined) ?? '';
 
 // ---------------------------------------------------------------------------------------------
 // Helpers
@@ -314,6 +324,17 @@ test('numbers-in-prose report lists only the typed numbers', () => {
   // Both sections empty: every typed number is in <Tex>, a prop or a brace string (decisions/P3-A9.md).
   expect(findings.filter((f) => f.kind === 'prose')).toEqual([]);
   expect(findings.filter((f) => f.kind === 'formula')).toEqual([]);
+  // regression: RT-FIX residual (lesson-m5 confirmer): no number is typed in a fallback either, which a
+  // release build prints as prose ("up to rank 7" was).
+  expect(findings.filter((f) => f.kind === 'fallback')).toEqual([]);
+  // That part of the scan is not vacuous: a number typed into any fallback of the lesson is found.
+  const wraps = fallbacksOf(source);
+  expect(wraps.length).toBeGreaterThanOrEqual(2);
+  for (const w of wraps) {
+    const probe = source.replace(w.text, () => `${w.text} 987654`);
+    const seen = scanSource(probe, 'probe').some((f) => f.kind === 'fallback' && f.number === '987654');
+    expect(seen, `a number in the ${w.item} fallback is seen by the scanner`).toBe(true);
+  }
   // The E8 order and its largest exponent are never typed as digits in the lesson.
   expect(source.includes(String(T('E8').weyl_order))).toBe(false);
   expect(source).not.toMatch(new RegExp(`(?<![\\w.])${T('E8').exponents[7]}(?![\\w])`));
@@ -547,7 +568,7 @@ test('unverified wraps', async ({ page }) => {
     const item = /\bitem="([^"]*)"/.exec(attrs)?.[1] ?? '';
     expect(item, attrs).toMatch(/^E\d+$/);
     expect(Number(item.slice(1)) <= 17 ? known.has(item) : PROPOSED_ITEMS.includes(item), `${item} is known or proposed`).toBe(true);
-    expect((/\bfallback="([^"]*)"/.exec(attrs)?.[1] ?? '').trim(), `${item} fallback`).not.toBe('');
+    expect(fallbackIn(attrs).trim(), `${item} fallback`).not.toBe('');
   }
   await page.goto(ROUTE);
   await expect(page.locator('[data-unverified="E3"]')).toHaveCount(1);
@@ -802,9 +823,19 @@ test.describe('regressions', () => {
     // Adopted from site/tests/unit/redteam-RT-08-fallbacks.test.ts (lens RT-08), the part of this lesson;
     // the E4 fallback of the open-problem page belongs to that page. Unverified.astro prints a fallback as
     // plain text in a release build (SPEC 7.3), so TeX in it reaches the reader raw.
-    const fallbacks = [...readFileSync(LESSON_PATH, 'utf8').matchAll(/<Unverified item="(E\d+)" fallback="([^"]*)"/g)].map((m) => ({ item: m[1], text: m[2]! }));
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    const fallbacks = fallbacksOf(source);
     expect(fallbacks.length).toBeGreaterThanOrEqual(2);
-    const raw = fallbacks.filter((f) => /[_^\\$]/.test(f.text)).map((f) => `modules/m5-weyl.mdx ${f.item}: ${f.text}`);
+    // A template-literal fallback interpolates only values the lesson computes in an export, never TeX;
+    // the TeX check below reads its literal text.
+    const INTERPOLATION = /\$\{([^}]*)\}/g;
+    for (const f of fallbacks) {
+      for (const [, name] of f.text.matchAll(INTERPOLATION)) {
+        expect(name, `${f.item}: an interpolation is a name`).toMatch(/^[A-Z][A-Z0-9_]*$/);
+        expect(source, `${f.item}: ${name} is computed by the lesson`).toMatch(new RegExp(`^export const ${name} = `, 'm'));
+      }
+    }
+    const raw = fallbacks.filter((f) => /[_^\\$]/.test(f.text.replace(INTERPOLATION, ''))).map((f) => `modules/m5-weyl.mdx ${f.item}: ${f.text}`);
     // Observed at 69546f0: modules/m5-weyl.mdx E16 "... each count on A_n equals ...".
     expect(raw).toEqual([]);
   });
@@ -850,5 +881,33 @@ test.describe('regressions', () => {
       if (/\b[BCFG][2-8]\b/.test(label)) found.push({ id: await root.getAttribute('data-instance'), tool: await root.getAttribute('data-tool'), label });
     }
     expect(found, JSON.stringify(found)).toEqual([]);
+  });
+
+  // regression: RT-FIX residual (round 1 confirmer of lesson-m5)
+  test('the ranks of the computed checks come from the golden data, and beat 6 and the Seen box read the same', async ({ page }) => {
+    // Observed at 51a7e26: the E16 fallback typed "up to rank 7" in a prop that numbers-in-prose.mjs did
+    // not read, and beat 6 said "rank at most eight" where the Seen box printed "rank at most 8".
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    expect(source, 'a rank typed in the lesson').not.toMatch(/rank at most (?:eight|\d)/);
+    expect(source, 'a rank typed in the lesson').not.toMatch(/up to rank (?:seven|\d)/);
+    // The types of the golden file are the boards of finite type that verify.py checks (rank at most 8).
+    const largest = Math.max(...Object.values(GOLDEN.types).map((t) => t.cartan.length));
+    // verify.py compares the count of complete games on A_n with the staircase tableaux for n in
+    // range(1, bound): exactly the A_n whose count the golden file holds.
+    const bound = /for n in range\(1, (\d+)\):\n\s+check\(f'A\{n\}: number of complete games = number of standard tableaux/.exec(readFileSync(VERIFY_PATH, 'utf8'));
+    expect(bound, 'the staircase check of verify.py').not.toBeNull();
+    const staircase = Math.max(...Object.entries(GOLDEN.types).filter(([name, t]) => name.startsWith('A') && t.n_reduced_words_w0 !== undefined).map(([, t]) => t.cartan.length));
+    expect(staircase).toBe(Number(bound![1]) - 1);
+    await page.goto(ROUTE);
+    const ranks = (text: string): string[] => [...text.matchAll(/rank at most (\S+?)[.,;]?(?=\s|$)/g)].map((m) => m[1]!);
+    const beat6 = ranks(norm(await proseText(page, '[data-beat="6"]')));
+    const seen = ranks(norm(await page.locator('[data-anatomy="seen"]').innerText()));
+    expect(beat6, 'beat 6').toEqual([String(largest)]);
+    expect(seen.length, 'the Seen box states the range').toBeGreaterThanOrEqual(1);
+    for (const r of seen) expect(r, 'the Seen box reads as beat 6').toBe(beat6[0]);
+    // A release build prints the E16 fallback in place of the sentence: it states the staircase range.
+    const fallback = page.locator('.unverified-fallback[data-unverified="E16"]');
+    if ((await fallback.count()) > 0) await expect(fallback).toHaveText(new RegExp(`up to rank ${staircase}\\.$`));
+    else await expect(page.locator('[data-unverified="E16"]')).toContainText('Stanley');
   });
 });

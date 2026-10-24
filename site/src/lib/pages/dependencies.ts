@@ -74,17 +74,32 @@ function licenceOf(pkg: PackageJson | null): string | null {
   return null;
 }
 
-/** The author field, or else the copyright line of the package's licence file, as found. */
+/**
+ * A line read from a package as plain text for a table cell: a Markdown link [text](url) becomes its
+ * text, an autolink <url> its address, and **bold** or *emphasis* markers are dropped. A licence file
+ * may be Markdown (svelte's LICENSE.md: "Copyright (c) 2016-2025 [Svelte Contributors](https://...)").
+ */
+export function plainText(s: string): string {
+  return s
+    .replace(/\[([^\]]*)\]\([^)\s]*\)/g, '$1')
+    .replace(/<(https?:\/\/[^>\s]*)>/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(^|\s)[*_]([^*_\s][^*_]*)[*_](?=[\s.,;:]|$)/g, '$1$2')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** The author field, or else the copyright line of the package's licence file, as found, as plain text. */
 function authorOf(pkg: PackageJson | null, dir: string | null): string | null {
   const a = pkg?.author;
-  if (typeof a === 'string') return a.replace(/\s*<[^>]*>/, '').replace(/\s*\([^)]*\)/, '').trim();
-  if (a && typeof a === 'object' && 'name' in a) return String((a as { name: unknown }).name);
+  if (typeof a === 'string') return plainText(a.replace(/\s*<[^>]*>/, '').replace(/\s*\([^)]*\)/, ''));
+  if (a && typeof a === 'object' && 'name' in a) return plainText(String((a as { name: unknown }).name));
   if (dir === null) return null;
   for (const f of ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'license', 'license.md']) {
     const file = join(dir, f);
     if (!existsSync(file)) continue;
     const line = readFileSync(file, 'utf8').split('\n').find((l) => /^\s*Copyright\b/.test(l) && !/\[yyyy\]|\{yyyy\}/.test(l));
-    if (line) return line.trim();
+    if (line) return plainText(line);
   }
   return null;
 }
