@@ -6,7 +6,7 @@
 // frontmatter says `generated: 'dependencies'`. Build time only (Node file system); never reaches the browser.
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { readShippedPackages, shippedPackagesFile, type ShippedPackage } from './shippedPackages';
+import { shippedPackagesOfThisBuild, type ShippedPackage } from './shippedPackages';
 
 interface PackageJson {
   name?: string;
@@ -126,14 +126,13 @@ const SHIPPED: Record<string, string> = {
 };
 
 /**
- * The packages the last build bundled into the reader's scripts (shippedPackages.ts). `required`: a
- * production build must have written the list before it generates the credits page; without it the
- * page would omit bundled libraries, so the build fails.
+ * The packages the client build running in this process bundled into the reader's scripts
+ * (shippedPackages.ts). `required`: a production build must have recorded them before it generates the
+ * credits page; without them the page would omit bundled libraries, so the build fails.
  */
-export function bundledPackages(root: string, required: boolean): ShippedPackage[] {
-  const file = shippedPackagesFile(join(root, 'site'));
-  const list = readShippedPackages(file);
-  if (list === null && required) throw new Error(`credits: ${file} was not written by the client build`);
+export function bundledPackages(required: boolean): ShippedPackage[] {
+  const list = shippedPackagesOfThisBuild();
+  if (list === null && required) throw new Error('credits: the client build recorded no list of bundled packages');
   return list ?? [];
 }
 
@@ -150,7 +149,7 @@ function bundledUse(p: ShippedPackage): string {
  * Every dependency of the three package.json files, and every package of `bundled` (the packages whose
  * code the build ships) that none of them names, sorted by name.
  */
-export function dependencyRows(root: string = findRoot(process.cwd()), bundled: ShippedPackage[] = bundledPackages(root, false)): DependencyRow[] {
+export function dependencyRows(root: string = findRoot(process.cwd()), bundled: ShippedPackage[] = bundledPackages(false)): DependencyRow[] {
   const manifests = [
     { where: 'root', dir: root },
     { where: 'engine', dir: join(root, 'packages', 'engine') },

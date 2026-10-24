@@ -18,9 +18,8 @@ interface Props {
 
 const { title, description, generated } = Astro.props;
 const siteName = 'Two Games on a Dynkin Diagram';
-// A production build has always written the list of bundled packages before it generates the pages.
-const root = generated === 'dependencies' ? findRoot(process.cwd()) : '';
-const rows = generated === 'dependencies' ? dependencyRows(root, bundledPackages(root, import.meta.env.PROD)) : [];
+// A production build has always recorded the list of bundled packages before it generates the pages.
+const rows = generated === 'dependencies' ? dependencyRows(findRoot(process.cwd()), bundledPackages(import.meta.env.PROD)) : [];
 const unreadable = rows.filter((r) => r.licence === null).map((r) => r.name);
 const font = generated === 'dependencies' ? katexFontNotice() : null;
 const shippedCount = rows.filter((r) => r.shipped !== null).length;

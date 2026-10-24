@@ -4,19 +4,13 @@
 // helper (MIT); neither is named in a package.json. lib/pages/shippedPackages.ts records, from the client
 // build's own chunks, the package of every module with code in them; lib/pages/dependencies.ts adds a
 // row for each. The check against a real build is site/tests/e2e/credits-bundled.spec.ts.
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { bundledPackages, dependencyRows } from '../../src/lib/pages/dependencies';
-import { packageOfModule, type ShippedPackage } from '../../src/lib/pages/shippedPackages';
+import { packageOfModule, shippedPackagesFile, shippedPackagesOfThisBuild, type ShippedPackage } from '../../src/lib/pages/shippedPackages';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url)).replace(/\/$/, '');
-const temps: string[] = [];
-afterAll(() => {
-  for (const t of temps) rmSync(t, { recursive: true, force: true });
-});
 
 describe('the packages a bundled module belongs to', () => {
   it('a module under node_modules belongs to the package of the last node_modules segment', () => {
@@ -67,9 +61,16 @@ describe('credits rows for bundled packages', () => {
   });
 
   it('a production build without the list of bundled packages fails', () => {
-    const empty = mkdtempSync(join(tmpdir(), 'credits-bundled-'));
-    temps.push(empty);
-    expect(() => bundledPackages(empty, true)).toThrow(/was not written by the client build/);
-    expect(bundledPackages(empty, false)).toEqual([]);
+    // No client build has run in this process.
+    expect(shippedPackagesOfThisBuild()).toBeNull();
+    expect(() => bundledPackages(true)).toThrow(/the client build recorded no list of bundled packages/);
+    expect(bundledPackages(false)).toEqual([]);
+  });
+
+  it('the file of a build is kept per output directory', () => {
+    const site = join(root, 'site');
+    expect(shippedPackagesFile(site, join(site, 'dist'))).toBe(shippedPackagesFile(site, `${join(site, 'dist')}/`));
+    expect(shippedPackagesFile(site, join(site, 'dist'))).not.toBe(shippedPackagesFile(site, join(site, 'dist-basepath')));
+    expect(shippedPackagesFile(site, join(site, 'dist'))).toMatch(/\/site\/src\/generated\/shipped-packages-[0-9a-f]{12}\.json$/);
   });
 });
