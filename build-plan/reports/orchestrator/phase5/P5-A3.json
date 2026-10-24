@@ -1,0 +1,263 @@
+{
+ "agent": "P5-A3",
+ "status": "done",
+ "branch": "worktree-agent-a393d054d7994447e (the plan's agent/P5-A3), based on cc2aeca",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a393d054d7994447e",
+ "commits": [
+  "ce53538 P5-A3: M8 lesson with the T12 figures, the static E8 figure and the sidebars",
+  "5b7c288 P5-A3: not-quiver-mutation page",
+  "2c81649 P5-A3: predictions, challenges, glossary links and M8.spec.ts for both pages",
+  "5bbae08 P5-A3: M8.spec.ts checks the numbers typed in captions, reveals, goals and explanations",
+  "27ccb19 P5-A3: typed positions and constants of M8 in Tex, so the numbers report lists nothing",
+  "9e0ec3e P5-A3: decisions fragment",
+  "d68b6d0 P5-A3: lab timings and the T12 request in the decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/content/modules/m8-lie-algebras.mdx (new, 206 lines, route /modules/m8-lie-algebras/)",
+  "site/src/content/pages/not-quiver-mutation.mdx (new, 117 lines, route /not-quiver-mutation/)",
+  "site/tests/e2e/M8.spec.ts (new, 1357 lines, 23 tests)",
+  "decisions/P5-A3.md (new, 55 lines)"
+ ],
+ "commandsRun": [
+  "git reset --hard cc2aeca; npm ci --prefer-offline (once)",
+  "npm run check -w site: astro check 0 errors, 0 warnings, 1 hint; svelte-check 0 errors, 1 warning (the existing one in t02/LayerChart.svelte)",
+  "npx tsc --noEmit -p packages/engine: clean",
+  "npm test: 159 files, 3319 tests passed",
+  "npm run build: ok; postbuild links: 1279 internal links on 35 pages, 0 problems (rebuilt at the final commit)",
+  "RELEASE=1 OUT_DIR=dist-release npm run build: ok; it reports open item E10 used on /modules/m8-lie-algebras/ (fallback shown), nothing for the page",
+  "Playwright (scratch config, astro preview on port 7710, PLAYWRIGHT_BROWSERS_PATH set): M8.spec.ts + nojs.spec.ts + a11y.spec.ts + module-links.spec.ts + pages.spec.ts, 163 passed (rerun at the final build)",
+  "npm run size -- --port 7711: /modules/m8-lie-algebras/ 86.5 kB of 120; /not-quiver-mutation/ 0.0 kB of 15; 35 routes, 0 over budget",
+  "npm run lab -- --port 7712 /modules/m8-lie-algebras/ (with M7 and /tools/rep/ for comparison), five runs on M8: LCP 2.418, 2.312, 2.550, 2.323, 2.320 s; TBT 312.1, 198.6, 294.3, 230.0, 240.8 ms; CLS 0. M7 in the same runs: TBT 234.1, 222.6. /tools/rep/: LCP 0.246 s, TBT 390.7 ms. Load average between 1.1 and 3 on 4 processors",
+  "Diagnostic build without the E6 figure (OUT_DIR=dist-exp, not committed, lesson restored with git checkout): LCP 2.051 s, TBT 266.7 ms",
+  "Deliberate-break rounds (scratch breaks.mjs, breaks2.mjs, then git checkout): every targeted test failed on its own break; the worker test cannot be broken through the lesson's configuration"
+ ],
+ "acceptance": [
+  {
+   "item": "M8 lesson at /modules/m8-lie-algebras/ with beats 1 to 8, Seen, LieTheory, challenges, ModuleLinks, Sources; draft: true",
+   "result": "pass"
+  },
+  {
+   "item": "Page /not-quiver-mutation/ with Kostant's game, chip-firing, quiver representations, the cluster mutation table, an illustration of the smallest case and common confusions; it loads no script",
+   "result": "pass (tested)"
+  },
+  {
+   "item": "No default state needs the worker",
+   "result": "pass (page.on('worker') and an aborted worker route across all twelve tools)"
+  },
+  {
+   "item": "Lesson reads fully without JavaScript",
+   "result": "pass (nojs.spec.ts and M8 without-JavaScript tests)"
+  },
+  {
+   "item": "Numbers in prose from <G>, formulas from <Tex> with {{path}}; numbers-in-prose report lists nothing for M8",
+   "result": "pass"
+  },
+  {
+   "item": "E10 wrapped wherever it is used; fallbacks true and with no item status",
+   "result": "pass"
+  },
+  {
+   "item": "No em-dash or en-dash in the two pages, the test or the fragment",
+   "result": "pass"
+  },
+  {
+   "item": "a11y, module-links, pages, nojs suites",
+   "result": "pass (163 passed together with M8.spec.ts)"
+  },
+  {
+   "item": "Size budget",
+   "result": "pass (86.5 kB of 120; 0.0 kB of 15)"
+  },
+  {
+   "item": "Lab thresholds (LCP <= 2.5 s, TBT <= 200 ms)",
+   "result": "report only: TBT over 200 ms in four of five runs, LCP over 2.5 s in one; the cause is T12's hydration (390.7 ms of TBT on /tools/rep/ alone). Request to P5-A2"
+  }
+ ],
+ "deviations": [
+  "Twelve T12 roots, not seven or eight: eight figures b1 to b8 plus four challenge tools b9 to b12, the house shape of M5 to M7.",
+  "Beat 1 is split into two string-viewer instances (b1 at (2,0), b2 at the golden position (1,0)), because one instance shows one string and the figure table names two.",
+  "The predictions differ from the plan's suggestions. T12 shows those answers on the figure itself (string length, 'All 20 relations hold.', dimension, the square of the signed move). The predictions used ask about states the reader reaches only after committing (P3-RT-13-01).",
+  "The module question is printed with a capital, as M5 to M7 print theirs.",
+  "The page has no draft field because the strict pages schema has none (the plan asked for it only if the schema had it).",
+  "Challenge checks on D4, E6 and A3 read T12's own caption of the target state (computed with repCaption at build time), because no data-out names the board and node. Request to P5-A2.",
+  "The beat-1 statement 'at a node that is not minuscule the recipe fails' rests on a short argument in the text, not a computation for every node.",
+  "The lab TBT threshold is not met (see acceptance). The lesson keeps the plan's E6 figure, which costs LCP and not TBT (experiment)."
+ ],
+ "requests": [
+  {
+   "to": "P5-A2",
+   "what": "A data-out or attribute on T12 that names the board and node of the state shown, so challenge checks need not depend on caption text."
+  },
+  {
+   "to": "P5-A2",
+   "what": "Reduce T12's first hydration cost (TBT 390.7 ms on /tools/rep/ at 4x slowdown keeps M8 over 200 ms). For example, build the relation list and move matrix only when their panels open, and add content-visibility: auto on the matrix grids."
+  },
+  {
+   "to": "P1-A4 (glossary owner)",
+   "what": "Glossary entries for string (game string and alpha-string), single step, the Chevalley-Serre relations, signed move, and quiver."
+  },
+  {
+   "to": "P1-A4",
+   "what": "A released prop on Beat that renders data-released=\"false\" (as P4-A6 asked). M8 beat 7 passes released={false} and carries the wrapper div meanwhile."
+  },
+  {
+   "to": "MERGE",
+   "what": "None for unverified.json. No navigation change needed: the page is reached from M8's beat-8 sidebar link, as open-problem is reached from M3."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P5-A3.md",
+ "openQuestions": [
+  "Should the lab TBT threshold apply to lessons that host T12 while T12 alone is at about 390 ms? M7 is over it too (222.6 to 234.1 ms).",
+  "P3-RT-13-01 (predictions must not show their answers before commit) is still held for the owner; no new case was added."
+ ],
+ "handoff": "Merge the four files as they are; nothing outside ownership was edited. P7-A2 replaces the whole <Beat n={7}> in place (no T12 instance, no link there now). Once P5-A2 adds a board/node hook, the three caption-based challenge checks (b10 to b12) can switch to it. Worktree is clean (git status --porcelain empty); node_modules, site/node_modules, packages/engine/node_modules, site/dist, site/dist-release and the experiment's site/dist-exp are deleted; the preview servers on 7710 and 7712 are stopped and ports 7710 to 7712 answer nothing.",
+ "figures": [
+  {
+   "id": "b1",
+   "beat": 1,
+   "preset": "string-viewer",
+   "board": "A2",
+   "node": 1,
+   "start": "(2,0)",
+   "hydration": "client:idle",
+   "prediction": true
+  },
+  {
+   "id": "b2",
+   "beat": 1,
+   "preset": "string-viewer",
+   "board": "A2",
+   "node": 1,
+   "start": "golden (1,0)"
+  },
+  {
+   "id": "b3",
+   "beat": 2,
+   "preset": "default",
+   "board": "A1",
+   "node": 1
+  },
+  {
+   "id": "b4",
+   "beat": 3,
+   "preset": "relation-checker",
+   "board": "A2",
+   "node": 1,
+   "relation": "ef:1,1"
+  },
+  {
+   "id": "b5",
+   "beat": 4,
+   "preset": "default",
+   "board": "D4",
+   "node": 1,
+   "prediction": true
+  },
+  {
+   "id": "b6",
+   "beat": 4,
+   "preset": "default",
+   "board": "E6",
+   "node": 1,
+   "note": "grids"
+  },
+  {
+   "id": "b7",
+   "beat": 4,
+   "preset": "default",
+   "board": "E7",
+   "node": 7,
+   "note": "lists"
+  },
+  {
+   "id": "b8",
+   "beat": 5,
+   "preset": "signed-move",
+   "board": "A2",
+   "node": 1
+  },
+  {
+   "id": "e8-roots",
+   "beat": 6,
+   "kind": "static inline SVG from coxeterPlanePoints(E8): 240 points, a centre ring, a legend; link to T10 (tools/geometry, Coxeter projection of E8)"
+  },
+  {
+   "id": "b9-b12",
+   "kind": "challenge tools: A2 string-viewer (2,0); D4 node 4; A2 node 2; A3 node 1"
+  },
+  {
+   "id": "smallest-illustration",
+   "page": "not-quiver-mutation",
+   "kind": "two static SVGs: a quiver 1->2->3 mutated at vertex 2 (arrowheads), and the A3 board before and after mutating city 2 (plain roads)"
+  }
+ ],
+ "goldenKeysUsed": [
+  "minuscule_representations (all 18 records, for the checked list)",
+  "minuscule_representations[type=A1;node=1].dimension, .weights_dynkin_labels[0..1]",
+  "minuscule_representations[type=A2;node=1].dimension, .weights_dynkin_labels[0..2]",
+  "minuscule_representations[type=A2;node=2].weights_dynkin_labels[1]",
+  "minuscule_representations[type=D4;node=1].dimension, [type=D4;node=3] via dim()",
+  "minuscule_representations[type=E6;node=1].dimension, [type=E7;node=7].dimension",
+  "types.D4.fundamental_orbit_sizes, types.A3.fundamental_orbit_sizes",
+  "types.E8.det_cartan, types.E8.minuscule_nodes, types.E8.n_roots, types.E8.numbers_of_highest_root",
+  "satake[dynkin_type=E8;real_form=e8(8)].dim_g, .rank",
+  "orbit_plus_zero_representations[type=G2;highest_weight=1,0].dimension"
+ ],
+ "typedNumbers": "M8: the numbers-in-prose scanner reports no prose and no formula findings. Typed numbers sit only in <Tex> or brace strings, and each is on the allowlist of M8.spec.ts with its context and reason. They are: positions (2,0), (-2,2), (0,-2) of beat 1; entries 0, 1, -1 (H_1 = diag(1,-1)); 'size at least 2'; the formulas of SPEC 2.18 verbatim; det C - 1; 2N; -2 and 2 of [W03c]; the 26 of F4; 'rank at least 2'; node labels and beat numbers; the locators of [BGP73], [FZ02], [FZ03a], [W03a], and [Hum72] (inside E10). Page: the moods a_i <0/=0/>0; the triangle example (1,1,0) to (1,1,2); v = 1 - u; the -1 of [BKR16]; 2N; quiver and board labels; the theorem and section locators of [W20], [BKR16], [BGP73], [FZ02], [FZ03a]. A deny list blocks typed 240, 248, 24, 27, 56, 'n by n' sizes and golden positions.",
+ "unverifiedUsed": [
+  {
+   "item": "E10",
+   "where": "M8 beat 1",
+   "content": "See [Hum72], sections 9.4 and 21.3.",
+   "fallback": "This is a standard fact of Lie theory."
+  },
+  {
+   "item": "E10",
+   "where": "M8 Seen box",
+   "content": "same",
+   "fallback": "It is found in the standard texts on Lie algebras."
+  },
+  {
+   "item": "E13",
+   "where": "not used: the page says only 'Kostant's game is attributed to Kostant.' and a test forbids other sentences naming Kostant outside an E13 wrap"
+  }
+ ],
+ "predictions": [
+  {
+   "figure": "b1",
+   "question": "Fire node 1 and then node 2. How many positions will the string at node 1 have then?",
+   "answer": "computed with fire and stringThrough at build time (1: the position reached is (0,-2))"
+  },
+  {
+   "figure": "b5",
+   "question": "Choose node 3 in the Node i list. How many positions will its orbit have?",
+   "answer": "gv of minuscule_representations[type=D4;node=3].dimension"
+  }
+ ],
+ "challenges": [
+  {
+   "tool": "b9",
+   "goal": "Find a position whose string has four positions.",
+   "check": "out string-length equals stringThrough(A2,[3,0],0).length"
+  },
+  {
+   "tool": "b10",
+   "goal": "Find a node of D4 where the recipe fails.",
+   "check": "out caption equals T12's caption of D4 node 2"
+  },
+  {
+   "tool": "b11",
+   "goal": "On E6, find the second minuscule node.",
+   "check": "out caption equals T12's caption of E6 node 6"
+  },
+  {
+   "tool": "b12",
+   "goal": "On A3, find the node whose matrices are the largest.",
+   "check": "out caption equals T12's caption of A3 node 2"
+  }
+ ],
+ "wordCount": 1761,
+ "beat7Placeholder": "<Beat n={7} released={false}><div data-released=\"false\">: two sentences on representations whose positions are one orbit plus the zero position once (type B vector representations; the G2 one with the golden dimension), built in a later version. No tool, no preset, no link. P7-A2 replaces the whole beat.",
+ "moduleBoard": "A2 (<ModuleLinks module={8} board=\"A2\" />; the sandbox link opens the board of the first figure, b1)"
+}
