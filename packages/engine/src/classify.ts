@@ -130,7 +130,7 @@ export function gram<T>(board: Board<T>): Rational[][] | null {
   const d = symmetrizer(board);
   if (d === null) return null;
   const C = intCartan(board);
-  return C.map((row, i) => row.map((x) => ratMul(d[i]!, rat(BigInt(x))))); // bigint: any integer entry (as symmetrizer)
+  return C.map((row, i) => row.map((x) => ratMul(d[i]!, rat(BigInt(x))))); // through bigint, as in symmetrizer
 }
 
 // ---------------------------------------------------------------------------------------------
