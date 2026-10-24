@@ -269,7 +269,38 @@
   const stats = $derived(plane && ys !== null ? coxeterStats([...ys, ...shortYs]) : null);
   const shared = $derived(data !== null && data.polytopeEdges !== null && data.moveEdges !== null ? sharedEdgeCount(data.polytopeEdges, data.moveEdges) : null);
   const moveCount = $derived(data?.moveEdges?.length ?? null);
-  const edgeCountText = $derived(current.graph === 'moves' ? (moveCount === null ? '' : String(moveCount)) : String(core.counts.edges));
+
+  // The output lines of the server markup, kept on hydration (7.6; RT-FIX P4-RT-07-01).
+  /** The outputs of the server markup that come from the orbit's edges or from its drawing. */
+  interface ServerLines {
+    source: string;
+    shared: string;
+    points: string;
+    edges: string;
+    edgeCount: string;
+    legend: number[];
+  }
+  /**
+   * The server renders the configured orbit complete (from its data file, or computed in-process); the browser
+   * has only its vertices at hydration and loads the rest in tasks of its own. The lines that depend on the rest
+   * are read once from the server markup on hydration ($props.id gives this instance the same id on both sides)
+   * and shown until the browser's own value of each arrives, so that hydration empties no line and shifts
+   * nothing (7.6: tools reserve their box size so that hydration does not shift the page). Null when the tool
+   * was not server rendered.
+   */
+  function readServerLines(): ServerLines | null {
+    const box = typeof document === 'undefined' ? null : document.getElementById(`${svgId}-figure`);
+    if (box === null) return null;
+    const text = (name: string): string => (box.querySelector(`[data-out="${name}"]`)?.textContent ?? '').trim();
+    const legend = [...box.querySelectorAll<HTMLElement>('[data-legend-label]')].map((e) => Number(e.dataset.legendLabel));
+    return { source: text('source'), shared: text('sharedEdges'), points: text('pointsDrawn'), edges: text('edgesDrawn'), edgeCount: text('edgeCount'), legend };
+  }
+  const serverLines = import.meta.env.SSR ? null : readServerLines();
+  /** The server's lines describe what is shown: the configured state, at rest, with no display option. */
+  const keepServerLines = $derived(serverLines !== null && current === configured.config && !uniform && !showShort && rotation === null);
+  const sourceText = $derived(complete && data !== null ? data.source : keepServerLines ? serverLines!.source : '');
+  const sharedText = $derived(shared !== null ? String(shared) : keepServerLines ? serverLines!.shared : '');
+  const edgeCountText = $derived(current.graph === 'moves' ? (moveCount !== null ? String(moveCount) : keepServerLines ? serverLines!.edgeCount : '') : String(core.counts.edges));
   const moveLimit = $derived(current.graph === 'moves' && moveCount !== null && moveCount > CAPS.edgesAtRest ? edgeLimitText(moveCount) : '');
   const limitMessage = $derived(core.decision.verticesOnly && current.graph === 'polytope' ? edgeLimitText(core.counts.edges) : moveLimit);
   const refused = $derived(core.decision.refused ? refusalText(core.counts.vertices) : '');
@@ -298,7 +329,7 @@
     }
     return out;
   });
-  const legendLabels = $derived(current.graph === 'moves' && data?.moveEdges ? labelsOf(data.moveEdges) : []);
+  const legendLabels = $derived(current.graph !== 'moves' ? [] : data?.moveEdges ? labelsOf(data.moveEdges) : keepServerLines ? serverLines!.legend : []);
 
   // The page's highlight (7.4): a position or root of this board that another tool points at.
   const highlighted = $derived.by((): number | null => {
@@ -807,6 +838,9 @@
   let snapshotKey = orbitKey(configured.config.board, configured.config.rings) + `|${configured.config.projection}|${configured.config.graph}|u0|s0|r0`;
 
   const viewKey = $derived(`${key}|${current.projection}|${current.graph}|u${uniformOn ? 1 : 0}|s${showShort ? 1 : 0}|r${rotation === null ? 0 : 1}`);
+  // The drawn counts: the canvas's, else the snapshot's (server rendering), else those the server markup showed.
+  const pointsText = $derived(pointsDrawn !== null ? String(pointsDrawn) : ssr !== null ? String(ssr.points) : keepServerLines ? serverLines!.points : '');
+  const edgesDrawnText = $derived(edgesDrawn !== null ? String(edgesDrawn) : ssr !== null ? String(ssr.segments) : keepServerLines ? serverLines!.edges : '');
 
   let colourCache: { key: string; value: PictureColours } | null = null;
   function colours(): PictureColours {
@@ -988,7 +1022,7 @@
 
 {#snippet figure(api: FrameApi)}
   {remember(api)}
-  <div class="t10" data-board-name={current.board}>
+  <div class="t10" id="{svgId}-figure" data-board-name={current.board}>
     <p class="names">
       <span class="board-name" data-out="boardName" data-name={current.board}>{@html boardNameHtml(current.board, katex)}</span>{#if core.name !== null}<span class="sep">{': '}</span><span class="polytope-name" data-out="polytopeName">{@html polytopeNameHtml(core.name, katex)}</span>{:else}<span data-out="polytopeName"></span>{/if}
     </p>
@@ -1033,7 +1067,7 @@
       <p class="line">
         View: <span data-out="projection">{current.projection}</span>; turn <span data-out="turn">{turnText}</span> degrees; graph
         <span data-out="graph">{current.graph}</span>; drawn from
-        <span data-out="source">{complete && data !== null ? data.source : ''}</span>.
+        <span data-out="source">{sourceText}</span>.
       </p>
       <p class="line">
         Ring sizes in this plane, innermost first: <span class="numeral" data-out="ringSizes" data-radii={stats === null ? '' : stats.rings.map(([r]) => r).join(',')}
@@ -1041,15 +1075,15 @@
         >. <span data-out="distinctDots">{stats === null ? '' : (distinctDotsText(stats) ?? '')}</span>
       </p>
       <p class="line">
-        Shared with the other graph: <span data-out="sharedEdges">{shared ?? ''}</span>; squared lengths of the edges at the start:
+        Shared with the other graph: <span data-out="sharedEdges">{sharedText}</span>; squared lengths of the edges at the start:
         <span class="numeral" data-out="edgeLengths" data-count={lengthValues.length} title={lengthsTitle}>{lengthValues.map(lengthShown).join(', ')}</span>
         ({lengths.map((l) => `node ${l.label}: ${lengthShown(lengthText(l.squared))}`).join('; ')}); make uniform:
         <span data-out="uniform">{core.uniformMatters ? (uniformOn ? 'on' : 'off') : 'not needed'}</span>; short roots:
         <span data-out="shortRoots">{core.shortRings === null ? 'none on this board' : showShort ? `shown, ${shortYs.length}` : 'hidden'}</span>.
       </p>
       <p class="line small">
-        Drawn: <span data-out="pointsDrawn">{pointsDrawn ?? (ssr !== null ? ssr.points : '')}</span> points,
-        <span data-out="edgesDrawn">{edgesDrawn ?? (ssr !== null ? ssr.segments : '')}</span> edges; edits:
+        Drawn: <span data-out="pointsDrawn">{pointsText}</span> points,
+        <span data-out="edgesDrawn">{edgesDrawnText}</span> edges; edits:
         <span data-out="edits">{past.length}</span>.
       </p>
       <!-- The time is measured on the reader's machine (data-measured): its words are shown with it, never around an

@@ -41,6 +41,7 @@ import { CAPS, boardFromName, toPositions, wythoffFVector } from '../../../packa
 import type { AnyBoard } from '../../../packages/engine/src/index';
 import { RING_MAX } from '../../src/components/tools/t10/scene';
 import { shortValue } from '../../src/components/tools/t01/longNumber';
+import { hydrateEveryIsland } from './hydrate';
 
 interface WythoffRecord {
   type: string;
@@ -1055,4 +1056,61 @@ test.describe('regressions', () => {
     });
   }
 
+  // SPEC 7.6: the hydrated tool shows the lines of its server markup while the orbit's data file is on its way;
+  // no output line is emptied and filled again, and no box changes.
+  // regression: P4-RT-07-01
+  test('M7: hydration keeps every output line of the server markup while the data files load', async ({ page, browser }) => {
+    test.setTimeout(180000);
+    const nojs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 360, height: 800 } });
+    const server = await (async () => {
+      const p = await nojs.newPage();
+      await p.goto(M7);
+      return outsOfRoots(p);
+    })();
+    await nojs.close();
+    // The data files are held until every island has hydrated: each orbit stays pending meanwhile.
+    const held: (() => Promise<void>)[] = [];
+    await page.route(PRESET_FILE, (r) => {
+      held.push(() => r.continue());
+    });
+    await page.route(KATEX_FONTS, (r) => r.abort());
+    await page.goto(M7, { waitUntil: 'load' });
+    const before = await serverHeights(page);
+    await hydrateEveryIsland(page);
+    const roots = page.locator('[data-tool="geometry"]');
+    for (let k = 0; k < (await roots.count()); k++) await expect(roots.nth(k)).toHaveAttribute('data-hydrated', 'true');
+    await page.waitForTimeout(1000);
+    expect(held.length, 'data files requested and held').toBeGreaterThan(0);
+    expect(await outsOfRoots(page), 'hydrated, data files held: the lines of the server markup').toEqual(server);
+    const pending = await roots.evaluateAll((rs) => Object.fromEntries(rs.map((r) => [r.getAttribute('data-instance') ?? '', r.getBoundingClientRect().height])));
+    for (const [id, h] of Object.entries(before)) expect(Math.abs(pending[id]! - h), `${id}: height ${h} before hydration, ${pending[id]} after`).toBeLessThanOrEqual(1);
+    // Released: each orbit completes from its file and shows the same lines.
+    for (const go of held.splice(0)) await go();
+    for (let k = 0; k < (await roots.count()); k++) await expect(roots.nth(k).locator('[data-out="source"]')).not.toHaveText('', { timeout: 30000 });
+    await expect.poll(() => outsOfRoots(page), { message: 'loaded: the lines of the server markup' }).toEqual(server);
+    // Drawn: the canvas has replaced each snapshot and the drawing time is shown; still no box has changed.
+    for (let k = 0; k < (await roots.count()); k++) await expect(roots.nth(k).locator('[data-out="drawMs"]')).not.toHaveText('', { timeout: 30000 });
+    const drawn = await roots.evaluateAll((rs) => Object.fromEntries(rs.map((r) => [r.getAttribute('data-instance') ?? '', r.getBoundingClientRect().height])));
+    for (const [id, h] of Object.entries(before)) expect(Math.abs(drawn[id]! - h), `${id}: height ${h} before hydration, ${drawn[id]} once drawn`).toBeLessThanOrEqual(1);
+  });
+  // regression: P4-RT-07-01
+  // regression: P4-RT-07-02
+  test('M7: Cumulative Layout Shift at most 0.1 at the reading positions of b4, b5, b7, b11 and b12', async ({ browser }) => {
+    test.setTimeout(240000);
+    for (const [id, target] of [
+      ['b4', '[data-prediction]'],
+      ['b5', '[data-out="summary"]'],
+      ['b7', '[data-prediction]'],
+      ['b11', '[data-out="summary"]'],
+      ['b12', '[data-out="summary"]'],
+    ] as const) {
+      const context = await browser.newContext({ viewport: { width: 360, height: 800 } });
+      try {
+        const cls = await clsAtReadingPosition(await context.newPage(), id, target);
+        expect(cls, `M7 ${id}: CLS at the reading position 300 px above ${target}`).toBeLessThanOrEqual(0.1);
+      } finally {
+        await context.close();
+      }
+    }
+  });
 });
