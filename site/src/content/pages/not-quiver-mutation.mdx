@@ -12,13 +12,8 @@ export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
 export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
 export const m8 = linkIfReleased({ kind: 'module', slug: 'm8-lie-algebras' });
 export const R = 9;
-export const seg = (x1, y1, x2, y2) => {
-  const d = Math.hypot(x2 - x1, y2 - y1);
-  const ux = (x2 - x1) / d;
-  const uy = (y2 - y1) / d;
-  const cut = R + 2;
-  return { x1: x1 + ux * cut, y1: y1 + uy * cut, x2: x2 - ux * (cut + 1), y2: y2 - uy * (cut + 1) };
-};
+export const GAP = 2;
+export const seg = (x1, y1, x2, y2) => { const d = Math.hypot(x2 - x1, y2 - y1); const ux = (x2 - x1) / d; const uy = (y2 - y1) / d; const cut = R + GAP; return { x1: x1 + ux * cut, y1: y1 + uy * cut, x2: x2 - ux * (cut + GAP), y2: y2 - uy * (cut + GAP) }; };
 export const QUIVER_BEFORE = { v: [[24, 74], [74, 74], [124, 74]], arrows: [[0, 1], [1, 2]] };
 export const QUIVER_AFTER = { v: [[202, 98], [252, 38], [302, 98]], arrows: [[1, 0], [2, 1], [0, 2]] };
 export const BOARD_BEFORE = [[24, 60], [74, 60], [124, 60]];
@@ -31,19 +26,19 @@ export const BOARD_AFTER = [[202, 60], [252, 60], [302, 60]];
     cities. The typed numbers are listed in decisions/P5-A3.md. No apostrophe in this comment: the scanner
     reads one as the start of a string. */}
 
-On this site a <Term a="board">board</Term> never changes. A mutation at a city changes the population of that city and nothing else. Firing a node in the numbers game changes numbers only. The mutation game is Wildberger's <Cite k="W20"/>. The numbers game is due to Mozes <Cite k="Moz90"/>; Proctor had used the same process earlier <Cite k="Pro84"/>, and Eriksson developed it <Cite k="Eri95a"/>. Several neighbouring games, and one operation with the same name, behave differently. This page sets them side by side.
+On this site a board never changes. A mutation at a city changes the population of that city and nothing else. Firing a node in the numbers game changes numbers only. The mutation game is Wildberger's <Cite k="W20"/>. The numbers game is due to Mozes <Cite k="Moz90"/>; Proctor had used the same process earlier <Cite k="Pro84"/>, and Eriksson developed it <Cite k="Eri95a"/>. Several neighbouring games, and one operation with the same name, behave differently. This page sets them side by side.
 
 ## Kostant's game
 
-Kostant's game is attributed to Kostant. It is the mutation game with a ratchet: start from one Martian in one city, and let a city mutate only when the mutation raises its <Term a="population">population</Term>. Whether it may is read off the other view through the translator <Tex src="a=Cp"/>. The number on node $i$ is the amount by which a mutation would lower city $i$. The three moods of a city are the three signs of $a_i$: unhappy when <Tex src="a_i<0"/>, and only then may it mutate; happy when <Tex src="a_i=0"/>; manic, or excited, when <Tex src="a_i>0"/>.
+Kostant's game is attributed to Kostant. It is the mutation game with a ratchet: start from one Martian in one <Term a="city">city</Term>, and let a city mutate only when the mutation raises its <Term a="population">population</Term>. Whether it may is read off the other view through the translator <Tex src="a=Cp"/>. The number on node $i$ is the amount by which a mutation would lower city $i$. The three moods of a city are the three signs of $a_i$: unhappy when <Tex src="a_i<0"/>, and only then may it <Term a="mutate">mutate</Term>; happy when <Tex src="a_i=0"/>; manic, or excited, when <Tex src="a_i>0"/>.
 
-On a simply laced board of finite type every move raises one city by exactly one Martian, every population met is a positive <Term a="root-population">root population</Term>, and over all starting cities the moves join exactly the pairs of positive root populations that differ by one Martian in one city: the state graph of the game is the Hasse diagram of the positive root populations. All three statements are verified by computation for every simply laced board of finite type of rank at most eight. Off the finite types a raising move can raise a city by more than one Martian, even with single roads only: on the triangle, three cities each joined to the other two by single roads, mutating city {'3'} turns <Tex src="(1,1,0)"/> into <Tex src="(1,1,2)"/>.
+On a simply laced <Term a="board">board</Term> of finite type every move raises one city by exactly one Martian, every population met is a positive <Term a="root-population">root population</Term>, and over all starting cities the moves join exactly the pairs of positive root populations that differ by one Martian in one city: the state graph of the game is the Hasse diagram of the positive root populations. All three statements are verified by computation for every simply laced board of finite type of rank at most eight. On a board that is not of finite type one raising move may add more than one Martian to a city, even with single roads only: on the triangle, three cities each joined to the other two by single roads, mutating city {'3'} turns <Tex src="(1,1,0)"/> into <Tex src="(1,1,2)"/>.
 
 ## Chip-firing
 
 Chip-firing is a different game. Each node holds a pile of chips, and a node fires when its pile reaches its degree: it sends one chip along each of its edges, so it always loses the same amount, and the total number of chips never changes. Each firing adds a fixed vector to the piles, so firings commute: the order of two firings does not change the result.
 
-In the numbers game a node fires according to the sign of its number, sends out an amount proportional to that number, and its number changes sign. Moves at joined nodes do not commute <Cite k="W20"/> ({'Theorem 5.1'}). On a board of <Term a="finite">finite</Term> type no weighted sum of the <Term a="numbers">numbers</Term> survives every firing: firing node $i$ keeps the sum <Tex src="\sum_j w_j a_j"/> only when entry $i$ of <Tex src="C^{\mathsf T}w"/> is zero, and $C$ is invertible on such a board. What every move keeps is the <Term a="form-value">form value</Term>, verified by computation. The two games agree in the minuscule situation, where every number fired equals <Tex src="1"/>, after the change of variables <Tex src="v=1-u"/> of <Cite k="BKR16"/> ({'Remark 4.11'}). That paper fires negative numbers: its numbers equal to <Tex src="-1"/> are this site's numbers equal to <Tex src="1"/>, since negating every number translates one convention into the other.
+In the numbers game the sign of the number on a <Term a="node">node</Term> decides whether it may fire; the node then sends out amounts proportional to that number, and the number changes sign. Firings at joined nodes do not commute, since the corresponding mutations do not <Cite k="W20"/> ({'Theorem 5.1'}). On a board of <Term a="finite">finite</Term> type no weighted sum of the <Term a="numbers">numbers</Term> survives every firing: firing node $i$ keeps the sum <Tex src="\sum_j w_j a_j"/> of every position only when entry $i$ of <Tex src="C^{\mathsf T}w"/> is zero, and $C$ is invertible on such a board. What every move keeps is the <Term a="form-value">form value</Term>, verified by computation. The two games agree in the minuscule situation, where every number fired equals <Tex src="1"/>, after the change of variables <Tex src="v=1-u"/> of <Cite k="BKR16"/> ({'Remark 4.11'}). That paper fires negative numbers: its numbers equal to <Tex src="-1"/> are this site's numbers equal to <Tex src="1"/>, since negating every number translates one convention into the other.
 
 ## Quiver representations
 
@@ -71,7 +66,7 @@ Fomin and Zelevinsky call an operation on a quiver and its variables mutation. I
 </table>
 </div>
 
-Sources: <Cite k="FZ02"/> ({'Definition 4.2'}); <Cite k="FZ03a"/> ({'Theorems 1.4 and 1.9'}).
+<p data-table-sources>Sources: <Cite k="FZ02"/> ({'Definition 4.2'}); <Cite k="FZ03a"/> ({'Theorems 1.4 and 1.9'}).</p>
 
 The smallest case shows the difference. Mutating the quiver <Tex src="1\to2\to3"/> at vertex {'2'} turns the two arrows at vertex {'2'} round and creates an arrow from vertex {'1'} to vertex {'3'}: the path becomes a triangle. On the board <Tex src="A_3"/>, a mutation at city {'2'} changes the population of city {'2'} only, and the board stays the same path forever.
 
@@ -113,7 +108,7 @@ These statements about the mutation game are sometimes made, and each is wrong i
 <ul data-confusions>
 <li data-confusion="board"><strong>A mutation does not change the board.</strong> A mutation at a city changes the population of that city and leaves the other cities and every road as they were <Cite k="W20"/> ({'sections 2 and 5'}). Rules that turn arrows round and add or remove arrows between neighbours belong to the quiver mutation of Fomin and Zelevinsky. The mutation game is not a combinatorial shadow of that operation; the two share a name.</li>
 <li data-confusion="one-entry"><strong>A mutation changes one entry.</strong> It is <Tex src="p_i\mapsto p_i-\sum_j C_{ij}p_j"/>, and every other entry keeps its value. An update <Tex src="x\mapsto x-x_i\,C^{\mathsf T}e_i"/>, which negates entry <Tex src="i"/> and changes the entries of its neighbours, is the firing move of the numbers game on the reversed board, the board whose Cartan matrix is <Tex src="C^{\mathsf T}"/>.</li>
-<li data-confusion="simply-laced"><strong>On a simply laced board the two games still differ.</strong> There <Tex src="C"/> is symmetric and <Tex src="R_i=S_i^{\mathsf T}"/>: the two moves are transposes of each other, two different matrices. The correct relations are <Tex src="CS_i=R_iC"/>, so that a population <Tex src="p"/> and the position <Tex src="a=Cp"/> move together, and <Tex src="R_i(C)=S_i(C^{\mathsf T})^{\mathsf T}"/>, both verified by computation. The number on node <Tex src="i"/> is the amount by which a mutation would lower city <Tex src="i"/>. The claim that the mutation game on <Tex src="C"/> is the numbers game on <Tex src="C^{\mathsf T}"/> is true of the two actions on dual spaces, each the adjoint of the other, and false as a claim that the two games have the same positions and the same moves.</li>
+<li data-confusion="simply-laced"><strong>On a simply laced board the two games still differ.</strong> There <Tex src="C"/> is symmetric and <Tex src="R_i=S_i^{\mathsf T}"/>: the two moves are transposes of each other, two different matrices. The correct relations are <Tex src="CS_i=R_iC"/>, so that a population <Tex src="p"/> and the <Term a="position">position</Term> <Tex src="a=Cp"/> move together, and <Tex src="R_i(C)=S_i(C^{\mathsf T})^{\mathsf T}"/>, both verified by computation. The number on node <Tex src="i"/> is the amount by which a mutation would lower city <Tex src="i"/>. The claim that the mutation game on <Tex src="C"/> is the numbers game on <Tex src="C^{\mathsf T}"/> is true of the two actions on dual spaces, each the adjoint of the other, and false as a claim that the two games have the same positions and the same moves.</li>
 <li data-confusion="sign"><strong>A mutation needs no sign condition.</strong> Any city may mutate at any time. Conditions define variants: only <Term a="raising-move">raising moves</Term> give <Term a="kostants-game">Kostant's game</Term>, and on the numbers side only positive firings give <Term a="legal-play">legal play</Term>.</li>
 </ul>
 
