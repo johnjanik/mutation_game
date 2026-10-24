@@ -408,6 +408,7 @@
   }
 
   function revealTotal(announce: (t: string) => void): void {
+    if (totalShown) return;
     totalShown = true;
     announce(`Total: ${totalText(gardenTotal(spec, bound))}.`);
   }
@@ -636,8 +637,20 @@
   {/snippet}
 
   {#snippet controls(api)}
-    <button type="button" class="control" data-control="grow" disabled={!growable} onclick={() => growLayer(api.announce)}>Grow one layer</button>
-    <button type="button" class="control" data-control="showTotal" disabled={totalShown} onclick={() => revealTotal(api.announce)}>Show total</button>
+    <!-- Grow one layer at the last layer and Show total once shown are done by their own press but keep the
+         focus (A-1, WCAG 2.4.3; RT-FIX P4-RT-05-01): aria-disabled, the handlers doing nothing then. The
+         disabled attribute stays for the follow mode, set by another control, and before hydration (7.4). -->
+    <button
+      type="button"
+      class="control"
+      data-control="grow"
+      disabled={growth !== 'explore'}
+      aria-disabled={growth === 'explore' && !growable ? 'true' : undefined}
+      onclick={() => growLayer(api.announce)}>Grow one layer</button
+    >
+    <button type="button" class="control" data-control="showTotal" aria-disabled={totalShown ? 'true' : undefined} onclick={() => revealTotal(api.announce)}
+      >Show total</button
+    >
     <button
       type="button"
       class="control"

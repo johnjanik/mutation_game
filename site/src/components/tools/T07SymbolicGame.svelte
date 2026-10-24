@@ -518,12 +518,18 @@
           <td class="numeral exact" data-table-value={shownNumbers[p]}>{shownNumbers[p]!.replace(/^-/, '−')}</td>
           <td data-form={labelText(symBoard, sym.entries[p]!)}><LinearForm coeffs={sym.entries[p]!} labels={symBoard.labels} /></td>
           <td>
+            <!-- A legal fire makes the fired number negative, so the pressed button is done but keeps the focus
+                 (A-1, WCAG 2.4.3; RT-FIX P4-RT-05-01): aria-disabled while the node cannot be fired, the press
+                 doing nothing then; disabled only before hydration (7.4) and while a prediction freezes the board. -->
             <button
               type="button"
               class="cell"
               data-table-node={game.labels[p]}
-              disabled={!api.hydrated || frozen || !canAct[p]}
-              onclick={() => act(p, api.announce)}>Fire node {game.labels[p]}</button
+              disabled={!api.hydrated || frozen}
+              aria-disabled={!frozen && !canAct[p] ? 'true' : undefined}
+              onclick={() => {
+                if (canAct[p]) act(p, api.announce);
+              }}>Fire node {game.labels[p]}</button
             >
           </td>
         </tr>

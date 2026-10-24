@@ -19,8 +19,8 @@
 // no page of the site (no T8 takes a prediction, T9 offers only finite boards); their handlers return
 // in that state (WeylGraph `if (!disabled)`, T9 `if (frozen || busy || atEnd)`), read by hand.
 // Hooks read: data-tool, data-instance, data-hydrated, data-moves, data-control step, playToEnd, playOn,
-// keepCounting, predictShow, predictCheck, data-tab, data-node, data-value, data-out (every name, as
-// text), aria-disabled, [data-live].
+// keepCounting, predictShow, predictCheck, showTotal, grow, stepB, playToEndB, addNode, removeNode, data-tab,
+// data-node, data-table-node, data-value, data-out (every name, as text), aria-disabled, [data-live].
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -119,8 +119,14 @@ async function watchLive(root: Locator): Promise<() => Promise<number>> {
   return () => region.evaluate((el) => (el as HTMLElement & { __writes?: number }).__writes ?? 0);
 }
 
-/** A readable name of an element: its control, its node, or its tag. */
-const nameOf = (el: Element): string => el.getAttribute('data-control') ?? (el.hasAttribute('data-node') ? `node ${el.getAttribute('data-node')}` : (el.getAttribute('data-out') ?? el.tagName));
+/** A readable name of an element: its control, its node, its table button, or its tag. */
+const nameOf = (el: Element): string =>
+  el.getAttribute('data-control') ??
+  (el.hasAttribute('data-node')
+    ? `node ${el.getAttribute('data-node')}`
+    : el.hasAttribute('data-table-node')
+      ? `table node ${el.getAttribute('data-table-node')}`
+      : (el.getAttribute('data-out') ?? el.tagName));
 
 /**
  * Presses every element of the tool that carries aria-disabled="true" with Enter, with Space and with a
@@ -236,5 +242,82 @@ for (const p of PREDICTIONS) {
     await expect(root.locator('[data-out="predictResult"]')).not.toBeEmpty();
     for (const name of ['predictCheck', 'predictShow']) await expect(root.locator(`[data-control="${name}"]`)).toHaveAttribute('aria-disabled', 'true');
     await pressesAreIgnored(page, root, ['predictCheck', 'predictShow'], `${p.what}, answered`);
+  });
+}
+
+// The controls that P4-RT-05-01 made aria-disabled (ownpress-focus.spec.ts checks their focus) ignore a press
+// in the state that sets the attribute: T2's Show total once shown and Grow one layer at the last layer; T7's
+// table button of a node that cannot be fired; T5's Step B and Play B to the end at the end of game B; the
+// board editor's Add node at the largest board and Remove node at the smallest.
+const OWN_PRESS: { what: string; route: string; tool: string; instance?: string; reach: (page: Page, root: Locator) => Promise<void>; expected: string[] }[] = [
+  {
+    what: 'T2 Show total once shown',
+    route: 'tools/garden/',
+    tool: 'garden',
+    reach: async (_page, root) => {
+      await root.locator('[data-control="showTotal"]').click();
+    },
+    expected: ['showTotal'],
+  },
+  {
+    what: 'T2 Grow one layer at the last layer',
+    route: 'tools/garden/',
+    tool: 'garden',
+    reach: async (_page, root) => {
+      const grow = root.locator('[data-control="grow"]');
+      for (let k = 0; k < 40 && (await grow.getAttribute('aria-disabled')) !== 'true'; k++) await grow.click();
+    },
+    expected: ['grow'],
+  },
+  {
+    what: 'T7 table button of a node that cannot be fired',
+    route: 'tools/symbolic/',
+    tool: 'symbolic',
+    reach: async (_page, root) => {
+      await root.locator('summary', { hasText: 'Show as table' }).click();
+      await root.locator('[data-table-node="1"]').click();
+      await expect(root).toHaveAttribute('data-moves', '1');
+    },
+    expected: ['table node 1'],
+  },
+  {
+    what: 'T5 Step B and Play B to the end at the end of game B (M4 beat 3)',
+    route: 'modules/m4-numbers/',
+    tool: 'numbers',
+    instance: 'b3',
+    reach: async () => {},
+    expected: ['stepB', 'playToEndB'],
+  },
+  {
+    what: 'the board editor at the largest board',
+    route: 'tools/sandbox/',
+    tool: 'sandbox',
+    reach: async (_page, root) => {
+      const add = root.locator('[data-control="addNode"]');
+      for (let k = 0; k < 14 && (await add.getAttribute('aria-disabled')) !== 'true'; k++) await add.click();
+    },
+    expected: ['addNode'],
+  },
+  {
+    what: 'the board editor at the smallest board',
+    route: 'tools/sandbox/',
+    tool: 'sandbox',
+    reach: async (_page, root) => {
+      const remove = root.locator('[data-control="removeNode"]');
+      for (let k = 0; k < 14 && (await remove.getAttribute('aria-disabled')) !== 'true'; k++) await remove.click();
+    },
+    expected: ['removeNode'],
+  },
+];
+
+for (const o of OWN_PRESS) {
+  // regression: P4-RT-05-01 (an aria-disabled control ignores a press, RT-FIX-P3-residual-tools)
+  test(`${o.what}: every aria-disabled control ignores Enter, Space and a click`, async ({ page }) => {
+    await page.goto(o.route);
+    const root = page.locator(o.instance === undefined ? `[data-tool="${o.tool}"]` : `[data-tool="${o.tool}"][data-instance="${o.instance}"]`).first();
+    await root.scrollIntoViewIfNeeded();
+    await expect(root).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+    await o.reach(page, root);
+    await pressesAreIgnored(page, root, o.expected, o.what);
   });
 }

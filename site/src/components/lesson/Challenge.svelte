@@ -102,10 +102,23 @@
 <div class="challenge" data-challenge data-kind={check.kind} data-met={met ? 'true' : undefined}>
   <p class="goal"><span class="label">Challenge.</span> {goal}</p>
   {#if check.kind === 'input'}
+    <!-- Once the answer is accepted the field and Check are done but keep the focus the reader left in them
+         (A-1, WCAG 2.4.3; RT-FIX P4-RT-05-01): aria-disabled, the field read-only and tryInput doing nothing
+         then; disabled only before hydration (7.4). -->
     <form class="answer" onsubmit={tryInput}>
       <label for={`${uid}-input`}>Your population, entries in label order</label>
-      <input id={`${uid}-input`} type="text" inputmode="text" autocomplete="off" spellcheck="false" bind:value={typed} disabled={!hydrated || met} />
-      <button type="submit" disabled={!hydrated || met}>Check</button>
+      <input
+        id={`${uid}-input`}
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        spellcheck="false"
+        bind:value={typed}
+        disabled={!hydrated}
+        readonly={met}
+        aria-disabled={met ? 'true' : undefined}
+      />
+      <button type="submit" disabled={!hydrated} aria-disabled={met ? 'true' : undefined}>Check</button>
       {#if inputTried && !met}<p class="retry">Not this one. Try another population.</p>{/if}
     </form>
   {:else if check.kind === 'explain'}
