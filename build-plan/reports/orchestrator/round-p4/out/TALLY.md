@@ -90,3 +90,4 @@
 - P4-RT-11-02 major: the SPEC 7.6 orbit benchmark now times the numbers path, not Big arithmetic; the bigint loop can be 30x slower and the benchmark stays green.
 - P4-RT-11-03 minor: T15.spec.ts checks A-3 node names with a wildcard city number.
 - Notes: C1 (classByMinors without bigint fallback) and F4 survive but are argued equivalent; phaseInForce regex fragile for phase 5 registry entries; load-sensitive tests (Vitest 5 s limit at load 12 to 18; T10 long-task tests; orbit.bench at load 11).
+- RT-12 verdicts: 02 CONFIRMED, raised to blocker by both verifiers (npm run e2e fails in CI); 03 CONFIRMED major (official Node 22.12.0 binary); 04 CONFIRMED minor; 05 REFUTED (P4-A2 logged hook). 01 DROPPED as not reproduced (the stated command passes '.' to createRequire and stops with a TypeError); the verifier saw both FAIL lines with an absolute path and the real GitHub run 39258486524 failing as claimed: to the owner, with a recommendation to fix links.yml.
