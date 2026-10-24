@@ -4,7 +4,7 @@
 // adds the site's libraries: the state of 6.6 (lib/state.ts), the codec (lib/urlCodec.ts), the routing of
 // E-9 (lib/worker.ts: every engine call's hint goes through whereToRun before the call), the A-4
 // templates (lib/a11y.ts). Labels everywhere outside the engine; toLabels and toPositions convert (E-7).
-import { CAPS, EngineOverflow, fire, minusculeNodes, toLabels } from '@two-games/engine';
+import { CAPS, EngineOverflow, fire, toLabels } from '@two-games/engine';
 import type { AnyBoard, Board, RelationCheck, SparseMatrix } from '@two-games/engine';
 import { announceTemplates, moveAnnouncement, speakList } from '../../../lib/a11y';
 import { bigBoard, cloneState, integerOut, resolveBoard, type ToolState } from '../../../lib/state';
@@ -13,7 +13,12 @@ import { whereToRun, type CallHint } from '../../../lib/worker';
 import { T12_PRESETS, offersBoard, type T12Panel, type T12PresetId } from './config';
 import {
   DRAW_MAX,
+  addMatrices,
+  addRelations,
+  addSignedMoves,
   buildRepresentation,
+  minusculeOf,
+  startRepresentation,
   byPosition,
   defaultNode,
   defaultRelation,
@@ -103,29 +108,81 @@ export function routedCalls(spec: string, nodeLabel: number): RoutedCall[] {
 const CACHE_MAX = 8;
 const cache = new Map<string, Representation>();
 
+/** Whether the code runs in Node (build time, unit tests), where E-9 does not apply: every call runs in-process. */
+const inNode = (): boolean => typeof window === 'undefined';
+
 /**
- * The representation of a node of an offered board (cached, at most CACHE_MAX kept). Its relation list is
- * computed with it up to RELATIONS_MAIN_MAX positions; above, `checks` is null until the caller sets the
- * list computed in the worker (T12RepresentationBuilder.svelte, through engineCall and relationsHint).
+ * Computes the relation list of a representation on the main thread now: up to RELATIONS_MAIN_MAX positions,
+ * or any size with `initial` (the configured state, which never waits for the worker, E-9 and SPEC 7.6),
+ * or in Node.
  */
-export function representationOf(spec: string, nodeLabel: number): Representation {
+export function relationsNow(rep: Representation, initial = false): void {
+  if (!rep.built || rep.checks !== null) return;
+  if (!initial && !inNode() && !relationsOnMain(rep.orbitSize)) throw new RangeError(`the relations of ${rep.orbitSize} positions are computed in the worker`);
+  addRelations(rep, { route: mainRoute });
+}
+
+/**
+ * The representation of a node as steps, each to run in a task of its own (SPEC 7.6), filling the cache
+ * that representationOf reads: decide (minusculeNodes, orbitSize, legal play), enumerate (minusculeMatrices),
+ * sign (signedMoves), and for a node that is not minuscule with a small orbit its relation list (its
+ * default relation is its first failing one). After the last step representationOf(spec, label, 'staged')
+ * computes nothing.
+ */
+export function representationSteps(spec: string, nodeLabel: number): (() => void)[] {
   const key = `${spec}|${nodeLabel}`;
-  const known = cache.get(key);
-  if (known !== undefined) {
-    cache.delete(key);
-    cache.set(key, known);
-    return known;
+  let rep: Representation | undefined;
+  const get = (): Representation => {
+    rep ??= cache.get(key);
+    if (rep === undefined) {
+      if (!offersBoard(spec)) throw new RangeError(`T12 does not offer the board ${spec}`);
+      rep = startRepresentation(resolveBoard(spec), nodeLabel, { route: mainRoute });
+      cache.set(key, rep);
+      while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
+    }
+    return rep;
+  };
+  return [
+    () => void get(),
+    () => addMatrices(get(), { route: mainRoute }),
+    () => addSignedMoves(get(), { route: mainRoute }),
+    () => {
+      const r = get();
+      if (!r.minuscule && relationsOnMain(r.orbitSize)) relationsNow(r);
+    },
+  ];
+}
+
+/**
+ * The representation of a node of an offered board (cached, at most CACHE_MAX kept). `relations` says when
+ * its list of relations is computed: 'initial' (the configured state of an instance, and every call in
+ * Node) computes it now, whatever the size, so that no default state needs the worker (E-9, SPEC 7.6);
+ * 'staged' (a state loaded after hydration) computes it now only for a node that is not minuscule with at
+ * most RELATIONS_MAIN_MAX positions (its default relation is its first failing one), and leaves the others
+ * to the tool: a later task of the main thread up to RELATIONS_MAIN_MAX positions (relationsNow), the
+ * worker above (engineCall with relationsHint), so that no task does both the matrices and the relations.
+ */
+export function representationOf(spec: string, nodeLabel: number, relations: 'initial' | 'staged' = 'initial'): Representation {
+  const key = `${spec}|${nodeLabel}`;
+  let rep = cache.get(key);
+  if (rep !== undefined) cache.delete(key);
+  else {
+    if (!offersBoard(spec)) throw new RangeError(`T12 does not offer the board ${spec}`);
+    rep = startRepresentation(resolveBoard(spec), nodeLabel, { route: mainRoute });
   }
-  if (!offersBoard(spec)) throw new RangeError(`T12 does not offer the board ${spec}`);
-  const rep = buildRepresentation(resolveBoard(spec), nodeLabel, { route: mainRoute, relations: 'auto' });
   cache.set(key, rep);
   while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
+  // The steps a pick left undone (another pick came first) are done here; each returns at once when done.
+  addMatrices(rep, { route: mainRoute });
+  addSignedMoves(rep, { route: mainRoute });
+  if (relations === 'initial' || inNode()) relationsNow(rep, true);
+  else if (!rep.minuscule && relationsOnMain(rep.orbitSize)) relationsNow(rep);
   return rep;
 }
 
 /** The minuscule nodes of a board as labels (the node picker's text mark, A-5). */
 export function minusculeLabels(board: AnyBoard): number[] {
-  return toLabels(board, minusculeNodes(board)).sort((a, b) => a - b);
+  return toLabels(board, minusculeOf(board)).sort((a, b) => a - b);
 }
 
 export interface OrbitView {
@@ -170,7 +227,7 @@ export function defaultsFor(spec: string, nodeLabel?: number): ToolState {
   if (!offersBoard(spec)) throw new RangeError(`T12 does not offer the board ${spec}`);
   const board = resolveBoard(spec);
   const node = nodeLabel ?? defaultNode(board);
-  const rep = representationOf(spec, node);
+  const rep = representationOf(spec, node, 'staged');
   return { schema: 1, tool: 'rep', board: spec, node, relation: defaultRelation(rep), coords: 'numbers', start: omegaStart(board, node), moves: [] };
 }
 
@@ -292,13 +349,13 @@ export class T12Tool {
   pending: boolean;
   private at: (string[] | undefined)[];
 
-  constructor(cfg: T12Config, opts: { defer?: boolean } = {}) {
+  constructor(cfg: T12Config, opts: { defer?: boolean; relations?: 'initial' | 'staged' } = {}) {
     if (!offersBoard(cfg.board)) throw new RangeError(`T12 does not offer the board ${cfg.board}`);
     this.spec = cfg.board;
     this.board = resolveBoard(cfg.board) as Board<number>;
     if (!this.board.labels.includes(cfg.node)) throw new RangeError(`${cfg.node} is not a label of ${cfg.board}`);
     this.node = cfg.node;
-    this.rep = representationOf(cfg.board, cfg.node);
+    this.rep = representationOf(cfg.board, cfg.node, opts.relations ?? 'initial');
     if (parseRelationCode(this.board, cfg.relation) === null) throw new RangeError(`${cfg.relation} is not a relation of ${cfg.board}`);
     this.relation = cfg.relation;
     if (cfg.start.length !== this.board.n) throw new RangeError(`the start has ${cfg.start.length} entries, but ${cfg.board} has ${this.board.n} nodes`);
@@ -385,10 +442,16 @@ export class T12Tool {
     };
   }
 
-  /** The string through the current position at the representation's node (2.18 Strings). */
+  private lastString: { key: string; view: StringView } | null = null;
+
+  /** The string through the current position at the representation's node (2.18 Strings), kept for the position shown. */
   string(): StringView {
+    const key = this.values().join(',');
+    if (this.lastString?.key === key) return this.lastString.view;
     const { board, vector } = inArithmetic(this.board, this.values());
-    return stringView(board, vector, this.node, { route: mainRoute });
+    const view = stringView(board, vector, this.node, { route: mainRoute });
+    this.lastString = { key, view };
+    return view;
   }
 }
 
@@ -454,7 +517,7 @@ export function admitLink(search: string, configured: ToolState, prefix: string)
     if (has.has('c') && !has.has('s')) state.start = base.start === undefined ? state.start : [...base.start];
     for (const f of ['view', 'mode', 'black', 'tau', 'rings', 'projection', 'graph', 'symmetry', 'lambda'] as const) delete state[f];
     // Validated without replaying a long list here: the component replays it where E-9 says (rule 2).
-    const tool = new T12Tool(configOf(state), { defer: true });
+    const tool = new T12Tool(configOf(state), { defer: true, relations: 'staged' });
     return { state: tool.state(), notice: null };
   } catch {
     return refuse;

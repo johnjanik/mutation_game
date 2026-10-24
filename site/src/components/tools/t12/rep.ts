@@ -50,12 +50,14 @@ export const STRING_SHOWN_MAX = 12;
  * measured; decisions/P5-A2.md). chevalleySerre is not an enumeration of E-9 rule 1, and its work grows
  * with the square of the rank times the size (B8 node 5, 1792 positions, 368 records: about 420 ms in
  * Node here), so SPEC 7.6 ("No engine call on the main thread may become a long task") bounds it, not the
- * 2000 items of E-9. The largest listed representation (E7 node 7, 56 positions, 280 records) took about
- * 8 ms in Node here, under 50 ms with the processor slowed four times; larger orbits (from 60 positions on
- * the 32 boards) send the list to the worker. minusculeMatrices, signedMoves and orbitGraph stay on the
- * main thread up to 2000 positions, as E-9 rule 1 says.
+ * 2000 items of E-9. Measured in Chromium on its first call after a pick (cold code, which a reader meets):
+ * the 280 records of E7 node 7 (56 positions) take about 14 ms at full speed, so about 56 ms with the
+ * processor slowed four times, over the budget; the orbits drawn as grids (at most CAPS.matrixGridDim = 27
+ * positions, E6 nodes 1 and 6 the largest) stay under it. So the list is computed on the main thread up
+ * to 27 positions and in the worker above, where the matrices are shown as lists. minusculeMatrices,
+ * signedMoves and orbitGraph stay on the main thread up to 2000 positions, as E-9 rule 1 says.
  */
-export const RELATIONS_MAIN_MAX = 56;
+export const RELATIONS_MAIN_MAX = CAPS.matrixGridDim;
 
 /** Whether the relation list of an orbit of this size is computed on the main thread. */
 export const relationsOnMain = (orbitSize: number): boolean => orbitSize <= RELATIONS_MAIN_MAX;
@@ -213,11 +215,25 @@ export function buildRepresentation(
   nodeLabel: number,
   opts: { engine?: RepEngine; route?: Route; relations?: 'now' | 'later' | 'auto' } = {},
 ): Representation {
+  const rep = startRepresentation(board, nodeLabel, opts);
+  if (!rep.built) return rep;
+  addMatrices(rep, opts);
+  addSignedMoves(rep, opts);
+  const when = opts.relations ?? 'now';
+  if (when === 'now' || (when === 'auto' && relationsOnMain(rep.orbitSize))) addRelations(rep, opts);
+  return rep;
+}
+
+/**
+ * The steps of buildRepresentation, which the tool runs one per task after a pick (SPEC 7.6): the first
+ * decides (minusculeNodes, orbitSize, legal play from omega_i), the others enumerate and compute.
+ */
+export function startRepresentation(board: AnyBoard, nodeLabel: number, opts: { engine?: RepEngine; route?: Route } = {}): Representation {
   const engine = opts.engine ?? REP_ENGINE;
   const route = opts.route ?? noRoute;
   if (board.name === undefined) throw new RangeError('T12 builds representations on named boards only');
   const position = positionOf(board, nodeLabel);
-  const nodes = engine.minusculeNodes(board);
+  const nodes = engine === REP_ENGINE ? minusculeOf(board) : engine.minusculeNodes(board);
   const minuscule = nodes.includes(position);
   const w = omega(board, position);
   const size = engine.orbitSize(board, w);
@@ -247,10 +263,16 @@ export function buildRepresentation(
     signed: null,
     checks: null,
   };
-  if (!rep.built) return rep;
-  const hint = enumerationHint(board, size);
-  route('minusculeMatrices', hint);
-  const m = engine.minusculeMatrices(board, position, CAPS.repOrbit);
+  return rep;
+}
+
+/** Step 2: the basis and E, F, H and the moves (minusculeMatrices, CAPS.repOrbit), when the orbit is built. */
+export function addMatrices(rep: Representation, opts: { engine?: RepEngine; route?: Route } = {}): void {
+  if (!rep.built || rep.basis !== null) return;
+  const engine = opts.engine ?? REP_ENGINE;
+  const size = rep.orbitSize;
+  (opts.route ?? noRoute)('minusculeMatrices', enumerationHint(rep.board, size));
+  const m = engine.minusculeMatrices(rep.board, rep.position, CAPS.repOrbit);
   if (m === null) throw new Error(`minusculeMatrices found more than ${CAPS.repOrbit} positions where orbitSize gave ${size}`);
   if (m.basis.length !== size) throw new Error(`minusculeMatrices found ${m.basis.length} positions where orbitSize gave ${size}`);
   rep.basis = m.basis;
@@ -258,14 +280,22 @@ export function buildRepresentation(
   rep.F = m.F;
   rep.H = m.H;
   rep.moves = m.moves;
-  route('signedMoves', hint);
-  rep.signed = engine.signedMoves(m.basis, m.E, m.F);
-  const when = opts.relations ?? 'now';
-  if (when === 'now' || (when === 'auto' && relationsOnMain(size))) {
-    route('chevalleySerre', hint);
-    rep.checks = engine.chevalleySerre(board, m.E, m.F, m.H);
-  }
-  return rep;
+}
+
+/** Step 3: the signed moves E_k - F_k + P_k^0 (signedMoves). */
+export function addSignedMoves(rep: Representation, opts: { engine?: RepEngine; route?: Route } = {}): void {
+  if (rep.basis === null || rep.signed !== null) return;
+  const engine = opts.engine ?? REP_ENGINE;
+  (opts.route ?? noRoute)('signedMoves', enumerationHint(rep.board, rep.orbitSize));
+  rep.signed = engine.signedMoves(rep.basis, rep.E!, rep.F!);
+}
+
+/** Step 4: every relation with both sides (chevalleySerre), on the thread the caller is on. */
+export function addRelations(rep: Representation, opts: { engine?: RepEngine; route?: Route } = {}): void {
+  if (rep.basis === null || rep.checks !== null) return;
+  const engine = opts.engine ?? REP_ENGINE;
+  (opts.route ?? noRoute)('chevalleySerre', enumerationHint(rep.board, rep.orbitSize));
+  rep.checks = engine.chevalleySerre(rep.board, rep.E!, rep.F!, rep.H!);
 }
 
 /** The dimension shown (data-out="dimension"): the size of the basis, which equals the orbit's size. */
@@ -273,9 +303,22 @@ export function dimensionOf(rep: Representation): number {
   return rep.basis?.length ?? rep.orbitSize;
 }
 
+const minusculeByName = new Map<string, number[]>();
+
+/** minusculeNodes of a named board, computed once per name (boards are immutable, E-11; a name fixes the board). */
+export function minusculeOf(board: AnyBoard): number[] {
+  if (board.name === undefined) return minusculeNodes(board);
+  let known = minusculeByName.get(board.name);
+  if (known === undefined) {
+    known = minusculeNodes(board);
+    minusculeByName.set(board.name, known);
+  }
+  return [...known];
+}
+
 /** The default node of a board (plan): its smallest minuscule label, else label 1 (the first label). */
 export function defaultNode(board: AnyBoard): number {
-  const minuscule = minusculeNodes(board);
+  const minuscule = minusculeOf(board);
   if (minuscule.length === 0) return labelOrder(board)[0]!;
   return Math.min(...toLabels(board, minuscule));
 }

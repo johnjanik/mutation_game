@@ -14,7 +14,6 @@
   // 'signed-move': the state fields and the panel put first), caption; linkTo and layers are accepted and
   // ignored (no set of positions grows off the finite types).
   import { untrack } from 'svelte';
-  import { flip } from 'svelte/animate';
   import type { AnyBoard, RelationCheck } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -28,7 +27,7 @@
   import { encodeState } from '../../lib/urlCodec';
   import { speak } from '../../lib/a11y';
   import { engineCall } from '../../lib/worker';
-  import type { ToolState } from '../../lib/state';
+  import { resolveBoard, type ToolState } from '../../lib/state';
   import { NUMBERS_ICON } from '../draw/palette';
   import { isLong, shortValue } from './t01/longNumber';
   import type { Prediction } from '../../tools/types';
@@ -73,10 +72,15 @@
     relationSentence,
     relationSummary,
     relationsHint,
+    relationsNow,
+    relationsOnMain,
+    representationSteps,
+    defaultNode,
     startSentence,
     stringNote,
     undoSentence,
     type RelationCode,
+    type Representation,
   } from './t12/model';
 
   interface Props {
@@ -126,6 +130,8 @@
   let generation = 0;
   /** The representations whose relation list is being computed in the worker. */
   const inFlight = new WeakSet<object>();
+  /** The representation whose relation list the worker could not compute (it is then said so). */
+  let relationsLost = $state.raw<Representation | null>(null);
 
   const touch = (): void => {
     version++;
@@ -185,13 +191,116 @@
   // Loading a state (a link, the back button, a picker, a typed start)
   // ------------------------------------------------------------------------------------------
 
+  /**
+   * The pieces of the panels. The configured state is drawn whole (it is the server markup). After a load
+   * that changes the board or the node, each piece is drawn in a task of its own (plan): first each panel's
+   * frame (its title, text and controls), then its heavy parts, the relation list computed in a task of its
+   * own before its panel (or in the worker above RELATIONS_MAIN_MAX positions), and the table view last, so
+   * that no task of the main thread holds all of it (SPEC 7.6).
+   */
+  const PIECES = {
+    orbit: ['shell-orbit', 'orbit', 'orbit-edges'],
+    matrices: ['shell-matrices', 'matrix-e', 'matrix-f', 'matrix-h'],
+    relations: ['shell-relations', 'relations', 'relation-left', 'relation-right'],
+    signed: ['shell-signed', 'move-matrix', 'signed-move'],
+    string: ['shell-string', 'string-history', 'string-line', 'string-entry'],
+  } as const satisfies Record<T12Panel, readonly string[]>;
+  type Piece = (typeof PIECES)[keyof typeof PIECES][number] | 'table';
+  const ALL_PIECES = [...Object.values(PIECES).flat(), 'table'] as Piece[];
+  const ready = $state<Record<Piece, boolean>>(Object.fromEntries(ALL_PIECES.map((p) => [p, true])) as Record<Piece, boolean>);
+  /** The line shown while a picked board or node is being built, task by task. */
+  let building = $state<string | null>(null);
+
+  /**
+   * Runs `fn` in a task after the next frame has been drawn, so that the layout of what a step drew is done
+   * in that frame and never batched with the next step's (requestAnimationFrame, then a task); in a hidden
+   * page, which draws no frame, in the next task.
+   */
+  function afterFrame(fn: () => void): void {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => setTimeout(fn, 0));
+    } else setTimeout(fn, 0);
+  }
+
+  /** Runs the steps one per task, each after a frame, while the generation is unchanged; a step may append steps. */
+  function runSteps(g: number, steps: (() => void)[], done?: () => void): void {
+    const next = (k: number): void => {
+      afterFrame(() => {
+        if (g !== generation) return;
+        if (k < steps.length) {
+          steps[k]!();
+          next(k + 1);
+        } else done?.();
+      });
+    };
+    next(0);
+  }
+
+  function stage(g: number): void {
+    for (const p of ALL_PIECES) ready[p] = false;
+    const steps: (() => void)[] = [];
+    for (const panel of panels) {
+      for (const p of PIECES[panel]) {
+        if (p === 'orbit') {
+          steps.push(() => {
+            if (tool.rep.built) orbitView(tool.rep);
+          });
+        }
+        if (p === 'relations') {
+          steps.push(() => {
+            const r = tool.rep;
+            if (r.built && r.checks === null && relationsOnMain(r.orbitSize)) {
+              relationsNow(r);
+              touch();
+            }
+          });
+        }
+        steps.push(() => {
+          ready[p] = true;
+        });
+      }
+    }
+    steps.push(() => {
+      ready.table = true;
+    });
+    runSteps(g, steps);
+  }
+
+  /**
+   * A picked board or node: the representation is built one engine call per task (representationSteps),
+   * the figure keeping the previous state with a line saying what is being built; then the state loads.
+   */
+  function build(spec: string, node: number | null, announce: (t: string) => void): void {
+    const g = ++generation;
+    building = `Building ${spec}${node === null ? '' : `, node ${node}`}.`;
+    let label = node ?? 0;
+    // The previous state's panels are taken down in a frame of their own, before the new state is drawn.
+    const steps: (() => void)[] = [
+      () => {
+        for (const p of ALL_PIECES) ready[p] = false;
+      },
+    ];
+    if (node === null) {
+      steps.push(() => {
+        label = defaultNode(resolveBoard(spec));
+        steps.push(...representationSteps(spec, label));
+      });
+    } else steps.push(...representationSteps(spec, node));
+    runSteps(g, steps, () => {
+      building = null;
+      load(defaultsFor(spec, label));
+      announce(pickSentence(tool));
+    });
+  }
+
   /** Builds the tool of a state; a long list of moves from a link is replayed where E-9 says (rule 2). */
   function load(s: ToolState): void {
     const g = ++generation;
-    const t = new T12Tool(configOf(s), { defer: true });
+    const t = new T12Tool(configOf(s), { defer: true, relations: 'staged' });
     const nodeChanged = t.spec !== tool.spec || t.node !== tool.node;
     tool = t;
     if (nodeChanged) matrixNode = t.node;
+    if (nodeChanged || ALL_PIECES.some((p) => !ready[p])) stage(g);
     startFields = [...t.start];
     startMessage = '';
     touch();
@@ -227,15 +336,45 @@
     untrack(() => readLink());
   });
 
+  /**
+   * A relation list from the worker: stored with its representation, and, when that is the one shown, its
+   * two sides drawn one per task (the reply was read in a task of its own, SPEC 7.6).
+   */
+  function acceptFromWorker(r: Representation, list: RelationCheck[]): void {
+    if (!acceptRelations(r, list) || r !== tool.rep) return;
+    ready['relation-left'] = false;
+    ready['relation-right'] = false;
+    touch();
+    runSteps(generation, [
+      () => {
+        ready['relation-left'] = true;
+      },
+      () => {
+        ready['relation-right'] = true;
+      },
+    ]);
+  }
+
   // Above RELATIONS_MAIN_MAX positions the relation list is computed in the worker (decisions/P5-A2.md).
+  // The call is posted in a task of its own (its arguments are serialized there) and the reply is taken in
+  // another, so that neither joins the drawing of the panels.
   $effect(() => {
     const r = rep;
-    if (!r.built || r.checks !== null || inFlight.has(r)) return;
+    if (!r.built || r.checks !== null || relationsOnMain(r.orbitSize) || inFlight.has(r)) return;
     inFlight.add(r);
     untrack(() => {
-      void engineCall('chevalleySerre', [r.board, r.E!, r.F!, r.H!], relationsHint(r.board)).then((list) => {
-        inFlight.delete(r);
-        if (acceptRelations(r, list)) touch();
+      afterFrame(() => {
+        engineCall('chevalleySerre', [r.board, r.E!, r.F!, r.H!], relationsHint(r.board)).then(
+          (list) =>
+            afterFrame(() => {
+              inFlight.delete(r);
+              acceptFromWorker(r, list);
+            }),
+          () => {
+            inFlight.delete(r);
+            relationsLost = r;
+          },
+        );
       });
     });
   });
@@ -244,11 +383,21 @@
   // Actions
   // ------------------------------------------------------------------------------------------
 
+  /** Counts the times the line was turned end over end, to replay its CSS flip (A-9: none under reduced motion). */
+  let flips = $state(0);
+  const lineKeys = (): string[] => tool.string().shown.map((p) => p.key);
+  function flipIfReversed(before: readonly string[]): void {
+    const after = lineKeys();
+    if (after.length > 1 && after.length === before.length && after.every((k, i) => k === before[before.length - 1 - i])) flips++;
+  }
+
   function act(label: number, announce: (t: string) => void): void {
     if (frozen) return;
+    const before = lineKeys();
     const r = tool.act(label);
     if (r === null) return;
     touch();
+    flipIfReversed(before);
     announce(moveSentence(tool, r));
   }
 
@@ -262,8 +411,10 @@
   function scrub(to: number, announce: (t: string) => void): void {
     if (frozen) return;
     const from = tool.cursor;
+    const before = lineKeys();
     if (!tool.scrub(to)) return;
     touch();
+    flipIfReversed(before);
     arrive(to, from, announce);
   }
 
@@ -290,15 +441,13 @@
   function pickBoard(name: string, announce: (t: string) => void): void {
     if (frozen) return;
     notice = null;
-    load(defaultsFor(name));
-    announce(pickSentence(tool));
+    build(name, null, announce);
   }
 
   function pickNode(label: number, announce: (t: string) => void): void {
     if (frozen) return;
     notice = null;
-    load(defaultsFor(spec, label));
-    announce(pickSentence(tool));
+    build(spec, label, announce);
   }
 
   /** The relation checker's three controls write one code (6.6 `q`); a Serre relation takes two different nodes. */
@@ -333,26 +482,30 @@
   }
 
   const ui = $derived(interaction(anyBoard.n, { hydrated: true, frozen, pending: cur().pending }));
-  const reducedMotion = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  /** The flip of the line end over end (A-9: an instant update under reduced motion). */
-  const flipLine = (node: Element, fromTo: { from: DOMRect; to: DOMRect }) => (reducedMotion() ? { duration: 0 } : flip(node, fromTo, { duration: 250 }));
   const uid = $derived(instanceId || 'rep');
 </script>
 
-{#snippet matrix(out: string, caption: string, sparse: ReadonlyMap<string, bigint>)}
-  <MatrixView {out} {caption} rowHeaders={headers} colHeaders={headers} {sparse} {format} sparseDisplay={sparseDots} indexHeaders listMax={DRAW_MAX} />
+{#snippet matrix(out: Piece, caption: string, sparse: ReadonlyMap<string, bigint>)}
+  {#if ready[out]}
+    <MatrixView {out} {caption} rowHeaders={headers} colHeaders={headers} {sparse} {format} sparseDisplay={sparseDots} indexHeaders listMax={DRAW_MAX} />
+  {:else}
+    <p class="line waiting">Drawing {caption}.</p>
+  {/if}
 {/snippet}
 
 {#snippet orbitPanel()}
   <section class="panel" data-panel="orbit" aria-labelledby="{uid}-orbit-title">
     <p class="panel-title" id="{uid}-orbit-title">The orbit of {omegaName(nodeLabel)} in layers</p>
-    {#if orbit !== null}
+    {#if !ready.orbit}
+      <p class="line waiting">Drawing the orbit.</p>
+    {:else if orbit !== null}
       <OrbitLayersView
         layers={orbit.layers}
         drawing={orbit.drawing}
         texts={orbit.layers.vertices.map((v) => positionText(inLabelOrder(anyBoard, v.values)))}
         title="The orbit of {omegaName(nodeLabel)} on {spec}: {rep.orbitSize} positions in {orbit.layers.layerSizes.length} layers, each edge labelled with the node fired."
         omegaText={omegaName(nodeLabel)}
+        edges={ready['orbit-edges']}
       />
     {/if}
   </section>
@@ -369,7 +522,7 @@
     <p class="panel-title" id="{uid}-matrices-title">The matrices E, F and H of node {matrixNode}</p>
     <label class="setting">
       <span>Node k</span>
-      <select data-control="matrix-node" disabled={!api.hydrated || !ui.controls} onchange={(e) => (matrixNode = Number((e.currentTarget as HTMLSelectElement).value))}>
+      <select data-control="matrix-node" value={matrixNode} disabled={!api.hydrated || !ui.controls} onchange={(e) => (matrixNode = Number((e.currentTarget as HTMLSelectElement).value))}>
         {@render nodeOptions(matrixNode, false)}
       </select>
     </label>
@@ -393,6 +546,7 @@
         <span>Relation</span>
         <select
           data-control="relation"
+          value={relationKind}
           disabled={!api.hydrated || !ui.controls}
           onchange={(e) => pickRelation((e.currentTarget as HTMLSelectElement).value as RelationCode, relationI, relationJ, 'kind', api.announce)}
         >
@@ -403,13 +557,13 @@
       </label>
       <label class="setting">
         <span>Node i</span>
-        <select data-control="relation-i" disabled={!api.hydrated || !ui.controls} onchange={(e) => pickRelation(relationKind, Number((e.currentTarget as HTMLSelectElement).value), relationJ, 'i', api.announce)}>
+        <select data-control="relation-i" value={relationI} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickRelation(relationKind, Number((e.currentTarget as HTMLSelectElement).value), relationJ, 'i', api.announce)}>
           {@render nodeOptions(relationI, false)}
         </select>
       </label>
       <label class="setting">
         <span>Node j</span>
-        <select data-control="relation-j" disabled={!api.hydrated || !ui.controls} onchange={(e) => pickRelation(relationKind, relationI, Number((e.currentTarget as HTMLSelectElement).value), 'j', api.announce)}>
+        <select data-control="relation-j" value={relationJ} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickRelation(relationKind, relationI, Number((e.currentTarget as HTMLSelectElement).value), 'j', api.announce)}>
           {@render nodeOptions(relationJ, false)}
         </select>
       </label>
@@ -418,6 +572,8 @@
       {#if parts !== null}<span class="formula" data-out="relation-formula"><RelationFormula {parts} /></span>{/if}
       {#if check !== null}
         <span class="verdict" data-out="relation-verdict" data-holds={check.holds ? 'true' : 'false'}>{check.holds ? 'equal' : 'not equal'}</span>
+      {:else if relationsLost === rep}
+        <span class="verdict" data-out="relation-verdict">not checked</span>
       {:else}
         <span class="verdict" data-out="relation-verdict">checked in the background</span>
       {/if}
@@ -428,6 +584,8 @@
         {@render matrix('relation-right', 'Right side', check.right)}
       </div>
       <p class="line" data-out="all-relations">{relationSummary(checks!)}</p>
+    {:else if relationsLost === rep}
+      <p class="line" data-out="all-relations">The relations of these {dim} by {dim} matrices could not be checked in the background; reloading the page tries again.</p>
     {:else}
       <p class="line" data-out="all-relations">The {6 * anyBoard.n * anyBoard.n - 2 * anyBoard.n} relations of these {dim} by {dim} matrices are being checked in the background.</p>
     {/if}
@@ -474,25 +632,29 @@
         onAct={(k) => act(labelOf(anyBoard, k), api.announce)}
       />
     </div>
-    <History
-      total={cur().moves.length}
-      cursor={cur().cursor}
-      {positionNames}
-      hydrated={api.hydrated}
-      {frozen}
-      onUndo={() => undo(api.announce)}
-      onRedo={() => redo(api.announce)}
-      onReset={() => reset(api.announce)}
-      onScrub={(to) => scrub(to, api.announce)}
-    />
+    {#if ready['string-history']}
+      <History
+        total={cur().moves.length}
+        cursor={cur().cursor}
+        {positionNames}
+        hydrated={api.hydrated}
+        {frozen}
+        onUndo={() => undo(api.announce)}
+        onRedo={() => redo(api.announce)}
+        onReset={() => reset(api.announce)}
+        onScrub={(to) => scrub(to, api.announce)}
+      />
+    {/if}
     <p class="line">
       The line through {positionShown(view.through)} has <span class="numeral" data-out="string-length">{view.length}</span>
       {view.length === 1n ? 'position' : 'positions'}:
     </p>
-    {#if view.elided === 0n}
-      <ol class="string-line">
+    {#if !ready['string-line']}
+      <p class="line waiting">Drawing the line.</p>
+    {:else if view.elided === 0n}
+      <ol class="string-line" class:flip-a={flips % 2 === 1} class:flip-b={flips > 0 && flips % 2 === 0} data-flips={flips}>
         {#each view.shown as p (p.key)}
-          <li animate:flipLine data-out="string-position" data-value={p.key} data-in-orbit={p.inOrbit ? 'true' : 'false'} data-step={String(p.step)} title={p.values.some(isLong) ? `(${p.values.join(', ')})` : undefined}>
+          <li data-out="string-position" data-value={p.key} data-in-orbit={p.inOrbit ? 'true' : 'false'} data-step={String(p.step)} title={p.values.some(isLong) ? `(${p.values.join(', ')})` : undefined}>
             <span class="numeral">{positionShown(p.values)}</span>
             <span class="orbit-mark">{p.inOrbit ? 'in the orbit' : 'outside the orbit'}</span>
           </li>
@@ -512,6 +674,11 @@
       </ol>
     {/if}
     <p class="line" data-out="string-note">{stringNote(view)}</p>
+    {#if ready['string-entry']}{@render typedStart(api)}{/if}
+  </section>
+{/snippet}
+
+{#snippet typedStart(api: FrameApi)}
     <form
       class="typed"
       onsubmit={(e) => {
@@ -531,7 +698,6 @@
       </fieldset>
       {#if startMessage !== ''}<p class="line" data-out="start-message">{startMessage}</p>{/if}
     </form>
-  </section>
 {/snippet}
 
 {#snippet figure(api: FrameApi)}
@@ -540,10 +706,13 @@
     {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
+    <!-- Each select carries its value (a number for a node, as its options) beside the selected option of the
+         server markup: an option's attribute no longer moves a select the reader has used, so a state loaded
+         afterwards (a link, the back button, a Serre relation moving j) is shown through the value. -->
     <div class="settings">
       <label class="setting">
         <span>Board</span>
-        <select data-control="picker" disabled={!api.hydrated || !ui.controls} onchange={(e) => pickBoard((e.currentTarget as HTMLSelectElement).value, api.announce)}>
+        <select data-control="picker" value={spec} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickBoard((e.currentTarget as HTMLSelectElement).value, api.announce)}>
           {#each T12_GROUPS as g (g.letter)}
             <optgroup label="Type {g.letter}" data-letter={g.letter}>
               {#each g.names as name (name)}
@@ -555,11 +724,12 @@
       </label>
       <label class="setting">
         <span>Node i</span>
-        <select data-control="node" disabled={!api.hydrated || !ui.controls} onchange={(e) => pickNode(Number((e.currentTarget as HTMLSelectElement).value), api.announce)}>
+        <select data-control="node" value={nodeLabel} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickNode(Number((e.currentTarget as HTMLSelectElement).value), api.announce)}>
           {@render nodeOptions(nodeLabel, true)}
         </select>
       </label>
     </div>
+    {#if building !== null}<p class="line building">{building}</p>{/if}
     <p class="facts">
       <span>Dimension: <span class="numeral" data-out="dimension">{dim}</span></span>
       <span>Minuscule: <span data-out="minuscule" data-minuscule={rep.minuscule ? 'true' : 'false'}>{rep.minuscule ? 'yes' : 'no'}</span></span>
@@ -568,7 +738,11 @@
     {#if noMinusculeSentence(rep) !== null}<p class="line" data-out="no-minuscule">{noMinusculeSentence(rep)}</p>{/if}
     {#if limitSentence(rep) !== null}<p class="line limit" data-out="limit">{limitSentence(rep)}</p>{/if}
     {#each panels as panel (panel)}
-      {#if panel === 'orbit' && rep.built}
+      {#if !ready[`shell-${panel}`]}
+        {#if panel === 'string' || rep.built}<section class="panel waiting" data-panel={panel} data-waiting="true"><p class="line">Drawing.</p></section>{/if}
+      {:else if panel === 'string'}
+        {@render stringPanel(api)}
+      {:else if panel === 'orbit' && rep.built}
         {@render orbitPanel()}
       {:else if panel === 'matrices' && rep.built}
         {@render matricesPanel(api)}
@@ -576,15 +750,17 @@
         {@render relationsPanel(api)}
       {:else if panel === 'signed' && rep.built}
         {@render signedPanel()}
-      {:else if panel === 'string'}
-        {@render stringPanel(api)}
       {/if}
     {/each}
   </div>
 {/snippet}
 
 {#snippet table(api: FrameApi)}
-  {#if orbit !== null}
+  {#if !ready.table}
+    <p class="line">Drawing the tables.</p>
+  {:else if rep.built && !ready.orbit}
+    <p class="line">Drawing the table of the orbit.</p>
+  {:else if orbit !== null}
     <table class="values" data-table="orbit">
       <caption>The orbit of {omegaName(nodeLabel)} on {spec}: {rep.orbitSize} positions</caption>
       <thead>
@@ -600,6 +776,10 @@
   {:else}
     <p class="line">{limitSentence(rep)}</p>
   {/if}
+  {#if ready.table}{@render boardTable(api)}{/if}
+{/snippet}
+
+{#snippet boardTable(api: FrameApi)}
   <table class="values" data-table="board">
     <caption>The string viewer's board {spec}, after {cur().cursor} {cur().cursor === 1 ? 'move' : 'moves'}</caption>
     <thead>
@@ -748,6 +928,30 @@
     flex-wrap: wrap;
     gap: 4px 12px;
     overflow-wrap: anywhere;
+  }
+  /* Firing node i turns the line end over end: a short half turn about its horizontal axis (two equal
+     animations, so that each flip starts one afresh), and none under reduced motion (A-9). */
+  .string-line.flip-a {
+    animation: flip-a 300ms ease-out;
+  }
+  .string-line.flip-b {
+    animation: flip-b 300ms ease-out;
+  }
+  @keyframes flip-a {
+    from {
+      transform: perspective(600px) rotateX(180deg);
+    }
+  }
+  @keyframes flip-b {
+    from {
+      transform: perspective(600px) rotateX(180deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .string-line.flip-a,
+    .string-line.flip-b {
+      animation: none;
+    }
   }
   .string-line .gap {
     list-style: none;

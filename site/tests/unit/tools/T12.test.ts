@@ -20,7 +20,6 @@ import {
   boardFromName,
   chevalleySerre,
   fire,
-  minusculeMatrices,
   minusculeNodes,
   orbitSize,
   play,
@@ -72,9 +71,11 @@ import {
   relationSpoken,
   relationSummary,
   relationText,
+  relationsNow,
   relationsOnMain,
   repCaption,
   representationOf,
+  representationSteps,
   routedCalls,
   someNumberPhrase,
   stringView,
@@ -146,8 +147,9 @@ describe('T12 acceptance over minuscule_representations', () => {
       const board = named(rec.type);
       const rep = buildRepresentation(board, rec.node);
       const n = board.n;
-      // Every listed representation has its list computed on the main thread (RELATIONS_MAIN_MAX).
-      expect(relationsOnMain(rep.orbitSize), rec.type).toBe(true);
+      // Up to RELATIONS_MAIN_MAX positions the browser computes the list on the main thread; above (E7 node 7,
+      // the half-spin nodes of D7 and D8, ...) the worker makes the same engine call, run here in-process.
+      expect(relationsOnMain(rep.orbitSize), rec.type).toBe(rep.orbitSize <= CAPS.matrixGridDim);
       expect(rep.checks!.length).toBe(6 * n * n - 2 * n);
       for (const c of rep.checks!) {
         expect(c.holds, `${rec.type} node ${rec.node}: ${relationCode(board, c)}`).toBe(true);
@@ -513,9 +515,16 @@ describe('T12 relations', () => {
   });
 
   it('the relation list of an orbit above RELATIONS_MAIN_MAX positions is left to the worker, and accepted once', () => {
-    expect(RELATIONS_MAIN_MAX).toBe(Math.max(...RECORDS.map((r) => r.dimension)));
-    expect(relationsOnMain(56)).toBe(true);
-    expect(relationsOnMain(57)).toBe(false);
+    // The bound of decisions/P5-A2.md: the largest grid (5.6), E6 node 1; E7 node 7 (56) goes to the worker.
+    expect(RELATIONS_MAIN_MAX).toBe(CAPS.matrixGridDim);
+    expect(RELATIONS_MAIN_MAX).toBe(27);
+    expect(relationsOnMain(27)).toBe(true);
+    expect(relationsOnMain(28)).toBe(false);
+    expect(relationsOnMain(matchRecord(RECORDS, { type: 'E6', node: 1 }).dimension)).toBe(true);
+    const e7 = buildRepresentation(named('E7'), 7, { relations: 'auto' });
+    expect(e7.built).toBe(true);
+    expect(e7.checks).toBeNull();
+    expect(defaultRelation(e7)).toBe('ef:7,7');
     const B8 = named('B8');
     const rep = buildRepresentation(B8, 8, { relations: 'auto' });
     expect(rep.built).toBe(true);
@@ -530,6 +539,40 @@ describe('T12 relations', () => {
     const d6 = buildRepresentation(named('D6'), 3, { relations: 'auto' });
     expect(d6.checks).toBeNull();
     expect(defaultRelation(d6)).toBe('ef:3,3');
+  });
+
+  it('a pick builds the representation one engine call per step, and in the browser no list above the bound is computed on the main thread after the first state', () => {
+    const g = globalThis as { window?: unknown };
+    const had = 'window' in g;
+    const before = g.window;
+    g.window = {};
+    try {
+      // D7 node 7 (64 positions, minuscule): four steps; the fourth computes nothing for a minuscule node.
+      const steps = representationSteps('D7', 7);
+      expect(steps).toHaveLength(4);
+      for (const s of steps) s();
+      const d7 = representationOf('D7', 7, 'staged');
+      expect(d7.basis).toHaveLength(64);
+      expect(d7.signed).not.toBeNull();
+      expect(d7.checks).toBeNull();
+      expect(() => relationsNow(d7)).toThrow(RangeError);
+      // The configured state computes it whatever the size (no default state waits for the worker).
+      relationsNow(d7, true);
+      expect(d7.checks!.every((c) => c.holds)).toBe(true);
+      // A node that is not minuscule with at most RELATIONS_MAIN_MAX positions gets its list in step 4.
+      const d4 = representationSteps('D4', 2);
+      for (const s of d4) s();
+      expect(representationOf('D4', 2, 'staged').checks!.some((c) => !c.holds)).toBe(true);
+      // Steps interrupted after the first (another pick came first) are completed by representationOf.
+      representationSteps('A5', 3)[0]!();
+      const a5 = representationOf('A5', 3, 'staged');
+      expect(a5.basis).toHaveLength(golden.types.A5!.fundamental_orbit_sizes[2]!);
+      expect(a5.signed).not.toBeNull();
+      expect(a5.checks).toBeNull();
+    } finally {
+      if (had) g.window = before;
+      else delete g.window;
+    }
   });
 });
 
@@ -739,10 +782,12 @@ describe('T12 state and links', () => {
       if (size <= CAPS.repOrbit) expect(calls.map((c) => c.fn)).toContain('minusculeMatrices');
       else expect(calls.map((c) => c.fn)).not.toContain('minusculeMatrices');
     }
-    // E7 node 7: every call on the main thread, the enumerations with 56 items known in advance.
+    // E7 node 7: the enumerations on the main thread with 56 items known in advance, the relation list in
+    // the worker (above RELATIONS_MAIN_MAX); E6 node 1 (27): every call on the main thread.
     const e7 = routedCalls('E7', 7);
-    expect(e7.every((c) => c.where === 'main')).toBe(true);
+    expect(e7.filter((c) => c.where === 'worker').map((c) => c.fn)).toEqual(['chevalleySerre']);
     expect(e7.find((c) => c.fn === 'minusculeMatrices')!.hint).toMatchObject({ expectedItems: 56 });
+    expect(routedCalls('E6', 1).every((c) => c.where === 'main')).toBe(true);
     // The largest orbit T12 builds: the matrices on the main thread (E-9 rule 1), the relation list in the worker.
     const b8 = routedCalls('B8', 5);
     expect(b8.find((c) => c.fn === 'minusculeMatrices')!.where).toBe('main');
@@ -802,16 +847,42 @@ type MatrixModule = {
   formatEntry: (v: bigint | number | string) => string;
   valueText: (v: bigint | number | string) => string;
   listCaption: (caption: string, count: number, rows: number, cols: number) => string;
+  matrixTable: (t: TableInput) => string;
+  tableColumns: (t: TableInput) => { widths: number[]; rows: number };
+  matrixBoxSize: (t: TableInput) => { width: number; height: number };
+};
+interface TableInput {
+  caption: string;
+  captionId: string;
+  rowHeaders: readonly string[];
+  colHeaders: readonly string[];
+  entries: readonly { row: number; col: number; value: bigint | number }[];
+  shape: 'grid' | 'list';
+  sparseDisplay: boolean;
+  indexHeaders: boolean;
+  listMax: number;
+}
+type OrbitModule = {
+  default: unknown;
+  orbitSvg: (
+    layers: ReturnType<typeof orbitLayers>,
+    drawing: ReturnType<typeof orbitDrawing>,
+    texts: readonly string[],
+    title: string,
+    titleId: string,
+  ) => { width: number; height: number; edges: string; vertices: string };
 };
 type ComponentModule = { default: unknown };
 let loader: SsrLoader;
 let T12C: ComponentModule;
 let MV: MatrixModule;
+let OL: OrbitModule;
 
 beforeAll(async () => {
   loader = await ssrLoader();
   T12C = await loader.load<ComponentModule>('/src/components/tools/T12RepresentationBuilder.svelte');
   MV = await loader.load<MatrixModule>('/src/components/math/MatrixView.svelte');
+  OL = await loader.load<OrbitModule>('/src/components/tools/t12/OrbitLayers.svelte');
 }, 120000);
 
 afterAll(async () => {
@@ -865,6 +936,71 @@ describe('MatrixView', () => {
     const capped = loader.render(MV.default, { caption: 'M', rowHeaders: headers, colHeaders: headers, dense: headers.map((_, r) => headers.map((__, c) => (r === c ? 1 : 0))), listMax: 10 });
     expect((capped.match(/data-value="1"/g) ?? []).length).toBe(10);
     expect(capped).toContain('The first 10 of 30 nonzero entries are listed');
+  });
+
+  it('matrixTable fixes the column widths in a colgroup, shows zeros as dots when sparse, and matrixBoxSize estimates the box from the same columns', () => {
+    const headers = ['(1, 0)', '(0, −1)', '(−1, 1)'];
+    const grid: TableInput = {
+      caption: 'E1',
+      captionId: 'c1',
+      rowHeaders: headers,
+      colHeaders: headers,
+      entries: MV.entriesInOrder(sparse({ '0,2': 1 })),
+      shape: 'grid',
+      sparseDisplay: true,
+      indexHeaders: true,
+      listMax: Infinity,
+    };
+    const html = MV.matrixTable(grid);
+    expect(html.startsWith('<table class="matrix grid"><caption id="c1">E1, 3 by 3</caption><colgroup>')).toBe(true);
+    expect((html.match(/<col style="width: calc\(\d+ch \+ 14px\)">/g) ?? []).length).toBe(4);
+    expect(MV.tableColumns(grid)).toEqual({ widths: [10, 2, 2, 2], rows: 3 });
+    // Index headers: the column shows its index, its position in a hidden span and the tooltip.
+    expect(html).toContain('<th scope="col" class="col" title="(0, −1)">2<span class="visually-hidden">: (0, −1)</span></th>');
+    expect(html).toContain('<th scope="row">1: (1, 0)</th>');
+    expect(html).toMatch(/data-row="1" data-col="3" data-value="1">1</);
+    expect((html.match(/<td class="zero" data-row="\d" data-col="\d" data-value="0" aria-label="0">·<\/td>/g) ?? []).length).toBe(8);
+    // A list of 56 entries capped at 40: 40 rows, three columns.
+    const big = Array.from({ length: 56 }, (_, k) => `(${k})`);
+    const list: TableInput = { ...grid, rowHeaders: big, colHeaders: big, entries: big.map((_, k) => ({ row: k, col: (k + 1) % 56, value: -1n })), shape: 'list', listMax: 40 };
+    const listed = MV.matrixTable(list);
+    expect((listed.match(/<tr><th scope="row">/g) ?? []).length).toBe(40);
+    expect(listed).toContain('E1: 56 nonzero entries of a 56 by 56 matrix');
+    expect(MV.tableColumns(list).widths).toHaveLength(3);
+    expect(MV.tableColumns(list).rows).toBe(40);
+    const small = MV.matrixBoxSize(grid);
+    const tall = MV.matrixBoxSize(list);
+    expect(tall.height).toBeGreaterThan(small.height);
+    expect(tall.height - MV.matrixBoxSize({ ...list, listMax: 39 }).height).toBe(29);
+    expect(small.width).toBeGreaterThan(0);
+    expect(MV.tableColumns({ ...list, entries: [] })).toEqual({ widths: [6, 6, 8], rows: 1 });
+  });
+});
+
+describe('OrbitLayers', () => {
+  it('orbitSvg draws one vertex per position with its basis index and one labelled edge per pair, in two layers of one size', () => {
+    const rep = buildRepresentation(named('A2'), 1);
+    const o = orbitLayers(rep);
+    const texts = o.vertices.map((v) => `(${v.values.map((x) => (x < 0 ? `−${-x}` : String(x))).join(', ')})`);
+    const svg = OL.orbitSvg(o, orbitDrawing(o), texts, 'The orbit of ω1 on A2', 't1');
+    expect(svg.edges).toMatch(/^<svg class="drawing edges-layer" aria-hidden="true" width="\d+" height="\d+"/);
+    expect(svg.vertices).toMatch(/^<svg class="drawing vertices-layer" role="img" aria-labelledby="t1" [^>]*><title id="t1">The orbit of ω1 on A2<\/title>/);
+    expect((svg.vertices.match(/data-vertex="/g) ?? []).length).toBe(3);
+    expect((svg.edges.match(/data-edge-label="/g) ?? []).length).toBe(2);
+    // Layer 0 holds omega_1, which is basis vector 1; the text carries the index after #.
+    expect(svg.vertices).toContain('data-vertex="1" data-layer="0" data-value="1,0"');
+    expect(svg.vertices).toContain('>(1, 0) #1</text>');
+    for (const e of o.edges) {
+      expect(svg.edges).toContain(`data-edge-node="${e.node}" data-edge-from="${o.vertices[e.from]!.basisIndex + 1}" data-edge-to="${o.vertices[e.to]!.basisIndex + 1}" data-step="true"`);
+    }
+    expect(svg.edges).not.toContain('class="dashed"');
+    // D4 node 2: the edges of a number 2 are dashed.
+    const d4 = orbitLayers(buildRepresentation(named('D4'), 2));
+    const d4svg = OL.orbitSvg(d4, orbitDrawing(d4), d4.vertices.map((v) => v.values.join(',')), 'D4', 't2');
+    expect((d4svg.edges.match(/class="dashed"/g) ?? []).length).toBe(d4.edges.filter((e) => !e.step).length);
+    expect((d4svg.edges.match(/data-step="false"/g) ?? []).length).toBe(d4.edges.filter((e) => !e.step).length);
+    // Text is escaped.
+    expect(OL.orbitSvg(o, orbitDrawing(o), texts, 'a <b> & "c"', 't3').vertices).toContain('<title id="t3">a &lt;b&gt; &amp; &quot;c&quot;</title>');
   });
 });
 
