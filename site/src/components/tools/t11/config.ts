@@ -7,7 +7,7 @@
  * other than the identity"), grouped by letter in the picker. The unit test checks this list against
  * `symmetries` on all 32 golden types.
  */
-export const T11_BOARDS = ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'D4', 'D5', 'D6', 'D7', 'D8', 'E6'] as const;
+export { T11_BOARDS } from './boards';
 
 /** Which game is played on both boards (T11 offers no linked view; plan). */
 export type T11View = 'populations' | 'numbers';
