@@ -10,6 +10,11 @@
 // built a new board object on every call, and the verdict caches are keyed by the object), and the
 // engine's classify and smallestNonfiniteSubboard did work whose result was never used (the affine
 // candidates after the first match, a sub-board for every disconnected subset of nodes).
+// After that fix T4 still spent 58 to 77 ms here (RT-FIX residual of P3-RT-07-02): its root counter's
+// orbitGraph worked in bigint with decimal keys, smallestNonfiniteSubboard classified each connected
+// subset in rationals, and T16 ran smallestNonfiniteSubboard for a sub-board it never shows. The sum of
+// the engine's self time over the whole load is kept as the measure: at most 50 ms in all means that no
+// engine call, and no task's share of engine work, reaches a long task (decisions/RT-FIX-P3-residual-perf.md).
 import { expect, test, type Page } from '@playwright/test';
 
 const RING12 = `c:${Array.from({ length: 12 }, (_, i) => Array.from({ length: 12 }, (_, j) => (i === j ? 2 : j === (i + 1) % 12 || i === (j + 1) % 12 ? -1 : 0)).join(',')).join(';')}`;

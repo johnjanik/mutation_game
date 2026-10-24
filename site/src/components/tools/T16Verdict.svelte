@@ -1,12 +1,12 @@
 <script module lang="ts">
   // T16's verdict line (P2-A5; SPEC 4 T16 "No verdicts beyond those of T4", 4 T4 Verdict, 2.8, 2.12,
-  // 5.6 last sentence, D19, E-7, E-11). The verdict is T4's model (t04/verdict.ts buildVerdict, one
+  // 5.6 last sentence, D19, E-7, E-11). The verdict is T4's model (t04/verdict.ts verdictCore, one
   // classify call per board object, cached), shown as T4's "Verdict" bullet gives it and nothing more:
   // for each component, finite with its name and the matching of the reader's nodes to the Bourbaki
   // labels; affine with its name, marks and comarks; indefinite; or "has a one-way road: the theory
   // does not apply". T4's "Also shown" items (balance and weights, spectral radius, a smallest
-  // non-finite sub-board) are not shown here (plan). Nodes are labels (buildVerdict converts with
-  // toLabels).
+  // non-finite sub-board) are not shown here (plan), and verdictCore does not compute the last two.
+  // Nodes are labels (verdictCore converts with toLabels).
   //
   // D19: a component that classify names B2 reads "B2 = C2" (MathML, A-12) when the board was
   // recognised from its shape (a custom matrix, drawn or imported); when the reader chose the board by

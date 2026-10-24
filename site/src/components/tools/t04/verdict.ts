@@ -4,6 +4,7 @@
 // classify record and nowhere else: no cap and no search ever writes into a verdict (4.0 Stated limits).
 // One verdict is kept per board object (a WeakMap, like the engine's cache of E-11), so the panel, the
 // counter's hint and the export share one call (5.6: "calling classify once when the board is loaded").
+// verdictCore(board) is the verdict bullet alone (classify and symmetrizer), for T16, which shows no more.
 import { classify, ratToString, smallestNonfiniteSubboard, spectralRadius, symmetrizer, toLabels } from '@two-games/engine';
 import type { AnyBoard, ClassifyRecord, NonfiniteSubboard, Rational } from '@two-games/engine';
 
@@ -69,7 +70,8 @@ export interface ComponentView {
   matching: { reader: number; bourbaki: number }[] | null;
 }
 
-export interface Verdict {
+/** The verdict bullet of SPEC 4 T4 (classify and the weights), which T16 also shows. */
+export interface VerdictCore {
   n: number;
   kind: 'gcm' | 'one-way';
   components: ComponentView[];
@@ -77,12 +79,16 @@ export interface Verdict {
   balanced: boolean;
   /** The weights d_i by position (least value 1 on each component), or null. */
   weights: string[] | null;
+  /** Every component is finite (the finiteKnown of E-9's hint). */
+  finiteKnown: boolean;
+}
+
+/** The verdict and T4's "Also shown" items. */
+export interface Verdict extends VerdictCore {
   /** spectralRadius to four decimals; null (not shown) on a board with a one-way road. */
   spectralRadius: string | null;
   /** A smallest non-finite sub-board in labels; null on finite boards and boards with a one-way road. */
   nonfinite: { nodes: number[]; class: 'affine' | 'indefinite' } | null;
-  /** Every component is finite (the finiteKnown of E-9's hint). */
-  finiteKnown: boolean;
 }
 
 function labelled(board: AnyBoard, r: ClassifyRecord): LabelledRecord {
@@ -93,12 +99,10 @@ function labelled(board: AnyBoard, r: ClassifyRecord): LabelledRecord {
   return out as unknown as LabelledRecord;
 }
 
-function computeVerdict(board: AnyBoard, engine: VerdictEngine): Verdict {
+function computeCore(board: AnyBoard, engine: VerdictEngine): VerdictCore {
   const records = engine.classify(board);
   const d = engine.symmetrizer(board);
   const weights = d === null ? null : d.map(ratToString);
-  const rho = engine.spectralRadius(board);
-  const sub = engine.smallestNonfiniteSubboard(board);
   const components: ComponentView[] = records.map((r) => {
     const record = labelled(board, r);
     const classText = r.kind === 'one-way' || r.class === null ? ONE_WAY_SENTENCE : r.class;
@@ -120,13 +124,45 @@ function computeVerdict(board: AnyBoard, engine: VerdictEngine): Verdict {
     components,
     balanced: d !== null,
     weights,
-    spectralRadius: rho === null ? null : rho.toFixed(4),
-    nonfinite: sub === null ? null : { nodes: toLabels(board, sub.nodes), class: sub.class },
     finiteKnown: records.every((r) => r.class === 'finite'),
   };
 }
 
+function computeVerdict(board: AnyBoard, engine: VerdictEngine, core: VerdictCore): Verdict {
+  const rho = engine.spectralRadius(board);
+  const sub = engine.smallestNonfiniteSubboard(board);
+  return {
+    n: core.n,
+    kind: core.kind,
+    components: core.components,
+    balanced: core.balanced,
+    weights: core.weights,
+    spectralRadius: rho === null ? null : rho.toFixed(4),
+    nonfinite: sub === null ? null : { nodes: toLabels(board, sub.nodes), class: sub.class },
+    finiteKnown: core.finiteKnown,
+  };
+}
+
+const coreCache = new WeakMap<object, VerdictCore>();
 const cache = new WeakMap<object, Verdict>();
+
+/**
+ * The verdict bullet of a board without T4's "Also shown" items, computed once per board object (and per
+ * engine, for tests): classify and symmetrizer only. T16 shows this and nothing more ("No verdicts
+ * beyond those of T4"; its plan leaves out balance, weights, spectral radius and the smallest non-finite
+ * sub-board), so it never runs spectralRadius or smallestNonfiniteSubboard, the largest engine call of a
+ * load on 12 nodes (SPEC 7.6 Main-thread work; RT-FIX residual P3-RT-07-02). buildVerdict shares it.
+ */
+export function verdictCore(board: AnyBoard, engine: VerdictEngine = ENGINE): VerdictCore {
+  if (engine === ENGINE) {
+    const hit = coreCache.get(board);
+    if (hit !== undefined) return hit;
+    const v = computeCore(board, engine);
+    coreCache.set(board, v);
+    return v;
+  }
+  return computeCore(board, engine);
+}
 
 /**
  * The verdict of a board, computed once per board object (and per engine, for tests). Keep one board
@@ -136,11 +172,11 @@ export function buildVerdict(board: AnyBoard, engine: VerdictEngine = ENGINE): V
   if (engine === ENGINE) {
     const hit = cache.get(board);
     if (hit !== undefined) return hit;
-    const v = computeVerdict(board, engine);
+    const v = computeVerdict(board, engine, verdictCore(board));
     cache.set(board, v);
     return v;
   }
-  return computeVerdict(board, engine);
+  return computeVerdict(board, engine, computeCore(board, engine));
 }
 
 /** One short phrase per component for the announcement after an edit (plan): "finite A3", "indefinite". */
