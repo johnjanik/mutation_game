@@ -4,7 +4,7 @@
   // of T4. Import and export of boards as JSON." The island owns the state object of 6.6 for tool
   // 'sandbox' and composes, inside one ToolFrame: T1's game (t01/model.ts T1Game, drawn with Board,
   // Bridge and History exactly as T01GameBoard draws them, in free play only), the shared BoardEditor
-  // (P2-A3's contract, editor/types.ts), the verdict of T4 (t04/verdict.ts buildVerdict, T16Verdict),
+  // (P2-A3's contract, editor/types.ts), the verdict of T4 (t04/verdict.ts verdictCore, T16Verdict),
   // and the JSON import and export of boards (T16BoardIO). T01GameBoard itself is not nested: it
   // renders its own ToolFrame with data-tool="board" and reads links as tool 'board', and two frames
   // in one tool would double the root, the live region and the noscript line (T9 and T15 made the
@@ -26,7 +26,7 @@
   import { cloneState, defaultStart, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
   import { exportJSON } from '../../lib/export';
   import { T1Game, boardForStart, effectiveView, startVector, type Coords, type View } from './t01/model';
-  import { buildVerdict, type ComponentView } from './t04/verdict';
+  import { verdictCore, type ComponentView } from './t04/verdict';
 
   /** The default board (plan): two cities joined by three roads each way, the board of bigint_test. */
   export const DEFAULT_BOARD: { cartan: number[][]; xy: [number, number][] } = {
@@ -169,7 +169,7 @@
   /** The text "Download data" saves for a state (used by the tests; the island calls the same parts). */
   export function exportOf(state: ToolState): string {
     const game = gameOf(state);
-    return exportJSON(stateOf(game), derivedOf(game, buildVerdict(resolveBoard(state.board)).components));
+    return exportJSON(stateOf(game), derivedOf(game, verdictCore(resolveBoard(state.board)).components));
   }
 
   /** True when two specs have the same Cartan matrix (a move of a node changes only `xy`). */
@@ -259,7 +259,8 @@
   }
 
   const verdictBoard: AnyBoard = $derived(resolveBoard(spec));
-  const verdict = $derived(buildVerdict(verdictBoard));
+  // The verdict bullet only: T4's "Also shown" items are not shown here, so they are not computed (7.6).
+  const verdict = $derived(verdictCore(verdictBoard));
   const view$ = $derived(cur().view);
   const shown: Shown = $derived(cur().shown);
   const canAct = $derived(cur().canAct());
