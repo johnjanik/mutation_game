@@ -14,7 +14,7 @@ import T06Kaleidoscope from '@components/tools/T06Kaleidoscope.svelte';
 import { G, Tex, Cite } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased } from '@lib/pages/released';
-import { resolveGoldenPath } from '@lib/golden';
+import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
 import { boardFromName, formValue, isRootPopulation, mutate, ratToString } from '@engine';
 import { BUILDER_TEXT } from '@components/tools/t03/weights';
 
@@ -24,6 +24,7 @@ export const m3 = linkIfReleased({ kind: 'module', number: 3 });
 export const ModuleThree = () => (m3 ? <a href={m3} data-module-link="3">module three</a> : <>module three</>);
 export const mirror = linkIfReleased({ kind: 'tool', id: 'mirror' });
 export const Kaleidoscope = () => (mirror ? <a href={mirror} data-tool-link="mirror">the Kaleidoscope</a> : <>the Kaleidoscope</>);
+export const fmt = (k, as) => formatGoldenValue(resolveGoldenPath(k), as);
 export const A3 = boardFromName('A3');
 export const pop = (b, xs) => xs.map((x) => b.arith.fromInt(x));
 export const formNumber = (b, p) => Number(ratToString(formValue(b, p)));
@@ -89,7 +90,7 @@ A mutation is a reflection for this form. Pair a population $p$ with one Martian
 
 <Tex display src="S_i\,p \;=\; p-(p,e_i)\,e_i ,"/>
 
-which is the rule of module one. In linear algebra a reflection fixes a mirror and reverses the direction across it. Here the mirror holds the populations with <Tex src="(p,e_i)=0"/>, which the mutation leaves alone, and $e_i$ itself is sent to $-e_i$. On any board the formula reads <Tex src="S_ip=p-\frac{ 2(p,e_i) }{ (e_i,e_i) }\,e_i"/>; with single roads $(e_i,e_i)$ is <Tex src="2"/> and the fraction is $(p,e_i)$.
+which is the rule of module one. In linear algebra a reflection fixes a mirror and reverses the direction across it. Here the mirror holds the populations with <Tex src="(p,e_i)=0"/>, which the mutation leaves alone, and $e_i$ itself is sent to $-e_i$. A board is <Term a="balanced-board">**balanced**</Term> when its cities can be given positive weights so that such a form exists, one that every mutation preserves; every board with single roads is balanced. On a balanced board the formula reads <Tex src="S_ip=p-\frac{ 2(p,e_i) }{ (e_i,e_i) }\,e_i"/>; with single roads $(e_i,e_i)$ is <Tex src="2"/> and the fraction is $(p,e_i)$.
 
 <figure slot="figure" class="m2-static" data-figure="m2-matrix-a3" style={{ margin: '0 16px' }}>
 <svg viewBox="0 0 240 64" width="240" height="64" role="img" aria-label="The board A3: city 2 in the middle, joined to city 1 on its left and to city 3 on its right." style={{ maxWidth: '100%', height: 'auto' }}>
@@ -115,8 +116,9 @@ A pairing gives lengths and angles, as the dot product does. Read $(p,p)$ as the
 The picture draws <Tex src="A_2"/> in the plane so that the form is the ordinary dot product. The two cities are arrows of length <Tex src="\sqrt2"/> at <Tex src="120^\circ"/>, and all <G k="types.A2.n_roots"/> root populations are arrows of that same length, since every root population has form value <Tex src="2"/>. Those with no anti-Martians are <G k="types.A2.positive_roots[1]"/>, one Martian in city <Tex src="1"/>; <G k="types.A2.positive_roots[0]"/>, one Martian in city <Tex src="2"/>; and <G k="types.A2.positive_roots[2]"/>, one Martian in each city. The others are their negatives, with anti-Martians only. The picture below is <Kaleidoscope />, and you can play on it.
 
 {/* P3-X1 (at the request of P3-A4; SPEC 3 M2 row 4): T6 on A2 with its roots overlay replaces the static
-    figure of phase 2 (data-figure m2-roots-a2); the legend of that figure became the sentence above. */}
-<T06Kaleidoscope slot="figure" client:visible id="b4" preset="default" overlays={["roots"]} caption="Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its six roots, which you can play on." />
+    figure of phase 2 (data-figure m2-roots-a2); the legend of that figure became the sentence above.
+    The picker offers A2 only: the caption states the angle and length of single roads (P3-RT-09-04). */}
+<T06Kaleidoscope slot="figure" client:visible id="b4" preset="default" overlays={["roots"]} boardChoices={['A2']} caption={`Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its ${fmt('types.A2.n_roots')} roots, which you can play on.`} />
 </Beat>
 
 <Beat n={5}>
@@ -144,7 +146,7 @@ The statement is for boards of finite type only, and <ModuleThree /> says which 
 
 <LieTheory>
 
-The form value is the Tits form of the graph, equivalently the Killing form restricted to the root lattice, up to scale; Wildberger works with it under the name $Q$ <Cite k="W20"/> (section seven). In general the pairing is the invariant bilinear form $(\ ,\ )$ with <Tex src="(\alpha_i,\alpha_i)=2d_i"/>, and on a simply laced board every $d_i$ is <Tex src="1"/>. The matrix <Tex src="2I-A"/> is the Cartan matrix of a simply laced type, symmetric, in the convention $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$ of Kac and SageMath; Bourbaki prints its transpose, which here is the same matrix. A <Term a="mutate">mutation</Term> is the simple reflection <Tex src="s_i(\beta)=\beta-\frac{ 2(\beta,\alpha_i) }{ (\alpha_i,\alpha_i) }\alpha_i"/>, the <Term a="root-population">root populations</Term> are the roots, and on a simply laced finite type the roots are exactly the vectors of the root lattice of squared length <Tex src="2"/>.
+The form value is the Tits form of the graph, equivalently the Killing form restricted to the root lattice, up to scale; Wildberger works with it under the name $Q$ <Cite k="W20"/> (section seven). On a balanced board, whose Cartan matrix is symmetrizable, the pairing is the invariant bilinear form $(\ ,\ )$ with <Tex src="(\alpha_i,\alpha_i)=2d_i"/>, and on a simply laced board every $d_i$ is <Tex src="1"/>. The matrix <Tex src="2I-A"/> is the Cartan matrix of a simply laced type, symmetric, in the convention $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$ of Kac and SageMath; Bourbaki prints its transpose, which here is the same matrix. A <Term a="mutate">mutation</Term> is the simple reflection <Tex src="s_i(\beta)=\beta-\frac{ 2(\beta,\alpha_i) }{ (\alpha_i,\alpha_i) }\alpha_i"/>, the <Term a="root-population">root populations</Term> are the roots, and on a simply laced finite type the roots are exactly the vectors of the root lattice of squared length <Tex src="2"/>.
 
 </LieTheory>
 
