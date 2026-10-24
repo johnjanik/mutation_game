@@ -1,0 +1,309 @@
+{
+ "agent": "P5-A2",
+ "status": "done",
+ "branch": "worktree-agent-a71b3631fded89a2e",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a71b3631fded89a2e",
+ "commits": [
+  "da67c16 P5-A2: T12 model, MatrixView, registry entry and golden-backed unit tests",
+  "6ef32b8 P5-A2: T12 component staged per task, relation list in the worker above 27 positions, MatrixView as fixed-layout markup",
+  "dd83fd4 P5-A2: T12 browser tests and decisions fragment"
+ ],
+ "filesChanged": [
+  "decisions/P5-A2.md",
+  "site/src/components/math/MatrixView.svelte",
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/src/components/tools/t12/OrbitLayers.svelte",
+  "site/src/components/tools/t12/RelationFormula.svelte",
+  "site/src/components/tools/t12/boards.ts",
+  "site/src/components/tools/t12/config.ts",
+  "site/src/components/tools/t12/model.ts",
+  "site/src/components/tools/t12/rep.ts",
+  "site/src/tools/registry/T12.ts",
+  "site/tests/e2e/T12.spec.ts",
+  "site/tests/unit/tools/T12.test.ts"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 48e28e5; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "started at stage 5.1; installed once"
+  },
+  {
+   "cmd": "TMPDIR=<scratch>/vtmp2 npx vitest run site/tests/unit/tools/T12.test.ts",
+   "exit": 0,
+   "summary": "Tests 42 passed (42)"
+  },
+  {
+   "cmd": "TMPDIR=<scratch>/vtmp3 npm test (committed state, the three edits outside my files reverted)",
+   "exit": 1,
+   "summary": "Test Files 1 failed | 158 passed (159); Tests 1 failed | 3309 passed (3310). The only failure is site/tests/unit/registry-offered.test.ts 'the table of offered boards equals the boards of every registry entry': rep is registered but offered.ts does not list its boards. This is expected until MERGE makes the offered.ts edit in requests."
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: Result (319 files) 0 errors 0 warnings; svelte-check: 1147 FILES 0 ERRORS 1 WARNINGS (the warning is the existing one in t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no output"
+  },
+  {
+   "cmd": "npm run build (committed state)",
+   "exit": 0,
+   "summary": "33 pages built; links: 1126 internal links on 33 pages, 0 problems"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/p5-a2/playwright.p5a2.config.ts site/tests/e2e/T12.spec.ts site/tests/e2e/nojs.spec.ts site/tests/e2e/a11y.spec.ts site/tests/e2e/registry-outs.spec.ts (preview on port 7700, build that includes the three requested route edits)",
+   "exit": 0,
+   "summary": "177 passed (3.2m); T12 long tasks after picking E6 at 4x: []; after picking E7 at 4x: []"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npm run size -- --port 7701",
+   "exit": 0,
+   "summary": "size: 33 routes measured, 0 over budget; /tools/rep/ 17 scripts 86.5 kB gzip (limit 90)"
+  },
+  {
+   "cmd": "break check (COMMON 4.3): findRelation by index; verdict hard-coded to equal",
+   "exit": 1,
+   "summary": "the unit test 'findRelation looks a check up by its fields' failed, and the e2e test 'acceptance: choosing node 2 of D4' failed; both restored and rerun green"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "SPEC 4 T12: dimensions equal minuscule_representations[*].dimension",
+   "status": "pass",
+   "test": "site/tests/unit/tools/T12.test.ts > for every minuscule_representations record the tool's dimension equals the golden dimension...; site/tests/e2e/T12.spec.ts > acceptance: every listed representation shows its golden dimension, is minuscule, and every relation holds"
+  },
+  {
+   "item": "SPEC 4 T12: every relation checks for every listed representation",
+   "status": "pass",
+   "test": "T12.test.ts > for every listed representation every RelationCheck holds...; T12.spec.ts > acceptance: every listed representation ..."
+  },
+  {
+   "item": "SPEC 4 T12: D4 node 2 shows a failing relation and the explanation that some number in the orbit is 2",
+   "status": "pass",
+   "test": "T12.test.ts > D4 node 2 builds 24 positions...; T12.spec.ts > acceptance: choosing node 2 of D4 shows a failing relation..."
+  },
+  {
+   "item": "SPEC 4 T12: matrices only up to 2000 positions (orbitSize), otherwise the explanation alone",
+   "status": "pass",
+   "test": "T12.test.ts > nodes whose orbit exceeds 2000 positions get the explanation alone and minusculeMatrices is not called; T12.spec.ts > above 2000 positions the tool shows the explanation alone: E8 node 1"
+  },
+  {
+   "item": "SPEC 4 T12: basis in decreasing lexicographic order, as the oracle",
+   "status": "pass",
+   "test": "T12.test.ts > ...basis equals weights_dynkin_labels; A2 node 1 and A1 node 1: the worked matrices"
+  },
+  {
+   "item": "SPEC 4 T12 bullet: orbit drawn in layers with edges coloured by node",
+   "status": "pass",
+   "test": "T12.test.ts > orbit layers...; OrbitLayers > orbitSvg...; T12.spec.ts > the orbit of ω1 on A2 is drawn in layers...; above 300 positions the orbit is given as layer counts: E7 nodes 2 and 6"
+  },
+  {
+   "item": "SPEC 4 T12 bullet: E_k, F_k, H_k as grids, as lists above dimension 27",
+   "status": "pass",
+   "test": "T12.test.ts > grids up to dimension 27 inclusive, lists above; MatrixView tests; T12.spec.ts > E, F and H on A2 are 3 by 3 tables...; grids up to dimension 27 and lists above: E6 node 1 and E7 node 7"
+  },
+  {
+   "item": "SPEC 4 T12 bullet: relation checker (pick relation and nodes, both sides, verdict)",
+   "status": "pass",
+   "test": "T12.test.ts > relationCode / findRelation / formulas; T12.spec.ts > the relation checker: picking ef:1,2 on A2 shows both sides equal and writes q"
+  },
+  {
+   "item": "SPEC 4 T12 bullet: move matrix beside its signed version (signedMoves)",
+   "status": "pass",
+   "test": "T12.test.ts > signed move on A2 node 1 equals E - F + P0, and its square is (-1)^H...; T12.spec.ts > the move matrix beside its signed version..."
+  },
+  {
+   "item": "SPEC 4 T12 bullet: string viewer, any position, a line of three or more, firing flips the line end over end",
+   "status": "pass",
+   "test": "T12.test.ts > T12 string viewer (4 tests); T12.spec.ts > the string viewer on A2 through (2, 0) at node 1..."
+  },
+  {
+   "item": "One case per kind of board (A to G); B3/C3 firing, not mutation; G2 node 2 number 3; F4/E8/G2 have no minuscule node",
+   "status": "pass",
+   "test": "T12.spec.ts > B3 node 3 and C3 node 1...; G2 node 2 fails with some number in the orbit is 3, and F4 and G2...; acceptance loop (A, B, C, D, E)"
+  },
+  {
+   "item": "F11 agreement: minusculeNodes agrees with every relation holding (orbits up to 600 positions)",
+   "status": "pass",
+   "test": "T12.test.ts > on every node built, minusculeNodes agrees with whether every relation holds"
+  },
+  {
+   "item": "4.0 common: links and notice, history rule, board change reset, keyboard, undo/redo/reset/strip/slider, table view, Copy link, Download data, Export SVG/PNG, long numbers, hooks and A-3 names, reduced motion, focus ring, MathML without KaTeX, no-JS, axe, 320 px and target sizes",
+   "status": "pass",
+   "test": "T12.spec.ts (one test each) and T12.test.ts > T12 state and links, T12 server render"
+  },
+  {
+   "item": "E-9: no default state needs the worker; a link with 2001 moves is replayed in the worker; rep calls routed by orbitSize",
+   "status": "pass",
+   "test": "T12.spec.ts > no default state needs the worker...; a link with 2001 moves...; T12.test.ts > whereToRun sends no default call to the worker..."
+  },
+  {
+   "item": "Coordinator: no long task on the largest orbit whose relation list T12 builds on the main thread",
+   "status": "pass",
+   "test": "T12.spec.ts > no long task when E6 is picked and node 1 (27 positions) is built, and E7 node 7 (56, list in the worker), both at 4x CPU slowdown"
+  },
+  {
+   "item": "Registry entry with phase: 5, on its own line, outs list complete",
+   "status": "pass",
+   "test": "T12.test.ts > the T12 registry entry...; registry-outs.spec.ts"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "E-9 / 7.6 (coordinator ruling)",
+   "what": "chevalleySerre over the whole list runs on the main thread only up to 27 positions (RELATIONS_MAIN_MAX = CAPS.matrixGridDim). Above that it runs in the worker, called with a hint that has no expectedItems. A configured or default state still computes its list on the main thread at any size. So E7 node 7, after a pick, has its relation list computed in the worker.",
+   "why": "The first chevalleySerre call for E7 node 7 in Chromium takes 14 ms at full speed, about 56 ms at 4x, which is over the 50 ms budget. B8 node 5 takes about 405 ms."
+  },
+  {
+   "spec": "7.6 Main-thread work",
+   "what": "Residual on the largest orbits built (B8, C8, D8 nodes with 1120 and 1792 positions). At full speed, reading the worker's reply (57120 entries for B8 node 5, deserialized in lib/worker.ts) gave one task of 54 to 61 ms in about half the runs. At 4x, minusculeMatrices on 1792 positions (25 to 33 ms at full speed) plus that reply produced tasks of 100 to 270 ms.",
+   "why": "minusculeMatrices stays on the main thread as E-9 rule 1 says. The reply size is fixed by chevalleySerre's return shape. See requests."
+  },
+  {
+   "spec": "4.0 / 7.2",
+   "what": "Formulas use a small MathML component of T12's own (RelationFormula.svelte, msub/msup/mrow) with the LinearForm RENDER fallback, not LinearForm itself",
+   "why": "LinearForm has no commutator or power form"
+  },
+  {
+   "spec": "plan bounds",
+   "what": "The orbit is drawn up to 300 positions and given as layer counts above. List tables and the orbit table are capped at 300 rows, with a sentence pointing to Download data. String lines list 12 positions (first six and last six); above 2000 positions, or with entries beyond 2^53, only the two ends are shown.",
+   "why": "The specification gives no bound; T2's 300 was borrowed, and stringThrough takes safe numbers only"
+  },
+  {
+   "spec": "6.6",
+   "what": "The panel order and the matrix node k are not in the state or the link",
+   "why": "6.6 has no key for them"
+  },
+  {
+   "spec": "ownership",
+   "what": "Three edits outside my files were needed to build the route and run the browser suites. They were made in the worktree only and reverted before committing: [tool].astro, offered.ts and registry-offered.test.ts",
+   "why": "Those files are owned by MERGE; see requests"
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE",
+   "what": "site/src/pages/tools/[tool].astro: add `import T12RepresentationBuilder from '@components/tools/T12RepresentationBuilder.svelte';`, add 'rep' to HYDRATED, and add the line `{entry.id === 'rep' && <T12RepresentationBuilder client:idle {...toolProps} />}` after the fold line"
+  },
+  {
+   "to": "MERGE",
+   "what": "site/src/tools/offered.ts: add `import { T12_BOARDS } from '../components/tools/t12/boards';` and `rep: T12_BOARDS,` in BOARDS_OFFERED. Then in site/tests/unit/registry-offered.test.ts change `boardsOffered('rep')` to a tool that is still unregistered (for example 'satake'). Until both are done, registry-offered.test.ts fails at 'the table of offered boards equals the boards of every registry entry'"
+  },
+  {
+   "to": "P5-A1",
+   "what": "Add a form of chevalleySerre that returns verdicts only, or checks one relation (relation, i, j). The worker's reply for the 1792-position orbits would then be small, and the picked relation of a large orbit could be checked on the main thread"
+  },
+  {
+   "to": "P5-A1",
+   "what": "Add a bigint overload of stringThrough. Today, a start beyond 2^53 with a small mu_i shows only the ends of its line"
+  },
+  {
+   "to": "P1-A2",
+   "what": "Add an explicit CallHint field that sends a call to the worker; T12 currently relies on an enumeration hint without expectedItems. Also: decodeState accepts a Serre relation code with equal nodes (q=serre-e:1,1). T12 refuses it itself"
+  },
+  {
+   "to": "MERGE",
+   "what": "Check E-9 rule 1's sizing for minusculeMatrices on 1792 positions at rank 8: about 25 to 33 ms at full speed and over 100 ms at 4x, against the 9 ms orbit enumeration the rule was sized on"
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P5-A2.md",
+ "openQuestions": [
+  "Should the 1120 and 1792 position nodes of B8, C8 and D8 keep building matrices on the main thread (E-9 rule 1 says yes), given the residual long tasks at 4x recorded in decisions/P5-A2.md?",
+  "The E6 27 by 27 grids lay out when scrolled into view (about 15 ms each at full speed, content-visibility). Is that acceptable as scroll work rather than an engine call?"
+ ],
+ "handoff": "T12 is complete with MatrixView and 42 unit plus 33 browser tests; the route needs MERGE's three-line [tool].astro edit and the offered.ts and registry-offered.test.ts edits (requests). The relation list goes to the worker above 27 positions; no long task at 4x on E6 node 1 and E7 node 7. The remaining long tasks are only on the 1120 and 1792 position orbits and come from minusculeMatrices on the main thread and from reading the worker's reply.",
+ "dataOutNames": [
+  "caption",
+  "notice",
+  "noscript",
+  "exportNotice",
+  "moveCounter",
+  "historyStrip",
+  "historyCounter",
+  "predictResult",
+  "predictReveal",
+  "dimension",
+  "minuscule",
+  "explanation",
+  "no-minuscule",
+  "limit",
+  "orbit-graph",
+  "matrix-e",
+  "matrix-f",
+  "matrix-h",
+  "relation-formula",
+  "relation-verdict",
+  "relation-left",
+  "relation-right",
+  "all-relations",
+  "move-matrix",
+  "signed-move",
+  "string-position",
+  "string-length",
+  "string-note",
+  "start-message"
+ ],
+ "planAdditions": [
+  "site/src/components/tools/t12/rep.ts",
+  "site/src/components/tools/t12/model.ts",
+  "site/src/components/tools/t12/RelationFormula.svelte",
+  "site/src/components/tools/t12/OrbitLayers.svelte",
+  "site/src/components/tools/t12/boards.ts",
+  "site/src/components/tools/t12/config.ts"
+ ],
+ "defaultState": {
+  "schema": 1,
+  "tool": "rep",
+  "board": "A2",
+  "node": 1,
+  "relation": "ef:1,1",
+  "coords": "numbers",
+  "start": [
+   1,
+   0
+  ],
+  "moves": []
+ },
+ "presets": {
+  "default": "A2 node 1, ef:1,1, start (1, 0), orbit panel first",
+  "string-viewer": "A2 node 1, start (2, 0), string panel first",
+  "relation-checker": "A2 node 1, ef:1,1, relations panel first",
+  "signed-move": "A2 node 1, signed-move panel first"
+ },
+ "matrixViewProps": {
+  "caption": "string",
+  "rowHeaders": "string[]",
+  "colHeaders": "string[]",
+  "sparse": "SparseMatrix (keys spKey(row, column), row the image, column the source)",
+  "dense": "rows of values",
+  "format": "'auto' | 'grid' | 'list' (auto: grid up to 27 by 27)",
+  "sparseDisplay": "boolean (zeros as a dot, aria-label 0)",
+  "indexHeaders": "boolean",
+  "listMax": "number (T12 passes 300)",
+  "out": "data-out name; root carries data-format, data-rows, data-cols; cells carry 1-based data-row, data-col, data-value"
+ },
+ "relationFormula": "MathML via t12/RelationFormula.svelte, for example [E1, F2] = 0 and ad(E1)^2 E2 = 0, with C_ij and the exponent evaluated, labels as subscripts, an aria-label in words ('E 1 F 2 commutator equals 0'), and the LinearForm RENDER spans fallback",
+ "timings": {
+  "nodeWarmMs": {
+   "A2 n1": 0.9,
+   "E6 n1": 6.1,
+   "E6 n1 chevalleySerre": 4.6,
+   "E7 n7": 8.4,
+   "E7 n7 chevalleySerre": 7.3,
+   "D4 n2": 1.9,
+   "E7 n2": 112,
+   "E7 n6": 133,
+   "E8 n8": 42,
+   "B8 n5": 442,
+   "B8 n5 minusculeMatrices": 22.7,
+   "B8 n5 chevalleySerre": 405,
+   "C8 n5": 473
+  },
+  "chromium": "E7 n7 chevalleySerre cold 14 ms at 1x. Board picks at 4x for E7, E6, D4, B3, C3, G2 and E8: no long tasks. B8 n5: one 54 to 58 ms reply task at 1x in some runs; tasks of 52 to 271 ms at 4x"
+ },
+ "workerUsed": "chevalleySerre for built orbits above 27 positions, after a pick or a link (posted and received in tasks of their own); positionsOf for a link's move list above 2000; never for a default or configured state"
+}
