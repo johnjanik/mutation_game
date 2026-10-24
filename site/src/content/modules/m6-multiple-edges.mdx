@@ -41,10 +41,13 @@ export const show = (xs) => `(${xs.map((x) => String(x).replace('-', '−')).joi
 export const scriptOf = (n) => alternation(n).map((move, k) => ({ move, caption: `Round ${Math.floor(k / 2) + 1}, ${k % 2 === 0 ? 'first' : 'second'} move: mutate city ${move}.${k === n - 1 ? ' After it the start is back.' : ''}` }));
 export const B2_START = [2, 1];
 export const G2_START = [1, 2];
-export const B2_SCRIPT = scriptOf(8);
-export const G2_SCRIPT = scriptOf(12);
+export const B2_MOVES = 2 * gv('types.B2.coxeter_number');
+export const G2_MOVES = 2 * gv('types.G2.coxeter_number');
+export const inWords = (n) => ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'][n] ?? String(n);
+export const B2_SCRIPT = scriptOf(B2_MOVES);
+export const G2_SCRIPT = scriptOf(G2_MOVES);
 export const B2_CITY_TWO = play('B2', 'mutation', [1, 0], [2]);
-export const G2_AFTER_FOUR_ROUNDS = play('G2', 'mutation', G2_START, alternation(8));
+export const G2_AFTER_FOUR_ROUNDS = play('G2', 'mutation', G2_START, alternation(B2_MOVES));
 export const G2_BACK_AFTER_FOUR_ROUNDS = G2_AFTER_FOUR_ROUNDS.every((x, k) => x === G2_START[k]);
 export const A3_ORBIT_FIRED = play('A3', 'firing', [1, 1, 1], [1, 3]);
 export const B2_NODE_ONE_FIRED = play('B2', 'firing', [1, 1], [1]);
@@ -85,12 +88,12 @@ The garden finds <G k="types.B2.n_roots"/> <Term a="root-population">root popula
 
 <Beat n={2}>
 
-A **round** is one mutation at each of two cities $i$ and $j$. The pair of moves returns after <Tex src="3"/>, <Tex src="4"/> or <Tex src="6"/> rounds when $A_{ij}A_{ji}$ is <Tex src="1"/>, <Tex src="2"/> or <Tex src="3"/>, as on <Tex src="A_2"/>, <Tex src="B_2"/> and <Tex src="G_2"/>, and never when it is <Tex src="4"/> or more or the roads run one way only <Cite k="W20"/> ({'Theorem 5.1'}). The finite cases are verified by computation up to rank eight.
+A **round** is one mutation at each of two cities $i$ and $j$. The pair of moves returns after <Tex src="{{types.A2.coxeter_number}}"/>, <Tex src="{{types.B2.coxeter_number}}"/> or <Tex src="{{types.G2.coxeter_number}}"/> rounds when $A_{ij}A_{ji}$ is <Tex src="1"/>, <Tex src="2"/> or <Tex src="3"/>, as on <Tex src="A_2"/>, <Tex src="B_2"/> and <Tex src="G_2"/>, and never when it is <Tex src="4"/> or more or the roads run one way only <Cite k="W20"/> ({'Theorem 5.1'}). The finite cases are verified by computation up to rank eight.
 
-Press Next: <Tex src="B_2"/> is back at <Tex src="(2,1)"/> after eight moves, when the round counter reads <Tex src="4"/>. On <Tex src="G_2"/>, with three roads from city {'2'} to city {'1'}, answer the question first; there the return takes twelve moves. Some populations return sooner, as a mutation can leave one unchanged.
+Press Next: <Tex src="B_2"/> is back at <Tex src="(2,1)"/> after {inWords(B2_MOVES)} moves, when the round counter reads <Tex src="{{types.B2.coxeter_number}}"/>. On <Tex src="G_2"/>, with three roads from city {'2'} to city {'1'}, answer the question first; there the return takes {inWords(G2_MOVES)} moves. Some populations return sooner, as a mutation can leave one unchanged.
 
-<T01GameBoard slot="figure" client:visible id="b3" board="B2" view="populations" mode="free" coords="populations" start={B2_START} script={B2_SCRIPT} rounds={2} caption="From (2, 1) on B2, Next alternates mutations at cities 1 and 2. After 8 moves, 4 rounds, the board shows (2, 1) again." />
-<T01GameBoard slot="figure" client:visible id="b4" board="G2" view="populations" mode="free" coords="populations" start={G2_START} script={G2_SCRIPT} rounds={2} prediction={{ question: 'On B2 the pair of moves brought the board back after 4 rounds. From (1, 2) on G2, will the board be back after 4 rounds?', answer: { type: 'choice', options: ['Yes, after 4 rounds', 'No'], correct: G2_BACK_AFTER_FOUR_ROUNDS ? 0 : 1 }, reveal: `No. After 4 rounds, 8 moves, G2 shows ${show(G2_AFTER_FOUR_ROUNDS)}. With three roads one way the pair of moves needs 6 rounds, 12 moves, to bring (1, 2) back.` }} caption="From (1, 2) on G2 the same alternation needs 12 moves, 6 rounds, to come back." />
+<T01GameBoard slot="figure" client:visible id="b3" board="B2" view="populations" mode="free" coords="populations" start={B2_START} script={B2_SCRIPT} rounds={2} caption={`From (2, 1) on B2, Next alternates mutations at cities 1 and 2. After ${B2_MOVES} moves, ${fmt('types.B2.coxeter_number')} rounds, the board shows (2, 1) again.`} />
+<T01GameBoard slot="figure" client:visible id="b4" board="G2" view="populations" mode="free" coords="populations" start={G2_START} script={G2_SCRIPT} rounds={2} prediction={{ question: `On B2 the pair of moves brought the board back after ${fmt('types.B2.coxeter_number')} rounds. From (1, 2) on G2, will the board be back after ${fmt('types.B2.coxeter_number')} rounds?`, answer: { type: 'choice', options: [`Yes, after ${fmt('types.B2.coxeter_number')} rounds`, 'No'], correct: G2_BACK_AFTER_FOUR_ROUNDS ? 0 : 1 }, reveal: `No. After ${fmt('types.B2.coxeter_number')} rounds, ${B2_MOVES} moves, G2 shows ${show(G2_AFTER_FOUR_ROUNDS)}. With three roads one way the pair of moves needs ${fmt('types.G2.coxeter_number')} rounds, ${G2_MOVES} moves, to bring (1, 2) back.` }} caption={`From (1, 2) on G2 the same alternation needs ${G2_MOVES} moves, ${fmt('types.G2.coxeter_number')} rounds, to come back.`} />
 </Beat>
 
 <Beat n={3}>
@@ -180,7 +183,7 @@ On <Tex src="A_5"/> folding gives <G k={`${A5F}.folds_to`}/>, averaging <G k={`$
 <Seen provenance={['W20', 'Don08', 'Ste08', 'FSS96', SEEN]}>
 
 <ul data-seen-statements>
-<li data-seen-statement>The pair of moves returns after <Tex src="3"/>, <Tex src="4"/> or <Tex src="6"/> rounds when <Tex src="A_{ij}A_{ji}=1,2,3"/>, and never when the product is larger or the roads run one way. <Cite k="W20"/>, {'Theorem 5.1'}.</li>
+<li data-seen-statement>The pair of moves returns after <Tex src="{{types.A2.coxeter_number}}"/>, <Tex src="{{types.B2.coxeter_number}}"/> or <Tex src="{{types.G2.coxeter_number}}"/> rounds when <Tex src="A_{ij}A_{ji}=1,2,3"/>, and never when the product is larger or the roads run one way. <Cite k="W20"/>, {'Theorem 5.1'}.</li>
 <li data-seen-statement>Exactly the balanced boards have a form with positive city weights that no mutation changes (<Cite k="W20"/>, {'Theorems 8.4, 8.7'}); short roots have form value <Tex src="2"/>, long ones <Tex src="4"/> or <Tex src="6"/>, verified by computation.</li>
 <li data-seen-statement>Firing is mutation on the reversed board, transposed. Verified by computation; <Cite k="Don08"/>.</li>
 <li data-seen-statement>Symmetric play is play on the folded board; averaging the roots gives the dual type. Verified by computation; <Cite k="Ste08"/>, <Cite k="FSS96"/>.</li>
