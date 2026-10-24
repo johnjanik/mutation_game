@@ -1,0 +1,140 @@
+{
+ "agent": "rtfix-p4-history",
+ "status": "done",
+ "branch": "worktree-agent-a5569d97ad7f5f439",
+ "base": "ecf91dbb8ab76e8430231086d74be631a7b76f49",
+ "commits": [
+  "f1c3fc1 RT-FIX P4-RT-04-03: write every instance's change once the reader acts, leaders and followers included",
+  "68fe593 RT-FIX P4-RT-04-03: decisions fragment, the reader's actions counted per page"
+ ],
+ "filesChanged": [
+  "site/src/lib/history.ts",
+  "site/tests/unit/history.test.ts",
+  "site/tests/e2e/history-after-action.spec.ts",
+  "decisions/RT-FIX-P4-shared.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard ecf91db; git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "worktree /home/user/mutation_game/.claude/worktrees/agent-a5569d97ad7f5f439, branch worktree-agent-a5569d97ad7f5f439, base ecf91dbb8ab76e8430231086d74be631a7b76f49"
+  },
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474636fc9..., 485caee8eb85..., 1fc9f82bf62d...: all three equal to CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "npm run build (base ecf91db)",
+   "exit": 0,
+   "summary": "built; links: 1090 internal links on 32 pages, 0 problems"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/rtfix-p4-history/playwright.config.ts history-after-action.spec.ts (base build, port 7670)",
+   "exit": 1,
+   "summary": "RED: 5 failed. M5 ?b1.w=1 jump: reopened b1 '1|numbers:1=-1 numbers:2=2 numbers:3=1' against shown '3|numbers:1=1 numbers:2=1 numbers:3=-3'; M1 ?b1.w=2.1 jump to start: bar b1.w still '2.1'; M1 follower with own keys: b2.w received '2' expected '2.1'; M1 ?b1.w=2&b3.w=1: b2.w received null; Copy link after the jump reopened at 1 move against 3"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/history.test.ts (with ecf91db history.ts)",
+   "exit": 1,
+   "summary": "RED: Tests 3 failed | 14 passed (17): the three new follower and leader cases ('expected [ { how: 'replace', ... } ] to deeply equal ...'); the fourth new case (late hydration) passes on the base too, as intended"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/history.test.ts (fixed)",
+   "exit": 0,
+   "summary": "Test Files 1 passed (1); Tests 17 passed (17); the 13 earlier cases unchanged"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings, 1 hint; svelte-check 0 errors, 1 warning (LayerChart.svelte, already there)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run build (fixed)",
+   "exit": 0,
+   "summary": "built; links: 1090 internal links on 32 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> history-after-action.spec.ts history-no-write-on-load.spec.ts (fixed build, port 7670)",
+   "exit": 0,
+   "summary": "GREEN: 16 passed (37.4s)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> history-after-action.spec.ts history-no-write-on-load.spec.ts prediction-links.spec.ts M0.spec.ts M1.spec.ts M3.spec.ts M5.spec.ts M6.spec.ts M7.spec.ts T10.spec.ts T11.spec.ts play-focus.spec.ts nojs.spec.ts (fixed build, port 7670)",
+   "exit": 0,
+   "summary": "348 passed (5.1m)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch>/rtfix-p4-history/extra.config.ts (the confirmer's scratch specs confirm-history, confirm-follower-drives, confirm-follower-copy; not committed)",
+   "exit": 0,
+   "summary": "52 passed (4.1m): no write on load on 21 routes without a link; Copy link before any action reopens identically on 10 cases with no history call; M0 ?b2.w=2&zz=keep&b1.w=1 keeps b2.w=2 and zz=keep exactly; lab and M3 Back/Forward unchanged; every M1, M5 and M6 leader and follower case writes both and reopens with no diff, including M6 ?b1.w=2&b11.w=1 -> ?b11.w=1&b1...b1.w=2.1&b2...b2.w=2.1"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch extra config> late.spec.ts (scratch, not committed)",
+   "exit": 0,
+   "summary": "3 passed: M1 ?b9.w=1, M1 ?b11.w=2, M6 ?b11.w=1: an instance that hydrates after a move elsewhere keeps its link keys raw, and is written once the reader moves on it"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final, clean tree)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "git diff --name-only ecf91db..HEAD | grep forbidden paths; git diff ecf91db..HEAD | grep '^+' for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' 'on:' em-dash; git diff --name-only ecf91db..HEAD | grep -i redteam",
+   "exit": 0,
+   "summary": "all print nothing (the redteam-named files git ls-files lists are pre-existing archives under build-plan/reports/orchestrator, untouched)"
+  },
+  {
+   "cmd": "git log --format=%s ecf91db..HEAD",
+   "exit": 0,
+   "summary": "both subjects begin 'RT-FIX P4-RT-04-03:'"
+  },
+  {
+   "cmd": "grep -rn 'regression: P4-RT-04-03' site/tests | wc -l",
+   "exit": 0,
+   "summary": "11"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist test-results; git status --porcelain; ps for astro preview",
+   "exit": 0,
+   "summary": "status empty; no preview server running"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P4-RT-04-03: Opening a valid link rewrites the address bar with replaceState before the reader acts (T10, T11, and T1, T4, T5, T6, T15, T16); with the fix's own regression (SPEC 7.4 'Copy link always encodes the current state', 6.6)",
+   "status": "fixed",
+   "test": "site/tests/e2e/history-after-action.spec.ts > the bar and Copy link after the reader acts on a page opened from a link > (M5 ?b1.w=1: a jump in the table of the follower b2 moves b1, and the bar reopens to what both show; M1 ?b1.w=2.1: a jump to the start in the garden b2 takes b1 to no moves, and the bar reopens to that; M1 <query>: after a move on b1, the bar holds the follower b2 at the state it shows (x2); M5 ?b1.w=1: Copy link before and after a jump in b2 reopens to the state shown); site/tests/unit/history.test.ts > after the reader acts on a page opened from a link > (4 cases); site/tests/e2e/history-no-write-on-load.spec.ts (unchanged)",
+   "evidence": "Severity minor (no adjustment). Red on ecf91db: e2e 5 failed with the confirmer's values (M5 reopened at 1 move against 3; M1 bar kept b1.w=2.1; stale b2.w=2; no b2 keys beside an untouched b3 link; Copy link after the jump reopened at 1 move); unit 3 failed | 14 passed. Green: unit 17 passed; e2e history specs 16 passed; the requested set 348 passed. Cause: the first fix (91c3fae) asked whether the reader had acted per frame, so a change reached through linkTo (a leader moved from its follower's table, a follower moved while another link waited, a follower with its own link keys) stayed held. Fix in site/src/lib/history.ts only: the page counts the reader's actions (pointerdown, keydown, click, input, change inside any [data-frame], and exampleLoaded); on a page opened from a link, a change is the instance's load only while the reader has not acted since that instance registered; every other change is written, encoding the changed instances and keeping other instances' keys as the bar holds them. The per-instance fromLink and acted flags and the page-wide 'a link waits' test are removed. Nothing is written on load or hydration (history-no-write-on-load.spec.ts green, 21 link-free routes write nothing). Commits f1c3fc1, 68fe593."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "Prompt suggestion (hold every write until the first action anywhere, then write as 967118d)",
+   "what": "Two refinements: actions count from each instance's registration, and only inside tool frames; a page opened without a link keeps the base rule; untouched instances keep their link keys instead of being rewritten normalised.",
+   "why": "A page-wide 'first action' would let a tool that hydrates as the reader scrolls write its link at once (the finding again). The base's full rewrite would contradict an existing history.test.ts assertion (an untouched link's keys are kept), and those keys still reopen to the state shown. Recorded in decisions/RT-FIX-P4-shared.md."
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P4-shared.md",
+ "handoff": "Only site/src/lib/history.ts changed (no ToolFrame, tool or export signature change). Tests: new site/tests/e2e/history-after-action.spec.ts and four cases added to history.test.ts; the earlier history.test.ts cases and history-no-write-on-load.spec.ts are untouched. Rule for the lens rerun (RT-04 attack 21 plus the confirmer's follower flows): writes are held only on a page opened from a link, for an instance whose registration no reader action inside a tool frame has followed yet. Known limits are in the fragment: a press in a tool during another instance's asynchronous load makes the rest of that load count as the reader's; a follower that hydrates after its leader moved is not written but reopens the same. Note for other agents: the instructions' `pkill -f \"port <port>\"` also matches the calling shell."
+}
