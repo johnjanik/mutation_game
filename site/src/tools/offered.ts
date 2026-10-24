@@ -8,8 +8,8 @@
 import type { ToolId } from '../lib/state';
 import { T05_BOARDS } from '../components/tools/t05/boards';
 import { KOSTANT_AFFINE_EXTRA, KOSTANT_BOARDS } from '../components/tools/t09/boards';
-import { T10_BOARDS } from '../components/tools/t10/config';
-import { T11_BOARDS } from '../components/tools/t11/config';
+import { T10_BOARDS } from '../components/tools/t10/boards';
+import { T11_BOARDS } from '../components/tools/t11/boards';
 import { AFFINE_BOARDS } from '../components/tools/t15/boards';
 
 /** The 32 named types grouped by letter (registry/T07.ts). */

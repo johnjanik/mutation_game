@@ -102,3 +102,32 @@ test('registry-weight.spec.ts reads the built files of island URLs without the /
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+/** Routes that do not show the tool but fetch, before interaction, a file carrying one of its marks. */
+function carriersOf(routes: readonly string[], toolId: string, marks: readonly string[]): string[] {
+  const lines: string[] = [];
+  for (const route of routes) {
+    const html = readFileSync(join(dist, route, 'index.html'), 'utf8');
+    const shows = new RegExp(`data-tool="${toolId}"`).test(html);
+    const { files } = idleClosure(dist, base, html);
+    const carriers = [...files].filter((f) => marks.some((s) => readFileSync(join(dist, f), 'utf8').includes(s)));
+    if (!shows && carriers.length) lines.push(`${route} (shows ${toolId}: ${shows}): captions in ${carriers.join(', ')}`);
+  }
+  return lines;
+}
+
+const SHARED_CONFIG_ROUTES = ['/tools/board/', '/modules/m0-start/', '/tools/garden/', '/tools/weyl/', '/modules/m6-multiple-edges/'];
+
+// regression: P4-RT-07-05
+test('offered.ts pulls no T10 preset captions into the shared code of routes that do not show T10', () => {
+  const MARKS = ['The roots of E8 in its Coxeter plane', 'The hexagon of A2 carries two graphs', 'B3 with equal numbers on its last two nodes'];
+  const bad = carriersOf(SHARED_CONFIG_ROUTES, 'geometry', MARKS);
+  expect(bad, bad.join('\n')).toEqual([]);
+});
+
+// The same cause for T11 (offered.ts read T11_BOARDS from t11/config.ts, with T11's captions).
+test('offered.ts pulls no T11 preset captions into the shared code of routes that do not show T11', () => {
+  const MARKS = ['Folding A3 by its flip gives the board B2', 'Averaging the roots of A5 over its flip'];
+  const bad = carriersOf(SHARED_CONFIG_ROUTES, 'fold', MARKS);
+  expect(bad, bad.join('\n')).toEqual([]);
+});
