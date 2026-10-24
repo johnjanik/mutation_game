@@ -4,7 +4,9 @@
 // `released` flag in each page's front matter"). Run after every `npm run build` (the root postbuild
 // script, so a preview build, a release build and the BASE_PATH=/sub/path/ build of e2e:basepath all
 // run it) and by hand as `npm run postbuild` (OUT_DIR, BASE_PATH and SITE_URL are read as by the
-// build, through site/astro.config.mjs). It reads the built directory only: every URL attribute of
+// build, through site/src/lib/siteAndBase.mjs, whose functions site/astro.config.mjs uses; plain
+// JavaScript, so that plain Node 22.12 to 22.17, which loads no .ts module by default, runs this
+// script, RT-FIX P4-RT-12-03). It reads the built directory only: every URL attribute of
 // every built page that points into the site must lie under the base, name a file of the build, and
 // not name a page whose source says it is not released. Exit 1 on any problem.
 // External links are not followed here; links.yml checks them weekly (SPEC.md 7.7). No dependency.
@@ -196,7 +198,7 @@ export function formatResult(result, distLabel) {
 }
 
 async function main() {
-  const config = await import(pathToFileURL(join(SITE_DIR, 'astro.config.mjs')).href);
+  const config = await import(pathToFileURL(join(SITE_DIR, 'src', 'lib', 'siteAndBase.mjs')).href);
   const { site, base } = config.siteAndBase(process.env);
   const distDir = resolve(SITE_DIR, config.outDirFrom(process.env));
   if (!existsSync(distDir)) {

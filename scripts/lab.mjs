@@ -28,8 +28,10 @@
 // No option skips the canary, changes a threshold or changes the profile.
 //
 // It measures the build that the directory holds (it never builds) through astro preview, never
-// a development server. The base is siteAndBase(process.env).base from site/astro.config.mjs, so
-// BASE_PATH, GITHUB_REPOSITORY and OUT_DIR must be the ones the build used. Before any route it
+// a development server. The base is siteAndBase(process.env).base from site/src/lib/siteAndBase.mjs
+// (the functions site/astro.config.mjs uses; plain JavaScript, so that plain Node 22.12 to 22.17
+// runs this script, RT-FIX P4-RT-12-03), so BASE_PATH, GITHUB_REPOSITORY and OUT_DIR must be the
+// ones the build used. Before any route it
 // measures a deliberately slow fixture page (the canary), which must fail all three thresholds,
 // and it checks in every Lighthouse report that the devtools throttling at 4 and the 360 by 800
 // screen were applied. Exit 0: every route ok, canary over on all three, throttling confirmed.
@@ -738,7 +740,7 @@ async function main() {
   }
   if (opts.help) { console.log(usage()); return; }
 
-  const config = await import(pathToFileURL(join(SITE_DIR, 'astro.config.mjs')).href);
+  const config = await import(pathToFileURL(join(SITE_DIR, 'src', 'lib', 'siteAndBase.mjs')).href);
   const distDir = opts.dist ? resolve(process.cwd(), opts.dist) : resolve(SITE_DIR, config.outDirFrom(process.env));
   if (!isFile(join(distDir, 'index.html'))) {
     console.error(`lab: no build found at ${distDir}; run npm run build first`);

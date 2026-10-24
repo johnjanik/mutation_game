@@ -341,7 +341,9 @@ async function main() {
   }
   if (opts.help) { console.log(USAGE); process.exit(0); }
 
-  const config = await import(pathToFileURL(join(SITE_DIR, 'astro.config.mjs')).href);
+  // The functions of site/astro.config.mjs from their plain module, which plain Node 22.12 to 22.17
+  // loads (astro.config.mjs imports a .ts module; RT-FIX P4-RT-12-03).
+  const config = await import(pathToFileURL(join(SITE_DIR, 'src', 'lib', 'siteAndBase.mjs')).href);
   const base = opts.base ? config.normaliseBase(opts.base) : config.siteAndBase(process.env).base;
   const distDir = opts.dist ? resolve(process.cwd(), opts.dist) : resolve(SITE_DIR, config.outDirFrom(process.env));
   if (!existsSync(distDir)) {
