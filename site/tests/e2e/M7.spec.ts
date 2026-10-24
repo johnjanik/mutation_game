@@ -755,13 +755,14 @@ test('anatomy of 8.2', async ({ page }) => {
   expect(plain(await statements.nth(2).textContent())).toContain(
     `verified by computation against exact convex hulls of ${GOLDEN.wythoff_hull_checks} polytopes and the recorded face counts of ${GOLDEN.wythoff.length} polytopes.`,
   );
-  // No link to the golden tab of T11, to M8 or to the Atlas (unreleased in phase 4); the sandbox loads B3.
+  // No link to the golden tab of T11, to M8 or to the Atlas (unreleased in phase 4); the sandbox loads A2, the
+  // board of the first figure (SPEC 8.2 item 7; RT-FIX-P4 lesson M7, P4-RT-13-01).
   await expect(article.locator('a[href*="tools/fold"]')).toHaveCount(0);
   await expect(article.locator('a[href*="m8"], a[href*="atlas/"]')).toHaveCount(0);
   await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"], [data-anatomy="links"] a[data-link="next"]')).toHaveCount(0);
   const sandbox = article.locator('[data-anatomy="links"] a[data-link="sandbox"]');
   await expect(sandbox).toHaveCount(1);
-  expect((await sandbox.getAttribute('href')) ?? '').toMatch(/tools\/sandbox\/\?g=B3$/);
+  expect((await sandbox.getAttribute('href')) ?? '').toMatch(/tools\/sandbox\/\?g=A2$/);
   const source = readFileSync(LESSON_PATH, 'utf8');
   const front = /^---\n([\s\S]*?)\n---/.exec(source)![1]!;
   expect(front).toMatch(/^draft: true$/m);
@@ -1392,5 +1393,27 @@ test.describe('regressions', () => {
         expect(count, `${where}: the studio shows one edge length`).toBe('1');
       }
     }
+  });
+
+  // RT-13, attack 17 (and the retest of P3-RT-13-05), the M7 case of site/tests/e2e/redteam-RT-13-p4-links.spec.ts
+  // of the lens branch: the sandbox link that closes the module opens T16 with "this module's board loaded" (SPEC
+  // 8.2 item 7; 8.1 P6; 4 T16), read as the board of the module's first figure, as the round 1 fixes of M1, M3 and
+  // M4 read it (decisions/RT-FIX-P3-lesson-m1.md, -m3.md, -m4.md). SPEC 3 M7 table, row 1: T10, root polytope of
+  // A2; the lesson's b1 is A2. Adoption: the first figure's board is read from its boardName hook.
+  // regression: P4-RT-13-01
+  test('m7-geometry closes with the sandbox on its first board A2', async ({ page }) => {
+    await page.goto(ROUTE);
+    const first = await page.locator('main [data-tool]').first().locator('[data-out="boardName"]').getAttribute('data-name');
+    expect(first, 'the first figure is the root polytope of A2 (SPEC 3 M7 table, row 1)').toBe(FIGURES[0]!.board);
+    const sandbox = page.locator('[data-anatomy="links"] a[href*="tools/sandbox"]');
+    await expect(sandbox).toHaveCount(1);
+    const href = (await sandbox.getAttribute('href')) ?? '';
+    const g = new URL(href, page.url()).searchParams.get('g');
+    await sandbox.click();
+    const t = page.locator('[data-tool="sandbox"]').first();
+    await expect(t).toHaveAttribute('data-hydrated', 'true', { timeout: 20000 });
+    const nodes = await t.locator('[data-node]').evaluateAll((els) => new Set(els.map((e) => e.getAttribute('data-node'))).size);
+    expect(g, `m7-geometry: the sandbox opens ${g}, the module's first board is ${first}`).toBe(first);
+    expect(nodes, `the sandbox shows the ${nodes} nodes of ${g}`).toBe(T(first!).cartan.length);
   });
 });
