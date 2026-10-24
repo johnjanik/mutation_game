@@ -10,12 +10,17 @@
 // tsconfig.base.json and site/tsconfig.json beside links to node_modules, packages/ and site/src/, and
 // the red team's alias test as the probe. With site/tsconfig.json as committed the probe passes; with
 // its @lib/* target broken (the red team's mutation) the probe must fail.
+// The second check (the residual of P3-RT-12-05): eight tool unit tests kept their own copy of the three
+// aliases in the resolve.alias of the Vite server they load .svelte files with. They read site/tsconfig.json
+// now (resolve.tsconfigPaths), and every test file and test configuration is scanned so that a new copy,
+// in any form Vite or a tsconfig takes, fails here.
 // Run: npx vitest run --project site-unit site/tests/unit/aliases-one-source.test.ts
 import { afterAll, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const PROBE = join(import.meta.dirname, 'fixtures', 'aliases-probe.ts');
@@ -69,4 +74,74 @@ describe('one declaration of the path aliases', () => {
     expect(broken.status, broken.output).not.toBe(0);
     expect(broken.output).toContain('@lib/katex');
   }, 300_000);
+});
+
+// ---------------------------------------------------------------------------------------------
+// No copy of the aliases in a test or a test configuration
+// ---------------------------------------------------------------------------------------------
+
+const ALIAS = String.raw`@(?:engine|components|lib)`;
+/** The ways a copy is written: an object key ('@lib': ..., "@lib/*": [...]), a find entry of a Vite alias list, or an alias block naming one. */
+const COPY_FORMS: RegExp[] = [
+  new RegExp(String.raw`['"\x60]${ALIAS}(?:\/\*)?['"\x60]\s*:`),
+  new RegExp(String.raw`\bfind\s*:\s*(?:['"\x60]|\/\^?)${ALIAS}`),
+  new RegExp(String.raw`\balias\s*:[\s\S]{0,400}?${ALIAS}\b`),
+];
+
+/** The copies of the aliases in a source text, as "line: text" (comments included: a commented copy is still a copy to remove). */
+function copiesIn(text: string): string[] {
+  const found: string[] = [];
+  for (const form of COPY_FORMS) {
+    const m = form.exec(text);
+    if (m) found.push(`${text.slice(0, m.index).split('\n').length}: ${m[0].split('\n')[0]!.trim()}`);
+  }
+  return found;
+}
+
+/** Every source file below a directory (scripts, configurations, tests and their fixtures). */
+function sourcesBelow(dir: string): string[] {
+  const out: string[] = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) out.push(...sourcesBelow(p));
+    else if (/\.(?:[cm]?[jt]s|svelte)$/.test(e.name)) out.push(p);
+  }
+  return out;
+}
+
+describe('no second declaration of the path aliases', () => {
+  // regression: residual of P3-RT-12-05 (eight tool unit tests declared their own resolve.alias)
+  it('the scan finds each form of a copy, and not the one declaration read through tsconfigPaths', () => {
+    // The block as T01.test.ts (and seven others) had it.
+    const was = [
+      '    resolve: {',
+      '      alias: {',
+      "        '@engine': join(SITE, '../packages/engine/src/index.ts'),",
+      "        '@components': join(SITE, 'src/components'),",
+      "        '@lib': join(SITE, 'src/lib'),",
+      '      },',
+      '    },',
+    ].join('\n');
+    expect(copiesIn(was).length).toBeGreaterThan(0);
+    expect(copiesIn("resolve: { alias: [{ find: '@lib', replacement: '/x/src/lib' }] }").length).toBeGreaterThan(0);
+    expect(copiesIn('resolve: { alias: [{ find: /^@engine$/, replacement: e }] }').length).toBeGreaterThan(0);
+    expect(copiesIn('const paths = { "@components/*": ["./src/components/*"] };').length).toBeGreaterThan(0);
+    expect(copiesIn('    resolve: { tsconfigPaths: true },')).toEqual([]);
+    expect(copiesIn("import { speak } from '@lib/a11y';\nimport { boardFromName } from '@engine';")).toEqual([]);
+  });
+
+  // regression: residual of P3-RT-12-05
+  it('no test file or test configuration declares the aliases again', () => {
+    const self = fileURLToPath(import.meta.url);
+    const files = [
+      ...sourcesBelow(join(ROOT, 'site', 'tests')).filter((f) => f !== self),
+      join(ROOT, 'vitest.config.ts'),
+      join(ROOT, 'playwright.config.ts'),
+      join(ROOT, 'packages', 'engine', 'vitest.config.ts'),
+      join(ROOT, 'site', 'astro.config.mjs'),
+    ];
+    expect(files.some((f) => f.endsWith(join('unit', 'tools', 'T01.test.ts')))).toBe(true);
+    const copies = files.flatMap((f) => copiesIn(readFileSync(f, 'utf8')).map((c) => `${relative(ROOT, f)}:${c}`));
+    expect(copies, 'declare the aliases only in site/tsconfig.json (read with resolve.tsconfigPaths)').toEqual([]);
+  });
 });

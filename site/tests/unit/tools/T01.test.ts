@@ -585,9 +585,10 @@ describe('T1 announcements', () => {
 // Server render of the component with properties (CONTRACTS 5.2; plan 5.16)
 // ---------------------------------------------------------------------------------------------
 
-// A server-render loader like P1-A2's _svelteSsr.ts, with the aliases of CONTRACTS 1 given explicitly:
-// the Board family imports '@engine' and '@lib/...', which Vite's tsconfigPaths does not resolve
-// from a .svelte importer here.
+// A server-render loader like P1-A2's _svelteSsr.ts. The Board family imports '@engine' and '@lib/...';
+// Vite's tsconfigPaths (Vite 8.3.4) resolves them from a .svelte importer too, so the aliases come from
+// site/tsconfig.json like everywhere else (an explicit copy here was dropped, RT-FIX residual of
+// P3-RT-12-05).
 const SITE = fileURLToPath(new URL('../../../', import.meta.url));
 let server: ViteDevServer;
 let renderFn: (c: unknown, o: { props: unknown }) => { body: string };
@@ -603,13 +604,9 @@ beforeAll(async () => {
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     optimizeDeps: { noDiscovery: true, include: [] },
     plugins: [svelte({ configFile: false })],
-    resolve: {
-      alias: {
-        '@engine': join(SITE, '../packages/engine/src/index.ts'),
-        '@components': join(SITE, 'src/components'),
-        '@lib': join(SITE, 'src/lib'),
-      },
-    },
+    // The aliases of CONTRACTS.md 1 from their one declaration, the paths of site/tsconfig.json (RT-FIX
+    // P3-RT-12-05 and its residual; site/tests/unit/aliases-one-source.test.ts refuses a copy).
+    resolve: { tsconfigPaths: true },
   });
   renderFn = ((await server.ssrLoadModule('svelte/server')) as { render: typeof renderFn }).render;
   T01 = ((await server.ssrLoadModule('/src/components/tools/T01GameBoard.svelte')) as { default: unknown }).default;
