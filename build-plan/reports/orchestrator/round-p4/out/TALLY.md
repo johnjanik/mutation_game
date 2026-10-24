@@ -84,3 +84,9 @@
 - P4-RT-12-04 minor: npm run report accepts the report of a release build that failed in postbuild (complete marked at build:done).
 - P4-RT-12-05 minor: scripts/presets.mjs declares its own '@engine' alias.
 - Notes: shared /tmp Vite caches not keyed by checkout (P2 2.1 rule); load-sensitive e2e (board-load long task, T10 ring click, T15 capped play); github-pages environment may refuse tag deploys (owner to check when DEPLOY_PAGES is set); reuseExistingServer outside CI.
+- RT-12 refute: 01, 03, 04 not refuted; 02 not refuted and raised to blocker (npm run e2e fails in CI at /<repo>/: a gate command that fails); 05 REFUTED (P4-A2's logged hook per plan 5.9; the one-declaration decision covers Vitest and test files). Reproduce pending.
+## RT-11: 3 findings (2 major, 1 minor), verifying. Retests hold: 11-01 to 11-04, 11-06 to 11-08 (sibling 11-03 below); 11-09 held. 20 phase 4 empty-implementation mutants caught; 18 round 1 fix reverts fail their tests.
+- P4-RT-11-01 major: the generic orbitGraph loop (beyond 2^53) can report truncated at exactly cap positions and the suite stays green (surviving M14 on the second loop).
+- P4-RT-11-02 major: the SPEC 7.6 orbit benchmark now times the numbers path, not Big arithmetic; the bigint loop can be 30x slower and the benchmark stays green.
+- P4-RT-11-03 minor: T15.spec.ts checks A-3 node names with a wildcard city number.
+- Notes: C1 (classByMinors without bigint fallback) and F4 survive but are argued equivalent; phaseInForce regex fragile for phase 5 registry entries; load-sensitive tests (Vitest 5 s limit at load 12 to 18; T10 long-task tests; orbit.bench at load 11).

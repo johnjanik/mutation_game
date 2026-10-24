@@ -146,42 +146,5 @@
     "reason": "not refuted: R1 7.9 asks for the licences of bundled libraries and nothing excludes transitive ones. R2 the finding quotes 7.9 correctly. R3 the credits page is phase 0, extended at each release, and release 0.5 has passed. R4 not an oracle matter. R5 the P0-A5 package.json rule departs from the [D] text rather than lying within it. R6 the P3-RT-08-10 regression covers nanostores only."
    }
   }
- },
- {
-  "id": "P4-RT-08-10",
-  "severity": "minor",
-  "title": "Attack 3 (e): the release report on standard error says E7 shows 'nothing' on M7, although the page shows the E7 fallback; gate G4's owner's part repeats it",
-  "location": "site/src/lib/unverifiedRegistry.ts:203-207 (one line per item and page, decided by the first use only); reports/gate-G4.md section 11",
-  "claim": "M7 has two E7 wraps. The first, in beat 3, has no fallback; the second, in the Seen box, has one. The printed report takes the first, says '(nothing shown)', and the owner's checklist inherits the error. open-items-report.json is right (fallbackShown true).",
-  "expected": "SPEC 7.3: a release build 'prints a report of the open items and the pages that use them'. That report should say what each page shows.",
-  "observed": "'open item E7 used on /modules/m7-geometry/ (nothing shown)', while the release page contains <span class=\"unverified-fallback\" data-unverified=\"E7\">The rule was checked by computation ...</span>. P4-A6 asked P0-A4 for this fix (decisions/P4-A6.md, request 4); it is not done.",
-  "reproduction": "npm ci && OUT_DIR=/tmp/rt08-rel npm run build:release 2> /tmp/rt08-rel-stderr.txt && node redteam/redteam-RT-08-p4-release-report.mjs /tmp/rt08-rel-stderr.txt /tmp/rt08-rel (exit 1, one MISMATCH line for E7)",
-  "specRef": "SPEC.md 7.3 (release report); 9.1 G4 owner's part (items 7 and 9)",
-  "proposedFix": "Aggregate per (item, page): print 'fallback shown' when any use on the page shows a fallback, or print one line per use.",
-  "reproducer": "redteam/redteam-RT-08-p4-release-report.mjs",
-  "lens": "RT-08",
-  "branch": "worktree-agent-a5ac953e1a01ff603",
-  "verification": {
-   "reproduce": {
-    "findingId": "P4-RT-08-10",
-    "mode": "reproduce",
-    "reproduced": true,
-    "refuted": null,
-    "citation": "SPEC.md 7.3 (release report); 9.1 G4 owner's part (items 7 and 9)",
-    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied redteam/redteam-RT-08-p4-release-report.mjs (added). As the orchestrator directed, /tmp/rt08-rel was replaced by <scratch>=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt08-reproduce. Ran: OUT_DIR=<scratch>/rt08-rel npm --prefix <wt> run build:release 2> <scratch>/rt08-rel-stderr.txt > <scratch>/rt08-rel-stdout.txt && node redteam/redteam-RT-08-p4-release-report.mjs <scratch>/rt08-rel-stderr.txt <scratch>/rt08-rel. The stdout redirect only kept the build log out of the terminal. Exit 1. Output: 'MISMATCH: \"open item E7 used on /modules/m7-geometry/ (nothing shown)\" but /modules/m7-geometry/ shows 1 fallback(s) of E7 in its HTML', plus two info lines for E6 (T15), then '1 report line(s) disagree with the release pages'. stderr line 10: 'open item E7 used on /modules/m7-geometry/ (nothing shown)'. The release page has '<span class=\"unverified-fallback\" data-unverified=\"E7\" ...>The rule was checked by computation ...'. The gate report (commit 4e3e839, gate commit b9b8504) line 130 reads 'Appendix E item 7 (... used on /modules/m7-geometry/, open, nothing shown in a release build)'. The observed value matches.",
-    "severityAdjustment": "none",
-    "reason": "reproduced as stated; observed matches: the release report says E7 shows nothing on M7 while the page shows the E7 fallback, and gate G4's owner checklist repeats it. A wrong report line is minor."
-   },
-   "refute": {
-    "findingId": "P4-RT-08-10",
-    "mode": "refute",
-    "reproduced": null,
-    "refuted": false,
-    "citation": "SPEC.md 7.3: a release build 'prints a report of the open items and the pages that use them, which the owner reads at each release (section 9.1)'. 9.1 G4 owner's part: Appendix E items 7 and 9. The finding's second sentence ('should say what each page shows') goes beyond 7.3, but the cause stands.",
-    "evidence": "site/src/lib/unverifiedRegistry.ts at b9b8504 prints the console.warn line only when isNew, with the annotation taken from the first usage. M7 has two E7 wraps: beat 3 with no fallback, then the Seen box with one. So the line reads '(nothing shown)'. The registry's own logged design (DECISIONS.md, P0-A4 'release mode, unknown items, and the open-items report') says the annotation exists 'so that the report and the stderr line can say whether the fallback was shown', and here it says so wrongly. reports/gate-G4.md section 11 passes the error to the owner ('Appendix E item 7 ... open, nothing shown in a release build'), although the owner must read and accept fallback text (9.1 G6). P4-A6's request (4) to P0-A4 (DECISIONS.md line 2449) was not carried to any tracked list: the MERGE P4 wave 4.4 entry does not list it, and the gate report repeats the error rather than recording it.",
-    "severityAdjustment": "none",
-    "reason": "not refuted: R1 no sentence permits a false annotation. R2 7.3 does not require the annotation, but the report the owner reads states something false, contrary to the build's own logged purpose for it, so the cause stands. R3 the E7 wraps are phase 4. R4 n/a. R5 the P0-A4 per-pair design does not license a wrong label. R6 the P4-A6 request is not a tracked open item."
-   }
-  }
  }
 ]
