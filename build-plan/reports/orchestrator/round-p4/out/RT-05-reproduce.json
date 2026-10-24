@@ -1,0 +1,76 @@
+{
+ "lens": "RT-05",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P4-RT-05-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 7.5 A-1 (criteria 2.1.1, 2.4.3); DECISIONS.md 'RT-FIX-P3-follow-predict: done controls keep the focus' and 'RT-FIX-P3-residual-tools: an aria-disabled control ignores activation'",
+   "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a589ca33ce5d039d4, started on branch worktree-agent-a589ca33ce5d039d4 at aea1802, clean. Detached at HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Node v22.22.0. Applied from worktree-agent-aabc584b26c56d8cb (bcdfc2a) with 'git checkout <branch> -- <path>': all 7 site/tests/e2e/redteam-RT-05-p4-*.spec.ts files. None exists at the gate commit. The diff of the branch against the gate (diff --stat) adds only these 7 files, and each run filters to one file. The only import is ./hydrate (site/tests/e2e/hydrate.ts), which exists at the gate. git status --porcelain showed 7 'A  site/tests/e2e/redteam-RT-05-p4-...' lines. 'npm --prefix <wt> ci --prefer-offline' exited 0. 'npm --prefix <wt> run build' exited 0 ('32 page(s) built', 'links: ... 0 problems'); it ran once for all findings, since the applied files are tests only. Config: a copy of playwright.config.ts at /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt05-reproduce/playwright.config.ts with PORT 6084, as the verify instructions require. Because the copy sits outside the worktree, it also uses absolute paths for the @playwright/test and site/astro.config.mjs imports, testDir and webServer cwd. Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <copy> site/tests/e2e/redteam-RT-05-p4-ownpress-focus.spec.ts. Exit 1, '8 failed'. Every failure is at expect(focusAfter(page)).not.toBe('BODY'), with 'Expected: not \"BODY\"': T10 'No rotation' (?g=D4); T10 'Draw the orbit' (?g=E8&r=0.1.0.0.0.0.0.0); T2 'Show total'; T2 'Grow one layer' (after toBeDisabled passed); T7 table 'Fire node 1' (after data-moves=1 passed); T5 'Play to the end B' on M4 b3 (after toBeDisabled passed); board editor 'Add node' (spec line 114); Challenge on M1 (after data-met=true passed). The test stops at 'Add node', so its 'Remove node' half (lines 116-118) did not run. A second run was made because of the fixed waits (load average 4.6): exit 1, the same 8 failures, 8 'Expected: not \"BODY\"' lines. Comparison: the observed matches the finding (document.activeElement is BODY) for every listed control except 'Remove node', which was not reached. After the run, the tree held only the 7 applied files. test-results/, site/dist, site/.astro, site/public/katex, site/src/generated and node_modules were removed, and nothing listens on 6084.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: activeElement is BODY after Enter on 8 controls in 2 runs ('Remove node' half not reached because the same test fails first at 'Add node'); a stated behaviour (DECISIONS RT-FIX-P3-follow-predict) is wrong, which is major under the rubric"
+  },
+  {
+   "findingId": "P4-RT-05-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 7.5 A-11 and A-10; 4.0 Small screens: 'Every tool is usable at a width of 320 CSS pixels'",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a); status showed 7 'A' lines. npm ci --prefer-offline and npm run build both exited 0 (shared setup, see P4-RT-05-01). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-table-reflow.spec.ts. Exit 1, '5 failed'. In each test the default-state assertion (scrollWidth 320) passed first. Then: /tools/board/?z=1&g=E8&v=l&m=f&c=n&s=1,1,1,1,1,1,1,1 'Expected: 320 Received: 585'; /tools/kostant/ 'Expected: 320 Received: 338'; /tools/weyl/ 'Expected: 320 Received: 385'; /modules/m1-mutation/ board b4 'Expected: 320 Received: 361'; /modules/m3-classification/ board b6 'Expected: 320 Received: 417'. Comparison: observed matches exactly (585, 338, 385, 361, 417). The other routes the finding lists (M1 b5 and b10, M3 b8 and b12, M5) are not in the reproducer. Tree after the run: only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: page scrollWidth 585/338/385/361/417 against 320 with the table view open, 320 in the default state; a stated behaviour (A-11 reflow) is wrong, which is major"
+  },
+  {
+   "findingId": "P4-RT-05-03",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 7.5 A-1 (criteria 2.1.1, 2.1.4); DECISIONS.md P4-A3 'history semantics and the picker' (undo and redo act on the ring edits)",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a). npm ci --prefer-offline and npm run build both exited 0 (shared setup). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-t10-shortcuts.spec.ts. Exit 1, '1 failed', at line 21: 'u with the focus on ring node 1 of /tools/geometry/ (A3) must undo the ring edit' / 'Expected: \"Node 1, value 1, ringed\"' / 'Received: \"Node 1, value 0, not ringed\"' / 'Timeout: 3000ms'. The resolved element: <button tabindex=\"0\" data-node=\"1\" data-value=\"0\" ... aria-label=\"Node 1, value 0, not ringed\">. These steps passed first: Enter unrings node 1, edits shows 1, node 1 is focused. The r step was not reached. A second run was made because of the timeout: exit 1, same failure ('Received: \"Node 1, value 0, not ringed\"'). Comparison: observed matches (u leaves the label unchanged).",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: after u on focused ring node 1 the label stays 'Node 1, value 0, not ringed' (2 runs); the test fails at the u step as the finding says; the A-1 shortcut is missing, which is major (Undo and Redo buttons still work, so the tool remains keyboard operable)"
+  },
+  {
+   "findingId": "P4-RT-05-04",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 4.0 'Long numbers'; 7.5 A-1 and A-2",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a). npm ci --prefer-offline and npm run build both exited 0 (shared setup). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-long-tooltip-focus.spec.ts. Exit 1, '2 failed'. Both fail at line 48: '/tools/board/?z=1&g=A2&v=n&m=f&c=n&s=12345678901234567890,1: visible text with the exact digits 12345678901234567890 while node 1 has keyboard focus' / 'Expected: not []', and the same for /tools/fold/?g=A3&v=n&c=n&s=12345678901234567890,1,12345678901234567890. These assertions passed first: data-value=12345678901234567890, title=12345678901234567890, and :focus has data-node=1 after Tab. Comparison: observed matches. The node has data-value and title with the exact digits, and while it has keyboard focus no visible element shows them (empty list).",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: with node 1 focused by Tab on both routes, the list of visible elements showing 12345678901234567890 is [], while title and data-value hold the digits; a stated behaviour (exact digits in the tooltip, 4.0) is missing for keyboard users, which is major"
+  },
+  {
+   "findingId": "P4-RT-05-05",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 7.5 first sentence (WCAG 2.2 AA: 3.3.1, 4.1.3); 4.0 'Keyboard and screen reader' and 'Predict'",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a). npm ci --prefer-offline and npm run build both exited 0 (shared setup). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-predict-invalid.spec.ts. Exit 1, '3 failed'. All three fail at line 44 with 'Expected: not {\"invalid\": null, \"result\": \"\", \"said\": []}', meaning the received value equals it: 'modules/m6-multiple-edges/ b7: Check with \"two\" ...'; 'modules/m7-geometry/ b4: Check with \"1.5\" ...'; 'modules/m7-geometry/ b4: Check with \"\" ...'. Before Enter, each test checked that the focus was on data-control=predictCheck. Comparison: observed matches (live region texts [], predictResult '', aria-invalid absent). The finding's further remarks (focus stays on Check after Enter, board stays frozen) are not asserted by the reproducer.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: {said: [], result: '', invalid: null} after Check with 'two' (M6 b7), '1.5' and '' (M7 b4); a message is missing, which is major"
+  },
+  {
+   "findingId": "P4-RT-05-06",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 6.3 (second ring), 4.0 Predict and Test hooks (data-can-act)",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a). npm ci --prefer-offline and npm run build both exited 0 (shared setup). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-frozen-may-act.spec.ts. Exit 1, '2 failed': '/modules/m7-geometry/ b4 before the prediction is answered' / 'Expected pattern: /aria-disabled=true data-can-act=false data-ring=false$/' / 'Received string: \"node 1: aria-disabled=true data-can-act=true data-ring=true\"', and the same for b7. At the gate, Board.svelte lines 191 and 193 derive data-can-act and data-ring from canAct[k], the same flag that Node.svelte uses to draw the second ring (lines 29-30). Comparison: observed matches (aria-disabled=true, data-can-act=true, data-ring=true on the frozen T10 board). The cursor and the other frozen boards are not asserted by the reproducer.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: 'node 1: aria-disabled=true data-can-act=true data-ring=true' on M7 b4 and b7; level kept at minor, because the rubric's major item 'a hook ... wrong' applies only if the 'may act here' ring of 6.3 '(legal firing, or raising move)' covers T10's ring toggle, which the text does not clearly say"
+  },
+  {
+   "findingId": "P4-RT-05-07",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 7.5 target WCAG 2.2 AA (2.5.3); A-1",
+   "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a). npm ci --prefer-offline and npm run build both exited 0 (shared setup). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-label-in-name.spec.ts. Exit 1, '2 failed'. tools/geometry/: 'ringUp: shows \"ring 1 up\", named \"raise the ring of node 1\"', 'ringDown: shows \"ring 1 down\", named \"lower the ring of node 1\"', 'turnUp: shows \"up\", named \"turn about the horizontal axis, the top toward you\"', 'turnDown: shows \"down\", named \"turn about the horizontal axis, the top away from you\"'. tools/mirror/: 'a1-minus: shows \"a1 − 1\", named \"move the point: number at node 1 minus 1\"', and likewise a1-plus, a2-minus and a2-plus. No other control is listed, so Left, Right, Counterclockwise and Clockwise pass. Comparison: observed matches exactly (ringUp, ringDown, turnUp, turnDown; a1-minus, a1-plus, a2-minus, a2-plus). Final tree, after all seven runs and the clean-up: git status --porcelain --ignored lists only the 7 'A' reproducer files; nothing listens on 6084.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: 4 T10 controls and 4 T6 controls have aria-labels that do not contain their visible text; minor (a name) under the rubric"
+  }
+ ]
+}

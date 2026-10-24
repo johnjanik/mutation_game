@@ -18,3 +18,22 @@
 - P4-RT-07-05 minor: offered.ts pulls t10/config and t11/config (presets, captions) into ToolFrame on every tool route (1100 B).
 - Lab notes: M7 b1 hydration task 186-239 ms (Svelte 51-57%, engine 12%); with fonts fixed M7 may still need b1's hydration shortened (owner); T10 draws points twice in vertices-only cases; benchmark 'Big' case now times the safe-number fast path.
 - RT-13 verdicts: 01, 02, 03 CONFIRMED (reproduced, not refuted). 04 REFUTED (SPEC 4.0, 7.4, 9.2 and 8.1 P1 attach the caption to the default state; 6.6 a link changes only the keys it names; T11's state caption is P4-A4's own choice): dropped, for the owner as a possible new requirement. Owner note on 01: 'this module's board' is undefined for a module with several boards; the plan told P4-A6 'B3 or E8'.
+## RT-05: 7 findings (5 major, 2 minor), verifying. Retests hold: 05-01, 02, 03, 04, 07, 08, 09 (Predict), 10, 11; 05-06 held.
+- P4-RT-05-01 major: eight own-press controls still drop focus to body (T10 No rotation, Draw the orbit; T2 Show total, Grow; T7 table fire; T5 Play B; editor Add/Remove node; Challenge input).
+- P4-RT-05-02 major: table view on T1, T8, T9 widens the tool frame at 320 (grid min-content).
+- P4-RT-05-03 major: T10 ring board ignores u and r.
+- P4-RT-05-04 major: long values' exact digits only in a title tooltip, not shown on keyboard focus.
+- P4-RT-05-05 major: Predict Check with a non-integer answer says nothing (no error, no aria-invalid).
+- P4-RT-05-06 minor: frozen T10 nodes keep data-can-act=true and the may-act ring.
+- P4-RT-05-07 minor: T10 ring/turn and T6 point buttons' aria-labels miss the visible text (WCAG 2.5.3).
+- Notes: Chromium refuses ports 5060, 5061 (and 6000, 6665-6669, 6697): avoid. M6 dynkin vs roads (owner); T11 average-tab table buttons act while board nodes are aria-disabled; disabled controls look the same as enabled (RT-06); T11 names as <sub>.
+- RT-07 refute: 01, 02, 05 not refuted; 03 not refuted for the TBT half (late fonts' relayout over M7's 200 ms; P3-X1's no-preload record predates M7), refuted for the CLS half (7.6's CLS is the lab navigation at the top: 0.0003 and 0.0000); 04 REFUTED (own presets on own pages, no call near 50 ms, P1-A6 records captions from the engine at module load). Reproduce pending.
+- RT-05 refute: 01, 02, 03, 05, 07 not refuted; 06 not refuted and raised to major (a 4.0 hook wrong); 04 REFUTED (4.0 Long numbers asks 'in the tooltip' with no trigger; SPEC says 'on focus or hover' where it wants both; table view gives keyboard readers the digits; P1-A5, P2-A6 record the title tooltip). Reproduce pending.
+## RT-01: 2 findings (1 major, 1 minor), verifying. Retest 01-02 holds (306/306 vs oracle); 01-01 held. Residual P3-RT-07-02 engine fix: no disagreement on any safe input (thousands of boards, values crossing 2^53, SafeInt vs Big).
+- P4-RT-01-01 major: wythoffEdges rounds vertex entries beyond 2^53 on Big boards (no EngineOverflow).
+- P4-RT-01-02 minor: symmetrizer/gram/cartanClass/classify/smallestNonfiniteSubboard throw RangeError on road counts beyond 2^53 (rat from number); T16 import's refusal shows the RangeError text.
+- Notes: cap below distinct seeds throws RangeError (SPEC undefined); oracle docstring of averaged_simple_cartan false for the identity on non-simply-laced (owner); geometry floats not bit-identical but within 1e-9.
+- RT-01 reproduce: 01 and 02 reproduced (02 suggested raise to major: coxeterNumber throws RangeError where 5.6 says NotFiniteType). Refute pending.
+- RT-01 verdicts: 01 CONFIRMED (major); 02 CONFIRMED, raised to major by both verifiers.
+- RT-05 verdicts: 01, 02, 03, 05 CONFIRMED (major); 06 CONFIRMED (refuter: major; reproducer: minor; fixed in the T10 cluster either way); 07 CONFIRMED (minor); 04 DROPPED (refuted).
+- RT-07 verdicts: 01, 02, 05 CONFIRMED; 03 CONFIRMED for the TBT half (reproduced: M7 TBT medians 423/427 as built against 196/207 with the three font preloads; the CLS half is not a 7.6 violation); 04 DROPPED (refuted).
