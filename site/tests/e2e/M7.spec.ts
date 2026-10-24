@@ -1280,3 +1280,63 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
 });
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red team, phase 4 round; RT-FIX-P4 lesson M7)
+// ---------------------------------------------------------------------------------------------
+
+/** A number of a start as the caption prints it ("0", "1", "√2", "1/√2") or as TeX ("\sqrt2", "\sqrt{2}"). */
+function startEntry(s: string): number {
+  const t = s.replace(/\\sqrt\{?(\d+)\}?/g, '√$1').replace(/\s+/g, '');
+  const value = (x: string): number => (x.startsWith('√') ? Math.sqrt(Number(x.slice(1))) : Number(x));
+  const [num, den] = t.split('/');
+  return den === undefined ? value(num!) : value(num!) / value(den);
+}
+
+test.describe('regressions', () => {
+  // RT-09, attack 25 (a drawn object that contradicts its caption), from
+  // site/tests/e2e/redteam-RT-09-p4-m7-uniform.spec.ts of the lens branch. Beat 5 said make uniform replays "the
+  // same moves from (0,1,\sqrt2) in floating point", and the caption of b7 "Make uniform ... redraws it from
+  // (0, 1, √2) with one edge length". T10 replays from a_i = c / sqrt(d_i), c the largest ringed integer
+  // (t10/uniform.ts, uniformStart; decisions/P4-A3.md), which on B3 with rings (0, 1, 1) and d = (2, 2, 1) is
+  // (0, 1/sqrt2, 1) = (0, 1, sqrt2) / sqrt2. The squared length of the edge at the start is 2 d_i a_i^2 (SPEC
+  // 2.14): 4 from (0, 1, sqrt2), 2 from (0, 1/sqrt2, 1).
+  //   oracle: 2 * symmetrizer(cartan('B',3))[1] * 1**2 = 4; 2 * 1 * sqrt(2)**2 = 4.
+  // Adoption: the expected length, 4 in the reproducer, is computed from the start each statement names; a
+  // statement that names "a multiple of" a start is held to the shape it fixes (one length, as the studio shows).
+  // regression: P4-RT-09-04
+  test('M7 b7 make uniform draws from the start its caption and beat 5 state', async ({ page }) => {
+    await page.goto(ROUTE);
+    await hydrate(page, 'b7');
+    const caption = norm(await out(page, 'b7', 'caption').textContent());
+    const beat5 = norm(await proseText(page, '[data-beat="5"]'));
+    const statements = [
+      { where: 'the caption of b7', m: /redraws it from (a multiple of )?\(([^()]*)\)/.exec(caption), text: caption },
+      { where: 'beat 5', m: /replaying the same moves (?:in floating point )?from (a multiple of )?\(([^()]*)\)/.exec(beat5), text: beat5 },
+    ];
+    const showMe = tool(page, 'b7').getByRole('button', { name: /show me/i });
+    if (await showMe.count()) await showMe.first().click();
+    await expect(out(page, 'b7', 'edgeLengths')).toHaveText([...b3Lengths(W('B3', [0, 1, 1]).rings)].reverse().join(', '));
+    await control(page, 'b7', 'uniform').click();
+    await expect(out(page, 'b7', 'uniform')).toHaveText('on');
+    const lengths = (await out(page, 'b7', 'edgeLengths').textContent())?.trim();
+    const count = await out(page, 'b7', 'edgeLengths').getAttribute('data-count');
+    for (const { where, m, text } of statements) {
+      expect(m, `${where} names the start of make uniform: ${text}`).not.toBeNull();
+      const start = m![2]!.split(',').map(startEntry);
+      expect(start.length, where).toBe(B3_WEIGHTS.length);
+      // 2.14 Edge lengths: the squared length of the edge from the start at ringed node i is 2 d_i a_i^2.
+      const squares = [...new Set(start.flatMap((a, i) => (a === 0 ? [] : [Math.round(2 * B3_WEIGHTS[i]! * a * a * 1e6) / 1e6])))];
+      if (m![1] === undefined) {
+        expect(
+          lengths,
+          `${where}: make uniform draws from (${m![2]}); from it every edge at the start has squared length ${squares.join(' or ')} (2 d_i a_i^2 with d = (${B3_WEIGHTS.join(', ')})); the studio reads "${lengths}"`,
+        ).toBe(squares.sort((x, y) => x - y).join(', '));
+      } else {
+        // A multiple t of the start has squared lengths t^2 2 d_i a_i^2: one length exactly when the start has one.
+        expect(squares, `${where}: the start (${m![2]}) gives one edge length`).toHaveLength(1);
+        expect(count, `${where}: the studio shows one edge length`).toBe('1');
+      }
+    }
+  });
+});
