@@ -41,8 +41,12 @@ export interface OpenItemsReport {
   complete?: boolean;
   /** The postbuild link check of the release build (scripts/links.mjs): absent until it starts. */
   linkCheck?: 'running' | 'passed' | 'failed';
-  items: { id: string; status: UnverifiedStatus; gate: string; pages: string[]; fallbackShown: boolean }[];
-  unknownItems: { item: string; pages: string[] }[];
+  /**
+   * `fallbackPages`, present when not empty: the pages on which at least one use of the item shows
+   * its fallback (RT-FIX P4-RT-08-10); `fallbackShown` says whether there is one.
+   */
+  items: { id: string; status: UnverifiedStatus; gate: string; pages: string[]; fallbackShown: boolean; fallbackPages?: string[] }[];
+  unknownItems: { item: string; pages: string[]; fallbackPages?: string[] }[];
 }
 
 const ITEMS: readonly UnverifiedItem[] = seed as UnverifiedItem[];
@@ -64,7 +68,8 @@ export function decide(item: string, release: boolean, hasFallback: boolean): 'm
   return hasFallback ? 'fallback' : 'nothing';
 }
 
-interface Usage { pages: Set<string>; fallbackShown: boolean }
+/** The pages that use an item, and those on which at least one use shows its fallback. */
+interface Usage { pages: Set<string>; fallbackPages: Set<string> }
 
 /** Item id to the pages that use it, in this module instance. */
 const usage = new Map<string, Usage>();
@@ -72,6 +77,11 @@ const usage = new Map<string, Usage>();
 /** Forgets every registration (for tests). */
 export function clearUsage(): void {
   usage.clear();
+}
+
+/** `{ fallbackPages }` when the fallback is shown on a page, else nothing. */
+function fallbackPagesOf(u: Usage | undefined): { fallbackPages?: string[] } {
+  return u && u.fallbackPages.size > 0 ? { fallbackPages: [...u.fallbackPages].sort() } : {};
 }
 
 function buildReport(map: ReadonlyMap<string, Usage>, complete = false): OpenItemsReport {
@@ -83,14 +93,33 @@ function buildReport(map: ReadonlyMap<string, Usage>, complete = false): OpenIte
     complete,
     items: ITEMS.map((item) => {
       const u = map.get(item.id);
-      return { id: item.id, status: item.status, gate: item.gate, pages: u ? [...u.pages].sort() : [], fallbackShown: u ? u.fallbackShown : false };
+      return { id: item.id, status: item.status, gate: item.gate, pages: u ? [...u.pages].sort() : [], fallbackShown: u ? u.fallbackPages.size > 0 : false, ...fallbackPagesOf(u) };
     }),
     unknownItems: [...map.entries()]
       .filter(([id]) => itemById(id) === undefined)
-      .map(([item, u]) => ({ item, pages: [...u.pages].sort() }))
+      .map(([item, u]) => ({ item, pages: [...u.pages].sort(), ...fallbackPagesOf(u) }))
       .sort((a, b) => (a.item < b.item ? -1 : a.item > b.item ? 1 : 0)),
   };
   return report;
+}
+
+/**
+ * The release report of SPEC.md 7.3 on standard error: one line per (item, page), for every item
+ * that is not closed, saying "fallback shown" when at least one use of the item on the page shows
+ * its fallback and "nothing shown" otherwise (RT-FIX P4-RT-08-10). Items in the order of
+ * unverified.json, then the unknown items; pages sorted.
+ */
+function reportLines(map: ReadonlyMap<string, Usage>): string[] {
+  const unknown = [...map.keys()].filter((id) => itemById(id) === undefined).sort();
+  const lines: string[] = [];
+  for (const id of [...ITEMS.map((item) => item.id), ...unknown]) {
+    const u = map.get(id);
+    if (!u || itemById(id)?.status === 'closed') continue;
+    for (const page of [...u.pages].sort()) {
+      lines.push(`open item ${id} used on ${page} (${u.fallbackPages.has(page) ? 'fallback shown' : 'nothing shown'})`);
+    }
+  }
+  return lines;
 }
 
 /** The report from this instance's registrations: every item of unverified.json, used or not. */
@@ -104,7 +133,7 @@ export function currentReport(): OpenItemsReport {
  */
 function mergedWithFile(): Map<string, Usage> {
   const merged = new Map<string, Usage>();
-  for (const [id, u] of usage) merged.set(id, { pages: new Set(u.pages), fallbackShown: u.fallbackShown });
+  for (const [id, u] of usage) merged.set(id, { pages: new Set(u.pages), fallbackPages: new Set(u.fallbackPages) });
   const buildId = process.env.OPEN_ITEMS_BUILD_ID;
   if (!buildId || !existsSync(reportPath())) return merged;
   let previous: OpenItemsReport;
@@ -114,14 +143,14 @@ function mergedWithFile(): Map<string, Usage> {
     return merged;
   }
   if (previous.buildId !== buildId) return merged;
-  const add = (id: string, pages: string[], fallbackShown: boolean): void => {
-    const u = merged.get(id) ?? { pages: new Set<string>(), fallbackShown: false };
+  const add = (id: string, pages: string[], fallbackPages: string[]): void => {
+    const u = merged.get(id) ?? { pages: new Set<string>(), fallbackPages: new Set<string>() };
     for (const p of pages) u.pages.add(p);
-    u.fallbackShown ||= fallbackShown;
+    for (const p of fallbackPages) u.fallbackPages.add(p);
     if (u.pages.size > 0) merged.set(id, u);
   };
-  for (const it of previous.items ?? []) add(it.id, it.pages ?? [], Boolean(it.fallbackShown));
-  for (const it of previous.unknownItems ?? []) add(it.item, it.pages ?? [], false);
+  for (const it of previous.items ?? []) add(it.id, it.pages ?? [], it.fallbackPages ?? []);
+  for (const it of previous.unknownItems ?? []) add(it.item, it.pages ?? [], it.fallbackPages ?? []);
   return merged;
 }
 
@@ -135,23 +164,17 @@ export function writeReport(): void {
 }
 
 /**
- * Records that a page uses an item. In a release build it prints one line per new (item, page)
- * pair and rewrites the report; in a preview build it prints and writes nothing.
+ * Records that a page uses an item, and whether this use shows the fallback. In a release build it
+ * rewrites the report; in a preview build it writes nothing. The lines on standard error are
+ * printed by the build-done hook, once every use of every page is known (RT-FIX P4-RT-08-10).
  */
 export function registerUsage(item: string, page: string, hasFallback = false): void {
   const release = isReleaseBuild();
-  const u = usage.get(item) ?? { pages: new Set<string>(), fallbackShown: false };
-  const isNew = !u.pages.has(page);
+  const u = usage.get(item) ?? { pages: new Set<string>(), fallbackPages: new Set<string>() };
   u.pages.add(page);
-  const shown = decide(item, release, hasFallback);
-  if (shown === 'fallback') u.fallbackShown = true;
+  if (decide(item, release, hasFallback) === 'fallback') u.fallbackPages.add(page);
   usage.set(item, u);
   if (!release) return;
-  if (isNew && shown !== 'plain') {
-    // The release report of SPEC.md 7.3 on standard error. This runs only in Node at build time
-    // and is never shipped to the reader.
-    console.warn(`open item ${item} used on ${page} (${shown === 'fallback' ? 'fallback shown' : 'nothing shown'})`);
-  }
   writeReport();
 }
 
@@ -189,8 +212,12 @@ export function openItemsReportIntegration(): AstroIntegration {
       },
       'astro:build:done': () => {
         if (!isReleaseBuild()) return;
-        writeReportFiles(buildReport(mergedWithFile(), true));
+        const merged = mergedWithFile();
+        writeReportFiles(buildReport(merged, true));
         demoteOnFailedExit(process.env.OPEN_ITEMS_BUILD_ID);
+        // The release report of SPEC.md 7.3 on standard error. This runs only in Node at build
+        // time and is never shipped to the reader.
+        for (const line of reportLines(merged)) console.warn(line);
       },
     },
   };
