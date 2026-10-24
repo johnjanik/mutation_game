@@ -1,0 +1,942 @@
+// P5-A2: tool T12, the Representation Builder (SPEC.md 4 T12, 2.18, 2.7 F11, 4.0, 5.6, 6.6, E-5, E-7, E-9).
+// The acceptance of SPEC 4 T12 over the 18 records of the golden key `minuscule_representations`, through
+// the tool's own pure functions in site/src/components/tools/t12/model.ts (which re-exports t12/rep.ts),
+// plus the plan's checks (instruction section 6), MatrixView's helpers and the server render of
+// T12RepresentationBuilder.svelte.
+//
+// Golden records come from the harness of P0-A2 (packages/engine/test/golden/_harness.ts): `golden`,
+// `matchRecord` (rule 5), `labels` (rule 2), `TYPE_NAMES`. This file never calls `covers`: the key
+// `minuscule_representations` is tested in exactly one golden file, P5-A1's (CONTRACTS 3). Every value
+// expected below is read from the golden file or computed by the engine; the only matrices typed are the
+// worked values of the instruction (sections 5.4 and 5.8), which the oracle printed for A2 and A1.
+//
+// Properties of T12 beyond the common ones of 4.0 Configuration (id, board, coords, start, moves,
+// prediction, preset, caption): `node` (a label, 6.6 `k`) and `relation` (a code with labels, 6.6 `q`).
+// `linkTo` and `layers` are accepted and ignored.
+import { readFileSync } from 'node:fs';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  CAPS,
+  boardFromName,
+  chevalleySerre,
+  fire,
+  minusculeMatrices,
+  minusculeNodes,
+  orbitSize,
+  play,
+  signedMoves,
+  spAdd,
+  spEq,
+  spKey,
+  spMul,
+  toLabels,
+  toPositions,
+} from '@engine';
+import type { AnyBoard, Board, RelationCheck, SparseMatrix } from '@engine';
+import { TYPE_NAMES, golden, labels as harnessLabels, matchRecord } from '../../../../packages/engine/test/golden/_harness';
+import { T12_BOARDS, T12_CONDITIONAL_OUTS, T12_OUTS, T12_PRESETS } from '../../../src/components/tools/t12/config';
+import {
+  DRAW_MAX,
+  REP_ENGINE,
+  RELATIONS,
+  RELATIONS_MAIN_MAX,
+  STRING_SHOWN_MAX,
+  T12Tool,
+  acceptRelations,
+  admitLink,
+  buildRepresentation,
+  byPosition,
+  captionOf,
+  configOf,
+  configuredState,
+  defaultNode,
+  defaultRelation,
+  defaultsFor,
+  entryList,
+  explanation,
+  exportData,
+  findRelation,
+  firstFailing,
+  inArithmetic,
+  interaction,
+  limitSentence,
+  matrixFormat,
+  minusculeLabels,
+  moveSentence,
+  noMinusculeSentence,
+  orbitDrawing,
+  orbitLayers,
+  parseRelationCode,
+  relationCode,
+  relationParts,
+  relationSpoken,
+  relationSummary,
+  relationText,
+  relationsOnMain,
+  repCaption,
+  representationOf,
+  routedCalls,
+  someNumberPhrase,
+  stringView,
+  undoSentence,
+  type RepEngine,
+} from '../../../src/components/tools/t12/model';
+import T12 from '../../../src/tools/registry/T12';
+import { LINK_NOTICE, encodeState } from '../../../src/lib/urlCodec';
+import { exportJSON } from '../../../src/lib/export';
+import { whereToRun } from '../../../src/lib/worker';
+import { ssrLoader, type SsrLoader } from '../_svelteSsr';
+
+interface MinusculeRecord {
+  type: string;
+  node: number;
+  dimension: number;
+  weights_dynkin_labels: number[][] | null;
+}
+const RECORDS = golden.minuscule_representations as MinusculeRecord[];
+
+const named = (name: string): Board<number> => boardFromName(name) as Board<number>;
+const pos = (board: AnyBoard, label: number): number => toPositions(board, [label])[0]!;
+const labelOrderPositions = (board: AnyBoard): number[] => toPositions(board, [...board.labels].sort((a, b) => a - b));
+/** A vector by position in label order (the order of the golden vectors and of every vector the tool shows). */
+const inLabels = <V>(board: AnyBoard, v: readonly V[]): V[] => labelOrderPositions(board).map((p) => v[p]!);
+/** omega_i at a position, by position. */
+const omegaAt = (board: AnyBoard, p: number): number[] => Array.from({ length: board.n }, (_, k) => (k === p ? 1 : 0));
+const sparse = (entries: Record<string, number>): SparseMatrix => new Map(Object.entries(entries).map(([k, v]) => [k, BigInt(v)]));
+/** P_k^0 of the basis: 1 on the diagonal where the number at position k is 0 (SPEC 2.18). */
+const projector = (basis: readonly (readonly number[])[], k: number): SparseMatrix => {
+  const m: SparseMatrix = new Map();
+  basis.forEach((v, r) => {
+    if (v[k] === 0) m.set(spKey(r, r), 1n);
+  });
+  return m;
+};
+/** (-1)^{H_k} on the basis: -1 where the number at position k is odd, 1 where it is even (SPEC 2.18). */
+const minusOneToH = (basis: readonly (readonly number[])[], k: number): SparseMatrix => {
+  const m: SparseMatrix = new Map();
+  basis.forEach((v, r) => m.set(spKey(r, r), Math.abs(v[k]!) % 2 === 1 ? -1n : 1n));
+  return m;
+};
+
+// ---------------------------------------------------------------------------------------------
+// SPEC 4 T12 acceptance over the 18 records
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 acceptance over minuscule_representations', () => {
+  it('for every minuscule_representations record the tool\'s dimension equals the golden dimension and the basis equals weights_dynkin_labels', () => {
+    expect(RECORDS).toHaveLength(18);
+    for (const rec of RECORDS) {
+      const board = named(rec.type);
+      const rep = buildRepresentation(board, rec.node);
+      expect(rep.built, rec.type).toBe(true);
+      expect(rep.minuscule, `${rec.type} node ${rec.node}`).toBe(true);
+      expect(rep.basis!.length, `${rec.type} node ${rec.node}`).toBe(rec.dimension);
+      expect(rep.orbitSize).toBe(rec.dimension);
+      expect(rep.orbitSize).toBe(orbitSize(board, omegaAt(board, pos(board, rec.node))));
+      // Rule 7: the weights are compared where they are stored (null above dimension 27).
+      if (rec.weights_dynkin_labels !== null) expect(rep.basis!.map((v) => inLabels(board, v)), `${rec.type} node ${rec.node}`).toEqual(rec.weights_dynkin_labels);
+      // The record is found by type and node (rule 5), and its node is a label (rule 2).
+      expect(matchRecord(RECORDS, { type: rec.type, node: rec.node })).toBe(rec);
+      expect(harnessLabels(board, [rep.position])).toEqual([rec.node]);
+    }
+  });
+
+  it('for every listed representation every RelationCheck holds and the tool reports all relations holding', () => {
+    for (const rec of RECORDS) {
+      const board = named(rec.type);
+      const rep = buildRepresentation(board, rec.node);
+      const n = board.n;
+      // Every listed representation has its list computed on the main thread (RELATIONS_MAIN_MAX).
+      expect(relationsOnMain(rep.orbitSize), rec.type).toBe(true);
+      expect(rep.checks!.length).toBe(6 * n * n - 2 * n);
+      for (const c of rep.checks!) {
+        expect(c.holds, `${rec.type} node ${rec.node}: ${relationCode(board, c)}`).toBe(true);
+        expect(spEq(c.left, c.right)).toBe(true);
+      }
+      expect(relationSummary(rep.checks!)).toBe(`All ${6 * n * n - 2 * n} relations hold.`);
+      expect(explanation(rep)).toBe(`Node ${rec.node} is minuscule: every number in the orbit of ω${rec.node} is −1, 0 or 1, and all the relations hold.`);
+    }
+  });
+
+  it('D4 node 2 builds 24 positions, some relation fails, the default relation is a failing one and the explanation says some number in the orbit is 2', () => {
+    const D4 = named('D4');
+    const rep = buildRepresentation(D4, 2);
+    expect(rep.minuscule).toBe(false);
+    expect(rep.built).toBe(true);
+    expect(rep.basis!.length).toBe(golden.types.D4!.fundamental_orbit_sizes[1]);
+    expect(rep.basis!.length).toBe(24);
+    expect(rep.checks!.some((c) => !c.holds)).toBe(true);
+    // The worked value of the instruction (5.6), from the oracle: exactly the ef relations fail, at these labels.
+    const failing = rep.checks!.filter((c) => !c.holds).map((c) => relationCode(D4, c));
+    expect(failing).toEqual(['ef:1,1', 'ef:1,2', 'ef:2,1', 'ef:2,2', 'ef:2,3', 'ef:2,4', 'ef:3,2', 'ef:3,3', 'ef:4,2', 'ef:4,4']);
+    expect(relationSummary(rep.checks!)).toBe('10 of 88 relations fail.');
+    // The default relation is the first failing check in the engine's order: ef:1,1.
+    expect(defaultRelation(rep)).toBe(relationCode(D4, firstFailing(rep.checks!)!));
+    expect(defaultRelation(rep)).toBe('ef:1,1');
+    expect(findRelation(rep.checks!, D4, defaultRelation(rep))!.holds).toBe(false);
+    // The number comes from legal play from omega_2 (F11's third condition): the first number fired above 1.
+    const fired = play(D4, omegaAt(D4, pos(D4, 2))).fired;
+    const first = fired.find((x) => x > 1)!;
+    expect(first).toBe(2);
+    expect(rep.firstLarge).toEqual({ value: first, move: fired.findIndex((x) => x > 1) + 1 });
+    expect(explanation(rep)).toContain(someNumberPhrase(2));
+    expect(explanation(rep)).toContain('some number in the orbit is 2');
+    expect(explanation(rep)).toBe(
+      `Node 2 is not minuscule: some number in the orbit is 2 (legal play from ω2 fires a 2 at move ${rep.firstLarge!.move}), so the steps E and F of the recipe miss some moves and the relations fail.`,
+    );
+    expect(someNumberPhrase(2)).toBe('some number in the orbit is 2');
+    expect(repCaption(rep)).toContain('some number in the orbit is 2');
+  });
+
+  it('B3 node 3 and C3 node 1 build 8 and 6 positions with every relation holding (firing, not mutation)', () => {
+    for (const [type, node] of [['B3', 3], ['C3', 1]] as const) {
+      const board = named(type);
+      const rep = buildRepresentation(board, node);
+      const rec = matchRecord(RECORDS, { type, node });
+      expect(rep.basis!.length).toBe(rec.dimension);
+      expect(rep.checks!.every((c) => c.holds)).toBe(true);
+      // Each move is fire: the image of a basis vector under moves[k] is fire(basis vector, k).
+      rep.basis!.forEach((v, r) => {
+        for (let k = 0; k < board.n; k++) {
+          const image = fire(board, v, k);
+          const c = rep.basis!.findIndex((w) => w.join(',') === image.join(','));
+          expect(rep.moves![k]!.get(spKey(c, r))).toBe(1n);
+        }
+      });
+    }
+    expect(buildRepresentation(named('B3'), 3).basis!.length).toBe(8);
+    expect(buildRepresentation(named('C3'), 1).basis!.length).toBe(6);
+  });
+
+  it('G2 node 2 fails with some number in the orbit is 3; boards with no minuscule node say so', () => {
+    const G2 = named('G2');
+    const rep = buildRepresentation(G2, 2);
+    const fired = play(G2, omegaAt(G2, pos(G2, 2))).fired;
+    const m = fired.find((x) => x > 1)!;
+    expect(m).toBe(3);
+    expect(explanation(rep)).toContain(someNumberPhrase(m));
+    expect(rep.checks!.some((c) => !c.holds)).toBe(true);
+    for (const name of ['E8', 'F4', 'G2']) {
+      const r = buildRepresentation(named(name), 1);
+      expect(golden.types[name]!.minuscule_nodes).toEqual([]);
+      expect(noMinusculeSentence(r)).toBe('This board has no minuscule node; its representations need more than the game.');
+    }
+    expect(noMinusculeSentence(buildRepresentation(named('A2'), 1))).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The cap of 5.6 and the agreement of F11 with the relations
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 cap and verdict', () => {
+  /** The engine with a counter on each call (the spy of the instruction, section 6). */
+  function counting(): { engine: RepEngine; calls: Record<string, number> } {
+    const calls: Record<string, number> = {};
+    const count = <F extends (...a: never[]) => unknown>(name: string, f: F): F =>
+      ((...a: never[]) => {
+        calls[name] = (calls[name] ?? 0) + 1;
+        return f(...a);
+      }) as F;
+    const engine: RepEngine = {
+      minusculeNodes: count('minusculeNodes', REP_ENGINE.minusculeNodes),
+      orbitSize: count('orbitSize', REP_ENGINE.orbitSize),
+      play: count('play', REP_ENGINE.play),
+      minusculeMatrices: count('minusculeMatrices', REP_ENGINE.minusculeMatrices),
+      signedMoves: count('signedMoves', REP_ENGINE.signedMoves),
+      chevalleySerre: count('chevalleySerre', REP_ENGINE.chevalleySerre),
+    };
+    return { engine, calls };
+  }
+
+  it('nodes whose orbit exceeds 2000 positions get the explanation alone and minusculeMatrices is not called', () => {
+    const cases: [string, number][] = [['E7', 3], ['E7', 4], ['E7', 5], ...[1, 2, 3, 4, 5, 6, 7].map((k) => ['E8', k] as [string, number])];
+    for (const [type, node] of cases) {
+      const board = named(type);
+      const size = golden.types[type]!.fundamental_orbit_sizes[pos(board, node)]!;
+      expect(size, `${type} node ${node}`).toBeGreaterThan(CAPS.repOrbit);
+      const { engine, calls } = counting();
+      const rep = buildRepresentation(board, node, { engine });
+      expect(rep.built).toBe(false);
+      expect(rep.orbitSize).toBe(size);
+      expect(calls.minusculeMatrices ?? 0, `${type} node ${node}`).toBe(0);
+      expect(calls.chevalleySerre ?? 0).toBe(0);
+      expect(calls.signedMoves ?? 0).toBe(0);
+      expect(rep.basis).toBeNull();
+      expect(rep.checks).toBeNull();
+      expect(limitSentence(rep)).toBe(`The orbit of ω${node} has ${size} positions, more than 2000, so the matrices are not built here.`);
+      expect(explanation(rep)).toContain(someNumberPhrase(rep.firstLarge!.value));
+      expect(() => orbitLayers(rep)).toThrow(RangeError);
+    }
+    // At or below the cap the matrices are built: E8 node 8 (240) builds and fails, E7 node 7 builds.
+    const { engine, calls } = counting();
+    const e8 = buildRepresentation(named('E8'), 8, { engine });
+    expect(e8.built).toBe(true);
+    expect(calls.minusculeMatrices).toBe(1);
+    expect(limitSentence(e8)).toBeNull();
+    expect(e8.basis!.length).toBe(golden.types.E8!.fundamental_orbit_sizes[7]);
+  });
+
+  it('on every node built, minusculeNodes agrees with whether every relation holds (orbits of at most 600 positions)', () => {
+    // The orbits above 600 positions (17 of them, up to 1792) are left out to keep the parallel suite
+    // short (instruction, section 6); a run of the oracle for the plan found a failing relation on every
+    // node that is not minuscule with an orbit of at most 600 positions.
+    let built = 0;
+    let failingSeen = 0;
+    for (const type of TYPE_NAMES) {
+      const board = named(type);
+      const minuscule = minusculeNodes(board);
+      expect(minusculeLabels(board)).toEqual(toLabels(board, minuscule).sort((a, b) => a - b));
+      for (let p = 0; p < board.n; p++) {
+        const size = golden.types[type]!.fundamental_orbit_sizes[p]!;
+        if (size > 600) continue;
+        const label = toLabels(board, [p])[0]!;
+        const rep = buildRepresentation(board, label);
+        built++;
+        const allHold = rep.checks!.every((c) => c.holds);
+        expect(allHold, `${type} node ${label}`).toBe(minuscule.includes(p));
+        expect(rep.minuscule).toBe(minuscule.includes(p));
+        expect(rep.minuscule).toBe(golden.types[type]!.minuscule_nodes.includes(label));
+        if (!allHold) failingSeen++;
+      }
+    }
+    const expected = TYPE_NAMES.reduce((s, t) => s + golden.types[t]!.fundamental_orbit_sizes.filter((x) => x <= 600).length, 0);
+    expect(built).toBe(expected);
+    expect(built).toBeGreaterThan(100);
+    expect(failingSeen).toBe(built - TYPE_NAMES.reduce((s, t) => s + golden.types[t]!.minuscule_nodes.length, 0));
+  });
+
+  it('the default node is the smallest minuscule label, else 1', () => {
+    expect(defaultNode(named('E7'))).toBe(7);
+    expect(defaultNode(named('D4'))).toBe(1);
+    expect(defaultNode(named('B3'))).toBe(3);
+    for (const name of ['E8', 'F4', 'G2']) expect(defaultNode(named(name))).toBe(1);
+    for (const type of TYPE_NAMES) {
+      const m = golden.types[type]!.minuscule_nodes;
+      expect(defaultNode(named(type))).toBe(m.length > 0 ? Math.min(...m) : 1);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Matrices: worked values, the signed move, the format
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 matrices', () => {
+  it('A2 node 1 and A1 node 1: the worked matrices of the instruction (row the image, column the source)', () => {
+    const A2 = named('A2');
+    const rep = buildRepresentation(A2, 1);
+    expect(rep.basis).toEqual([[1, 0], [0, -1], [-1, 1]]);
+    const e1 = pos(A2, 1);
+    const e2 = pos(A2, 2);
+    expect(spEq(rep.E![e1]!, sparse({ '0,2': 1 }))).toBe(true);
+    expect(spEq(rep.F![e1]!, sparse({ '2,0': 1 }))).toBe(true);
+    expect(spEq(rep.H![e1]!, sparse({ '0,0': 1, '2,2': -1 }))).toBe(true);
+    expect(spEq(rep.E![e2]!, sparse({ '2,1': 1 }))).toBe(true);
+    expect(spEq(rep.F![e2]!, sparse({ '1,2': 1 }))).toBe(true);
+    expect(spEq(rep.H![e2]!, sparse({ '1,1': -1, '2,2': 1 }))).toBe(true);
+    expect(entryList(rep.E![e1]!)).toEqual([[1, 3, 1n]]);
+    const A1 = buildRepresentation(named('A1'), 1);
+    expect(A1.basis).toEqual([[1], [-1]]);
+    expect(spEq(A1.E![0]!, sparse({ '0,1': 1 }))).toBe(true);
+    expect(spEq(A1.F![0]!, sparse({ '1,0': 1 }))).toBe(true);
+    expect(spEq(A1.H![0]!, sparse({ '0,0': 1, '1,1': -1 }))).toBe(true);
+  });
+
+  it('signed move on A2 node 1 equals E - F + P0, and its square is (-1)^H on every listed representation', () => {
+    const A2 = named('A2');
+    const rep = buildRepresentation(A2, 1);
+    const k = pos(A2, 1);
+    expect(spEq(rep.moves![k]!, sparse({ '0,2': 1, '1,1': 1, '2,0': 1 }))).toBe(true);
+    expect(spEq(rep.signed![k]!, sparse({ '0,2': 1, '1,1': 1, '2,0': -1 }))).toBe(true);
+    expect(spEq(spMul(rep.signed![k]!, rep.signed![k]!), sparse({ '0,0': -1, '1,1': 1, '2,2': -1 }))).toBe(true);
+    for (const rec of RECORDS) {
+      const board = named(rec.type);
+      const r = buildRepresentation(board, rec.node);
+      for (let q = 0; q < board.n; q++) {
+        const P0 = projector(r.basis!, q);
+        expect(spEq(r.signed![q]!, spAdd(spAdd(r.E![q]!, r.F![q]!, -1n), P0)), `${rec.type} ${q}`).toBe(true);
+        expect(spEq(r.moves![q]!, spAdd(spAdd(r.E![q]!, r.F![q]!), P0))).toBe(true);
+        expect(spEq(spMul(r.signed![q]!, r.signed![q]!), minusOneToH(r.basis!, q))).toBe(true);
+      }
+    }
+    expect(signedMoves(rep.basis!, rep.E!, rep.F!).every((m, q) => spEq(m, rep.signed![q]!))).toBe(true);
+  });
+
+  it('grids up to dimension 27 inclusive, lists above (5.6)', () => {
+    expect(matrixFormat(27)).toBe('grid');
+    expect(matrixFormat(CAPS.matrixGridDim)).toBe('grid');
+    expect(matrixFormat(28)).toBe('list');
+    expect(matrixFormat(56)).toBe('list');
+    expect(matrixFormat(buildRepresentation(named('E6'), 1).basis!.length)).toBe('grid');
+    expect(matrixFormat(buildRepresentation(named('E7'), 7).basis!.length)).toBe('list');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The orbit in layers
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 orbit in layers', () => {
+  it('orbit layers: layer 0 is omega_i, every edge on a minuscule orbit joins adjacent layers and is an entry of F_k', () => {
+    for (const rec of RECORDS) {
+      const board = named(rec.type);
+      const rep = buildRepresentation(board, rec.node);
+      const o = orbitLayers(rep);
+      expect(o.drawn).toBe(true);
+      expect(o.vertices.length).toBe(rec.dimension);
+      const zero = o.vertices.filter((v) => v.depth === 0);
+      expect(zero.map((v) => v.values)).toEqual([omegaAt(board, rep.position)]);
+      expect(o.layerSizes.reduce((a, b) => a + b, 0)).toBe(rec.dimension);
+      expect(o.edges.length).toBeGreaterThan(0);
+      for (const e of o.edges) {
+        const up = o.vertices[e.from]!;
+        const down = o.vertices[e.to]!;
+        expect(down.depth).toBe(up.depth + 1);
+        expect(up.values[e.position]).toBe(1);
+        expect(down.values[e.position]).toBe(-1);
+        expect(down.values).toEqual(fire(board, up.values, e.position));
+        expect(e.step).toBe(true);
+        expect(e.node).toBe(toLabels(board, [e.position])[0]);
+        // The edge is the entry of F_k from the upper end (column) to the lower end (row), and of E_k back.
+        expect(rep.F![e.position]!.get(spKey(down.basisIndex, up.basisIndex))).toBe(1n);
+        expect(rep.E![e.position]!.get(spKey(up.basisIndex, down.basisIndex))).toBe(1n);
+      }
+      // Each pair (mu, R_k mu) with mu_k != 0 is drawn once.
+      const pairs = o.vertices.reduce((s, v) => s + v.values.filter((x) => x !== 0).length, 0);
+      expect(o.edges.length * 2).toBe(pairs);
+      // The drawing places layer d on row d.
+      const d = orbitDrawing(o);
+      expect(d.y).toEqual(o.vertices.map((v) => v.depth));
+      expect(d.layers).toBe(o.layerSizes.length);
+    }
+    // A2 node 1: the edge (1,0) to (-1,1) is F_1 with the key "2,0".
+    const A2 = named('A2');
+    const rep = buildRepresentation(A2, 1);
+    const o = orbitLayers(rep);
+    const edge = o.edges.find((e) => o.vertices[e.from]!.values.join(',') === '1,0' && o.vertices[e.to]!.values.join(',') === '-1,1')!;
+    expect(edge.node).toBe(1);
+    expect(spKey(o.vertices[edge.to]!.basisIndex, o.vertices[edge.from]!.basisIndex)).toBe('2,0');
+    expect(rep.F![pos(A2, 1)]!.has('2,0')).toBe(true);
+    expect(o.edges.map((e) => e.node).sort()).toEqual([1, 2]);
+  });
+
+  it('on a non-minuscule orbit the edges of a number 2 are no entry of E or F (drawn dashed)', () => {
+    const D4 = named('D4');
+    const rep = buildRepresentation(D4, 2);
+    const o = orbitLayers(rep);
+    const dashed = o.edges.filter((e) => !e.step);
+    expect(dashed.length).toBeGreaterThan(0);
+    for (const e of dashed) {
+      expect(e.value).toBe(2);
+      const up = o.vertices[e.from]!;
+      const down = o.vertices[e.to]!;
+      expect(rep.F![e.position]!.has(spKey(down.basisIndex, up.basisIndex))).toBe(false);
+      expect(rep.E![e.position]!.has(spKey(up.basisIndex, down.basisIndex))).toBe(false);
+      expect(rep.moves![e.position]!.get(spKey(down.basisIndex, up.basisIndex))).toBe(1n);
+    }
+  });
+
+  it('the orbit figure model draws every vertex up to 300 positions and switches to layer counts above', () => {
+    expect(DRAW_MAX).toBe(CAPS.gardenDrawEverything);
+    expect(DRAW_MAX).toBe(300);
+    const e8 = orbitLayers(buildRepresentation(named('E8'), 8, { relations: 'later' }));
+    expect(e8.vertices.length).toBe(240);
+    expect(e8.drawn).toBe(true);
+    expect(e8.edges.length).toBeGreaterThan(0);
+    const e7 = orbitLayers(buildRepresentation(named('E7'), 2, { relations: 'later' }));
+    expect(e7.vertices.length).toBe(golden.types.E7!.fundamental_orbit_sizes[1]);
+    expect(e7.drawn).toBe(false);
+    expect(e7.edges).toEqual([]);
+    expect(e7.layerSizes.reduce((a, b) => a + b, 0)).toBe(576);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Relations: codes, lookup by fields, formulas
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 relations', () => {
+  it('relationCode and parseRelationCode convert between labels and positions on every board; Serre needs two nodes', () => {
+    for (const type of TYPE_NAMES) {
+      const board = named(type);
+      for (const relation of RELATIONS) {
+        for (let i = 0; i < board.n; i++) {
+          for (let j = 0; j < board.n; j++) {
+            const code = relationCode(board, { relation, i, j });
+            const [li, lj] = toLabels(board, [i, j]);
+            expect(code).toBe(`${relation}:${li},${lj}`);
+            const back = parseRelationCode(board, code);
+            if ((relation === 'serre-e' || relation === 'serre-f') && i === j) expect(back).toBeNull();
+            else expect(back).toEqual({ relation, i, j });
+          }
+        }
+      }
+    }
+    const A2 = named('A2');
+    expect(parseRelationCode(A2, 'ef:1,3')).toBeNull();
+    expect(parseRelationCode(A2, 'xx:1,1')).toBeNull();
+    expect(parseRelationCode(A2, 'serre-e:1,1')).toBeNull();
+    expect(parseRelationCode(A2, 'ef:0,1')).toBeNull();
+  });
+
+  it('findRelation looks a check up by its fields, never by its index in the list', () => {
+    const D4 = named('D4');
+    const rep = buildRepresentation(D4, 2);
+    const shuffled: RelationCheck[] = [...rep.checks!].reverse();
+    for (const c of rep.checks!) {
+      const code = relationCode(D4, c);
+      expect(findRelation(shuffled, D4, code)).toBe(c);
+    }
+    expect(findRelation(rep.checks!, D4, 'serre-e:1,1')).toBeNull();
+  });
+
+  it('formulas of the relations with C_ij substituted, as text and as spoken names', () => {
+    const A2 = named('A2');
+    const t = (code: string): string => relationText(relationParts(A2, code)!);
+    expect(t('ef:1,1')).toBe('[E1, F1] = H1');
+    expect(t('ef:1,2')).toBe('[E1, F2] = 0');
+    expect(t('hh:1,2')).toBe('[H1, H2] = 0');
+    expect(t('he:1,2')).toBe('[H1, E2] = −E2');
+    expect(t('he:1,1')).toBe('[H1, E1] = 2E1');
+    expect(t('hf:1,2')).toBe('[H1, F2] = F2');
+    expect(t('serre-e:1,2')).toBe('ad(E1)^2 E2 = 0');
+    expect(t('serre-f:2,1')).toBe('ad(F2)^2 F1 = 0');
+    expect(relationText(relationParts(named('A3'), 'serre-e:1,3')!)).toBe('ad(E1) E3 = 0');
+    // B2: C[1][2] = -1 and C[2][1] = -2 in positions, so the exponents are 2 and 3.
+    const B2 = named('B2');
+    expect(relationText(relationParts(B2, 'serre-e:1,2')!)).toBe(`ad(E1)^${1 - B2.cartan[0]![1]!} E2 = 0`);
+    expect(relationText(relationParts(B2, 'serre-e:2,1')!)).toBe(`ad(E2)^${1 - B2.cartan[1]![0]!} E1 = 0`);
+    expect(relationSpoken(relationParts(A2, 'ef:1,1')!)).toBe('E 1 F 1 commutator equals H 1');
+    expect(relationSpoken(relationParts(A2, 'he:1,2')!)).toBe('H 1 E 2 commutator equals minus E 2');
+    expect(relationSpoken(relationParts(A2, 'serre-e:1,2')!)).toBe('ad E 1 to the power 2 applied to E 2 equals 0');
+  });
+
+  it('the relation list of an orbit above RELATIONS_MAIN_MAX positions is left to the worker, and accepted once', () => {
+    expect(RELATIONS_MAIN_MAX).toBe(Math.max(...RECORDS.map((r) => r.dimension)));
+    expect(relationsOnMain(56)).toBe(true);
+    expect(relationsOnMain(57)).toBe(false);
+    const B8 = named('B8');
+    const rep = buildRepresentation(B8, 8, { relations: 'auto' });
+    expect(rep.built).toBe(true);
+    expect(rep.checks).toBeNull();
+    expect(defaultRelation(rep)).toBe('ef:8,8');
+    expect(repCaption(rep)).toContain('checked in the background');
+    const list = chevalleySerre(B8, rep.E!, rep.F!, rep.H!);
+    expect(acceptRelations(rep, list)).toBe(true);
+    expect(acceptRelations(rep, list)).toBe(false);
+    expect(rep.checks!.every((c) => c.holds)).toBe(true);
+    // A non-minuscule orbit above the bound keeps ef:i,i as its default relation (it never waits for the worker).
+    const d6 = buildRepresentation(named('D6'), 3, { relations: 'auto' });
+    expect(d6.checks).toBeNull();
+    expect(defaultRelation(d6)).toBe('ef:3,3');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The string viewer
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 string viewer', () => {
+  const A2 = named('A2') as Board<unknown>;
+  /** The string through mu (given in label order) at a node label. */
+  const view = (mu: number[], node: number) => stringView(A2, byPosition(A2 as AnyBoard, mu), node);
+
+  it('stringView on A2 through (1,0) and (2,0) at node 1', () => {
+    const one = view([1, 0], 1);
+    expect(one.shown.map((p) => p.key)).toEqual(['1,0', '-1,1']);
+    expect(one.shown.map((p) => p.inOrbit)).toEqual([true, true]);
+    expect(one.length).toBe(2n);
+    const two = view([2, 0], 1);
+    expect(two.shown.map((p) => p.key)).toEqual(['2,0', '0,1', '-2,2']);
+    expect(two.shown.map((p) => p.inOrbit)).toEqual([true, false, true]);
+    expect(two.direction).toBe('down');
+    expect(two.elided).toBe(0n);
+    // The oracle (verify.py): the line is stringThrough, and firing node 1 exchanges its ends.
+    expect(fire(A2 as Board<number>, [2, 0], 0)).toEqual([-2, 2]);
+  });
+
+  it('a negative number reads the same line upward from mu; a zero gives mu alone; firing node i reverses the line', () => {
+    const up = view([-2, 2], 1);
+    expect(up.direction).toBe('up');
+    expect(up.shown.map((p) => p.key)).toEqual(['-2,2', '0,1', '2,0']);
+    expect(up.shown.map((p) => p.inOrbit)).toEqual([true, false, true]);
+    const single = view([0, 3], 1);
+    expect(single.direction).toBe('single');
+    expect(single.shown.map((p) => p.key)).toEqual(['0,3']);
+    expect(single.length).toBe(1n);
+    // For random positions of A3 and B3 the line reverses under the firing of its node.
+    for (const name of ['A3', 'B3', 'G2']) {
+      const b = named(name) as Board<unknown>;
+      for (let t = 0; t < 20; t++) {
+        const mu = Array.from({ length: b.n }, (_, k) => ((t * 7 + k * 3) % 7) - 3);
+        const i = 1 + (t % b.n);
+        const v = stringView(b, mu, i);
+        const w = stringView(b, fire(b as Board<number>, mu, pos(b as AnyBoard, i)), i);
+        expect(w.shown.map((p) => p.key)).toEqual([...v.shown].reverse().map((p) => p.key));
+      }
+    }
+  });
+
+  it('lines of more than 12 positions are listed by their first and last six; more than 2000 by their ends', () => {
+    const long = view([30, 0], 1);
+    expect(long.length).toBe(31n);
+    expect(long.shown).toHaveLength(STRING_SHOWN_MAX);
+    expect(long.elided).toBe(19n);
+    expect(long.gapAfter).toBe(5);
+    expect(long.shown[0]!.key).toBe('30,0');
+    expect(long.shown[11]!.key).toBe('-30,30');
+    const huge = view([5000, 0], 1);
+    expect(huge.tooLong).toBe(true);
+    expect(huge.shown.map((p) => p.key)).toEqual(['5000,0', '-5000,5000']);
+    expect(huge.elided).toBe(4999n);
+    expect(huge.length).toBe(5001n);
+  });
+
+  it('a start outside the safe range is computed with Big', () => {
+    const big = '12345678901234567890';
+    const tool = new T12Tool({ board: 'A2', node: 1, relation: 'ef:1,1', start: [big, 0], moves: [] });
+    expect(tool.values()).toEqual([big, '0']);
+    const { board, vector } = inArithmetic(tool.board, tool.values());
+    expect(typeof vector[0]).toBe('bigint');
+    expect(board.arith.zero).toBe(0n);
+    const v = tool.string();
+    expect(v.tooLong).toBe(true);
+    expect(v.shown.map((p) => p.key)).toEqual([`${big},0`, `-${big},${big}`]);
+    expect(v.shown.map((p) => p.inOrbit)).toEqual([true, true]);
+    expect(v.length).toBe(BigInt(big) + 1n);
+    const r = tool.act(1)!;
+    expect(r.after).toEqual([`-${big}`, big]);
+    expect(tool.string().shown[0]!.key).toBe(`-${big},${big}`);
+    // The export keeps the exact digits as decimal text (6.6).
+    const doc = JSON.parse(exportJSON(tool.state(), exportData(tool)));
+    expect(doc.state.start).toEqual([big, 0]);
+    expect(doc.derived.positions[0]).toEqual([big, 0]);
+    expect(doc.derived.string.through).toEqual([`-${big}`, big]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// State, links, presets, export, announcements, routing
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 state and links', () => {
+  const configured = configuredState({ preset: 'default' });
+
+  it('the default state is A2, node 1, ef:1,1, the numbers game from omega_1', () => {
+    expect(configured).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 0], moves: [] });
+    expect(defaultsFor('E7')).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [0, 0, 0, 0, 0, 0, 1], moves: [] });
+    expect(defaultsFor('D4', 2)).toMatchObject({ node: 2, relation: 'ef:1,1', start: [0, 1, 0, 0] });
+    expect(configuredState({ board: 'D4', node: 2 })).toMatchObject({ board: 'D4', node: 2, relation: 'ef:1,1' });
+    expect(configuredState({ preset: 'string-viewer' })).toMatchObject({ board: 'A2', node: 1, start: [2, 0] });
+    expect(() => configuredState({ coords: 'populations' })).toThrow(RangeError);
+    expect(() => configuredState({ board: 'A2~' })).toThrow(RangeError);
+  });
+
+  it('state round-trips through encodeState and decodeState with k and q', () => {
+    const tool = new T12Tool({ board: 'D4', node: 2, relation: 'ef:1,2', start: [0, 1, 0, 0], moves: [2, 1] });
+    const query = encodeState(tool.state());
+    expect(query).toBe('z=1&g=D4&c=n&s=0,1,0,0&w=2.1&k=2&q=ef:1,2');
+    expect(admitLink(`?${query}`, configured, '')).toEqual({ state: tool.state(), notice: null });
+    // With an instance prefix on a lesson page.
+    const prefixed = encodeState(tool.state(), { prefix: 'b3' });
+    expect(admitLink(`?${prefixed}&b1.g=E8`, configured, 'b3')).toEqual({ state: tool.state(), notice: null });
+  });
+
+  it('links that change the board or the node take that board\'s and node\'s defaults for what they do not name', () => {
+    expect(admitLink('?g=E7', configured, '').state).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [0, 0, 0, 0, 0, 0, 1], moves: [] });
+    expect(admitLink('?g=D4&k=2', configured, '').state).toMatchObject({ board: 'D4', node: 2, relation: 'ef:1,1', start: [0, 1, 0, 0] });
+    expect(admitLink('?g=A2&k=1&q=ef:1,2', configured, '').state).toMatchObject({ relation: 'ef:1,2' });
+    expect(admitLink('?g=A2&k=1&c=n&s=2,0', configured, '').state).toMatchObject({ start: [2, 0], node: 1 });
+    expect(admitLink('?k=2', configured, '').state).toMatchObject({ board: 'A2', node: 2, relation: 'ef:2,2', start: [0, 1] });
+    // c without s keeps the tool's start (the codec's default for c is all ones).
+    expect(admitLink('?k=2&c=n', configured, '').state).toMatchObject({ start: [0, 1] });
+    // Keys of other tools are ignored, as unknown keys are.
+    expect(admitLink('?v=l&m=l&g=A3', configured, '')).toMatchObject({ notice: null, state: { board: 'A3', node: 1 } });
+  });
+
+  it('an unreadable link loads the default state with the notice', () => {
+    for (const q of ['?g=A2&k=1&q=serre-e:1,1', '?g=A2&k=5', '?g=A2~', '?g=pentagon', '?g=c:2,-1;-1,2', '?c=p&s=1,0', '?g=A2&q=xx:1,1', '?g=A2&q=ef:1,3', '?s=1,0', '?g=A1&q=serre-e:1,2']) {
+      expect(admitLink(q, configured, ''), q).toEqual({ state: configured, notice: LINK_NOTICE });
+    }
+    expect(admitLink('', configured, '')).toEqual({ state: configured, notice: null });
+  });
+
+  it('presets are state objects and links; the registry captions are the tool\'s', () => {
+    for (const id of ['default', 'string-viewer', 'relation-checker', 'signed-move'] as const) {
+      const { first, ...fields } = T12_PRESETS[id];
+      const s = configuredState({ preset: id });
+      expect(s).toMatchObject(fields);
+      expect(admitLink(`?${encodeState(s)}`, configuredState({ preset: 'default' }), '').state).toEqual(s);
+      expect(T12.presets[id]!.caption).toBe(captionOf(new T12Tool(configOf(s)), first));
+    }
+    expect(T12.presets['string-viewer']!.caption).toBe(
+      'On A2 the line through (2, 0) at node 1 has 3 positions: (2, 0), (0, 1) and (−2, 2). Firing node 1 turns it end over end, and (0, 1) lies outside the orbit of (2, 0).',
+    );
+    const rep = representationOf('A2', 1);
+    expect(T12.presets.default.caption).toBe(
+      `On A2 the ${rep.basis!.length} positions of the orbit of ω1 give ${rep.basis!.length} by ${rep.basis!.length} matrices E, F and H that satisfy all ${rep.checks!.length} Chevalley-Serre relations.`,
+    );
+  });
+
+  it('Download data gives the basis, the matrices in 1-based [row, column, value], the relations in labels and the string', () => {
+    const tool = new T12Tool(configOf(configured));
+    const doc = JSON.parse(exportJSON(tool.state(), exportData(tool)));
+    expect(doc.derived.basis).toHaveLength(3);
+    expect(doc.derived.basis).toEqual([[1, 0], [0, -1], [-1, 1]]);
+    expect(doc.derived.E[0]).toEqual([[1, 3, 1]]);
+    expect(doc.derived.F[0]).toEqual([[3, 1, 1]]);
+    expect(doc.derived.relations).toContainEqual({ relation: 'ef', i: 1, j: 1, holds: true });
+    expect(doc.derived.relations).toHaveLength(20);
+    expect(doc.derived.string.positions.map((p: { position: number[] }) => p.position)).toEqual([[1, 0], [-1, 1]]);
+    const e7 = new T12Tool(configOf(defaultsFor('E7')));
+    const d = JSON.parse(exportJSON(e7.state(), exportData(e7)));
+    expect(d.derived.dimension).toBe(56);
+    expect(d.derived.relations.every((r: { holds: boolean }) => r.holds)).toBe(true);
+  });
+
+  it('moves, undo, scrubbing and reset keep the positions and read the A-4 sentences', () => {
+    const tool = new T12Tool({ board: 'A2', node: 1, relation: 'ef:1,1', start: [2, 0], moves: [] });
+    const r = tool.act(1)!;
+    expect(moveSentence(tool, r)).toBe('Fired node 1. Numbers now minus 2, 2. Move 1.');
+    expect(tool.string().shown.map((p) => p.key)).toEqual(['-2,2', '0,1', '2,0']);
+    tool.act(2);
+    tool.act(1);
+    expect(tool.state().moves).toEqual([1, 2, 1]);
+    expect(tool.scrub(1)).toBe(true);
+    expect(undoSentence(tool, 2, 1)).toBe('Undid move 2. Numbers now minus 2, 2.');
+    tool.act(2); // from an earlier position: the later moves go
+    expect(tool.state().moves).toEqual([1, 2]);
+    expect(tool.reset()).toBe(true);
+    expect(tool.state().moves).toEqual([]);
+    expect(tool.values()).toEqual(['2', '0']);
+    // Above four nodes only the changed nodes are read (A-4).
+    const e7 = new T12Tool(configOf(defaultsFor('E7')));
+    const m = e7.act(7)!;
+    expect(moveSentence(e7, m)).toBe('Fired node 7. Node 6 now 1, node 7 now minus 1. Move 1.');
+  });
+
+  it('a long list of moves from a link is replayed in the worker (E-9 rule 2), a short one on the main thread', () => {
+    const short = new T12Tool({ board: 'A2', node: 1, relation: 'ef:1,1', start: [1, 0], moves: Array.from({ length: 51 }, () => 1) }, { defer: true });
+    expect(short.pending).toBe(false);
+    expect(short.values()).toEqual(['-1', '1']);
+    const long = new T12Tool({ board: 'A2', node: 1, relation: 'ef:1,1', start: [1, 0], moves: Array.from({ length: 2001 }, () => 1) }, { defer: true });
+    expect(long.pending).toBe(true);
+    expect(whereToRun(long.replayHint())).toBe('worker');
+  });
+
+  it('whereToRun sends no default call to the worker and routes rep calls by orbitSize', () => {
+    for (const type of TYPE_NAMES) {
+      const board = named(type);
+      const node = defaultNode(board);
+      const calls = routedCalls(type, node);
+      const size = golden.types[type]!.fundamental_orbit_sizes[pos(board, node)]!;
+      for (const c of calls) {
+        const expected = c.fn === 'chevalleySerre' && !relationsOnMain(size) ? 'worker' : 'main';
+        expect(c.where, `${type} node ${node}: ${c.fn}`).toBe(expected);
+        if (c.fn === 'minusculeMatrices' || c.fn === 'orbitGraph') expect(c.hint).toMatchObject({ kind: 'enumeration', expectedItems: size });
+      }
+      if (size <= CAPS.repOrbit) expect(calls.map((c) => c.fn)).toContain('minusculeMatrices');
+      else expect(calls.map((c) => c.fn)).not.toContain('minusculeMatrices');
+    }
+    // E7 node 7: every call on the main thread, the enumerations with 56 items known in advance.
+    const e7 = routedCalls('E7', 7);
+    expect(e7.every((c) => c.where === 'main')).toBe(true);
+    expect(e7.find((c) => c.fn === 'minusculeMatrices')!.hint).toMatchObject({ expectedItems: 56 });
+    // The largest orbit T12 builds: the matrices on the main thread (E-9 rule 1), the relation list in the worker.
+    const b8 = routedCalls('B8', 5);
+    expect(b8.find((c) => c.fn === 'minusculeMatrices')!.where).toBe('main');
+    expect(b8.find((c) => c.fn === 'chevalleySerre')!.where).toBe('worker');
+  });
+
+  it('a prediction freezes the nodes and the controls until it is answered', () => {
+    expect(interaction(3, { hydrated: true, frozen: true, pending: false })).toEqual({ canAct: [false, false, false], controls: false });
+    expect(interaction(3, { hydrated: true, frozen: false, pending: false })).toEqual({ canAct: [true, true, true], controls: true });
+    expect(interaction(2, { hydrated: true, frozen: false, pending: true }).controls).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Registry entry
+// ---------------------------------------------------------------------------------------------
+
+describe('T12 registry entry', () => {
+  it('the T12 registry entry has id rep, number 12, phase 5, the four presets, 32 boards, and lists every data-out name', () => {
+    expect(T12.id).toBe('rep');
+    expect(T12.number).toBe(12);
+    expect(T12.phase).toBe(5);
+    expect(T12.title).toBe('Representation Builder');
+    expect(Object.keys(T12.presets).sort()).toEqual(['default', 'relation-checker', 'signed-move', 'string-viewer']);
+    expect(T12.presets).not.toHaveProperty('one-zero-weight');
+    expect([...T12.boards].sort()).toEqual([...TYPE_NAMES].sort());
+    expect(T12.boards).toEqual([...T12_BOARDS]);
+    // The phase is written as the coverage gate reads it (packages/engine/test/golden/_coverage.setup.ts).
+    const source = readFileSync(new URL('../../../src/tools/registry/T12.ts', import.meta.url), 'utf8');
+    expect(source).toMatch(/^\s*phase: 5,$/m);
+    for (const name of ['dimension', 'minuscule', 'explanation', 'limit', 'orbit-graph', 'matrix-e', 'matrix-f', 'matrix-h', 'relation-left', 'relation-right', 'relation-verdict', 'all-relations', 'move-matrix', 'signed-move', 'string-position', 'string-length', 'relation-formula']) {
+      expect(T12.outs).toContain(name);
+    }
+    // Every name the server renders in the cases below is listed, and every listed name is rendered by one.
+    const bodies = [
+      loader.render(T12C.default, { id: '' }),
+      loader.render(T12C.default, { id: 'b1', board: 'E8', node: 1 }),
+      loader.render(T12C.default, { id: 'b2', preset: 'string-viewer', prediction: { question: 'How many?', answer: { type: 'number', value: 3 }, reveal: 'Three.' } }),
+    ];
+    const seen = new Set<string>();
+    for (const body of bodies) for (const m of body.matchAll(/data-out="([^"]+)"/g)) seen.add(m[1]!);
+    for (const name of seen) expect(T12.outs, name).toContain(name);
+    for (const name of T12_OUTS) if (!T12_CONDITIONAL_OUTS.includes(name) || name === 'limit' || name === 'no-minuscule') expect([...seen], name).toContain(name);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// MatrixView's pure helpers and the server render
+// ---------------------------------------------------------------------------------------------
+
+type MatrixModule = {
+  default: unknown;
+  entriesInOrder: (m: ReadonlyMap<string, bigint | number>) => { row: number; col: number; value: bigint | number }[];
+  denseEntries: (d: readonly (readonly (bigint | number | string)[])[]) => { row: number; col: number; value: bigint | number }[];
+  toDense: (m: ReadonlyMap<string, bigint | number>, rows: number, cols: number) => (bigint | number)[][];
+  autoFormat: (rows: number, cols: number) => 'grid' | 'list';
+  formatEntry: (v: bigint | number | string) => string;
+  valueText: (v: bigint | number | string) => string;
+  listCaption: (caption: string, count: number, rows: number, cols: number) => string;
+};
+type ComponentModule = { default: unknown };
+let loader: SsrLoader;
+let T12C: ComponentModule;
+let MV: MatrixModule;
+
+beforeAll(async () => {
+  loader = await ssrLoader();
+  T12C = await loader.load<ComponentModule>('/src/components/tools/T12RepresentationBuilder.svelte');
+  MV = await loader.load<MatrixModule>('/src/components/math/MatrixView.svelte');
+}, 120000);
+
+afterAll(async () => {
+  await loader?.close();
+});
+
+const outText = (body: string, name: string): string[] =>
+  [...body.matchAll(new RegExp(`data-out="${name}"[^>]*>([^]*?)</(?:p|span|div|li|ul|strong|figcaption)>`, 'g'))].map((m) =>
+    m[1]!.replace(/<!--[^]*?-->/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(),
+  );
+
+describe('MatrixView', () => {
+  it('MatrixView helpers: dense and sparse give the same entries, auto format switches above 27, list entries are row-major', () => {
+    const m = sparse({ '2,0': 1, '0,2': -1, '1,1': 3, '0,0': 0 });
+    const entries = MV.entriesInOrder(m);
+    expect(entries.map((e) => [e.row, e.col, e.value])).toEqual([
+      [0, 2, -1n],
+      [1, 1, 3n],
+      [2, 0, 1n],
+    ]);
+    const dense = MV.toDense(m, 3, 3);
+    expect(dense.map((r) => r.map(String))).toEqual([['0', '0', '-1'], ['0', '3', '0'], ['1', '0', '0']]);
+    expect(MV.denseEntries(dense)).toEqual(entries);
+    expect(() => MV.toDense(m, 2, 2)).toThrow(RangeError);
+    expect(MV.autoFormat(27, 27)).toBe('grid');
+    expect(MV.autoFormat(28, 28)).toBe('list');
+    expect(MV.autoFormat(27, 28)).toBe('list');
+    expect(MV.formatEntry(-3n)).toBe('−3');
+    expect(MV.valueText(-3n)).toBe('-3');
+    expect(MV.listCaption('F7', 12, 56, 56)).toBe('F7: 12 nonzero entries of a 56 by 56 matrix');
+    expect(MV.listCaption('L', 0, 56, 56)).toBe('L: no nonzero entries of a 56 by 56 matrix');
+  });
+
+  it('renders a table with caption and row and column headers, cells with 1-based data-row, data-col and data-value', () => {
+    const grid = loader.render(MV.default, { caption: 'H1', rowHeaders: ['(1, 0)', '(0, −1)', '(−1, 1)'], colHeaders: ['(1, 0)', '(0, −1)', '(−1, 1)'], sparse: sparse({ '0,0': 1, '2,2': -1 }), out: 'matrix-h' });
+    expect(grid).toContain('data-out="matrix-h"');
+    expect(grid).toContain('data-format="grid"');
+    expect(grid).toMatch(/<caption[^>]*>H1, 3 by 3<\/caption>/);
+    expect((grid.match(/<th scope="col"/g) ?? []).length).toBe(4);
+    expect((grid.match(/<th scope="row"/g) ?? []).length).toBe(3);
+    expect(grid).toMatch(/data-row="1" data-col="1" data-value="1"/);
+    expect(grid).toMatch(/data-row="3" data-col="3" data-value="-1"[^>]*>−1</);
+    expect((grid.match(/data-value="0"/g) ?? []).length).toBe(7);
+    const headers = Array.from({ length: 30 }, (_, k) => `(${k})`);
+    const list = loader.render(MV.default, { caption: 'F7', rowHeaders: headers, colHeaders: headers, sparse: sparse({ '5,1': 1, '0,3': -1 }), out: 'x', indexHeaders: true });
+    expect(list).toContain('data-format="list"');
+    expect(list).toMatch(/F7: 2 nonzero entries of a 30 by 30 matrix/);
+    expect(list.indexOf('data-row="1" data-col="4"')).toBeLessThan(list.indexOf('data-row="6" data-col="2"'));
+    const empty = loader.render(MV.default, { caption: 'L', rowHeaders: headers, colHeaders: headers, sparse: new Map(), out: 'y' });
+    expect(empty).toContain('no nonzero entries');
+    const capped = loader.render(MV.default, { caption: 'M', rowHeaders: headers, colHeaders: headers, dense: headers.map((_, r) => headers.map((__, c) => (r === c ? 1 : 0))), listMax: 10 });
+    expect((capped.match(/data-value="1"/g) ?? []).length).toBe(10);
+    expect(capped).toContain('The first 10 of 30 nonzero entries are listed');
+  });
+});
+
+describe('T12 server render', () => {
+  it('without JavaScript the default orbit, matrices, relation, signed move, string and caption are present and the controls are disabled', () => {
+    const body = loader.render(T12C.default, { id: '' });
+    expect(body).toContain('data-tool="rep"');
+    expect(body).toContain('data-moves="0"');
+    expect(outText(body, 'dimension')).toEqual(['3']);
+    expect(body).toMatch(/data-out="minuscule" data-minuscule="true"/);
+    expect(outText(body, 'explanation')[0]).toBe(explanation(representationOf('A2', 1)));
+    expect(body).toContain('data-out="orbit-graph"');
+    expect((body.match(/data-vertex="/g) ?? []).length).toBe(3);
+    expect((body.match(/data-edge-label="/g) ?? []).length).toBe(2);
+    for (const name of ['matrix-e', 'matrix-f', 'matrix-h', 'relation-left', 'relation-right', 'move-matrix', 'signed-move']) {
+      expect(body, name).toMatch(new RegExp(`data-out="${name}" data-format="grid" data-rows="3" data-cols="3"`));
+    }
+    expect(body).toMatch(/data-out="relation-verdict" data-holds="true"/);
+    expect(outText(body, 'all-relations')).toEqual(['All 20 relations hold.']);
+    expect(body).toMatch(/<math[^>]*data-form-render="mathml"/);
+    expect(body).toContain('<msub>');
+    expect(body).not.toContain('class="katex');
+    expect([...body.matchAll(/data-out="string-position" data-value="([^"]+)" data-in-orbit="(true|false)"/g)].map((m) => [m[1], m[2]])).toEqual([
+      ['1,0', 'true'],
+      ['-1,1', 'true'],
+    ]);
+    expect(outText(body, 'string-length')).toEqual(['2']);
+    expect(outText(body, 'caption')).toEqual([T12.presets.default.caption]);
+    // Every control is disabled before hydration (7.4).
+    for (const tag of body.matchAll(/<(button|select|input)\b[^>]*>/g)) expect(tag[0], tag[0]).toMatch(/\sdisabled(=""|\s|>)/);
+    // The board's nodes carry the four hooks of 4.0 and the A-3 names of free play.
+    const nodes = [...body.matchAll(/<button[^>]*data-node="(\d+)"[^>]*>/g)].map((m) => m[0]);
+    expect(nodes).toHaveLength(2);
+    for (const b of nodes) {
+      expect(b).toContain('data-board="numbers"');
+      expect(b).toContain('data-can-act="true"');
+      expect(b).toMatch(/data-value="(1|0)"/);
+    }
+    expect(body).toContain('aria-label="Node 1, value 1, can be fired"');
+    // The table view: the orbit and one button per node.
+    expect(body).toContain('data-table="orbit"');
+    expect((body.match(/data-table-node="/g) ?? []).length).toBe(2);
+    expect(body).toContain('<noscript>');
+  });
+
+  it('a prediction freezes the tool until answered or shown, and without JavaScript a details element holds the answer and the reveal', () => {
+    const body = loader.render(T12C.default, { id: 'b1', prediction: { question: 'How many positions has the orbit?', answer: { type: 'number', value: 3 }, reveal: 'Three: (1, 0), (0, −1) and (−1, 1).' } });
+    expect(body).toContain('data-prediction');
+    expect(body).toMatch(/<details[^>]*>[^]*<span class="answer-text">3<\/span>[^]*Three: \(1, 0\), \(0, −1\) and \(−1, 1\)\.[^]*<\/details>/);
+    // Frozen: no node can act and the controls are off until the reader answers (the pure rule the component uses).
+    expect(interaction(2, { hydrated: true, frozen: true, pending: false }).canAct).toEqual([false, false]);
+  });
+
+  it('above 2000 positions the server renders the explanation alone with more than 2000, no orbit and no matrix', () => {
+    const body = loader.render(T12C.default, { id: 'b2', board: 'E8', node: 1 });
+    expect(outText(body, 'dimension')).toEqual([String(golden.types.E8!.fundamental_orbit_sizes[0])]);
+    expect(outText(body, 'limit')[0]).toContain('more than 2000');
+    expect(body).not.toContain('data-out="orbit-graph"');
+    expect(body).not.toContain('data-format=');
+    expect(outText(body, 'no-minuscule')).toEqual(['This board has no minuscule node; its representations need more than the game.']);
+    expect(body).toContain('data-out="string-position"');
+  });
+
+  it('E6 node 1 renders grids of 27 and E7 node 7 lists of 56; D4 node 2 shows its failing relation', () => {
+    const e6 = loader.render(T12C.default, { id: 'b3', board: 'E6', node: 1 });
+    expect(e6).toMatch(/data-out="matrix-e" data-format="grid" data-rows="27"/);
+    const e7 = loader.render(T12C.default, { id: 'b4', board: 'E7', node: 7 });
+    expect(e7).toMatch(/data-out="matrix-e" data-format="list" data-rows="56"/);
+    expect(outText(e7, 'all-relations')).toEqual(['All 280 relations hold.']);
+    const d4 = loader.render(T12C.default, { id: 'b5', board: 'D4', node: 2 });
+    expect(d4).toMatch(/data-out="relation-verdict" data-holds="false"/);
+    expect(outText(d4, 'explanation')[0]).toContain('some number in the orbit is 2');
+    expect(d4).toMatch(/data-step="false"/);
+  });
+});
