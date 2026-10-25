@@ -15,7 +15,9 @@
 // is not a use: links do not nest, and that text names the link's target. A use inside a phrase of
 // OTHER_SENSE, where the word means something else than the glossary entry, is not counted; every phrase of
 // the table must be met on some page, so that the table cannot grow stale. A link to the glossary page
-// without a fragment is navigation, not a link of a term. Run after `npm run build` against
+// without a fragment is navigation, not a link of a term. A pair of a page and a term whose link another spec
+// forbids is listed in BLOCKED with its reason; it fails here as soon as it is linked or used less than
+// twice, so the table holds only what is still blocked. Run after `npm run build` against
 // `astro preview`; the paths are relative to Playwright's baseURL, so the spec also runs against a build with
 // BASE_PATH=/sub/path/.
 //
@@ -42,6 +44,18 @@ const ROUTES = [
   'not-quiver-mutation/',
   'about/',
 ];
+
+/**
+ * Pairs of a page and a term whose link another spec forbids today, with the reason and the request that would
+ * lift it. Each pair must still be used twice or more on its page and still lack its link: once the link is
+ * allowed and added, the pair fails here until it is taken out of this table.
+ */
+const BLOCKED: Record<string, Record<string, string>> = {
+  'confusions/': {
+    'mutation-game':
+      'pages-6.spec.ts > "confusions makes no reference to the note" refuses every href of the page that contains "mutation-game", the glossary anchor included (D16 guards against links to the project note and its package); requested of its owner (P6-terms): apply that check to links that leave the site',
+  },
+};
 
 /**
  * Phrases in which the word of a glossary term means something else, keyed by the term's anchor, with the
@@ -188,8 +202,13 @@ test('later uses of a glossary term link to the glossary on every lesson and ref
   expect(terms.length, 'the glossary has its 83 entries and more anchors').toBeGreaterThan(80);
   const anchors = new Set(terms.map((t) => t.id));
   for (const id of Object.keys(OTHER_SENSE)) expect(anchors.has(id), `OTHER_SENSE key ${id} is a glossary anchor`).toBe(true);
+  for (const [route, pairs] of Object.entries(BLOCKED)) {
+    expect(ROUTES, `BLOCKED route ${route}`).toContain(route);
+    for (const id of Object.keys(pairs)) expect(anchors.has(id), `BLOCKED anchor ${id}`).toBe(true);
+  }
   const used = new Map<RegExp, number>();
   const problems: Record<string, string[]> = {};
+  const stillBlocked: string[] = [];
   let satisfied = 0;
   for (const route of ROUTES) {
     const response = await page.goto(route);
@@ -202,9 +221,18 @@ test('later uses of a glossary term link to the glossary on every lesson and ref
     const hits = usesOf(marked, terms, used);
     for (const { id, term } of terms) {
       const mine = hits.filter((h) => h.id === id).sort((a, b) => a.start - b.start);
-      if (mine.length < 2) continue;
+      const blocked = BLOCKED[route]?.[id] !== undefined;
+      if (mine.length < 2) {
+        if (blocked) found.push(`BLOCKED ${term} -> #${id}: used ${mine.length} times, so the entry is no longer needed`);
+        continue;
+      }
       if (mine.slice(1).some((h) => linkAt(marked, links, h.start) === id)) {
+        if (blocked) found.push(`BLOCKED ${term} -> #${id}: now linked, so the entry is no longer needed`);
         satisfied += 1;
+        continue;
+      }
+      if (blocked) {
+        stillBlocked.push(`${route} ${id}`);
         continue;
       }
       const show = (h: Hit): string => `"...${marked.slice(Math.max(0, h.start - 30), h.end + 12).replace(/\u0001\d+\u0002/g, '[').replace(/\u0003/g, ']')}..."`;
@@ -213,6 +241,7 @@ test('later uses of a glossary term link to the glossary on every lesson and ref
     if (found.length > 0) problems[route] = found;
   }
   expect(problems, 'terms used twice or more on a page with no later use linked to their glossary entry').toEqual({});
+  expect(stillBlocked.sort(), 'the BLOCKED pairs, each still used twice and unlinked').toEqual(Object.entries(BLOCKED).flatMap(([r, p]) => Object.keys(p).map((id) => `${r} ${id}`)).sort());
   // Every phrase of OTHER_SENSE is met somewhere, so the table holds no excuse that nothing needs.
   const unused = Object.entries(OTHER_SENSE).flatMap(([id, senses]) => senses.filter((s) => !used.has(s.phrase)).map((s) => `${id}: ${s.phrase}`));
   expect(unused, 'OTHER_SENSE phrases met on no page').toEqual([]);
