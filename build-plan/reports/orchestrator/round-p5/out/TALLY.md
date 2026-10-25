@@ -47,3 +47,4 @@
 - Notes: stringThrough has no bound on its length (E-6, logged in P5-A1; owner); minusculeMatrices cap 0 throws RangeError (logged); 7 unit timeouts at load 16.7 (no finding).
 - RT-10 verdicts: 01 CONFIRMED major (as claimed; reproducer keeps major, refuter's rubric reading noted); 02 CONFIRMED minor; 03 CONFIRMED major (refuter raised; 6.6 against 4.0 'the tool's defaults' noted for the owner).
 - RT-03 refute: 01 not refuted (4.0 'Long numbers' has no qualifier; precedent RT-FIX-P3-export-long read a count as a value). Reproduce pending.
+- RT-03 verdicts: 01 CONFIRMED major (reproduced; not refuted).
