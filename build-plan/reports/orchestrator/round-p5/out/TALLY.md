@@ -1,5 +1,5 @@
 # Phase 5 red-team round: tally (gate commit 006f50d)
-- Lenses running (2026-10-25 04:28): RT-02, RT-06, RT-11, RT-12. Done: RT-01, RT-03, RT-04, RT-05, RT-08, RT-09, RT-10, RT-13. To come: RT-07 (last, on a quiet machine).
+- Lenses running (2026-10-25 04:34): RT-06, RT-11, RT-12. Done: RT-01, RT-02, RT-03, RT-04, RT-05, RT-08, RT-09, RT-10, RT-13. To come: RT-07 (last, on a quiet machine).
 ## RT-01: 1 finding (minor). Retests hold: 01-01, 01-02 (one sibling missed, below). rep.ts and T12 against the oracle: 12,624 + tool-boundary comparisons, 0 disagreements.
 - P5-RT-01-01 minor: formIsInvariant throws RangeError 'is not an integer' on an integer form entry beyond 2^53 (form.ts:104 isSafeInteger), so gram(C) of a board with such road counts cannot be tested.
 - Notes: T12 prints 'Dimension: N' on non-minuscule nodes where N is the orbit size, not dim V(omega_i) (D4 node 2: 24 vs 28; F4 node 4: 24 vs 26; E8 node 8: 240 vs 248); SafeInt checks intermediate products (E-2, documented); P3-RT-01-01 still reproduces (held).
@@ -53,3 +53,6 @@
 ## RT-04: 1 finding (major). Retests hold: 04-01, 04-02, 04-03 (on load), 04-04. 13 of 13 validation clauses on T12; 120 random round trips; corpora 220 + 160 + 80 links unchanged.
 - P5-RT-04-01 major: after one popstate (skip link or Back), Copy link on T12, T10 and T11 encodes the plain codec's reading of the bar, not the state shown (history.ts onPopState_ overwrites entry.current; tools with own link readers return early).
 - Notes: q=ef:01,1 kept as written (leading zeros; 6.6 silent); codec accepts serre with equal nodes (P5-A2 request to P1-A2); T12 drops other tools' keys and refuses c=p (plan); c without s keeps omega_k (decisions/P5-A2.md; see P5-RT-10-03).
+- RT-04 refute: 01 not refuted (7.4 'Copy link always encodes the current state'; P1-A2 popstate note is a plan mechanism). Reproduce pending.
+## RT-02: 0 findings. No phase 4 RT-02 finding to retest; phase 4 guards rerun (29 + 11 + 14 pass). Every phase 5 value agrees with the oracle on B2, C2, B3, C3, G2, renumbered and transposed boards; every convention mutant of rep.ts and T12 is killed except two identical-value controls. Build-time default equals the hydrated state on 24 routes (7375 values).
+- Notes: T12 labels two selects 'Node i' (the node picker and the relation checker's node i); M8 b5 says 'Choose node 3 in the Node i list' (ambiguous; same answer on D4); phase 4 reproducer redteam-RT-02-p4-sweep has 18 tsc errors (for a fixer adopting it).
