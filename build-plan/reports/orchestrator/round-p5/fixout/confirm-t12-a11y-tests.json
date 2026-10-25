@@ -1,0 +1,66 @@
+{
+ "branch": "worktree-agent-ab217d3d17fec4f2c",
+ "results": [
+  {
+   "findingId": "P5-RT-05-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "HEAD b0cc94c. npm ci --prefer-offline exit 0. npm run build exit 0 (35 pages, 1286 links, 0 problems). Lens reproducer redteam-RT-05-p5-t12-hit-side (copied in from worktree-agent-ac896d508eea097ff, then removed) passed 6/6 on the branch. The new tests in T12.spec.ts ('regression: P5-RT-05-01': 6 HIT_CASES and the tightened 'at 320 pixels' test) passed in four runs: the full T12+M8 run (84 passed, load 6.49 to 7.62), the reproducer run (load 5.86 to 7.72) and --repeat-each=2 (22 passed, load 1.77 to 1.24). By hand at 320 px: on E8 k=8 the figure, the panel and .board-host are each 320 px wide, the board group is 317 px and the node side is 43. On A8 the side is 38. At 360 px the side is 43 on A8 and 44 on E8. At 400, 600 and 1280 px the side is 44. There is no horizontal overflow on /tools/rep/ from 320 to 1280 px or on M8 at 320, 360 and 1280, and no element of the string panel sticks out of the panel's border box. Scratch revert: I removed 'margin-inline: -13px;' and 'container-type: inline-size;' from .board-host (svelte lines 1316-1317) and rebuilt. 13 tests failed: the 6 lens tests, the 6 regression tests and the tightened test. Messages included '/tools/rep/?g=E8&k=8 at 320 x 800: node 1 hit area 39 x 39, expected 43 x 43', 'g=A8&k=1 at 320: 34 x 34, expected 38 x 38', 'A8 at 360: 39 x 39, expected 43 x 43' and 'g=D8&k=8: hit area 39 by 39, expected 43 (7 columns)'. Restored."
+  },
+  {
+   "findingId": "P5-RT-05-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "The lens reproducer redteam-RT-05-p5-t12-focus-at-hydration passed 2/2 on the branch. The regression tests 'M8 b4/b3: the focus on the server box ... survives the island's hydration' passed in four runs (loads as for 05-01: 6.49 to 7.62, 5.86 to 7.72, and 1.77 to 1.24 twice). By hand with a real keyboard Tab from the previous tab stop onto the server box, before hydration (data-hydrated unset, Tab landed on the box), focus after hydration and drawing was 'div in b4 (relation-left)', 'div in b3 (matrix-e)' and, as an extra case, 'div in b5 (matrix-h)'. Scratch revert: I removed 'const box = focusedBox();' and 'if (box) void tick().then(...focus())' in runSteps (lines 359 and 361) and rebuilt. 4 tests failed (2 lens, 2 regression) with 'Expected: \"div in b4 (relation-left)\" Received: \"BODY\"' and the same for b3 matrix-e. Restored."
+  },
+  {
+   "findingId": "P5-RT-05-03",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Fixed as the title and the main claim state it: a verdict computed in the worker after a relation pick is now announced. The lens reproducer redteam-RT-05-p5-t12-verdict-unannounced passed 2/2. The regression tests 'M8 b6/b7: the verdict ... is announced when the worker's list arrives' passed in four runs. By hand on /tools/rep/?g=E7&k=7, picking 'he' made the live region read '[H7, E7] = 2E7: the two sides are equal.'. Scratch revert: I removed 'if (owed === r) say(relationSentence(...))' in acceptFromWorker (line 639) and rebuilt. 4 tests failed with 'b6: the screen shows the verdict \"equal\", the live region said only [\"[H1, F1] = −2F1: checked in the background.\"]' and the same for b7 with '[H7, F7] = −2F7'. Restored. Two cases named in the claim's 'Also silent' sentence and in its proposedFix are still silent. (1) Worker list after a board or node pick (failingDefault): on /tools/rep/ I picked C8, then node 8. The only announcement was the pick sentence 'C8, node 8: the orbit of ω8 has 256 positions. Node 8 is not minuscule: ... so the steps E and F of the recipe miss some moves and the relations fail.'. The relation then shown, [E1,F1]=H1, with verdict 'not equal' and '7 of 368 relations fail.', arrived from the worker with no announcement. C5 node 5 behaved the same ('4 of 140 relations fail.'). The relation panel was not drawn until the list arrived. (2) Worker failure: I refused the engine.worker chunk (route abort) and picked hf on E7 node 7. The tool drew 'not checked' and 'The relations of these 56 by 56 matrices could not be checked in the background; reloading the page tries again.', but the live region said only '[H7, F7] = −2F7: checked in the background.'. Both cases are recorded as deliberate in decisions/RT-FIX-P5-t12-a11y.md, citing the 90 kB limit and the 500 ms coalescing in a11y.ts. I agree they need the owner: SPEC 4.0 'each result' arguably covers them, and the size budget is now exhausted (see sideEffects)."
+  },
+  {
+   "findingId": "P5-RT-10-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Test-only fix. The new test 'on node 2 of D4 the relation checker shows the two different sides of [E1, F1] = H1' passes on the branch, and lens test 1 of redteam-RT-10-t12-figure passes there too. I applied redteam/mutations/t12-relation-left-shows-right.patch (from worktree-agent-a2ae38e38301dfff3) alone to the branch and rebuilt. Running the regression block plus the lens spec gave 2 failed and 15 passed: the new test and lens test 1, both with 'Error: relation-left is [E1, F1] of chevalleySerre' (received adds \"1,1=2\" and \"24,24=-2\"). Reverted with git apply -R."
+  },
+  {
+   "findingId": "P5-RT-10-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Test-only fix. Both new tests pass on the branch, as do lens tests 2 and 3. Each patch was applied alone, built and reverted. Under t12-move-matrix-of-rep-node: 2 failed, 15 passed (the new test and lens test 2, 'Error: move-matrix is the firing of node 2'). Under t12-edge-colour-by-vertex: 2 failed, 15 passed (the new test and lens test 3, 'Error: edges of node 1', received [\"rgb(0, 114, 178)\", \"rgb(128, 117, 0)\"])."
+  },
+  {
+   "findingId": "P5-RT-06-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "The new test in nojs.spec.ts passes. The whole nojs.spec.ts sweep passed 84 on the branch (load 5.94 to 6.98). The original reproducer redteam-RT-06-p5-nojs-t12-figure (from worktree-agent-a67d4655cc5955fd5) still fails on the branch, accepting 'b1 as board' to 'b12 as board'. That is by construction: it carries a frozen copy of the gate's toolReport. Its test body is identical to the new test apart from comments (checked with diff). Its earlier assertions pass (every root had vertices and cells before blanking, 0 after). Scratch revert: I removed the figureProblems line 'if (report.blankParts.length > 0) problems.push(...)'. The new test then failed, accepting 'b1 as board' through 'b12 as board'. Restored."
+  },
+  {
+   "findingId": "P5-RT-11-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Test-only fix. On the unmutated branch, packages/engine/test/unit/rep-hh-he-hf-fail.test.ts passed 7/7 and the lens reproducer redteam-RT-11-hh-he-hf.test.ts also passed 7/7. Each lens mutant (from worktree-agent-ab56dba79c1bf690f) was applied to rep.ts and reverted with git apply -R. The new test failed 6 of 7 under M33-hh-he-hf-hold, 2 under M33-hh-skipped (hh:0,1 and hh:1,0), 2 under M33-hh-holds, 1 under M33-he-right-zero (he:1,0) and 2 under M33-hf-right-left (hf:0,0 and hf:1,0). The lens reproducer failed the same tests. python3 -B rt11_hh_he_hf_oracle.py <wt> printed sides equal to the test's literals and 'chevalley_serre_ok = False'. Engine suite: 74 files, 2418 tests passed."
+  },
+  {
+   "findingId": "P5-RT-11-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Test-only fix. With S1-relation-sentence-equal.patch applied, the T12.test.ts regressions block gave 1 failed: 'ef:1,2: expected \"[E1, F2] = 0: the two sides are equal.\" to be \"[E1, F2] = 0: the two sides are not equal.\"'. On the S1 build, the new e2e test and the lens reproducer redteam-RT-11-T12-verdict-announce both failed with 'Expected pattern: /: the two sides are not equal\\.$/ Received string: \"[E1, F2] = 0: the two sides are equal.\"'. The other 13 tests passed. Reverted. On the clean branch both tests pass (T12.test.ts 58 passed; e2e in the 84-test run)."
+  },
+  {
+   "findingId": "P5-RT-11-03",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "On the branch the finding's two greps print only T12.test.ts:191 toBe(24) (the D4 node 2 worked value, read from the golden file on line 190) and :1160 toBe(8) (a hand count of zero cells), plus T12.spec.ts:141 and :479 toHaveText('24') (the D4 node 2 worked value). The new test passes. Scratch revert: base T12.test.ts (95d0060) plus the branch's regressions block failed with 'expected [ …(9) ] to deeply equal []'. The branch T12.test.ts with base T12.spec.ts failed with 'expected [ …(6) ] to deeply equal []'. Those are the finding's 9 and 6 lines. Both files restored."
+  }
+ ],
+ "sideEffects": [
+  "Size: with the current integration head, /tools/rep/ goes over the limit. The branch alone measures /tools/rep/ and M8 at 89903 B gzip (npm run size --port 6991, 0 over budget; the fixer measured 89905). I trial-merged with git merge-tree, took only the non-test files, built and measured, then restored. With the content fix branch alone (worktree-agent-a1374439c709a759a), /tools/rep/ is 89992 B, which fits by 8 B (not the ~23 B estimated). But the integration head claude/session-6a181f60-hzzoud already holds the content fix plus the history.ts change of the history fix. The head alone measures 89850 B. This branch merged into it measures 90016 B, OVER the 90000 B limit by 16 B (measured twice), so npm run size fails on /tools/rep/. M8 (limit 120 kB) is fine.",
+  "Merge: git merge-tree with the integration head merges T12RepresentationBuilder.svelte automatically. It reports content conflicts in site/tests/e2e/T12.spec.ts and site/tests/unit/tools/T12.test.ts.",
+  "Minor doc/code mismatch in nojs.spec.ts: the JSDoc of toolReport and the decisions fragment say an orbit drawing must have 'at least one edge into each vertex below layer 0'. The code only checks that the count of [data-edge] is at least data-positions - 1. The fixer's acceptance line states the count.",
+  "The RT-06 lens reproducer stays red on the branch by design, because it uses a frozen copy of the gate's predicate. It should not be adopted as is; the adopted test is the same body using the file's own predicate.",
+  "No other effects found. Changed files are only the six listed by the fixer. Nothing under reference/, no golden value and no convention was touched. Added lines contain no em-dash, .only, .skip or console.log. Branch checks: T12.spec.ts + M8.spec.ts 84 passed (including both long-task timing tests, load 6.5 to 7.6); nojs.spec.ts 84 passed; a11y.spec.ts for tools/rep/ and m8-lie-algebras/ 2 passed; T12.test.ts 58 passed; engine 74 files, 2418 tests passed; npm run check -w site 0 errors (an unrelated hint in T06.spec.ts and an unrelated svelte-check warning in LayerChart.svelte); tsc on the engine clean. Cleanup done: node_modules, site/node_modules, packages/engine/node_modules and site/dist deleted; no server on ports 6990 to 6993; git status --porcelain empty at b0cc94c."
+ ]
+}
