@@ -59,3 +59,4 @@
 ## RT-06: 1 finding (minor). Retests hold: 06-01, 06-02, 06-03. 35 routes, 123 roots: server equals hydrated; no worker before interaction; 163 T12 links match fundamental_orbit_sizes; base path and release builds clean.
 - P5-RT-06-01 minor: no run without JavaScript reads T12's orbit drawing or matrix cells on M8 (nojs.spec.ts accepts T12 roots through the string viewer's board; sibling of P4-RT-06-02).
 - Notes: T12 posts chevalleySerre to the worker on 103 of 163 links by the logged ruling (RELATIONS_MAIN_WORK; worker.ts header says E-9 three cases only; owner); default start omega_i against 6.6 (see P5-RT-10-03); Download data writes relations: null above the bound on configured states; stale wording in M8 MDX header, DECISIONS P5-A3 and an M8.spec comment (main-thread relation list).
+- RT-04 verdicts: 01 CONFIRMED major (unit 4 failed; browser 5 + 5 failed in two runs; not refuted).
