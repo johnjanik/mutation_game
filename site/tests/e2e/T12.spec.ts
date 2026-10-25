@@ -7,7 +7,7 @@
 // against the engine or the golden file first.
 //
 // Hooks read:
-//   root:      data-tool="rep", data-moves, data-hydrated="true"; on the figure (.t12) data-drawn ("true"
+//   root:      data-tool="rep", data-instance (the islands of M8), data-moves, data-hydrated="true"; on the figure (.t12) data-drawn ("true"
 //              when no panel is being drawn: after hydration the panels are drawn from the state, one
 //              task each, the server's markup standing for them meanwhile)
 //   buttons:   data-node, data-board ("numbers"), data-value, data-can-act (the string viewer's board)
@@ -16,7 +16,7 @@
 //              data-edge with data-edge-node, data-edge-from, data-edge-to, data-step; data-edge-label;
 //              data-layer-count (the layer sizes above 300 positions)
 //   matrices:  data-format ("grid" | "list"), data-rows, data-cols on a MatrixView root; data-row,
-//              data-col, data-value on its cells (1-based)
+//              data-col, data-value on its cells (1-based); its scroll box, role="group" with tabindex="0"
 //   relation:  data-holds on data-out="relation-verdict"; data-minuscule on data-out="minuscule"
 //   string:    data-value (comma-joined), data-in-orbit, data-step on data-out="string-position";
 //              data-flips on the line
@@ -44,8 +44,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { boardFromName, chevalleySerre, fire, minusculeMatrices, play, stringThrough, toLabels, toPositions } from '../../../packages/engine/src/index';
-import type { AnyBoard, Board } from '../../../packages/engine/src/index';
+import { boardFromName, chevalleySerre, fire, minusculeMatrices, play, signedMoves, stringThrough, toLabels, toPositions } from '../../../packages/engine/src/index';
+import type { AnyBoard, Board, SparseMatrix } from '../../../packages/engine/src/index';
+import { nodePositions } from '../../src/components/draw/layouts';
 import { bigBoard } from '../../src/lib/state';
 import { copiedLink, downloadData, openForExport, unsafeNumbers } from './exportIntegers';
 
@@ -59,6 +60,8 @@ const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../../reference
   minuscule_representations: MinusculeRecord[];
   types: Record<string, { fundamental_orbit_sizes: number[]; minuscule_nodes: number[] }>;
 };
+/** The golden dimension of the representation of a minuscule node (minuscule_representations, by type and node). */
+const goldenDim = (type: string, node: number): number => golden.minuscule_representations.find((r) => r.type === type && r.node === node)!.dimension;
 
 const ROUTE = 'tools/rep/';
 const NOTICE = 'The link could not be read, so the tool shows its default state.';
@@ -136,7 +139,7 @@ test('acceptance: choosing node 2 of D4 shows a failing relation and the explana
   expect(golden.types.D4!.fundamental_orbit_sizes[1]).toBe(24);
   expect(golden.types.D4!.minuscule_nodes).not.toContain(2);
   await open(page, 'g=D4');
-  await expect(out(page, 'dimension')).toHaveText('8');
+  await expect(out(page, 'dimension')).toHaveText(String(goldenDim('D4', 1)));
   await control(page, 'node').selectOption('2');
   await expect(out(page, 'orbit-size')).toHaveText('24');
   await settled(page);
@@ -220,16 +223,18 @@ test('E, F and H on A2 are 3 by 3 tables with caption, headers and 1-based cells
 });
 
 test('grids up to dimension 27 and lists above: E6 node 1 and E7 node 7', async ({ page }) => {
+  const e6 = goldenDim('E6', 1);
+  const e7 = goldenDim('E7', 7);
   await open(page, 'g=E6&k=1');
   await expect(out(page, 'matrix-e')).toHaveAttribute('data-format', 'grid');
-  await expect(out(page, 'matrix-e')).toHaveAttribute('data-rows', '27');
-  await expect(out(page, 'matrix-e').locator('tbody tr')).toHaveCount(27);
+  await expect(out(page, 'matrix-e')).toHaveAttribute('data-rows', String(e6));
+  await expect(out(page, 'matrix-e').locator('tbody tr')).toHaveCount(e6);
   await open(page, 'g=E7');
-  await expect(out(page, 'dimension')).toHaveText('56');
+  await expect(out(page, 'dimension')).toHaveText(String(e7));
   for (const name of ['matrix-e', 'matrix-f', 'matrix-h', 'move-matrix', 'signed-move']) {
     await expect(out(page, name)).toHaveAttribute('data-format', 'list');
-    await expect(out(page, name)).toHaveAttribute('data-rows', '56');
-    await expect(out(page, name).locator('caption')).toContainText('nonzero entries of a 56 by 56 matrix');
+    await expect(out(page, name)).toHaveAttribute('data-rows', String(e7));
+    await expect(out(page, name).locator('caption')).toContainText(`nonzero entries of a ${e7} by ${e7} matrix`);
   }
   await expect(out(page, 'relation-left')).toHaveAttribute('data-format', 'list', { timeout: 20000 });
 });
@@ -636,6 +641,7 @@ test('no serious or critical axe violations on /tools/rep', async ({ page }) => 
   }
 });
 
+// regression: P5-RT-05-01 (the node hit areas checked against the side of 6.1, not only against 24)
 test('at 320 pixels the page has no horizontal scroll and the targets are large enough', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   for (const query of ['', 'g=E6&k=1', 'g=E7', 'g=D8&k=8']) {
@@ -647,6 +653,14 @@ test('at 320 pixels the page has no horizontal scroll and the targets are large 
       if (r === null || r.width === 0) continue;
       expect(r.width, query).toBeGreaterThanOrEqual(24);
       expect(r.height, query).toBeGreaterThanOrEqual(24);
+    }
+    // The node hit areas of the string viewer have the side of SPEC 6.1 for a box as wide as the viewport
+    // (below 400 pixels the box runs from edge to edge): min(44, u), u = min(64, floor((320 - 16) / k)) (A-7).
+    const k = nodePositions(boardFromName(new URLSearchParams(query).get('g') ?? 'A2')).columns;
+    const side = Math.min(44, Math.min(64, Math.floor((320 - 16) / k)));
+    for (const r of await nodes(page).evaluateAll((bs) => bs.map((b) => b.getBoundingClientRect().toJSON() as DOMRect))) {
+      expect(Math.abs(r.width - side), `${query}: hit area ${r.width} by ${r.height}, expected ${side} (${k} columns)`).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(r.height - side), `${query}: hit area ${r.width} by ${r.height}, expected ${side} (${k} columns)`).toBeLessThanOrEqual(0.5);
     }
     // No two node hit boxes of the string viewer overlap (A-7; review P5-A2, finding 5).
     const boxes = (await Promise.all((await nodes(page).all()).map((b) => b.boundingBox()))).filter((r) => r !== null);
@@ -909,7 +923,8 @@ async function recordLongTasks(page: Page): Promise<void> {
 const longTasksSince = async (page: Page, t0: number): Promise<{ start: number; duration: number }[]> =>
   page.evaluate((from) => (window as unknown as { __longtasks: { start: number; duration: number }[] }).__longtasks.filter((t) => t.start + t.duration > from), t0);
 
-for (const [board, label, size] of [['E6', 1, 27], ['E7', 7, 56]] as const) {
+for (const [board, label] of [['E6', 1], ['E7', 7]] as const) {
+  const size = goldenDim(board, label);
   test(`no long task when ${board} is picked and node ${label} (${size} positions) is built, with the processor slowed four times`, async ({ page }) => {
     test.setTimeout(120000);
     await recordLongTasks(page);
@@ -995,5 +1010,181 @@ test.describe('regressions', () => {
     await expect(out(page, 'string-length')).toHaveAttribute('title', '12345678901234567891');
     await expect(out(page, 'string-gap')).toHaveAttribute('data-value', '12345678901234567889');
     await expect(out(page, 'string-gap')).toHaveAttribute('title', '12345678901234567889');
+  });
+
+  // SPEC 6.1 "Size on screen" and A-7: below 400 pixels the board's box runs from edge to edge of the
+  // viewport, so the hit side is min(44, floor((W - 16) / k)) with W the viewport width, also inside the
+  // string viewer's panel (whose padding and border once made it the box).
+  const HIT_CASES: { width: number; board: string; node: number; columns: number }[] = [
+    { width: 320, board: 'E8', node: 8, columns: 7 },
+    { width: 320, board: 'D8', node: 1, columns: 7 },
+    { width: 320, board: 'A7', node: 1, columns: 7 },
+    { width: 320, board: 'A8', node: 1, columns: 8 },
+    { width: 320, board: 'B8', node: 1, columns: 8 },
+    { width: 360, board: 'A8', node: 1, columns: 8 },
+  ];
+  for (const c of HIT_CASES) {
+    const expected = Math.min(44, Math.min(64, Math.floor((c.width - 16) / c.columns)));
+    // regression: P5-RT-05-01
+    test(`T12 string viewer at ${c.width} px on ${c.board}: every node hit area is ${expected} px (6.1, A-7)`, async ({ page }) => {
+      await page.setViewportSize({ width: c.width, height: 800 });
+      const route = `tools/rep/?g=${c.board}&k=${c.node}`;
+      await page.goto(route);
+      const tool = page.locator('[data-tool="rep"][data-hydrated="true"]');
+      await tool.waitFor();
+      await expect(tool.locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 20000 });
+      const buttons = tool.locator('[data-panel="string"] button[data-node]');
+      await expect(buttons.first()).toBeVisible();
+      const sides = await buttons.evaluateAll((bs) => bs.map((b) => ({ node: b.getAttribute('data-node'), w: b.getBoundingClientRect().width, h: b.getBoundingClientRect().height })));
+      expect(sides.length).toBeGreaterThan(0);
+      for (const s of sides) {
+        expect(Math.abs(s.w - expected), `/${route} at ${c.width} x 800: node ${s.node} hit area ${s.w} x ${s.h}, expected ${expected} x ${expected}`).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(s.h - expected), `/${route} at ${c.width} x 800: node ${s.node} hit area ${s.w} x ${s.h}, expected ${expected} x ${expected}`).toBeLessThanOrEqual(0.5);
+      }
+    });
+  }
+
+  // SPEC 7.5 A-1 and WCAG 2.4.3: the server's scroll boxes are tab stops before hydration (the selects are
+  // disabled until then); when the island hydrates and its panels are drawn from the state, the focus stays
+  // on the box or moves to its drawn replacement, never to <body>. On M8 every island after b1 is
+  // client:visible, so a Tab onto such a box (a focus, then a scroll into view; done here in two steps so
+  // that the island cannot hydrate before the focus arrives) is what makes the island hydrate.
+  for (const [inst, outName] of [['b4', 'relation-left'], ['b3', 'matrix-e']] as const) {
+    // regression: P5-RT-05-02
+    test(`M8 ${inst}: the focus on the server box "${outName}" survives the island's hydration`, async ({ page }) => {
+      await page.goto('modules/m8-lie-algebras/');
+      const tool = page.locator(`[data-tool="rep"][data-instance="${inst}"]`);
+      const box = tool.locator(`[data-out="${outName}"] [role="group"][tabindex="0"]`);
+      await expect(tool).not.toHaveAttribute('data-hydrated', 'true');
+      await box.evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }));
+      await expect(box, 'the server box has the focus before hydration').toBeFocused();
+      await box.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await expect(tool).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      await expect(tool.locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 30000 });
+      await page.waitForTimeout(1000);
+      const where = await page.evaluate(() => {
+        const e = document.activeElement as HTMLElement;
+        return e === document.body ? 'BODY' : `${e.tagName.toLowerCase()} in ${e.closest('[data-tool]')?.getAttribute('data-instance') ?? 'page'} (${e.closest('[data-out]')?.getAttribute('data-out') ?? ''})`;
+      });
+      expect(where, `/modules/m8-lie-algebras/ ${inst}: document.activeElement after the island hydrated, the focus having been on the box "${outName}"`).toBe(`div in ${inst} (${outName})`);
+    });
+  }
+
+  // SPEC 4.0 "a polite live region announces each result" (7.5 A-4, 4.1.3): where the relation list is
+  // computed in the worker (E6 node 1, E7 node 7: RELATIONS_MAIN_WORK), the verdict drawn when the list
+  // arrives is announced, not only "checked in the background".
+  test.describe('a verdict from the worker', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.addInitScript(() => {
+        (window as unknown as { __ann: { inst: string | null; text: string }[] }).__ann = [];
+        new MutationObserver((recs) => {
+          for (const r of recs) {
+            const el = r.target.nodeType === 1 ? (r.target as Element) : r.target.parentElement;
+            const region = el?.closest('[aria-live], [role="status"]');
+            if (region && region.textContent) (window as unknown as { __ann: { inst: string | null; text: string }[] }).__ann.push({ inst: region.closest('[data-tool]')?.getAttribute('data-instance') ?? null, text: region.textContent });
+          }
+        }).observe(document, { subtree: true, childList: true, characterData: true });
+      });
+    });
+
+    for (const inst of ['b6', 'b7']) {
+      // regression: P5-RT-05-03
+      test(`M8 ${inst}: the verdict of a relation picked by keys is announced when the worker's list arrives`, async ({ page }) => {
+        await page.goto('modules/m8-lie-algebras/');
+        const tool = page.locator(`[data-tool="rep"][data-instance="${inst}"]`);
+        await tool.scrollIntoViewIfNeeded();
+        await expect(tool).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+        await expect(tool.locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 30000 });
+        const select = tool.locator('[data-control="relation"]');
+        await expect(select).toBeEnabled();
+        await select.focus();
+        await page.keyboard.press('ArrowUp'); // [E, F] = H or 0  ->  [H, F] = -C F
+        const verdict = tool.locator('[data-out="relation-verdict"]');
+        await expect(verdict, 'the worker list arrives and the verdict is drawn').toHaveAttribute('data-holds', /^(true|false)$/, { timeout: 30000 });
+        const shown = (await verdict.textContent())?.trim() ?? '';
+        await page.waitForTimeout(1200);
+        const said = (await page.evaluate(() => (window as unknown as { __ann: { inst: string | null; text: string }[] }).__ann)).filter((a) => a.inst === inst).map((a) => a.text);
+        expect(
+          said.some((t) => / are (equal|not equal)\./.test(t)),
+          `/modules/m8-lie-algebras/ ${inst}: the screen shows the verdict "${shown}", the live region said only ${JSON.stringify([...new Set(said)])}`,
+        ).toBe(true);
+      });
+    }
+  });
+
+  /** The nonzero cells of a drawn MatrixView, "row,col=value" with 1-based indices. */
+  const cellsOf = (m: Locator): Promise<string[]> =>
+    m.locator('td[data-row]').evaluateAll((tds) => tds.filter((t) => t.getAttribute('data-value') !== '0').map((t) => `${t.getAttribute('data-row')},${t.getAttribute('data-col')}=${t.getAttribute('data-value')}`).sort());
+  const engineCells = (m: SparseMatrix): string[] =>
+    [...m]
+      .map(([k, v]) => {
+        const [r, c] = k.split(',').map(Number) as [number, number];
+        return `${r + 1},${c + 1}=${v}`;
+      })
+      .sort();
+
+  // SPEC 4 T12: "the tool displays the matrix on each side of the relation and whether they are equal";
+  // acceptance "choosing the non-minuscule node 2 of D4 shows a failing relation". The two sides are read
+  // where they differ, so a tool that draws one matrix in both panels fails.
+  // regression: P5-RT-10-01
+  test('on node 2 of D4 the relation checker shows the two different sides of [E1, F1] = H1', async ({ page }) => {
+    const D4 = boardFromName('D4');
+    const [p1, p2] = toPositions(D4, [1, 2]) as [number, number];
+    const m = minusculeMatrices(D4, p2)!;
+    const rec = chevalleySerre(D4, m.E, m.F, m.H).find((c) => c.relation === 'ef' && c.i === p1 && c.j === p1)!;
+    expect(rec.holds).toBe(false);
+    await open(page, 'g=D4&k=2&q=ef:1,1');
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
+    const left = await cellsOf(out(page, 'relation-left'));
+    const right = await cellsOf(out(page, 'relation-right'));
+    expect(left, 'relation-left is [E1, F1] of chevalleySerre').toEqual(engineCells(rec.left));
+    expect(right, 'relation-right is H1 of chevalleySerre').toEqual(engineCells(rec.right));
+    expect(left).not.toEqual(right);
+  });
+
+  // SPEC 4 T12 bullet 4: the move matrix beside its signed version, of the node k whose matrices are shown.
+  // regression: P5-RT-10-02
+  test('the move matrix and its signed version follow the node chosen for the matrices (A2, node 2)', async ({ page }) => {
+    const A2 = boardFromName('A2');
+    const [p1, p2] = toPositions(A2, [1, 2]) as [number, number];
+    const m = minusculeMatrices(A2, p1)!;
+    const signed = signedMoves(m.basis, m.E, m.F);
+    await open(page, 'g=A2&k=1');
+    await root(page).locator('[data-control="matrix-node"]').selectOption('2');
+    await expect(out(page, 'matrix-e').locator('caption')).toHaveText('E2, 3 by 3');
+    expect(await cellsOf(out(page, 'move-matrix')), 'move-matrix is the firing of node 2').toEqual(engineCells(m.moves[p2]!));
+    expect(await cellsOf(out(page, 'signed-move')), 'signed-move is E2 - F2 + P2').toEqual(engineCells(signed[p2]!));
+  });
+
+  // SPEC 4 T12 bullet 1 and 6.3: edges coloured by node, read on an orbit with several edges per node.
+  // regression: P5-RT-10-02
+  test('edges of the orbit are coloured by node: one colour per node on the orbit of omega_1 of D4', async ({ page }) => {
+    await open(page, 'g=D4&k=1');
+    const edges = await out(page, 'orbit-graph')
+      .locator('[data-edge]')
+      .evaluateAll((es) => es.map((e) => ({ node: e.getAttribute('data-edge-node')!, stroke: getComputedStyle(e.querySelector('line')!).stroke })));
+    expect(edges.length).toBeGreaterThan(4);
+    const byNode = new Map<string, Set<string>>();
+    for (const e of edges) byNode.set(e.node, (byNode.get(e.node) ?? new Set()).add(e.stroke));
+    for (const [n, strokes] of byNode) expect([...strokes], `edges of node ${n}`).toHaveLength(1);
+    const colours = [...byNode.values()].map((s) => [...s][0]);
+    expect(new Set(colours).size, 'different nodes, different colours').toBe(byNode.size);
+  });
+
+  // SPEC 4.0 "a polite live region announces each result": a picked relation that fails is announced as
+  // not equal, one that holds as equal (on node 2 of D4 ef:1,2 fails and hh:1,2 holds).
+  // regression: P5-RT-11-02
+  test('a failing relation picked on D4 node 2 is announced as not equal, a holding one as equal', async ({ page }) => {
+    await open(page, 'g=D4&k=2');
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
+    // ef:1,2 fails on this orbit: the verdict and the announcement agree
+    await control(page, 'relation-j').selectOption('2');
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
+    await expect(out(page, 'relation-verdict')).toHaveText('not equal');
+    await expect(live(page)).toHaveText(/: the two sides are not equal\.$/);
+    // hh:1,2 holds: the announcement says so
+    await control(page, 'relation').selectOption('hh');
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'true');
+    await expect(live(page)).toHaveText(/: the two sides are equal\.$/);
   });
 });

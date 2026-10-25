@@ -11,7 +11,9 @@
 // (compared with the hydrated default), data-hydrated, and the prediction's .answer-text. RT-FIX
 // P4-MERGE-04 adds data-measured: a data-out whose text measures the reader's machine (T10's drawMs) is
 // compared by its presence, not its value. RT-FIX P4-RT-06-02 adds data-out="snapshot" (the SVG snapshot of a
-// canvas tool, 7.4) and reads whether a figure is visible.
+// canvas tool, 7.4) and reads whether a figure is visible. RT-FIX P5-RT-06-01 adds data-out="orbit-graph" with
+// data-drawn, data-positions, data-vertex, data-edge and data-layer-count, and a matrix's data-format,
+// data-rows, data-cols and its cells' data-row and data-col (T12's figure).
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { hydrateEveryIsland } from './hydrate';
@@ -36,6 +38,8 @@ interface ToolReport {
   textAlternative: boolean;
   /** Labels of the node buttons of a game board that lack a value or a hook of SPEC 4.0. */
   nodesWithoutValue: string[];
+  /** The data-out of each orbit drawing or matrix of the root that lacks its content (see toolReport). */
+  blankParts: string[];
   caption: string;
   enabledControls: string[];
   noscript: string;
@@ -61,6 +65,12 @@ interface ToolReport {
  * do not stand for it (RT-FIX P4-RT-06-02). A figure that is not shown (hidden, display none) is none.
  * Every node button of a game board shows its value: the four hooks of 4.0, data-value not empty.
  * The board editor's nodes (inside data-editor) show no value and are left out of that check.
+ * The other parts of a figure hold their content (RT-FIX P5-RT-06-01; SPEC 4 T12: "the orbit drawn in layers
+ * ...; the matrices E_k, F_k, H_k shown as grids", a T12 root being accepted as "board" through its string
+ * viewer): an orbit drawing (data-out="orbit-graph") holds a vertex per position (data-positions) and at least
+ * one edge into each vertex below layer 0, or, when it is not drawn (above 300 positions), layer counts that
+ * add up to them; a matrix (data-format, data-rows, data-cols) holds every cell of a grid, and a value cell in
+ * each row of a list (or its one row "no nonzero entries").
  */
 function toolReport(root: Element): ToolReport {
   const outside = (el: Element): boolean => el.closest('details, noscript') === null;
@@ -113,6 +123,23 @@ function toolReport(root: Element): ToolReport {
         !['true', 'false'].includes(b.getAttribute('data-can-act') ?? ''),
     )
     .map((b) => `${b.getAttribute('data-board') ?? '?'} ${b.getAttribute('data-node') ?? '?'}`);
+  const blankParts: string[] = [];
+  for (const g of [...root.querySelectorAll('[data-out="orbit-graph"]')].filter(outside)) {
+    const n = Number(g.getAttribute('data-positions'));
+    const full =
+      g.getAttribute('data-drawn') === 'true'
+        ? g.querySelectorAll('[data-vertex]').length === n && g.querySelectorAll('[data-edge]').length >= n - 1
+        : [...g.querySelectorAll('[data-layer-count]')].reduce((s, l) => s + Number(l.getAttribute('data-layer-count')), 0) === n;
+    if (!(n > 0 && full)) blankParts.push('orbit-graph');
+  }
+  for (const m of [...root.querySelectorAll('[data-format][data-rows][data-cols]')].filter(outside)) {
+    const cells = m.querySelectorAll('[data-row][data-col]').length;
+    const full =
+      m.getAttribute('data-format') === 'grid'
+        ? cells === Number(m.getAttribute('data-rows')) * Number(m.getAttribute('data-cols'))
+        : cells === m.querySelectorAll('tbody tr').length || (cells === 0 && m.querySelector('tbody td[colspan]') !== null);
+    if (!full) blankParts.push(m.getAttribute('data-out') ?? 'a matrix');
+  }
   const captionEl = root.querySelector('[data-out="caption"]') ?? root.closest('figure')?.querySelector(':scope > figcaption') ?? figure?.querySelector(':scope > figcaption') ?? null;
   const controls = [...root.querySelectorAll('button, input, select, textarea')];
   const enabledControls = controls.filter((c) => !c.matches(':disabled')).map((c) => c.outerHTML.slice(0, 120));
@@ -131,6 +158,7 @@ function toolReport(root: Element): ToolReport {
     figure: kind,
     textAlternative,
     nodesWithoutValue,
+    blankParts,
     caption: (captionEl?.textContent ?? '').trim(),
     enabledControls,
     noscript,
@@ -147,6 +175,7 @@ function figureProblems(report: ToolReport): string[] {
   if (report.figure === null) problems.push('default figure');
   if (!report.textAlternative) problems.push('text alternative of the figure');
   if (report.nodesWithoutValue.length > 0) problems.push(`values of the nodes ${report.nodesWithoutValue.join(', ')}`);
+  if (report.blankParts.length > 0) problems.push(`content of ${report.blankParts.join(', ')}`);
   return problems;
 }
 
@@ -467,5 +496,44 @@ for (const route of ['tools/geometry/', 'modules/m7-geometry/']) {
     expect(texts.length).toBeGreaterThan(0);
     const dangling = texts.filter((l) => /\bin\s+ms\b/.test(l)).map((l) => l.slice(0, l.indexOf(':')));
     expect(dangling, `${route}: T10 roots that state a drawing time with no number`).toEqual([]);
+  });
+}
+
+/** Blanks the parts of T12's figure that no run without JavaScript read: the orbit's vertices and edges, the matrix cells. */
+function blankT12Figure(root: Element): { vertices: number; edges: number; cells: number } {
+  const vertices = [...root.querySelectorAll('[data-out="orbit-graph"] [data-vertex]')];
+  const edges = [...root.querySelectorAll('[data-out="orbit-graph"] [data-edge]')];
+  const cells = [...root.querySelectorAll('[data-row][data-col]')];
+  for (const e of [...vertices, ...edges, ...cells]) e.remove();
+  return { vertices: vertices.length, edges: edges.length, cells: cells.length };
+}
+
+// SPEC 7.4 "checks, for every lesson, that the text, every default figure and every table are present" and
+// 4 T12 (the orbit drawn in layers; the matrices as grids or lists): a T12 root whose orbit drawing and
+// matrices are blanked is rejected by the figure check of the sweep, through the same functions, as are the
+// per-instance checks of M8.spec.ts shown to miss it.
+for (const route of ['modules/m8-lie-algebras/']) {
+  // regression: P5-RT-06-01
+  test(`nojs.spec.ts rejects a T12 root whose orbit drawing and matrices are blank: ${route}`, async ({ page }) => {
+    await page.goto(route);
+    const roots = page.locator('[data-tool="rep"]');
+    const n = await roots.count();
+    expect(n, `T12 roots on ${route}`).toBeGreaterThan(0);
+    // Before the blanking: every root has an orbit with vertices and matrices with cells (the build is sound).
+    const removed = await roots.evaluateAll((rs, fn) => rs.map((r) => new Function(`return (${fn})`)()(r)), blankT12Figure.toString());
+    for (const [k, x] of removed.entries()) expect(x.vertices > 0 && x.cells > 0, `root ${k} had an orbit and matrices to blank: ${JSON.stringify(x)}`).toBe(true);
+    // After it, nothing of T12's orbit or matrices is left.
+    expect(await page.locator('[data-tool="rep"] [data-vertex], [data-tool="rep"] [data-row][data-col]').count()).toBe(0);
+    // The per-instance checks of M8.spec.ts that read the figure still pass on the blank roots.
+    for (let k = 0; k < n; k++) {
+      const root = roots.nth(k);
+      await expect(root.locator('[data-out="matrix-e"]')).toHaveCount(1);
+      await expect(root.locator('table[data-table="orbit"] caption')).toHaveCount(1);
+      await expect(root.locator('[data-out="dimension"]')).not.toHaveText('');
+    }
+    // This file's predicate.
+    const reports = await page.$$eval('[data-tool="rep"]', (rs, fn) => rs.map((r) => new Function(`return (${fn})`)()(r)), toolReport.toString());
+    const accepted = (reports as ToolReport[]).filter((r) => figureProblems(r).length === 0).map((r) => `${r.instance || '(tool route)'} as ${r.figure}`);
+    expect(accepted, `${route}: T12 roots with a blank orbit and blank matrices that nojs.spec.ts accepts as having their default figure`).toEqual([]);
   });
 }
