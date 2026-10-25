@@ -1,0 +1,954 @@
+{
+ "agent": "P6-A7",
+ "status": "done",
+ "branch": "worktree-agent-aea063b1639322541",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-aea063b1639322541",
+ "commits": [
+  "5119e8d P6-A7: M9 text complete, nine beats with the T13 figures and the static Vogan drawing",
+  "b69f761 P6-A7: M9.spec.ts, the browser tests of the lesson",
+  "f0cae80 P6-A7: M9 lesson, tests, decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/content/modules/m9-real-forms.mdx",
+  "site/tests/e2e/M9.spec.ts",
+  "decisions/P6-A7.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 149eee2",
+   "exit": 0,
+   "summary": "HEAD is now at 149eee2 MERGE: fold P6-A4's entries; released, M7 and M8 tests on its request; record the merge of T14"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed once from the lockfile, Node v22.22.0"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "89 page(s) built in 20.97s; links: 3315 internal links on 89 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/p6-a7/dist-release npm run build",
+   "exit": 0,
+   "summary": "88 page(s) built in 22.11s; open item E1 used on /modules/m9-real-forms/ (fallback shown); open item E15 used on /modules/m9-real-forms/ (fallback shown); links: 3161 internal links on 88 pages checked, 0 problems"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: Result (374 files): 0 errors, 0 warnings, 1 hint; svelte-check: COMPLETED 1203 FILES 0 ERRORS 1 WARNINGS (src/components/tools/t02/LayerChart.svelte, not P6-A7's)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no output (clean)"
+  },
+  {
+   "cmd": "npm test (TMPDIR in scratch)",
+   "exit": 0,
+   "summary": "Test Files 187 passed (187); Tests 3908 passed (3908)"
+  },
+  {
+   "cmd": "npm run size -- --port 7251",
+   "exit": 0,
+   "summary": "size: 89 routes measured, 0 over budget; /modules/m9-real-forms/ 85.9 kB gzip of 120, 18 scripts, ok"
+  },
+  {
+   "cmd": "node scripts/numbers-in-prose.mjs",
+   "exit": 0,
+   "summary": "numbers-in-prose: 0 numbers in 0 files, 5 in fallbacks (all 5 in m3, m4, m7; none in m9-real-forms.mdx)"
+  },
+  {
+   "cmd": "playwright test M9.spec.ts (scratch config, port 7250, final run on the committed files)",
+   "exit": 0,
+   "summary": "33 passed (45.9s); M9 prose words: 1780"
+  },
+  {
+   "cmd": "playwright test nojs.spec.ts module-links.spec.ts registry-outs.spec.ts engine-fallback.spec.ts T13.spec.ts (port 7250)",
+   "exit": 0,
+   "summary": "343 passed (3.1m)"
+  },
+  {
+   "cmd": "playwright test a11y.spec.ts -g modules/m9-real-forms (port 7250)",
+   "exit": 0,
+   "summary": "1 passed"
+  },
+  {
+   "cmd": "playwright test M8.spec.ts (port 7250; effect of releasing M9 on M8)",
+   "exit": 1,
+   "summary": "28 passed, 2 failed: anatomy of 8.2 (a[href*=\"m9\"] count 1, the new Next link) and word count between 800 and 1800 (1804); outside P6-A7's files, see requests"
+  },
+  {
+   "cmd": "python3 breaks.py (13 deliberate breaks of the MDX), npm run build, playwright test M9.spec.ts, python3 breaks.py restore",
+   "exit": 0,
+   "summary": "each break failed its targeted test (forbidden sentence in a caption, E15 wrap removed, typed number, b1 client:visible, wrong check, character cited, novelty phrase, em-dash, wrong verdict name, wrong root, toggle preset off, wrong prediction answer, E1 wrap removed); file restored and rebuilt, 33 passed"
+  },
+  {
+   "cmd": "pkill -f \"port 7250\" / pgrep check; rm -rf node_modules site/node_modules packages/engine/node_modules site/dist",
+   "exit": 0,
+   "summary": "no server left on 7250 to 7253; directories removed; git status --porcelain empty"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "The lesson follows the anatomy of 8.2 in order (SPEC 9.2; 8.2)",
+   "status": "pass",
+   "test": "site/tests/e2e/M9.spec.ts > anatomy of 8.2"
+  },
+  {
+   "item": "The page reads completely without JavaScript: prose, every default figure, captions, the A.5 table, the static sidebar, disabled controls, the noscript line",
+   "status": "pass",
+   "test": "M9.spec.ts > without JavaScript > M9 renders without JavaScript; nojs.spec.ts (in the 343-passed shared run)"
+  },
+  {
+   "item": "Every statement has a provenance; Vogan sentence wrapped as E15; so*(8) multiplicities wrapped as E1; no other [U] used; no novelty claim",
+   "status": "pass",
+   "test": "M9.spec.ts > careful wording on a failed condition 3, > beat 7: the multiplicities of so*(8) and su*(4) sit inside the E1 wrap, > E1 and E15 are wrapped, with fallbacks that stay true, > no claim of novelty, > anatomy of 8.2 (provenance); owner part not-automated, G6"
+  },
+  {
+   "item": "Every number with a golden value via <G> or {{path}}; numbers-in-prose lists only the allowed list",
+   "status": "pass",
+   "test": "M9.spec.ts > numbers in prose, > numbers typed in captions, questions, reveals, goals and explanations; npm run build"
+  },
+  {
+   "item": "At least two predictions and three challenges, from the patterns of 8.5",
+   "status": "pass",
+   "test": "M9.spec.ts > at least two predictions and three challenges, > every prediction has a details fallback, > a prediction freezes its board until answered, > a prediction asks about what is not yet on screen"
+  },
+  {
+   "item": "Each challenge's check reports success exactly when its goal is met",
+   "status": "pass",
+   "test": "M9.spec.ts > each challenge check is met exactly by the decorations of its goal (all boards, all roots), > challenge: on D5 with nodes 1 and 3 black, find tau, > challenge: on E6, a decoration with a black node and an arrow, > challenge: on e6(-26), bring the shadow to the coordinates of the goal"
+  },
+  {
+   "item": "Writing rules of 8.4: no em-dash (automated); own words, site's terms, conventions, credit (RT-08; owner)",
+   "status": "pass",
+   "test": "M9.spec.ts > no em-dash in the built text (also no U+2013); the rest not-automated, owner at G6"
+  },
+  {
+   "item": "Between 800 and 1800 words",
+   "status": "pass",
+   "test": "M9.spec.ts > word count between 800 and 1800 (1780)"
+  },
+  {
+   "item": "The draft mark is present (draft: true)",
+   "status": "pass",
+   "test": "M9.spec.ts > anatomy of 8.2"
+  },
+  {
+   "item": "The lesson never says theta is not an involution",
+   "status": "pass",
+   "test": "M9.spec.ts > never says theta is not an involution"
+  },
+  {
+   "item": "The careful wording of 2.15 on a failed condition 3 is present",
+   "status": "pass",
+   "test": "M9.spec.ts > careful wording on a failed condition 3"
+  },
+  {
+   "item": "The character formula is presented as derived here",
+   "status": "pass",
+   "test": "M9.spec.ts > the character formula is presented as derived"
+  },
+  {
+   "item": "First tool client:idle, the others client:visible; ids b1, b2, ... in reading order; every tool has a caption",
+   "status": "pass",
+   "test": "M9.spec.ts > islands: the first tool is idle, the others visible; > M9 renders without JavaScript (captions)"
+  },
+  {
+   "item": "Beat 1: T13 on A1, white, paint control; sl(2,R) then su(2)",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 1: A1 white is sl(2,R), painted black is su(2)"
+  },
+  {
+   "item": "Beat 2: play theta on A3 black 1, 3, root (0,1,0), ending at (-1,-1,-1)",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 2: play theta on (0,1,0)"
+  },
+  {
+   "item": "Beat 3: shadows of su(1,2), multiplicities 2 and 1, the A.5 table",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 3: su(1,2) shadows"
+  },
+  {
+   "item": "Beat 4: A2 with node 1 black shows the third light red; the A3 examples show the verdicts of satake_examples",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 4: the third light fails on A2 with node 1 black; > the A3 examples show the recorded verdicts"
+  },
+  {
+   "item": "Beat 5: the data of su(1,3)",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 5: su(1,3) data"
+  },
+  {
+   "item": "Beat 6: restricted board A2, multiplicity 8 on E6 black 2,3,4,5; a click plays the composite word and reflects the shadow",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 6: e6(-26) restricted board (checks moveCounter and composite-word, since data-moves stays 0; see deviations)"
+  },
+  {
+   "item": "Beat 7: the D4 catalogue with six records, two of them the same real form",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 7: D4 catalogue"
+  },
+  {
+   "item": "Beat 8: su(1,5) with the toggle show tau on black nodes",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 8: su(1,5) toggle"
+  },
+  {
+   "item": "Beat 9: the static Vogan sidebar with the [S2] sentence",
+   "status": "pass",
+   "test": "M9.spec.ts > M9 renders without JavaScript (aside[data-sidebar=vogan], figure[data-static-figure=vogan], the sentence)"
+  },
+  {
+   "item": "Bridge sentence of 2.4(a) wherever both views are shown together",
+   "status": "pass",
+   "test": "none needed: no figure or sentence shows populations and numbers together (stated in the MDX comment block and the fragment)"
+  },
+  {
+   "item": "Internal links resolve and honour BASE_URL",
+   "status": "pass",
+   "test": "M9.spec.ts > links resolve; module-links.spec.ts (shared run); basepath.spec.ts is MERGE's"
+  },
+  {
+   "item": "axe: no serious or critical violations on /modules/m9-real-forms",
+   "status": "pass",
+   "test": "a11y.spec.ts on the M9 route: 1 passed"
+  },
+  {
+   "item": "Size: at most 120 kB JavaScript before interaction at 360 by 800",
+   "status": "pass",
+   "test": "npm run size -- --port 7251: 85.9 kB of 120"
+  },
+  {
+   "item": "Lab timings on M9 (LCP, TBT, CLS)",
+   "status": "not-automated",
+   "test": "not run by P6-A7: npm run lab is run by GATE at G6 (plan section 9 says not to run it here)"
+  },
+  {
+   "item": "npm run build and RELEASE=1 npm run build succeed; the open-items report lists this page under E1 and E15",
+   "status": "pass",
+   "test": "npm run build: 89 page(s) built, links 0 problems; RELEASE=1 npm run build: 88 page(s) built, E1 and E15 listed for /modules/m9-real-forms/, links 0 problems"
+  },
+  {
+   "item": "Type checks pass",
+   "status": "pass",
+   "test": "npm run check -w site: astro check 0 errors, 0 warnings, 1 hint; svelte-check 0 errors, 1 warning (t02, not mine); tsc --noEmit -p packages/engine clean"
+  },
+  {
+   "item": "P4 and P7: one new mechanic per beat; theta and the restricted game stepped, then half finished, then free",
+   "status": "pass",
+   "test": "M9.spec.ts > beat 2: play theta on (0,1,0) (stepped, not autoplayed), > beat 6: e6(-26) restricted board; order and commentary not-automated, owner at G6"
+  },
+  {
+   "item": "Owner: P3 to P8, read aloud, approval of the text, E1/E8/E15 closed or fallbacks accepted",
+   "status": "not-automated",
+   "test": "owner's part of gate G6"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "plan 5.17 test 13",
+   "what": "beat 6 does not check that data-moves rose by 32",
+   "why": "T13 keeps moves out of its state, so data-moves stays 0. The test waits until the big board is stable, then checks: History moveCounter rises by one per composite move; composite-word has 32 letters (w_X_word first, then types.D5.n_positive_roots); composite-length equals the golden reduced length; the shadow coordinates move as a mutation of the restricted board."
+  },
+  {
+   "spec": "plan 5.4",
+   "what": "real rank and dim k of su(1,2) are stated in the b3 caption, not in the sentence under the A.5 table",
+   "why": "word budget (1780 of 1800); the values still come from golden paths"
+  },
+  {
+   "spec": "plan 5.11",
+   "what": "the plan's prediction and challenge candidates were replaced",
+   "why": "the plan's predictions ask for values already on screen (P3-RT-13-01, followed as P5-A3 did); the plan's challenge answers are printed in the beats. P1, P2 and challenges b10 to b12 ask about states the reader has not seen."
+  },
+  {
+   "spec": "plan 5.5",
+   "what": "no prediction on the beat 4 A2 figure",
+   "why": "its answer is in the caption and the prose (P2, and the careful wording must sit in prose); recorded in the fragment"
+  },
+  {
+   "spec": "plan 5.8 E1 fallback",
+   "what": "fallback reads 'rank at most eight' (in words)",
+   "why": "so the release build prints no number outside <G>"
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE",
+   "what": "Releasing M9 makes M8's ModuleLinks print 'Next: Real forms and Satake diagrams'. On this branch M8.spec.ts fails twice: 'anatomy of 8.2' (expects no m9 link; a[href*=\"m9\"] count 1) and 'word count between 800 and 1800' (1804). M8.spec needs to accept the next link, and either M8 loses at least 4 words or the word count skips the links block as it skips tool roots. These files are outside P6-A7's ownership."
+  },
+  {
+   "to": "P6-A3",
+   "what": "Add a data-out naming the board and the decoration together (for example data-out=\"state\" with 'D5 black 1,3 tau 1,2,3,5,4'), so a lesson challenge can check a decoration directly. M9 checks the text of data-out=\"shadow\" instead; an enumeration test shows that check is exact."
+  },
+  {
+   "to": "MERGE",
+   "what": "After the T13 repair merges, rerun M9.spec.ts. It reads only preset ids, prop names and data-out names, never T13 caption or note text, and its hydrate helper waits for data-pending to clear."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P6-A7.md",
+ "openQuestions": [
+  "P3-RT-13-01 (a prediction must not show its answer before the reader commits) is still held for the owner. M9 follows it: P1 and P2 ask about states not yet on screen.",
+  "Should M8's word count exclude the ModuleLinks block (see requests)? M9 counts 1780 now, about 1786 once M10's next link appears."
+ ],
+ "handoff": "M9 has nine beats with twelve T13 instances (b1 to b12; none on E7 or E8, none needing the worker) and a static Vogan SVG. Every number comes through <G>, {{path}} or engine or T13-model calls at build time. E1 and E15 are wrapped. Beat 4 uses the careful A2-only wording and never says theta is not an involution. M9.spec.ts passes 33 of 33 and reads only data-out names, so it should survive the T13 repair. Merging this branch breaks two M8.spec checks (the next link to M9, and M8's word count of 1804); these are listed under requests.",
+ "figures": [
+  {
+   "id": "b1",
+   "tool": "T13",
+   "preset": "default",
+   "board": "A1",
+   "props": {
+    "black": [],
+    "tau": [
+     1
+    ]
+   },
+   "directive": "client:idle",
+   "expected": "On A1 the white node gives the real form sl(2,R), of real rank 1; painted black, the node gives the compact form su(2), of real rank 0."
+  },
+  {
+   "id": "b2",
+   "tool": "T13",
+   "preset": "play-theta",
+   "board": "A3",
+   "props": {
+    "black": [
+     1,
+     3
+    ],
+    "tau": [
+     1,
+     2,
+     3
+    ],
+    "root": [
+     0,
+     1,
+     0
+    ]
+   },
+   "directive": "client:visible",
+   "expected": "On A3 with black nodes 1 and 3, the real form su*(4), θ takes the population (0, 1, 0) to (1, 1, 1) after the word 1 3 of w_X, and to (−1, −1, −1) after the change of sign."
+  },
+  {
+   "id": "b3",
+   "tool": "T13",
+   "preset": "shadows",
+   "board": "A2",
+   "props": {
+    "black": [],
+    "tau": [
+     2,
+     1
+    ]
+   },
+   "directive": "client:visible",
+   "expected": "For su(1,2) on A2 the shadows lie on one line: (1/2, 1/2) is cast by 2 roots and its double (1, 1) by 1, a system of type BC1; real rank 1, dim k = 4."
+  },
+  {
+   "id": "table#su12-shadows",
+   "tool": "static table (A.5)",
+   "preset": null,
+   "board": "A2",
+   "props": {},
+   "directive": "none",
+   "expected": "rows (1/2, 1/2) with 2 roots: (0, 1) to (−1, 0), (1, 0) to (0, −1); (1, 1) with 1 root: (1, 1) to (−1, −1)"
+  },
+  {
+   "id": "b4",
+   "tool": "T13",
+   "preset": "lights",
+   "board": "A2",
+   "props": {
+    "black": [],
+    "tau": [
+     1,
+     2
+    ]
+   },
+   "directive": "client:visible",
+   "expected": "On A2 all white with τ the identity, the three lights are green: sl(3,R). With node 1 painted black, condition 3 fails, because at node 2 the number is −1/2, which is not an integer."
+  },
+  {
+   "id": "b5",
+   "tool": "T13",
+   "preset": "lights",
+   "board": "A3",
+   "props": {
+    "black": [],
+    "tau": [
+     1,
+     2,
+     3
+    ],
+    "examples": "T13 examples panel, the five A3 rows of satake_examples"
+   },
+   "directive": "client:visible",
+   "expected": "The examples of A3: black nodes 1 and 3 give su*(4), and black node 2 with τ exchanging 1 and 3 gives su(1,3); node 1 alone fails condition 3, nodes 1 and 2 fail condition 2, and node 1 with τ exchanging 1 and 3 fails all three."
+  },
+  {
+   "id": "b6",
+   "tool": "T13",
+   "preset": "data",
+   "board": "A3",
+   "props": {
+    "black": [
+     2
+    ],
+    "tau": [
+     3,
+     2,
+     1
+    ],
+    "prediction": "P1"
+   },
+   "directive": "client:visible",
+   "expected": "On A3 with black node 2 and τ exchanging 1 and 3, the real form su(1,3): real rank 1, shadows of type BC1 with the pair (4, 1), dim k = 9, dim p = 6 and character −3."
+  },
+  {
+   "id": "b7",
+   "tool": "T13",
+   "preset": "restricted",
+   "board": "E6",
+   "props": {
+    "black": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "tau": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "prediction": "P2"
+   },
+   "directive": "client:visible",
+   "expected": "For e6(-26) the restricted board is A2 and every shadow has multiplicity 8; each composite move plays 32 moves on E6 and has reduced length 8."
+  },
+  {
+   "id": "b8",
+   "tool": "T13",
+   "preset": "catalogue",
+   "board": "D4",
+   "props": {
+    "black": [],
+    "tau": [
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   "directive": "client:visible",
+   "expected": "The catalogue of D4 has 6 records for 5 real forms: so(2,6) and so*(8) are the same real form. Loading a record paints its decoration."
+  },
+  {
+   "id": "b9",
+   "tool": "T13",
+   "preset": "tau-on-black",
+   "board": "A5",
+   "props": {
+    "black": [
+     2,
+     3,
+     4
+    ],
+    "tau": [
+     5,
+     4,
+     3,
+     2,
+     1
+    ],
+    "toggle": "Show τ on black nodes (from the preset)"
+   },
+   "directive": "client:visible",
+   "expected": "For su(1,5) on A5 the drawing shows only the arrow between nodes 1 and 5; the toggle Show τ on black nodes shows that τ also exchanges the black nodes 2 and 4."
+  },
+  {
+   "id": "vogan",
+   "tool": "static inline SVG (aside[data-sidebar=vogan] > figure[data-static-figure=vogan])",
+   "preset": null,
+   "board": "A2",
+   "props": {},
+   "directive": "none (no JavaScript)",
+   "expected": "The undecorated A_2: sl(3,R) as a Satake diagram, su(3) as a Vogan diagram."
+  },
+  {
+   "id": "b10",
+   "tool": "T13",
+   "preset": "default",
+   "board": "D5",
+   "props": {
+    "black": [
+     1,
+     3
+    ],
+    "tau": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   "directive": "client:visible",
+   "expected": "On D5 with black nodes 1 and 3 and τ the identity, condition 3 fails at nodes 4 and 5, so the decoration is not the Satake diagram of any real form."
+  },
+  {
+   "id": "b11",
+   "tool": "T13",
+   "preset": "default",
+   "board": "E6",
+   "props": {
+    "black": [],
+    "tau": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ]
+   },
+   "directive": "client:visible",
+   "expected": "On E6 all white with τ the identity: the split form e6(6), of real rank 6."
+  },
+  {
+   "id": "b12",
+   "tool": "T13",
+   "preset": "restricted",
+   "board": "E6",
+   "props": {
+    "black": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "tau": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ]
+   },
+   "directive": "client:visible",
+   "expected": "For e6(-26) the shadow of the population starts at the coordinates (0, 1) on the restricted board A2."
+  }
+ ],
+ "predictions": [
+  {
+   "id": "P1",
+   "on": "b6 (beat 5)",
+   "pattern": "predict a position (answer type position, 4.0)",
+   "question": "Here stage 1 of θ moves the population (0, 0, 1) to (1, 0, 0), and stage 2 plays the word of w_X, the single letter 2. Where does θ send (0, 0, 1)?",
+   "answer": "(−1, −1, 0), computed by the engine's theta at build time (THETA13)",
+   "reveal": "mutating city 2 gives (1, 1, 0); stage 3 changes every sign; the shadow is (1/2, 1/2, 1/2)",
+   "test": "M9.spec.ts > every prediction has a details fallback; > a prediction freezes its board until answered; > a prediction asks about what is not yet on screen"
+  },
+  {
+   "id": "P2",
+   "on": "b7 (beat 6)",
+   "pattern": "predict a position (answer type position, 4.0)",
+   "question": "Pressing restricted node 2 sends the shadow coordinates (0, 1) to (0, −1). Press node 2 and then node 1: which coordinates will the restricted board show?",
+   "answer": "(−1, −1), computed with T13's restrictedClick (engine composite moves) at build time",
+   "reveal": "each composite move acts as a mutation of the restricted board A2",
+   "test": "M9.spec.ts > every prediction has a details fallback; > a prediction freezes its board until answered; > a prediction asks about what is not yet on screen; > beat 6: e6(-26) restricted board (node 2 then node 1)"
+  }
+ ],
+ "challenges": [
+  {
+   "for": "b10",
+   "pattern": "classify",
+   "goal": "On D5 with nodes 1 and 3 black, find the τ that turns all three lights green.",
+   "check": "{kind: 'out', name: 'shadow', equals: shadow text of so*(10) (black 1, 3, tau 1,2,3,5,4) at defaultRoot}",
+   "test": "M9.spec.ts > challenge: on D5 with nodes 1 and 3 black, find tau; > each challenge check is met exactly by the decorations of its goal (all boards, all roots)"
+  },
+  {
+   "for": "b11",
+   "pattern": "classify",
+   "goal": "On E6, find a decoration with a black node and an arrow that all three lights accept.",
+   "check": "{kind: 'out', name: 'shadow', equals: shadow text of e6(-14) (black 3, 4, 5, tau 6,2,5,4,3,1) at defaultRoot}",
+   "test": "M9.spec.ts > challenge: on E6, a decoration with a black node and an arrow; > each challenge check is met exactly ..."
+  },
+  {
+   "for": "b12",
+   "pattern": "reach a target",
+   "goal": "On E6 with nodes 2, 3, 4 and 5 black, bring the shadow to the coordinates (−1, 0).",
+   "check": "{kind: 'out', name: 'shadow', equals: shadow text at TARGET, three composite moves (2, 1, 2) from the start (0, 1)}",
+   "test": "M9.spec.ts > challenge: on e6(-26), bring the shadow to the coordinates of the goal; > each challenge check is met exactly ...; > the prose does not print the answers of the challenges"
+  }
+ ],
+ "wordCount": 1780,
+ "goldenPaths": [
+  {
+   "path": "satake[dynkin_type=A1;real_form=sl(2,R)].real_rank",
+   "printed": "1"
+  },
+  {
+   "path": "satake[dynkin_type=A1;real_form=su(2)].real_rank",
+   "printed": "0"
+  },
+  {
+   "path": "satake[dynkin_type=A1;real_form=sl(2,R)].dim_k",
+   "printed": "1"
+  },
+  {
+   "path": "satake[dynkin_type=A1;real_form=su(2)].dim_k",
+   "printed": "3"
+  },
+  {
+   "path": "satake[dynkin_type=A1;real_form=sl(2,R)].real_form (caption)",
+   "printed": "sl(2,R)"
+  },
+  {
+   "path": "satake[dynkin_type=A1;real_form=su(2)].real_form (caption)",
+   "printed": "su(2)"
+  },
+  {
+   "path": "admissible_counts.A1.real_forms_including_compact",
+   "printed": "2"
+  },
+  {
+   "path": "{{types.A1.positive_roots[0]}}",
+   "printed": "(1)"
+  },
+  {
+   "path": "satake[dynkin_type=A3;real_form=su*(4)].w_X_word as=word",
+   "printed": "1 3"
+  },
+  {
+   "path": "satake[dynkin_type=A3;real_form=su*(4)].real_form (caption)",
+   "printed": "su*(4)"
+  },
+  {
+   "path": "{{types.A3.positive_roots[1]}}",
+   "printed": "(0, 1, 0)"
+  },
+  {
+   "path": "satake[dynkin_type=A2;real_form=su(1,2)].multiplicities[0].mult",
+   "printed": "2"
+  },
+  {
+   "path": "satake[dynkin_type=A2;real_form=su(1,2)].multiplicities[1].mult",
+   "printed": "1"
+  },
+  {
+   "path": "types.A2.positive_roots[0]",
+   "printed": "(0, 1)"
+  },
+  {
+   "path": "types.A2.positive_roots[1]",
+   "printed": "(1, 0)"
+  },
+  {
+   "path": "types.A2.positive_roots[2]",
+   "printed": "(1, 1)"
+  },
+  {
+   "path": "{{satake[dynkin_type=A2;real_form=su(1,2)].restricted_simple_multiplicities[0]}}",
+   "printed": "(2, 1)"
+  },
+  {
+   "path": "satake[dynkin_type=A2;real_form=su(1,2)].restricted_type_display",
+   "printed": "BC1"
+  },
+  {
+   "path": "satake[dynkin_type=A2;real_form=su(1,2)].real_rank (caption)",
+   "printed": "1"
+  },
+  {
+   "path": "satake[dynkin_type=A2;real_form=su(1,2)].dim_k",
+   "printed": "4"
+  },
+  {
+   "path": "satake[dynkin_type=A2;real_form=sl(3,R)].dim_k",
+   "printed": "3"
+  },
+  {
+   "path": "satake[dynkin_type=A2;real_form=su(3)].dim_k",
+   "printed": "8"
+  },
+  {
+   "path": "satake[dynkin_type=A2;real_form=sl(3,R)].real_form (caption)",
+   "printed": "sl(3,R)"
+  },
+  {
+   "path": "satake_examples[type=A3;black_nodes=1,3;tau=1,2,3].real_forms[0]",
+   "printed": "su*(4)"
+  },
+  {
+   "path": "satake_examples[type=A3;black_nodes=2;tau=3,2,1].real_forms[0]",
+   "printed": "su(1,3)"
+  },
+  {
+   "path": "satake as=count",
+   "printed": "167"
+  },
+  {
+   "path": "{{satake[dynkin_type=A3;real_form=su(1,3)].rank}}",
+   "printed": "3"
+  },
+  {
+   "path": "{{satake[dynkin_type=A3;real_form=su(1,3)].real_rank}}",
+   "printed": "1"
+  },
+  {
+   "path": "{{types.A3.n_roots}}",
+   "printed": "12"
+  },
+  {
+   "path": "{{satake[dynkin_type=A3;real_form=su(1,3)].roots_compact_imaginary}}",
+   "printed": "2"
+  },
+  {
+   "path": "{{satake[dynkin_type=A3;real_form=su(1,3)].dim_k}}",
+   "printed": "9"
+  },
+  {
+   "path": "{{satake[dynkin_type=A3;real_form=su(1,3)].dim_p}}",
+   "printed": "6"
+  },
+  {
+   "path": "satake[dynkin_type=A3;real_form=su(1,3)].character",
+   "printed": "−3"
+  },
+  {
+   "path": "satake[dynkin_type=A3;real_form=su(1,3)].restricted_type_display",
+   "printed": "BC1"
+  },
+  {
+   "path": "{{satake[dynkin_type=A3;real_form=su(1,3)].restricted_simple_multiplicities[0]}}",
+   "printed": "(4, 1)"
+  },
+  {
+   "path": "satake[dynkin_type=E6;real_form=e6(-26)].restricted_board",
+   "printed": "A2"
+  },
+  {
+   "path": "satake[dynkin_type=E6;real_form=e6(-26)].multiplicities[0].mult",
+   "printed": "8"
+  },
+  {
+   "path": "satake[dynkin_type=E6;real_form=e6(-26)].w_X_word as=count",
+   "printed": "12"
+  },
+  {
+   "path": "types.D5.n_positive_roots",
+   "printed": "20"
+  },
+  {
+   "path": "satake[dynkin_type=E6;real_form=e6(-26)].restricted_reflection_word_lengths[1]",
+   "printed": "8"
+  },
+  {
+   "path": "satake[dynkin_type=E6;real_form=e6(-26)].restricted_reflection_word_lengths[0] (caption)",
+   "printed": "8"
+  },
+  {
+   "path": "satake[dynkin_type=E6;real_form=e6(-26)].restricted_orbits_in_bourbaki_order[1] (read)",
+   "printed": "6"
+  },
+  {
+   "path": "admissible_counts.D4.catalogue_records",
+   "printed": "6"
+  },
+  {
+   "path": "admissible_counts.D4.real_forms_including_compact",
+   "printed": "5"
+  },
+  {
+   "path": "satake[dynkin_type=D4;real_form=so(2,6)].restricted_type_display",
+   "printed": "B2"
+  },
+  {
+   "path": "satake[dynkin_type=D4;real_form=so*(8)].restricted_type_display",
+   "printed": "C2"
+  },
+  {
+   "path": "{{satake[dynkin_type=D4;real_form=so*(8)].dim_k}}",
+   "printed": "16"
+  },
+  {
+   "path": "satake[dynkin_type=D4;real_form=so*(8)].multiplicities[0].mult (inside E1)",
+   "printed": "4"
+  },
+  {
+   "path": "satake[dynkin_type=D4;real_form=so*(8)].multiplicities[1].mult (inside E1)",
+   "printed": "1"
+  },
+  {
+   "path": "satake[dynkin_type=D4;real_form=so(4,4)].multiplicities[0].mult",
+   "printed": "1"
+  },
+  {
+   "path": "{{satake[dynkin_type=A5;real_form=su(1,5)].restricted_simple_multiplicities[0]}}",
+   "printed": "(8, 1)"
+  },
+  {
+   "path": "satake[dynkin_type=A5;real_form=su(1,5)].real_form (caption)",
+   "printed": "su(1,5)"
+  },
+  {
+   "path": "satake[dynkin_type=D5;real_form=so*(10)].real_form (explanation)",
+   "printed": "so*(10)"
+  },
+  {
+   "path": "satake[dynkin_type=E6;real_form=e6(-14)].real_form and .black_nodes (explanation)",
+   "printed": "e6(-14); 3, 4 and 5"
+  },
+  {
+   "path": "satake[dynkin_type=E6;real_form=e6(6)].real_form, .real_rank (caption)",
+   "printed": "e6(6); 6"
+  },
+  {
+   "path": "read only, not printed: black_nodes and tau of su*(4), su(1,2), su(1,3), e6(-26), so*(10), e6(-14); types.A2.cartan, types.A2.n_roots, types.A1.n_roots; types.A3.positive_roots[0]; e6(-26).w_X_word; satake (for 135 and the D4 pair)",
+   "printed": "(inputs to engine calls)"
+  }
+ ],
+ "typedNumbers": [
+  {
+   "number": "node labels, condition numbers, beat numbers ({'1'} expressions; in captions, goals, explanations)",
+   "reason": "labels, not quantities; allowed by plan 5.15; allow-list pattern in M9.spec 'numbers in prose'"
+  },
+  {
+   "number": "4 (order of the candidate involution, <Tex src=\"4\"/>)",
+   "reason": "no golden key; 2.15, a 3 by 3 matrix computation; plan 5.15"
+  },
+  {
+   "number": "formula constants: \\tfrac12, the 2 of 2r-n-|Phi_X| and of the restricted Cartan matrix, tau^2=1, theta=-1, theta=-s_1, m_{2 lambda}, r=1",
+   "reason": "parts of the formulas of 2.15, not values"
+  },
+  {
+   "number": "family parameters q-p>=3, p<=n-2, n>=2",
+   "reason": "the families of 2.15; plan 5.15"
+  },
+  {
+   "number": "numbers inside names: sl(2,R), su(1,2), su(1,3), su(1,5), e6(-26), e6(-14), so(2,6), so(4,4), so(3,5), so(8), so*(8), sl(3), A_1 to E_6, B_r, BC_r",
+   "reason": "names; plan 5.15"
+  },
+  {
+   "number": "locators: Definition 2.3, equation (2.8) and Theorem 2.4, section VI.8, pp. 532-534, pp. 32-33",
+   "reason": "citations of [Kol14], [DK19], [Kna02], [Hel01], [Ara62] (S/S2)"
+  },
+  {
+   "number": "computed, not typed: theta stages and images, A.5 shadows, -1/2, dim k = 5, 32, 135, shadow coordinates",
+   "reason": "engine and T13-model calls at build time from golden inputs"
+  },
+  {
+   "number": "numbers-in-prose output for m9-real-forms.mdx",
+   "reason": "none listed (0 in prose, 0 in formulas, 0 in its fallbacks)"
+  }
+ ],
+ "unverifiedUsed": [
+  {
+   "item": "E1",
+   "where": "beat 7, the sentence stating the multiplicities of so*(8) (4 short, 1 long)",
+   "fallback": "The multiplicities on this site are computed for every board of rank at most eight."
+  },
+  {
+   "item": "E15",
+   "where": "beat 4, the sl(3,R) sentence on the maximally compact Cartan subalgebra and Vogan diagrams",
+   "fallback": "Another standard picture, the Vogan diagram of the sidebar at the end of the beats, is built on a maximally compact Cartan subalgebra."
+  }
+ ],
+ "failedCondition3Wording": "In the first figure, paint node 1 black. Conditions 1 and 2 hold, and θ=−s_1 is an involution that permutes the roots, but condition 3 fails: at node 2 the number is −1/2. Yet no involution of the Lie algebra sl(3) acts as this θ on its Cartan subalgebra and fixes the root vectors of node 1: the natural candidate, from the Chevalley involution and a matrix for w_X, has order 4, verified by computation, and the formula of beat 5 would give dim k equal to 5, while the real forms of A_2 have 3, 4 and 8. So this decoration is not the Satake diagram of any real form, and the Studio shows no data for it. [E15:] The same permutation of the roots does occur for a real form, sl(3,R), on its maximally compact Cartan subalgebra, where the fixed root is imaginary and non-compact; Vogan diagrams are built on such Cartan subalgebras.",
+ "hooksRead": {
+  "source": "site/src/tools/registry/T13.ts (T13_OUTS in site/src/components/tools/t13/config.ts), as listed in site/tests/e2e/T13.spec.ts; extra hooks in decisions/P6-A3.md",
+  "dataOuts": [
+   "decoration",
+   "black-nodes",
+   "tau",
+   "arrows",
+   "game-board",
+   "light-1",
+   "light-2",
+   "light-3",
+   "reason-3",
+   "verdict",
+   "failure-note",
+   "examples",
+   "data-pending",
+   "real-form (data-name)",
+   "restricted-type",
+   "real-rank",
+   "multiplicities",
+   "multiplicity-classes",
+   "dim-k",
+   "dim-p",
+   "character",
+   "theta-word",
+   "theta-stage",
+   "shadow",
+   "shadow-coordinates",
+   "shadow-table",
+   "restricted-board",
+   "restricted-name",
+   "composite-word",
+   "composite-length",
+   "catalogue-row (data-name)",
+   "same-form",
+   "caption",
+   "noscript",
+   "moveCounter (History)",
+   "predictResult (Predict)"
+  ],
+  "otherHooks": [
+   "data-tool",
+   "data-instance",
+   "data-hydrated",
+   "data-moves",
+   "data-live",
+   "data-colour",
+   "data-board=decoration|restricted",
+   "data-arrow",
+   "data-black-arrow",
+   "data-panel-tab",
+   "data-control picker|tau (data-tau)|toggle|root|theta-next|example (data-example)|predictAnswer|predictCheck|predictShow",
+   "data-prediction",
+   "data-anatomy",
+   "data-beat",
+   "data-provenance",
+   "data-challenge",
+   "data-challenge-result",
+   "data-unverified",
+   "data-golden",
+   "data-link",
+   "data-source"
+  ]
+ },
+ "sizes": {
+  "/modules/m9-real-forms/": {
+   "limitKB": 120,
+   "gzipKB": 85.9,
+   "scripts": 18,
+   "status": 200,
+   "result": "ok"
+  },
+  "/tools/satake/": {
+   "limitKB": 90,
+   "gzipKB": 85.9,
+   "scripts": 18,
+   "result": "ok"
+  },
+  "/embed/satake/": {
+   "limitKB": 90,
+   "gzipKB": 85.9,
+   "scripts": 18,
+   "result": "ok"
+  },
+  "summary": "size: 89 routes measured, 0 over budget (npm run size -- --port 7251)"
+ }
+}

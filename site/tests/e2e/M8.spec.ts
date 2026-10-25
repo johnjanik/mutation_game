@@ -213,7 +213,10 @@ async function proseWords(page: Page): Promise<number> {
   return page.locator('article').evaluate((article) => {
     const copy = article.cloneNode(true) as HTMLElement;
     for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(' formula '));
-    const drop = '[data-tool], details, [role="status"], [aria-live], [data-anatomy="draft"], [data-anatomy="sources"] ul, script, style, noscript';
+    // The module links block is navigation the build adds as targets are released (SPEC 8.2 item 7), not
+    // prose of the lesson; it is left out as proseText leaves it out (MERGE, on P6-A7's request: M9's
+    // release added a next link and took the count past 1800).
+    const drop = '[data-tool], details, [role="status"], [aria-live], [data-anatomy="draft"], [data-anatomy="sources"] ul, [data-anatomy="links"], script, style, noscript';
     for (const el of copy.querySelectorAll(drop)) el.remove();
     return (copy.textContent ?? '').split(/\s+/).filter((w) => w !== '').length;
   });
@@ -579,13 +582,18 @@ test('anatomy of 8.2', async ({ page }) => {
   expect(plain(text7)).toContain(`the ${GOLDEN.orbit_plus_zero_representations.find((r) => r.type === 'G2')!.dimension}-dimensional representation of G_2`);
   await expect(beat7.locator('[data-tool], svg, a, [data-anatomy="figure"]')).toHaveCount(0);
   await expect(page.locator('a[href*="one-zero-weight"]')).toHaveCount(0);
-  // No link to M9 or the confusions page (unreleased in phase 5); the sandbox loads A2, the board of the
-  // first figure (SPEC 8.2 item 7; RT-FIX-P4 lesson M7). The Atlas is released in phase 6 (P6-A4): the
-  // block carries the Atlas page of A2, the only Atlas link on the page (MERGE, on P6-A4's request).
-  await expect(article.locator('a[href*="m9"], a[href*="confusions"]')).toHaveCount(0);
-  await expect(article.locator('[data-anatomy="links"] a[data-link="next"]')).toHaveCount(0);
-  await expect(article.locator('a[href*="atlas/"]')).toHaveCount(1);
+  // No link to the confusions page; the sandbox loads A2, the board of the first figure (SPEC 8.2 item 7;
+  // RT-FIX-P4 lesson M7). The Atlas is released in phase 6 (P6-A4): the block carries the Atlas page of A2,
+  // the only Atlas link on the page (MERGE, on P6-A4's request). M9 is released in phase 6 (P6-A7): the
+  // block carries exactly one next link, to M9 under the base, the only link to M9 on the page (MERGE, on
+  // P6-A7's request).
+  await expect(article.locator('a[href*="confusions"]')).toHaveCount(0);
   const atlasBase = new URL(page.url()).pathname.replace(/modules\/m8-lie-algebras\/$/, '');
+  const nextLink = article.locator('[data-anatomy="links"] a[data-link="next"]');
+  await expect(nextLink).toHaveCount(1);
+  await expect(nextLink).toHaveAttribute('href', `${atlasBase}modules/m9-real-forms/`);
+  await expect(article.locator('a[href*="m9"]')).toHaveCount(1);
+  await expect(article.locator('a[href*="atlas/"]')).toHaveCount(1);
   await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"]')).toHaveAttribute('href', `${atlasBase}atlas/A2/`);
   const sandbox = article.locator('[data-anatomy="links"] a[data-link="sandbox"]');
   await expect(sandbox).toHaveCount(1);
