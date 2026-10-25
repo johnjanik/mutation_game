@@ -1,0 +1,63 @@
+{
+ "branch": "worktree-agent-a1374439c709a759a",
+ "results": [
+  {
+   "findingId": "P5-RT-08-05",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Head e3619b6 (based on fcb02a5). I ran the original reproducer site/tests/unit/redteam-RT-08-p5-g2-sentence.test.ts, taken from worktree-agent-abcb3b9fe3eb2308b and placed as an untracked file, with TMPDIR=<scratch> npx vitest run --project site-unit: 3 passed. The regression (T12.test.ts > regressions > P5-RT-08-05, two tests, comment 'regression: P5-RT-08-05') passes; T12.test.ts has 78 passed. Checked by hand. In the browser and in the server markup, every node of G2, F4 and E8 shows data-out=no-minuscule 'This board has no minuscule node, so the recipe of this tool builds none of its representations.', and the sentence is absent on the other 29 boards. Oracle (lie_games): minuscule_nodes is [] on G2, F4 and E8. chevalley_serre_ok(minuscule_matrices) is False on every node T12 builds there (G2 nodes 1 and 2, F4 nodes 1 to 4, E8 node 8). The other E8 orbits exceed 2000 positions, so they are not built. The sentence is therefore true wherever it appears. Scratch revert: I put noMinusculeSentence in rep.ts back to '...; its representations need more than the game.' and ran vitest -t P5-RT-08-05: 2 failed with \"expected 'This board has no minuscule node; its…' not to match /its representations need more than th…/\". File restored."
+  },
+  {
+   "findingId": "P5-RT-09-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Original reproducer site/tests/unit/redteam-RT-09-p5-t12-claims.test.ts on head: its two P5-RT-09-01 tests fail at their first expect, which looks for the false text. D4 node 2 gives \"expected 'Some position has the number 2 at nod…' to contain 'Firing node 2 permutes the positions:…'\". B3 node 1 gives \"expected 'Firing node 1 permutes the positions:…' to contain 'so the signed matrix is no longer the…'\". So the false claims are no longer printed. As the fixer says, this reproducer asserts the claim and the engine verdict together and can never pass. The 3 regressions in T12.test.ts (comments 'regression: P5-RT-09-01') pass. Oracle check: I dumped the server render and signedNote(k, largestAt) for all 163 nodes of the 32 boards and compared 892 (node, k) states against minuscule_matrices and signed_moves. The identity text appears in 442 states, and in all of them S_k = E+F+P0, (I+E)(I-F)(I+E) equals the signed matrix, its square is (-1)^H and the signed matrix equals S_k up to sign. The failure text appears in 450 states, where both identities are false and some position has the number m at node k. The 59 states on nodes that are not minuscule where the identities hold now get the identity text. 0 mismatches; the server panel equals signedNote at k = i on every node. In the browser (hydrated, each matrix-node chosen) B3 1, C3 3, D4 2, G2 1, F4 4 and A4 2 all match the oracle. The text uses only terms of Appendix C and M8 and contains no em-dash. Scratch revert: I replaced {@html signedNote(...)} in the Svelte file with the fcb02a5 paragraph: 3 failed (D4 {moveIsEFP:true...} vs false; B3 'expected true to be false'; B2 node 1 mismatch). File restored."
+  },
+  {
+   "findingId": "P5-RT-09-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Original reproducer (the RT-09 claims test, -t P5-RT-09-02): 7 passed on head. The regressions (8 tests in T12.test.ts, comments 'regression: P5-RT-09-02') pass. Oracle: the data-out=dimension rendered on the server equals lie_games.weyl_dimension on all 163 nodes, and orbit-size equals the orbit size on all 163. The two are equal exactly on the minuscule nodes. In the browser, 'Dimension' and 'Positions in the orbit' read as follows (oracle and golden agree): E8 node 1 3875/2160, node 4 6899079264/483840, node 8 248/240; F4 nodes 1 to 4 52, 1274, 273, 26; G2 node 1 7, node 2 14; B3 node 1 7/6; B5 node 1 11/10; C3 node 3 14/8; C5 node 5 132/32; D4 node 2 28/24; D5 node 2 45/40; E6 node 1 27, node 2 78/72; E7 node 1 133/126, node 7 56; A4 node 2 10. Scratch revert: {shown(repDimension)} back to {dim} and the export back to rep.basis?.length: 8 failed ('expected 24 to be 28', 6/7, 24/26, 240/248, 6/7, 2160/3875, 24/52, export 24/28). Restored. Which sense of 'Dimension' to keep is recorded for the owner in decisions/RT-FIX-P5-t12-content.md. The finding's expected values hold as built."
+  },
+  {
+   "findingId": "P5-RT-13-03",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Duplicate of P5-RT-09-02. I ran the original reproducer site/tests/e2e/redteam-RT-13-p5-dimension.spec.ts with my Playwright config on port 6980. On the head build: 4 passed. On a build of the fcb02a5 T12 sources: 4 failed ('E8 node 8: the tool labels the orbit size 240 \"Dimension\"... Expected: not \"240\"', and likewise F4 24, G2 6, D4 24). The regression (T12.spec.ts > regressions > attack 9, 4 tests, 'regression: P5-RT-13-03') passes on head. On a build with only the Svelte dimension span reverted to {dim}, all 4 failed with the same messages. Restored."
+  },
+  {
+   "findingId": "P5-RT-08-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "I ran the original reproducer redteam-RT-08-p5-omega.spec.ts on head: passed. On the base build it failed, 'Expected 1, Received 65'. The regressions (M8.spec.ts > regressions > 'M8: no omega...' and T12.test.ts P5-RT-08-01) pass. Checked by hand. The built M8 page has one ω, inside KaTeX in the Lie theory paragraph. The /tools/rep/ meta description reads 'the orbit of e1'. The server markup of every node of the 32 boards has no ω. M8's b1 to b12 have no ω with or without JavaScript. e_i is the Appendix C site term, defined in M4. Scratch revert: omegaName back to `ω${label}` and pickSentence back to ω. The unit test failed ('A1 node 1: expected ... not to contain ω'). A build with that revert failed the M8 regression with 65 elements ('b1: Node 1 is minuscule: every number in the orbit of ω1 ...'). Restored."
+  },
+  {
+   "findingId": "P5-RT-13-02",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Duplicate of P5-RT-08-01. I ran the original script reproducer redteam/rt13-p5-omega.mjs on a log from redteam/rt13-read.mjs. The read script is a scratch copy whose Playwright import points at the worktree. It read /modules/m8-lie-algebras/ and /tools/rep/ from my preview on 6980, using the ordinary build, not RELEASE=1. Base build: 'first omega ... M8-q07 tool b1 ... orbit of ω1', 'naming the orbit of ω_i: 3', FAIL, exit 1. Head build: 'first omega ...: null', 'e_i: 8; ω_i: 0', OK, exit 0. The regression is the P5-RT-08-01 pair, whose comments name P5-RT-13-02, and the same scratch revert makes it fail."
+  },
+  {
+   "findingId": "P5-RT-03-01",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Original reproducer redteam-RT-03-t12.spec.ts, test 'the length of a line of 12345678901234567891 positions...'. Head build: passed. Base build: failed with {length:'12345678901234567891', gap:'and 12345678901234567889 more positions'}. The regressions (T12.spec.ts and 2 tests in T12.test.ts, 'regression: P5-RT-03-01') pass. Shown on head: '1.2345... x 10^19 (20 digits)' for the length and in the gap item. The exact digits are in data-value and title, and the caption and aria-label have no 13-digit run. Lines of 12 digits or fewer are unchanged: 2000, and the string-viewer preset caption. Scratch revert: the Svelte length, gap and figureLabel back to raw view.length and view.elided, and the stringCaption head back to positionText and n. Unit: 2 failed (\"expected '12345678901234567891' to be '1.2345... x 10^19 (20 digits)'\" and \"'On A2 the line through (1234567890123…' not to match /\\d{13}/\"). On a build with that revert the e2e test failed with the raw values. Restored."
+  },
+  {
+   "findingId": "P5-RT-10-03",
+   "fixed": true,
+   "regressionTestPresent": true,
+   "evidence": "Original reproducer site/tests/unit/redteam-RT-10-t12-default-start.test.ts: 4 passed on head. The 5 regressions in T12.test.ts pass. Scratch revert: defaultsFor's start back to the unit vector at the node, and the default preset back to start [1,0]. 6 failed: the 5 regressions plus the updated default-state test ('A2: [1,0]: expected [1,+0] to deeply equal [1,1]', and the same for D4, E7 and the preset). Restored. M8 figures on the head build, with and without JavaScript. The string viewers of b5, b6, b7, b10, b11 and b12 now start at all ones, for example b10 shows (1,1,1,1) and (1,2,1,-1), and b11 shows (1,1) and (2,-1). b3 on A1 starts at (1). Their captions describe only the orbit and the matrices ('On D4 the orbit of e1 has 8 positions...'; facts line Dimension 8, Positions in the orbit 8, Minuscule yes), and these stay true. b1, b2 and b9 keep (2,0), (1,0) and (2,0), and b4 and b8 keep (1,0), as their captions and SPEC 3's M8 figure table say. No M8 prose refers to those string viewers. M8.spec.ts passes."
+  }
+ ],
+ "sideEffects": [
+  "Other runs on the branch, all passing. Engine: 2411 passed. Whole site-unit project: 86 files, 944 passed. npm run check -w site: 0 errors; the one svelte-check warning in t02/LayerChart.svelte and the one hint in T06.spec.ts were there before. Build: 35 pages, links 0 problems. T12.spec.ts: 47 passed. M8.spec.ts with nojs.spec.ts: 112 passed. a11y for /tools/rep/ and M8: passed. registry-outs and worker-on-demand: 75 passed.",
+  "No golden, reference, engine, content, CONTRACTS or SPEC file changed. git diff fcb02a5..e3619b6 touches only the T12 sources, their three test files and decisions/RT-FIX-P5-t12-content.md. Added lines contain no em-dash, .only, .skip or console.log.",
+  "npm run size -- --port 6981: /tools/rep/ is 89827 B gzip of 90000, and M8 is 89827 of 120000. That leaves 173 B for any later change to T12.",
+  "Long-task tests 'no long task when E6/E7 is picked' are noise on this machine, not a side effect. In the full T12.spec run at load 3.3 to 3.5 they passed. Run alone with repeat-each 5: head failed 3 of 10 with 2 workers at load 6.1 to 7.9, and 2 of 10 with 1 worker at load 6.5 to 8.8 (one long task of 55 to 67 ms each). A build of the base fcb02a5 also failed 2 of 10 with 1 worker at load 6.4 to 8.8 (long tasks of 50 to 83 ms).",
+  "Two lens reproducers outside this cluster now fail on purpose because of the e_i wording and the new G2 sentence. The RT-03 test 'T12 bounds after a node choice' expects 'The orbit of ω3 ...' and now sees 'e3'. The RT-09 reproducer's P5-RT-09-03 test asserts the old G2 sentence word for word; its last assertion, that no 'need more than the game' appears, holds. Neither file is in the permanent suite.",
+  "Two changes are recorded for the owner in decisions/RT-FIX-P5-t12-content.md. First, 'dimension' in Download data now means weylDimension on every node; it used to be the size of the basis, or null on an unbuilt node. Second, there are two new data-out names, orbit-size and string-gap. Which meaning of 'Dimension' to keep is left to the owner. I agree that choice needs the owner, but the findings' expected values hold as built.",
+  "The JSDoc of admitLink in t12/model.ts still says 'the start omega_k'. It is a stale comment and not a behaviour change; the fixer's fragment asks MERGE or the owner of popstate to fix it.",
+  "Clean-up done. Every scratch revert was restored. I deleted node_modules, site/node_modules, packages/engine/node_modules, site/dist, test-results, reference/__pycache__ and the temporary reproducer and probe files. No listener is left on ports 6980 to 6983. git status --porcelain is empty at e3619b6."
+ ]
+}
