@@ -6,7 +6,7 @@
 // (rule 2); identifiers compare exactly (rule 6); a null that carries meaning compares as null (rule 7).
 // This file registers `satake` (CONTRACTS.md 3; P6-A1's files compare its computed fields without covers(), see
 // DECISIONS.md "MERGE: P6 stage 6.1, P6-A1").
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import type { Board } from '../../src/board';
 import type { SatakeComputed } from '../../src/satake';
 import { admissibility, satake } from '../../src/satake';
@@ -53,20 +53,25 @@ interface Computed {
   board: Board;
   entry: SatakeCatalogueEntry;
   rec: SatakeRecord;
+  /** satake on the same pair, the plain function the C2 adjustment is compared with */
+  plain: SatakeComputed;
 }
 
-// Every record is computed once per file and reused (P6-A2 instruction, trap 17: E7 and E8 are the costly ones).
-let cache: Computed[] | null = null;
-function computed(): Computed[] {
-  if (cache === null) {
-    cache = [];
-    for (const type of TYPE_NAMES) {
-      const board = boardOf(type);
-      for (const entry of satakeCatalogue(type)) cache.push({ type, board, entry, rec: satakeRecord(type, entry) });
+// Every record is computed once per file, before the tests, and reused (P6-A2 instruction, trap 17: E7 and E8 are
+// the costly ones). The hook's limit is raised from Vitest's default of 10 s to 60 s because the parallel suite can
+// slow the 167 records down several times (a limit of the runner, not a timing check; recorded in decisions/P6-A2.md).
+let all: Computed[] = [];
+beforeAll(() => {
+  all = [];
+  for (const type of TYPE_NAMES) {
+    const board = boardOf(type);
+    for (const entry of satakeCatalogue(type)) {
+      const plain = satake({ board, black: entry.black_nodes, tau: entry.tau });
+      all.push({ type, board, entry, rec: satakeRecord(type, entry), plain });
     }
   }
-  return cache;
-}
+}, 60000);
+const computed = (): Computed[] => all;
 
 /** The 19 fields of satake's result (SPEC.md 6.4, from rank to restricted_reflection_word_lengths). */
 const COMPUTED_FIELDS = (() => {
@@ -222,9 +227,8 @@ describe('SPEC.md 6.4 rules', () => {
       expect(rec.restricted_type_display, rec.real_form).toBe('B2');
       expect(rec.restricted_board, rec.real_form).toBe('B2');
     }
-    for (const { type, board, entry, rec } of recs) {
+    for (const { type, rec, plain: s } of recs) {
       const where = `${type} ${rec.real_form}`;
-      const s = satake({ board, black: entry.black_nodes, tau: entry.tau });
       if (rec.restricted_type_display === 'C2') {
         // the computed type stays B2; only the board's name and the order of its two orbits change, on a copy
         expect(rec.restricted_type, where).toBe('B2');

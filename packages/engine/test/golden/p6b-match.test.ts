@@ -160,8 +160,8 @@ describe('matchCatalogue', () => {
     }
   });
 
-  it('every catalogue entry matches its own record, and so does every image of it under a symmetry', () => {
-    for (const type of TYPE_NAMES) {
+  for (const type of TYPE_NAMES) {
+    it(`every catalogue entry matches its own record, and so does every image of it under a symmetry: ${type}`, () => {
       const board = boardOf(type);
       const auts = symmetries(board);
       for (const e of satakeCatalogue(type)) {
@@ -173,8 +173,8 @@ describe('matchCatalogue', () => {
           expect(m.find((r) => r.real_form === e.real_form), where).toEqual(own);
         }
       }
-    }
-  });
+    });
+  }
 
   it('real forms of the twelve examples', () => {
     expect(EXAMPLES.length).toBe(12);
