@@ -66,6 +66,7 @@
     interaction,
     isSerre,
     labelOf,
+    largestAt,
     labelOrder,
     limitSentence,
     linkNames,
@@ -93,9 +94,11 @@
     relationTally,
     relationsHint,
     relationsNow,
+    representationDimension,
     representationSteps,
     shownCheck,
     signed,
+    signedNote,
     startSentence,
     stringNote,
     undoSentence,
@@ -189,6 +192,8 @@
   const labels = $derived(labelOrder(anyBoard));
   const minusculeSet = $derived(new Set(minusculeLabels(anyBoard)));
   const dim = $derived(dimensionOf(rep));
+  /** The representation's dimension (data-out="dimension"); dim, the size of the matrices, is the orbit's size. */
+  const repDimension = $derived(String(representationDimension(rep, mainRoute)));
   /** The basis headers, read only by drawn matrices (after the matrices are computed). */
   const headers = $derived.by(() => {
     void version;
@@ -233,9 +238,11 @@
   const tooltip = (k: number): string | null => (isLong(values[k]!) ? values[k]! : null);
   const shown = (t: string): string => (isLong(t) ? shortValue(t) : t.startsWith('-') ? `${MINUS}${t.slice(1)}` : t);
   const positionShown = (v: readonly string[]): string => `(${v.map(shown).join(', ')})`;
+  /** The exact digits of a long count, for its tooltip (4.0 Long numbers; RT-FIX P5-RT-03-01). */
+  const exact = (n: bigint): string | undefined => (isLong(String(n)) ? String(n) : undefined);
 
   const figureLabel = $derived(
-    `Representation Builder on ${spec}, node ${nodeLabel}: ${rep.minuscule ? 'a minuscule node' : 'a node that is not minuscule'}, the orbit of ${omegaName(nodeLabel)} has ${rep.orbitSize} positions; the line through ${positionText(view.through)} at node ${nodeLabel} has ${view.length} ${view.length === 1n ? 'position' : 'positions'}.`,
+    `Representation Builder on ${spec}, node ${nodeLabel}: ${rep.minuscule ? 'a minuscule node' : 'a node that is not minuscule'}, the orbit of ${omegaName(nodeLabel)} has ${rep.orbitSize} positions; the line through ${positionShown(view.through)} at node ${nodeLabel} has ${shown(String(view.length))} ${view.length === 1n ? 'position' : 'positions'}.`,
   );
 
   // Only the names History reads: a move names at most 50 positions however long the play (7.4).
@@ -918,14 +925,8 @@
 {#snippet signedPanel()}
   <section class="panel" data-panel="signed" aria-labelledby="{uid}-signed-title">
     <p class="panel-title" id="{uid}-signed-title">The move of node {matrixNode} beside its signed version</p>
-    <p class="line">
-      Firing node {matrixNode} permutes the positions: its matrix is E<sub>{matrixNode}</sub> + F<sub>{matrixNode}</sub> + P<sub>{matrixNode}</sub>, where P<sub>{matrixNode}</sub> keeps
-      the positions whose number at node {matrixNode} is 0. The group element exp(E<sub>{matrixNode}</sub>) exp({MINUS}F<sub>{matrixNode}</sub>) exp(E<sub>{matrixNode}</sub>) is E<sub
-        >{matrixNode}</sub
-      >
-      {MINUS} F<sub>{matrixNode}</sub> + P<sub>{matrixNode}</sub>: the same matrix with one sign changed in each pair.
-      {#if rep.minuscule}Its square multiplies each position by {MINUS}1 to the power of its number at node {matrixNode}.{:else}On a node that is not minuscule the moves of numbers 2 or more are missing from E and F, so the signed matrix is no longer the move with signs.{/if}
-    </p>
+    <!-- The sentences hold only numbers and fixed words (signedNote): markup with subscripts, nothing typed by a reader. -->
+    <p class="line">{@html signedNote(matrixNode, largestAt(rep, kAt))}</p>
     <div class="matrices two">
       {@render matrix('move-matrix', `Firing node ${matrixNode}`, rep.moves![kAt]!)}
       {@render matrix('signed-move', `Signed: E${matrixNode} ${MINUS} F${matrixNode} + P${matrixNode}`, rep.signed![kAt]!)}
@@ -980,7 +981,7 @@
           <span class="orbit-mark">{p.inOrbit ? 'in the orbit' : 'outside the orbit'}</span>
         </li>
         {#if view.gapAfter === k}
-          <li class="gap">and {view.elided} more {view.elided === 1n ? 'position' : 'positions'}</li>
+          <li class="gap" data-out="string-gap" data-value={String(view.elided)} title={exact(view.elided)}>and {shown(String(view.elided))} more {view.elided === 1n ? 'position' : 'positions'}</li>
         {/if}
       {/each}
     </ol>
@@ -1000,7 +1001,7 @@
     {@render piece('string-board', boardPiece, api)}
     {@render piece('string-history', historyPiece, api)}
     <p class="line">
-      The line through {positionShown(view.through)} has <span class="numeral" data-out="string-length">{view.length}</span>
+      The line through {positionShown(view.through)} has <span class="numeral" data-out="string-length" data-value={String(view.length)} title={exact(view.length)}>{shown(String(view.length))}</span>
       {view.length === 1n ? 'position' : 'positions'}:
     </p>
     {@render piece('string-line', linePiece, api)}
@@ -1076,7 +1077,8 @@
     {#if building !== null}<p class="line building">{building}</p>{/if}
     <p class="facts">
       <span>Board <span data-out="state-board">{spec}</span>, node <span class="numeral" data-out="state-node">{nodeLabel}</span></span>
-      <span>Dimension: <span class="numeral" data-out="dimension">{dim}</span></span>
+      <span>Dimension: <span class="numeral" data-out="dimension">{shown(repDimension)}</span></span>
+      <span>Positions in the orbit: <span class="numeral" data-out="orbit-size">{rep.orbitSize}</span></span>
       <span>Minuscule: <span data-out="minuscule" data-minuscule={rep.minuscule ? 'true' : 'false'}>{rep.minuscule ? 'yes' : 'no'}</span></span>
     </p>
     <p class="line" data-out="explanation">{explanation(rep)}</p>

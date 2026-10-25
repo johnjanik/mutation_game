@@ -21,6 +21,7 @@ import {
   boardFromName,
   chevalleySerre,
   fire,
+  minusculeMatrices,
   minusculeNodes,
   orbitSize,
   play,
@@ -65,6 +66,7 @@ import {
   forgetRepresentations,
   inArithmetic,
   interaction,
+  largestAt,
   limitSentence,
   linkNames,
   listOnMain,
@@ -75,6 +77,7 @@ import {
   orbitDrawing,
   orbitLayers,
   parseRelationCode,
+  pickSentence,
   positionText,
   relationCaption,
   relationCode,
@@ -90,12 +93,14 @@ import {
   relationsNow,
   relationsOnMain,
   repCaption,
+  representationDimension,
   representationOf,
   representationSteps,
   routedCalls,
   shownCheck,
   someNumberPhrase,
   startRepresentation,
+  stringCaption,
   stringNote,
   stringView,
   undoSentence,
@@ -103,6 +108,7 @@ import {
   type Step,
 } from '../../../src/components/tools/t12/model';
 import { bigBoard } from '../../../src/lib/state';
+import { resolveGoldenPath } from '../../../src/lib/golden';
 import T12 from '../../../src/tools/registry/T12';
 import { LINK_NOTICE, encodeState } from '../../../src/lib/urlCodec';
 import { exportJSON } from '../../../src/lib/export';
@@ -177,7 +183,7 @@ describe('T12 acceptance over minuscule_representations', () => {
         expect(spEq(c.left, c.right)).toBe(true);
       }
       expect(relationSummary(rep.checks!)).toBe(`All ${6 * n * n - 2 * n} relations hold.`);
-      expect(explanation(rep)).toBe(`Node ${rec.node} is minuscule: every number in the orbit of ω${rec.node} is −1, 0 or 1, and all the relations hold.`);
+      expect(explanation(rep)).toBe(`Node ${rec.node} is minuscule: every number in the orbit of e${rec.node} is −1, 0 or 1, and all the relations hold.`);
     }
   });
 
@@ -205,7 +211,7 @@ describe('T12 acceptance over minuscule_representations', () => {
     expect(explanation(rep)).toContain(someNumberPhrase(2));
     expect(explanation(rep)).toContain('some number in the orbit is 2');
     expect(explanation(rep)).toBe(
-      `Node 2 is not minuscule: some number in the orbit is 2 (legal play from ω2 fires a 2 at move ${rep.firstLarge!.move}), so the steps E and F of the recipe miss some moves and the relations fail.`,
+      `Node 2 is not minuscule: some number in the orbit is 2 (legal play from e2 fires a 2 at move ${rep.firstLarge!.move}), so the steps E and F of the recipe miss some moves and the relations fail.`,
     );
     expect(someNumberPhrase(2)).toBe('some number in the orbit is 2');
     expect(repCaption(rep)).toContain('some number in the orbit is 2');
@@ -242,7 +248,7 @@ describe('T12 acceptance over minuscule_representations', () => {
     for (const name of ['E8', 'F4', 'G2']) {
       const r = buildRepresentation(named(name), 1);
       expect(golden.types[name]!.minuscule_nodes).toEqual([]);
-      expect(noMinusculeSentence(r)).toBe('This board has no minuscule node; its representations need more than the game.');
+      expect(noMinusculeSentence(r)).toBe('This board has no minuscule node, so the recipe of this tool builds none of its representations.');
     }
     expect(noMinusculeSentence(buildRepresentation(named('A2'), 1))).toBeNull();
   });
@@ -287,7 +293,7 @@ describe('T12 cap and verdict', () => {
       expect(calls.signedMoves ?? 0).toBe(0);
       expect(rep.basis).toBeNull();
       expect(rep.checks).toBeNull();
-      expect(limitSentence(rep)).toBe(`The orbit of ω${node} has ${size} positions, more than 2000, so the matrices are not built here.`);
+      expect(limitSentence(rep)).toBe(`The orbit of e${node} has ${size} positions, more than 2000, so the matrices are not built here.`);
       expect(explanation(rep)).toContain(someNumberPhrase(rep.firstLarge!.value));
       expect(() => orbitLayers(rep)).toThrow(RangeError);
     }
@@ -833,10 +839,10 @@ describe('T12 string viewer', () => {
 describe('T12 state and links', () => {
   const configured = configuredState({ preset: 'default' });
 
-  it('the default state is A2, node 1, ef:1,1, the numbers game from omega_1', () => {
-    expect(configured).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 0], moves: [] });
-    expect(defaultsFor('E7')).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [0, 0, 0, 0, 0, 0, 1], moves: [] });
-    expect(defaultsFor('D4', 2)).toMatchObject({ node: 2, relation: 'ef:1,1', start: [0, 1, 0, 0] });
+  it('the default state is A2, node 1, ef:1,1, the numbers game from all ones (SPEC 6.6; RT-FIX P5-RT-10-03)', () => {
+    expect(configured).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 1], moves: [] });
+    expect(defaultsFor('E7')).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [1, 1, 1, 1, 1, 1, 1], moves: [] });
+    expect(defaultsFor('D4', 2)).toMatchObject({ node: 2, relation: 'ef:1,1', start: [1, 1, 1, 1] });
     expect(configuredState({ board: 'D4', node: 2 })).toMatchObject({ board: 'D4', node: 2, relation: 'ef:1,1' });
     expect(configuredState({ preset: 'string-viewer' })).toMatchObject({ board: 'A2', node: 1, start: [2, 0] });
     expect(() => configuredState({ coords: 'populations' })).toThrow(RangeError);
@@ -854,13 +860,15 @@ describe('T12 state and links', () => {
   });
 
   it('links that change the board or the node take that board\'s and node\'s defaults for what they do not name', () => {
-    expect(admitLink('?g=E7', configured, '').state).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [0, 0, 0, 0, 0, 0, 1], moves: [] });
-    expect(admitLink('?g=D4&k=2', configured, '').state).toMatchObject({ board: 'D4', node: 2, relation: 'ef:1,1', start: [0, 1, 0, 0] });
+    expect(admitLink('?g=E7', configured, '').state).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [1, 1, 1, 1, 1, 1, 1], moves: [] });
+    expect(admitLink('?g=D4&k=2', configured, '').state).toMatchObject({ board: 'D4', node: 2, relation: 'ef:1,1', start: [1, 1, 1, 1] });
     expect(admitLink('?g=A2&k=1&q=ef:1,2', configured, '').state).toMatchObject({ relation: 'ef:1,2' });
     expect(admitLink('?g=A2&k=1&c=n&s=2,0', configured, '').state).toMatchObject({ start: [2, 0], node: 1 });
-    expect(admitLink('?k=2', configured, '').state).toMatchObject({ board: 'A2', node: 2, relation: 'ef:2,2', start: [0, 1] });
-    // c without s keeps the tool's start (the codec's default for c is all ones).
-    expect(admitLink('?k=2&c=n', configured, '').state).toMatchObject({ start: [0, 1] });
+    expect(admitLink('?k=2', configured, '').state).toMatchObject({ board: 'A2', node: 2, relation: 'ef:2,2', start: [1, 1] });
+    // c without s keeps the tool's start (the codec's default for c is all ones, now the tool's default start
+    // too, so the configured start of the string viewer's preset shows the rule).
+    expect(admitLink('?k=2&c=n', configured, '').state).toMatchObject({ start: [1, 1] });
+    expect(admitLink('?c=n', configuredState({ preset: 'string-viewer' }), '').state).toMatchObject({ start: [2, 0] });
     // Keys of other tools are ignored, as unknown keys are.
     expect(admitLink('?v=l&m=l&g=A3', configured, '')).toMatchObject({ notice: null, state: { board: 'A3', node: 1 } });
   });
@@ -885,7 +893,7 @@ describe('T12 state and links', () => {
     );
     const rep = representationOf('A2', 1);
     expect(T12.presets.default.caption).toBe(
-      `On A2 the ${rep.basis!.length} positions of the orbit of ω1 give ${rep.basis!.length} by ${rep.basis!.length} matrices E, F and H that satisfy all ${rep.checks!.length} Chevalley-Serre relations.`,
+      `On A2 the ${rep.basis!.length} positions of the orbit of e1 give ${rep.basis!.length} by ${rep.basis!.length} matrices E, F and H that satisfy all ${rep.checks!.length} Chevalley-Serre relations.`,
     );
   });
 
@@ -924,7 +932,7 @@ describe('T12 state and links', () => {
     const big = JSON.parse(exportJSON(e7two.state(), exportData(e7two)));
     expect(big.derived.orbit).toHaveLength(576);
     expect(big.derived.edges).toBeNull();
-    expect(doc.derived.string.positions.map((p: { position: number[] }) => p.position)).toEqual([[1, 0], [-1, 1]]);
+    expect(doc.derived.string.positions.map((p: { position: number[] }) => p.position)).toEqual([[1, 1], [-1, 2]]);
     const e7 = new T12Tool(configOf(defaultsFor('E7')));
     const d = JSON.parse(exportJSON(e7.state(), exportData(e7)));
     expect(d.derived.dimension).toBe(56);
@@ -949,7 +957,7 @@ describe('T12 state and links', () => {
     // Above four nodes only the changed nodes are read (A-4).
     const e7 = new T12Tool(configOf(defaultsFor('E7')));
     const m = e7.act(7)!;
-    expect(moveSentence(e7, m)).toBe('Fired node 7. Node 6 now 1, node 7 now minus 1. Move 1.');
+    expect(moveSentence(e7, m)).toBe('Fired node 7. Node 6 now 2, node 7 now minus 1. Move 1.');
   });
 
   it('a long list of moves from a link is replayed in the worker (E-9 rule 2), a short one on the main thread', () => {
@@ -1244,8 +1252,8 @@ describe('T12 server render', () => {
     expect(body).toContain('<msub>');
     expect(body).not.toContain('class="katex');
     expect([...body.matchAll(/data-out="string-position" data-value="([^"]+)" data-in-orbit="(true|false)"/g)].map((m) => [m[1], m[2]])).toEqual([
-      ['1,0', 'true'],
-      ['-1,1', 'true'],
+      ['1,1', 'true'],
+      ['-1,2', 'true'],
     ]);
     expect(outText(body, 'string-length')).toEqual(['2']);
     expect(outText(body, 'caption')).toEqual([T12.presets.default.caption]);
@@ -1276,11 +1284,11 @@ describe('T12 server render', () => {
 
   it('above 2000 positions the server renders the explanation alone with more than 2000, no orbit and no matrix', () => {
     const body = loader.render(T12C.default, { id: 'b2', board: 'E8', node: 1 });
-    expect(outText(body, 'dimension')).toEqual([String(golden.types.E8!.fundamental_orbit_sizes[0])]);
+    expect(outText(body, 'orbit-size')).toEqual([String(golden.types.E8!.fundamental_orbit_sizes[0])]);
     expect(outText(body, 'limit')[0]).toContain('more than 2000');
     expect(body).not.toContain('data-out="orbit-graph"');
     expect(body).not.toContain('data-format=');
-    expect(outText(body, 'no-minuscule')).toEqual(['This board has no minuscule node; its representations need more than the game.']);
+    expect(outText(body, 'no-minuscule')).toEqual(['This board has no minuscule node, so the recipe of this tool builds none of its representations.']);
     expect(body).toContain('data-out="string-position"');
   });
 
@@ -1438,5 +1446,286 @@ describe('T12 hooks and texts (review P5-A2, findings 5, 7, 9 and request 11)', 
     expect(outText(body, 'state-node')).toEqual(['4']);
     expect(T12.outs).toContain('state-board');
     expect(T12.outs).toContain('state-node');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 5 red-team round (build-plan/red-team/RT-FIX.md 5.3)
+// ---------------------------------------------------------------------------------------------
+
+describe('regressions', () => {
+  // Adopted from site/tests/unit/redteam-RT-08-p5-g2-sentence.test.ts (RT-08, phase 5 round). SPEC 2.18
+  // "One zero weight" builds the 7-dimensional representation of G2 from the game ("a route to G2 that
+  // stays inside the game"); the [D] of "Out of reach" covers only the representations out of reach of both
+  // recipes. So on G2 the sentence may say what the minuscule recipe of this tool builds, not that every
+  // representation needs more than the game.
+  describe('P5-RT-08-05: T12 on G2 says every representation needs more than the game', () => {
+    it('the golden file holds a representation of G2 built from one orbit and one zero position', () => {
+      expect(resolveGoldenPath('orbit_plus_zero_representations[type=G2;highest_weight=1,0].dimension')).toBe(7);
+    });
+    for (const node of [1, 2]) {
+      // regression: P5-RT-08-05
+      it(`G2 node ${node}: the sentence does not say that all its representations need more than the game`, () => {
+        const rep = buildRepresentation(boardFromName('G2') as Board<number>, node);
+        const sentence = noMinusculeSentence(rep);
+        // Observed at 006f50d: "This board has no minuscule node; its representations need more than the game."
+        expect(sentence ?? '').not.toMatch(/its representations need more than the game/);
+      });
+    }
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-p5-t12-claims.test.ts (RT-09, phase 5 round, attack 26). The
+  // panel "The move of node k beside its signed version" stated, on every built node, that the firing matrix
+  // is E_k + F_k + P_k^0 and that exp(E_k) exp(-F_k) exp(E_k) is E_k - F_k + P_k^0, and on a node that is not
+  // minuscule that the signed matrix is no longer the move with signs. SPEC 2.18 states the identities "in a
+  // minuscule representation"; on D4 node 2 at k = 2 both are false, on B3 node 1 at k = 1 both hold. The
+  // reproducer printed the claim and the engine's verdict side by side; here each claim the panel makes is
+  // checked against the engine's matrices on the same states (and, through largestAt, on every node k of
+  // every built node of eight boards).
+  describe('P5-RT-09-01: T12 states the identities of a minuscule orbit on every built node', () => {
+    /** The explanatory sentences of a panel: its <p class="line"> paragraphs, without the matrices. */
+    const panelText = (body: string, name: string): string => {
+      const m = new RegExp(`<section[^>]*data-panel="${name}"[^>]*>([^]*?)</section>`).exec(body);
+      if (m === null) return '';
+      return [...m[1]!.matchAll(/<p class="line[^"]*"[^>]*>([^]*?)<\/p>/g)].map((x) => x[1]!.replace(/<!--[^]*?-->/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()).join(' ');
+    };
+    const eye = (m: number): SparseMatrix => new Map(Array.from({ length: m }, (_, r) => [`${r},${r}`, 1n] as [string, bigint]));
+    /** The engine's own matrices of node `label` of `name` at node `k` (labels; positions inside). */
+    function at(name: string, label: number, k: number) {
+      const board = boardFromName(name);
+      const [i] = toPositions(board, [label]);
+      const [kp] = toPositions(board, [k]);
+      const m = minusculeMatrices(board, i!)!;
+      const E = m.E[kp!]!;
+      const F = m.F[kp!]!;
+      const n = m.basis.length;
+      const P0: SparseMatrix = new Map(m.basis.flatMap((v, r) => (v[kp!] === 0 ? [[`${r},${r}`, 1n] as [string, bigint]] : [])));
+      const signedK = signedMoves(m.basis, m.E, m.F)[kp!]!;
+      const I = eye(n);
+      // E_k^2 = F_k^2 = 0 for these matrices, so exp(E_k) = I + E_k and exp(-F_k) = I - F_k.
+      const nilpotent = spMul(E, E).size === 0 && spMul(F, F).size === 0;
+      const exp = spMul(spMul(spAdd(I, E), spAdd(I, F, -1n)), spAdd(I, E));
+      const efp = spAdd(spAdd(E, F), P0);
+      const moveWithSigns = signedK.size === m.moves[kp!]!.size && [...m.moves[kp!]!.keys()].every((key) => signedK.has(key));
+      const squareIsSign = spEq(spMul(signedK, signedK), minusOneToH(m.basis, kp!));
+      return { minuscule: minusculeNodes(board).includes(i!), n, nilpotent, moveIsEFP: spEq(m.moves[kp!]!, efp), expIsSigned: spEq(exp, signedK), moveWithSigns, squareIsSign };
+    }
+    /** What the panel of node k claims, read from its text. */
+    const claims = (text: string, k: number) => ({
+      moveIsEFP: text.includes(`its matrix is E${k} + F${k} + P${k}`),
+      expIsSigned: text.includes(`exp(E${k}) exp(−F${k}) exp(E${k}) is E${k} − F${k} + P${k}`),
+      noLonger: text.includes('no longer the move with signs'),
+      square: text.includes(`Its square multiplies each position by −1 to the power of its number at node ${k}`),
+    });
+
+    // regression: P5-RT-09-01
+    it('D4 node 2, k = 2 (SPEC 4 T12 acceptance example): the panel does not say that the firing matrix is E2 + F2 + P2 or that exp(E2) exp(-F2) exp(E2) is E2 - F2 + P2; both are false there', () => {
+      const body = loader.render(T12C.default, { id: 'r1', board: 'D4', node: 2 });
+      const text = panelText(body, 'signed');
+      expect(text).not.toBe('');
+      const d = at('D4', 2, 2);
+      expect(d.minuscule).toBe(false);
+      expect(d.nilpotent).toBe(true);
+      expect({ moveIsEFP: d.moveIsEFP, expIsSigned: d.expIsSigned }).toEqual({ moveIsEFP: false, expIsSigned: false });
+      const said = claims(text, 2);
+      expect({ moveIsEFP: said.moveIsEFP, expIsSigned: said.expIsSigned, square: said.square }, `T12 on D4 node 2: "${text}"`).toEqual({ moveIsEFP: false, expIsSigned: false, square: false });
+    });
+
+    // regression: P5-RT-09-01
+    it('B3 node 1, k = 1: the panel does not say that the signed matrix is no longer the move with signs; there it is the move with signs', () => {
+      const body = loader.render(T12C.default, { id: 'r2', board: 'B3', node: 1 });
+      const text = panelText(body, 'signed');
+      const b = at('B3', 1, 1);
+      expect(b.minuscule).toBe(false);
+      expect({ moveIsEFP: b.moveIsEFP, expIsSigned: b.expIsSigned, moveWithSigns: b.moveWithSigns, squareIsSign: b.squareIsSign }).toEqual({ moveIsEFP: true, expIsSigned: true, moveWithSigns: true, squareIsSign: true });
+      const said = claims(text, 1);
+      expect(said.noLonger, `T12 on B3 node 1: "${text}"`).toBe(false);
+      expect({ moveIsEFP: said.moveIsEFP, expIsSigned: said.expIsSigned, square: said.square }, `T12 on B3 node 1: "${text}"`).toEqual({ moveIsEFP: true, expIsSigned: true, square: true });
+    });
+
+    // regression: P5-RT-09-01
+    it('on every node k of every built node of eight boards, the panel states the identities exactly where the engine\'s matrices satisfy them', () => {
+      for (const name of ['A3', 'B2', 'B3', 'C3', 'D4', 'D5', 'G2', 'F4']) {
+        const board = named(name);
+        for (const label of [...board.labels].sort((a, b) => a - b)) {
+          const rep = buildRepresentation(board, label, { relations: 'later' });
+          if (!rep.built) continue;
+          for (const k of [...board.labels].sort((a, b) => a - b)) {
+            const e = at(name, label, k);
+            const holds = e.moveIsEFP && e.expIsSigned && e.squareIsSign;
+            expect(largestAt(rep, pos(board, k)) <= 1, `${name} node ${label}, k = ${k}`).toBe(holds);
+            // Either both identities hold or neither does (2.18: the move fails exactly where a number at k is 2 or more).
+            expect(e.moveIsEFP, `${name} node ${label}, k = ${k}`).toBe(e.expIsSigned);
+            if (rep.minuscule) expect(holds, `${name} node ${label}, k = ${k}`).toBe(true);
+          }
+        }
+      }
+      // The panel itself on a few of these states (the server's markup draws node k = node i).
+      for (const [name, label] of [['B2', 1], ['C3', 3], ['G2', 1], ['A3', 2]] as const) {
+        const text = panelText(loader.render(T12C.default, { id: 'r3', board: name, node: label }), 'signed');
+        const e = at(name, label, label);
+        const said = claims(text, label);
+        expect({ moveIsEFP: said.moveIsEFP, expIsSigned: said.expIsSigned, square: said.square, noLonger: said.noLonger }, `${name} node ${label}: "${text}"`).toEqual({
+          moveIsEFP: e.moveIsEFP,
+          expIsSigned: e.expIsSigned,
+          square: e.moveIsEFP && e.squareIsSign,
+          noLonger: false,
+        });
+      }
+    });
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-p5-t12-claims.test.ts (RT-09, phase 5 round, attack 26); the
+  // same cause as P5-RT-13-03 (RT-13 attack 9, site/tests/e2e/redteam-RT-13-p5-dimension.spec.ts, adopted in
+  // site/tests/e2e/T12.spec.ts). The readout "Dimension:" (data-out="dimension") showed the size of the
+  // orbit of e_i on a node that is not minuscule, which is not the dimension of the representation of that
+  // node: golden weyl_dimension gives 28 for D4 node 2 (orbit 24), 248 for E8 node 8 (orbit 240), and on
+  // E8's default node 1 3875 (orbit 2160). E8 and F4 open on node 1.
+  describe('P5-RT-09-02: T12 shows the size of the orbit as the dimension on a node that is not minuscule', () => {
+    const GOLDEN = JSON.parse(readFileSync(new URL('../../../../reference/golden_data.json', import.meta.url), 'utf8')) as {
+      weyl_dimension: { type: string; highest_weight: number[]; dimension: number }[];
+    };
+    const goldenDim = (type: string, label: number, n: number): number => {
+      const hw = Array.from({ length: n }, (_, k) => (k === label - 1 ? 1 : 0)).join(',');
+      const r = GOLDEN.weyl_dimension.find((x) => x.type === type && x.highest_weight.join(',') === hw);
+      if (r === undefined) throw new Error(`no golden weyl_dimension for ${type} omega_${label}`);
+      return r.dimension;
+    };
+    const firstOut = (body: string, name: string): string => {
+      const m = new RegExp(`data-out="${name}"[^>]*>([^]*?)</(?:p|span|div)>`).exec(body);
+      return m === null ? '' : m[1]!.replace(/<!--[^]*?-->/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    };
+    for (const [name, label, n] of [['D4', 2, 4], ['G2', 1, 2], ['F4', 4, 4], ['E8', 8, 8], ['B3', 1, 3], ['E8', 1, 8], ['F4', 1, 4]] as const) {
+      // regression: P5-RT-09-02
+      it(`${name} node ${label}: "Dimension:" against golden weyl_dimension`, () => {
+        const body = loader.render(T12C.default, { id: 'r3', board: name, node: label });
+        const shown = Number(firstOut(body, 'dimension'));
+        expect(firstOut(body, 'state-board')).toBe(name);
+        expect(firstOut(body, 'minuscule')).toBe('no');
+        expect(shown, `T12 shows "Board ${name}, node ${label} · Dimension: ${shown}"; golden weyl_dimension[type=${name};highest_weight=omega_${label}].dimension = ${goldenDim(name, label, n)}`).toBe(goldenDim(name, label, n));
+        // The number the readout showed is labelled by what it counts: the positions of the orbit.
+        expect(firstOut(body, 'orbit-size'), `${name} node ${label}`).toBe(String(golden.types[name]!.fundamental_orbit_sizes[label - 1]));
+        expect(body.replace(/<!--[^]*?-->/g, '')).toMatch(/Positions in the orbit: <span[^>]*data-out="orbit-size"/);
+      });
+    }
+    // regression: P5-RT-09-02
+    it('on every minuscule node the dimension is the orbit size and the golden dimension; Download data carries the dimension and the orbit size', () => {
+      for (const rec of RECORDS) {
+        const rep = buildRepresentation(named(rec.type), rec.node, { relations: 'later' });
+        expect(representationDimension(rep), `${rec.type} node ${rec.node}`).toBe(BigInt(rec.dimension));
+        expect(representationDimension(rep)).toBe(BigInt(rep.orbitSize));
+      }
+      for (const [name, label, n] of [['D4', 2, 4], ['E8', 8, 8], ['E8', 1, 8]] as const) {
+        const tool = new T12Tool(configOf(defaultsFor(name, label)));
+        const d = exportData(tool);
+        expect(d.dimension, `${name} node ${label}`).toBe(goldenDim(name, label, n));
+        expect(d.orbitSize, `${name} node ${label}`).toBe(golden.types[name]!.fundamental_orbit_sizes[label - 1]);
+      }
+    });
+  });
+
+  // P5-RT-08-01 and P5-RT-13-02 (the same cause): T12 wrote the Lie theory symbol omega_i for the
+  // fundamental position in every text it shows, where the site's term is e_i (SPEC Appendix C, 8.4). The
+  // browser check of M8 is in site/tests/e2e/M8.spec.ts (describe regressions); here every sentence T12
+  // writes, on every node of every board it offers, and its server markup.
+  describe('P5-RT-08-01: T12 writes the Lie theory symbol omega_i for the fundamental position', () => {
+    // regression: P5-RT-08-01
+    it('no sentence T12 writes holds omega, on every node of the 32 boards; the fundamental position is written e_i', () => {
+      for (const type of TYPE_NAMES) {
+        const board = named(type);
+        for (const label of board.labels) {
+          const rep = startRepresentation(board, label);
+          const texts = [explanation(rep), limitSentence(rep) ?? '', noMinusculeSentence(rep) ?? '', repCaption(rep)];
+          for (const t of texts) expect(t, `${type} node ${label}`).not.toContain('ω');
+          expect(repCaption(rep), `${type} node ${label}`).toContain(`orbit of e${label}`);
+        }
+      }
+      // The announcement after a pick, and the server's markup of the tool (the orbit panel's title, the
+      // drawing's name and its legend, the orbit table's caption, the figure's name).
+      const tool = new T12Tool(configOf(configuredState({ board: 'D4', node: 2 })));
+      expect(pickSentence(tool)).toBe(`D4, node 2: the orbit of e2 has 24 positions. ${explanation(tool.rep)}`);
+      for (const props of [{ id: '' }, { id: 'o1', board: 'D4', node: 2 }, { id: 'o2', board: 'E8', node: 1 }, { id: 'o3', board: 'E7', node: 2 }]) {
+        const body = loader.render(T12C.default, props);
+        expect(body.includes('ω'), JSON.stringify(props)).toBe(false);
+      }
+      expect(loader.render(T12C.default, { id: '' })).toContain('The orbit of e1 in layers');
+    });
+  });
+
+  // P5-RT-03-01 (RT-03, attack 12; SPEC 4.0 Long numbers): the string viewer printed the length of its line
+  // and the count of positions not listed in full beyond 12 digits; stringCaption and the figure's name did
+  // the same. The browser check is in site/tests/e2e/T12.spec.ts (describe regressions).
+  describe('P5-RT-03-01: the string viewer prints the length of the line and the count of positions not listed beyond 12 digits', () => {
+    const big = '12345678901234567890';
+    // regression: P5-RT-03-01
+    it('the server markup shows the length and the count shortened, with the exact digits in data-value and the tooltip', () => {
+      const body = loader.render(T12C.default, { id: 'l1', board: 'A2', node: 1, start: [big, 0] }).replace(/<!--[^]*?-->/g, '');
+      const length = /<span([^>]*data-out="string-length"[^>]*)>([^<]*)<\/span>/.exec(body);
+      const gap = /<li([^>]*data-out="string-gap"[^>]*)>([^<]*)<\/li>/.exec(body);
+      expect(length).not.toBeNull();
+      expect(gap).not.toBeNull();
+      expect(length![2]!.trim()).toBe('1.2345... x 10^19 (20 digits)');
+      expect(length![1]).toContain('data-value="12345678901234567891"');
+      expect(length![1]).toContain('title="12345678901234567891"');
+      expect(gap![2]!.replace(/\s+/g, ' ').trim()).toBe('and 1.2345... x 10^19 (20 digits) more positions');
+      expect(gap![1]).toContain('data-value="12345678901234567889"');
+      // No count or entry of 20 digits is printed in the string panel's text or in the figure's name (the
+      // table view keeps the exact digits, 4.0).
+      const panel = /<section[^>]*data-panel="string"[^>]*>([^]*?)<\/section>/.exec(body)![1]!;
+      expect(panel.replace(/<[^>]+>/g, ' ')).not.toMatch(/\d{13}/);
+      const label = /<figure[^>]*aria-label="([^"]*)"/.exec(body)![1]!;
+      expect(label).not.toMatch(/\d{13}/);
+      expect(label).toContain('has 1.2345... x 10^19 (20 digits) positions');
+      // A short line keeps its numbers as they are.
+      const short = loader.render(T12C.default, { id: 'l2', board: 'A2', node: 1, start: [1999, 0] }).replace(/<!--[^]*?-->/g, '');
+      expect(/data-out="string-length"[^>]*>([^<]*)</.exec(short)![1]).toBe('2000');
+    });
+
+    // regression: P5-RT-03-01
+    it('stringCaption shortens the length and the positions beyond 12 digits', () => {
+      const A2 = named('A2');
+      const { board, vector } = inArithmetic(A2, [big, '0']);
+      const view = stringView(board, vector, 1);
+      expect(view.length).toBe(12345678901234567891n);
+      const caption = stringCaption('A2', view);
+      expect(caption).not.toMatch(/\d{13}/);
+      expect(caption).toContain('has 1.2345... x 10^19 (20 digits) positions');
+      expect(caption).toContain('the line through (1.2345... x 10^19 (20 digits), 0)');
+      // Up to 12 digits nothing changes (the registry's caption of the string viewer).
+      expect(T12.presets['string-viewer']!.caption).toBe(
+        'On A2 the line through (2, 0) at node 1 has 3 positions: (2, 0), (0, 1) and (−2, 2). Firing node 1 turns it end over end, and (0, 1) lies outside the orbit of (2, 0).',
+      );
+    });
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-10-t12-default-start.test.ts (RT-10, phase 5 round, attack 12;
+  // SPEC 6.6, field `start`: "the starting position; default: all ones for numbers, one Martian in the
+  // first city for populations"). T12's state has coords "numbers" and a start (its string viewer plays the
+  // numbers game), but its default start, on the tool route and after a pick of a board or a node, was
+  // omega_i (1 at the node, 0 elsewhere). SPEC 4 T12 names no start ("for a chosen position mu").
+  describe('P5-RT-10-03: the default start of T12 is the default of 6.6', () => {
+    for (const board of ['A2', 'D4', 'E7']) {
+      // regression: P5-RT-10-03
+      it(`defaultsFor('${board}') has coords numbers and the start all ones`, () => {
+        const s = defaultsFor(board);
+        expect(s.coords).toBe('numbers');
+        expect(s.start, `${board}: ${JSON.stringify(s.start)}`).toEqual(s.start!.map(() => 1));
+      });
+    }
+    // regression: P5-RT-10-03
+    it('the default preset of the tool route has the start all ones', () => {
+      expect(T12.presets.default.start).toEqual([1, 1]);
+    });
+    // regression: P5-RT-10-03
+    it('a pick of a node, and a link that changes the board or the node, take the start all ones; an author\'s start stays', () => {
+      for (const [board, node] of [['D4', 2], ['E8', 1], ['B3', 3], ['G2', 2]] as const) {
+        expect(defaultsFor(board, node).start, `${board} node ${node}`).toEqual(named(board).labels.map(() => 1));
+      }
+      const configured = configuredState({ preset: 'default' });
+      expect(admitLink('?g=E7&k=2', configured, '').state.start).toEqual([1, 1, 1, 1, 1, 1, 1]);
+      // M8's figures keep the starts their authors give (b1: the string through (2, 0)).
+      expect(configuredState({ preset: 'string-viewer', board: 'A2', node: 1, start: [2, 0] }).start).toEqual([2, 0]);
+      expect(configuredState({ board: 'D4', node: 1, start: [0, 0, 1, 0] }).start).toEqual([0, 0, 1, 0]);
+    });
   });
 });

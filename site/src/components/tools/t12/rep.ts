@@ -1,9 +1,10 @@
 // T12, the Representation Builder: the computations of the tool, as pure functions with no DOM and no
 // site library (SPEC.md 4 T12, 2.18, 2.7 F11, 5.4 "Representations", 5.6, E-5, E-7, E-9). Owner P5-A2.
 // Every mathematical value comes from the engine: minusculeNodes, orbitSize, play, minusculeMatrices,
-// signedMoves, chevalleySerre, orbitGraph, fire and stringThrough. This module only converts between
-// labels and positions (toLabels and toPositions, E-7), looks records up by their fields, and writes the
-// sentences. It imports the engine and the layered layout only, so that the registry entry can compute the
+// signedMoves, chevalleySerre, orbitGraph, fire, stringThrough and weylDimension. This module only converts
+// between labels and positions (toLabels and toPositions, E-7), looks records up by their fields, and writes
+// the sentences. It imports the engine, the layered layout and the pure long-number helper of t01 only, so
+// that the registry entry can compute the
 // captions in plain Node (site/tests/e2e/registry-outs.spec.ts loads it); t12/model.ts adds the state, the
 // links and the routing of E-9 (each call's hint goes through whereToRun before the call is made).
 import {
@@ -21,9 +22,11 @@ import {
   stringThrough,
   toLabels,
   toPositions,
+  weylDimension,
 } from '@two-games/engine';
 import type { AnyBoard, Board, RelationCheck, SparseMatrix } from '@two-games/engine';
 import { layeredLayout } from '../../draw/layeredLayout';
+import { shortValue } from '../t01/longNumber';
 
 /** The true minus sign of SPEC 6.3. */
 export const MINUS = '−';
@@ -394,9 +397,53 @@ export function addRelations(rep: Representation, opts: { engine?: RepEngine; ro
   rep.checks = engine.chevalleySerre(rep.board, rep.E!, rep.F!, rep.H!);
 }
 
-/** The dimension shown (data-out="dimension"): the size of the basis, which equals the orbit's size. */
+/**
+ * The largest number at the node with position k over the orbit of a built representation (0 before the
+ * matrices are built). Firing node k moves a position mu by mu_k steps, and E_k and F_k take single steps,
+ * so the firing matrix is E_k + F_k + P_k^0, and exp(E_k) exp(-F_k) exp(E_k) is E_k - F_k + P_k^0 with
+ * square (-1)^{H_k}, exactly when this is at most 1, as on every minuscule node (SPEC 2.18); otherwise a
+ * position with a number of 2 or more at node k lies outside every entry of E_k, F_k and P_k^0, and
+ * E_k - F_k + P_k^0 is singular (RT-FIX P5-RT-09-01).
+ */
+export function largestAt(rep: Representation, k: number): number {
+  let m = 0;
+  for (const v of rep.basis ?? []) if (v[k]! > m) m = v[k]!;
+  return m;
+}
+
+/**
+ * The sentences of the panel of the move of node k (a label) beside its signed version, as markup with
+ * subscripts (numbers and fixed words only): the two identities of SPEC 2.18 when m, the largest number at
+ * node k in the orbit (largestAt), is at most 1; otherwise why both fail (RT-FIX P5-RT-09-01).
+ */
+export function signedNote(k: number, m: number): string {
+  const x = (letter: string): string => `${letter}<sub>${k}</sub>`;
+  const efp = `${x('E')} + ${x('F')} + ${x('P')}`;
+  const signedMatrix = `${x('E')} ${MINUS} ${x('F')} + ${x('P')}`;
+  const exp = `exp(${x('E')}) exp(${MINUS}${x('F')}) exp(${x('E')})`;
+  const keeps = `where ${x('P')} keeps the positions whose number at node ${k} is 0`;
+  return m <= 1
+    ? `Firing node ${k} permutes the positions: its matrix is ${efp}, ${keeps}. The group element ${exp} is ${signedMatrix}: the same matrix with one sign changed in each pair. Its square multiplies each position by ${MINUS}1 to the power of its number at node ${k}.`
+    : `Some position has the number ${m} at node ${k}, and firing node ${k} moves it ${m} steps at once, which the single steps ${x('E')} and ${x('F')} miss. So the matrix of the move is not ${efp}, ${keeps}, and the signed matrix ${signedMatrix} is not ${exp}.`;
+}
+
+/**
+ * The size of the matrices: the size of the basis, which equals the orbit's size (data-out="orbit-size").
+ * It is the representation's dimension on a minuscule node only (representationDimension).
+ */
 export function dimensionOf(rep: Representation): number {
   return rep.basis?.length ?? rep.orbitSize;
+}
+
+/**
+ * The dimension of the representation whose highest weight is the fundamental position of the node
+ * (weylDimension, F9; data-out="dimension"): the size of the orbit on a minuscule node (F11), more on any
+ * other (28 on node 2 of D4, whose orbit has 24 positions). RT-FIX P5-RT-09-02: the readout "Dimension"
+ * showed the orbit's size on every node.
+ */
+export function representationDimension(rep: Representation, route: Route = noRoute): bigint {
+  route('play', playHint(rep.board));
+  return weylDimension(rep.board, omega(rep.board, rep.position));
 }
 
 const minusculeByName = new Map<string, number[]>();
@@ -423,8 +470,12 @@ export function defaultNode(board: AnyBoard): number {
 // The explanation (SPEC 4 T12 acceptance; 2.18; F11's third condition)
 // ---------------------------------------------------------------------------------------------
 
-/** "ω1": the fundamental weight of a node label. */
-export const omegaName = (label: number): string => `ω${label}`;
+/**
+ * "e1": the site's name of the fundamental position of a node label (SPEC Appendix C, 8.4: the Lie theory
+ * name, the fundamental weight omega_i, is given once, in a lesson's Lie theory paragraph; RT-FIX
+ * P5-RT-08-01).
+ */
+export const omegaName = (label: number): string => `e${label}`;
 
 /**
  * The sentence of data-out="explanation" (plan wording): for a node that is not minuscule it carries the
@@ -438,9 +489,14 @@ export function explanation(rep: Representation): string {
   return rep.built ? `${head}, so the steps E and F of the recipe miss some moves and the relations fail.` : `${head}, so the steps E and F of the recipe would miss some moves.`;
 }
 
-/** SPEC 2.18 [D] for a board with no minuscule node (E8, F4, G2), or null. */
+/**
+ * For a board with no minuscule node (E8, F4, G2), or null: what the recipe of this tool builds there,
+ * none of the representations. Not that they all need more than the game: SPEC 2.18 "One zero weight"
+ * builds the 7 of G2 from the game, and its [D] "need more than the game" is for the representations out
+ * of reach of both recipes (RT-FIX P5-RT-08-05).
+ */
 export function noMinusculeSentence(rep: Representation): string | null {
-  return rep.boardHasMinuscule ? null : 'This board has no minuscule node; its representations need more than the game.';
+  return rep.boardHasMinuscule ? null : 'This board has no minuscule node, so the recipe of this tool builds none of its representations.';
 }
 
 /** The stated limit of 4.0 and 5.6 above 2000 positions (data-out="limit"), or null when the matrices are built. */
@@ -918,6 +974,9 @@ export function stringNote(view: StringView): string {
 // Captions (4.0 "Starts meaningful": the caption states the result; every number from the engine)
 // ---------------------------------------------------------------------------------------------
 
+/** A position written with each entry shortened beyond 12 digits (SPEC 4.0 Long numbers; RT-FIX P5-RT-03-01). */
+const positionShort = (v: readonly (number | bigint | string)[]): string => positionText(v.map((x) => shortValue(String(x))));
+
 function joinAnd(items: readonly string[]): string {
   return items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
@@ -961,12 +1020,12 @@ export function signedCaption(rep: Representation, k: number, digest: RelationDi
 /** The caption of the string viewer (plan): the line, its length, and the positions outside the orbit. */
 export function stringCaption(name: string, view: StringView): string {
   const i = view.node;
-  const mu = positionText(view.through);
+  const mu = positionShort(view.through);
   const n = view.length;
-  const listed = view.elided === 0n ? `: ${joinAnd(view.shown.map((p) => positionText(p.values)))}` : `, from ${positionText(view.shown[0]!.values)} to ${positionText(view.shown[view.shown.length - 1]!.values)}`;
-  const head = `On ${name} the line through ${mu} at node ${i} has ${n} ${n === 1n ? 'position' : 'positions'}${listed}.`;
+  const listed = view.elided === 0n ? `: ${joinAnd(view.shown.map((p) => positionShort(p.values)))}` : `, from ${positionShort(view.shown[0]!.values)} to ${positionShort(view.shown[view.shown.length - 1]!.values)}`;
+  const head = `On ${name} the line through ${mu} at node ${i} has ${shortValue(String(n))} ${n === 1n ? 'position' : 'positions'}${listed}.`;
   if (view.direction === 'single') return `${head} The number on node ${i} is 0, so firing node ${i} leaves it where it is.`;
-  const outside = view.shown.filter((p) => !p.inOrbit).map((p) => positionText(p.values));
+  const outside = view.shown.filter((p) => !p.inOrbit).map((p) => positionShort(p.values));
   const tail =
     outside.length === 0
       ? '.'

@@ -8,7 +8,7 @@
 // Hooks read, and where they come from:
 //   tool roots (P1-A2 ToolFrame): data-tool ("rep"), data-instance (b1 to b12), data-hydrated="true";
 //     data-out caption, noscript, notice; the "Show as table" tables data-table="orbit" and "board"
-//   T12, the data-out names listed in site/tests/e2e/T12.spec.ts (decisions/P5-A2.md): dimension,
+//   T12, the data-out names listed in site/tests/e2e/T12.spec.ts (decisions/P5-A2.md): dimension, orbit-size,
 //     minuscule (data-minuscule), explanation, all-relations, relation-verdict (data-holds), relation-left,
 //     relation-right, matrix-e, matrix-f, matrix-h, move-matrix, signed-move (MatrixView: data-format,
 //     data-rows, data-cols, and data-row, data-col, data-value on its cells, 1-based), string-position
@@ -260,7 +260,7 @@ test.describe('without JavaScript', () => {
       const enabled = await root.locator('button, input, select, textarea').evaluateAll((els) => els.filter((e) => !e.matches(':disabled')).length);
       expect(enabled, `${id} controls disabled`).toBe(0);
       // The table view of A-10: the orbit, with the board and the node named, and the string viewer's board.
-      await expect(root.locator('table[data-table="orbit"] caption'), id).toHaveText(`The orbit of ω${node} on ${board}: ${orbitOf(board, node)} positions`);
+      await expect(root.locator('table[data-table="orbit"] caption'), id).toHaveText(`The orbit of e${node} on ${board}: ${orbitOf(board, node)} positions`);
       await expect(root.locator('table[data-table="board"]'), id).toHaveCount(1);
       await expect(out(page, id, 'dimension'), id).toHaveText(String(orbitOf(board, node)));
       // The matrices are HTML tables (MatrixView) without JavaScript.
@@ -496,7 +496,7 @@ test('a prediction asks about what is not yet on screen', async ({ page }) => {
   const sizeOfThree = new RegExp(`positions|dimension|\\b${dim('D4', 3)}\\b`);
   const namesThree = sentences(plain(aboveB5)).filter((s) => /node 3\b|nodes 1, 3|ω3|e3\b|e_3/.test(s));
   for (const s of namesThree) expect(s, s).not.toMatch(sizeOfThree);
-  await expect(tool(page, 'b5').locator('table[data-table="orbit"] caption')).toHaveText(`The orbit of ω1 on D4: ${orbitOf('D4', 1)} positions`);
+  await expect(tool(page, 'b5').locator('table[data-table="orbit"] caption')).toHaveText(`The orbit of e1 on D4: ${orbitOf('D4', 1)} positions`);
 });
 
 test('no default state starts the worker', async ({ page, context }) => {
@@ -1052,7 +1052,7 @@ test('challenges report success on their goal and not before', async ({ page }) 
     expect(check.name, c.id).toBe('caption');
     // The check reads the caption, which names the board and the node: the goal's board is the one read.
     expect(check.equals, c.id).toMatch(new RegExp(`^On ${c.board}[ ,]`));
-    expect(check.equals, c.id).toMatch(new RegExp(`node ${c.node}\\b|ω${c.node}\\b`));
+    expect(check.equals, c.id).toMatch(new RegExp(`node ${c.node}\\b|\\be${c.node}\\b`));
     expect(props.find((p) => p.for === c.id)!.goal, c.id).toContain(c.board);
     for (const [k, step] of c.steps.entries()) {
       await expect(challenge.locator('[data-challenge-result]'), `${c.id} before step ${k + 1}`).toHaveCount(0);
@@ -1060,8 +1060,8 @@ test('challenges report success on their goal and not before', async ({ page }) 
       if (step.node) await control(page, c.id, 'node').selectOption(String(step.node));
       await settled(page, c.id);
     }
-    await expect(tool(page, c.id).locator('table[data-table="orbit"] caption')).toHaveText(`The orbit of ω${c.node} on ${c.board}: ${orbitOf(c.board, c.node)} positions`);
-    await expect(out(page, c.id, 'dimension')).toHaveText(String(orbitOf(c.board, c.node)));
+    await expect(tool(page, c.id).locator('table[data-table="orbit"] caption')).toHaveText(`The orbit of e${c.node} on ${c.board}: ${orbitOf(c.board, c.node)} positions`);
+    await expect(out(page, c.id, 'orbit-size')).toHaveText(String(orbitOf(c.board, c.node)));
     await expect(challenge.locator('[data-challenge-result]'), c.id).toHaveText('Goal reached.', { timeout: 20000 });
   }
   // The E6 node: not minuscule, a failing relation, and the smallest orbit among the failing nodes of E6;
@@ -1103,7 +1103,7 @@ test('the prose does not print the answers of the challenges', async ({ page }) 
   expect(nodesNamed(prose, 'D_4').has(2)).toBe(true);
   const props = await challengeProps(page);
   for (const c of props.filter((p) => p.check.kind === 'out' && p.check.name === 'caption')) {
-    const target = /^On ([A-H]\d)[ ,][^]*?(?:node (\d+)|ω(\d+))/.exec(c.check.equals ?? '');
+    const target = /^On ([A-H]\d)[ ,][^]*?(?:node (\d+)|\be(\d+))/.exec(c.check.equals ?? '');
     expect(target, c.for).not.toBeNull();
     const board = target![1]!;
     const node = Number(target![2] ?? target![3]);
@@ -1538,6 +1538,10 @@ test("Kostant's game climbs the Hasse diagram of the positive roots on every sim
   expect(mutate(t, big([1, 1, 0]), 2).map(Number)).toEqual([1, 1, 2]);
 });
 
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 5 red-team round (build-plan/red-team/RT-FIX.md 5.3)
+// ---------------------------------------------------------------------------------------------
+
 test.describe('regressions', () => {
   test.describe('without JavaScript', () => {
     test.use({ javaScriptEnabled: false });
@@ -1579,6 +1583,35 @@ test.describe('regressions', () => {
       });
       expect(report.filter((r) => r.after === 0).map((r) => `${r.id}: stated outside the reveal, after the prediction block, in: nowhere`)).toEqual([]);
       expect(report.flatMap((r) => r.before), 'stated before the prediction block').toEqual([]);
+    });
+
+    // Adopted from site/tests/e2e/redteam-RT-08-p5-omega.spec.ts (RT-08, phase 5 round, attack 30 (a)); the
+    // same cause as P5-RT-13-02 (RT-13 attack 13, redteam/rt13-p5-omega.mjs). SPEC 8.4: "Use the site's
+    // words consistently ... Give the standard term once, in the Lie theory paragraph"; Appendix C: the site's
+    // word is "fundamental position e_i", the Lie theory column "fundamental weight omega_i". M8's prose and
+    // captions write e1, as M7 does (decision P4-A6, tested in M7.spec.ts), but T12 wrote omega_i in its own
+    // text on all twelve instances (rep.ts omegaName: the explanation, the panel title, "Layer 0 is ...", the
+    // orbit table's caption, and repCaption, which M8 uses as the captions of b10 to b12).
+    // regression: P5-RT-08-01
+    test('M8: no omega outside the Lie theory paragraph, as on M7', async ({ page }) => {
+      await page.goto(ROUTE);
+      const found = await page.locator('article').evaluate((article) => {
+        const copy = article.cloneNode(true) as HTMLElement;
+        for (const el of copy.querySelectorAll('[data-anatomy="lie-theory"], [data-anatomy="sources"], .katex-mathml, annotation')) el.remove();
+        const out: string[] = [];
+        for (const el of copy.querySelectorAll('p, li, figcaption, caption, span, div')) {
+          if (el.querySelector('p, li, figcaption, caption, span, div')) continue;
+          const t = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+          if (t.includes('ω')) out.push(`${el.closest('[data-tool]')?.getAttribute('data-instance') ?? 'prose'}: ${t.slice(0, 120)}`);
+        }
+        return out;
+      });
+      // Observed at 006f50d: dozens of omega in the T12 instances, among them the captions of b10 to b12
+      // ("On D4 the 8 positions of the orbit of ω4 give 8 by 8 matrices E, F and H ...") and in b3 to b8
+      // ("Node 1 is minuscule: every number in the orbit of ω1 is −1, 0 or 1, and all the relations hold.").
+      expect(found, 'omega_i outside the Lie theory paragraph of M8').toEqual([]);
+      // The lesson's own captions use the site's name for the same object.
+      await expect(page.locator('[data-tool][data-instance="b5"] [data-out="caption"]').first()).toContainText('the orbit of e1');
     });
   });
 });

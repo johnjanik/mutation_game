@@ -30,12 +30,14 @@ import {
   orbitDrawing,
   orbitLayers,
   listOnMain,
+  omegaName,
   parseRelationCode,
   positionOf,
   relationCaption,
   relationParts,
   relationText,
   repCaption,
+  representationDimension,
   shownCheck,
   signedCaption,
   stringCaption,
@@ -266,9 +268,13 @@ export function acceptRelations(rep: Representation, checks: RelationCheck[]): b
 // The state of 6.6 (fields board, node, relation, coords, start, moves)
 // ---------------------------------------------------------------------------------------------
 
-/** omega_i as a start in label order: 1 at the node's label, 0 elsewhere (the default start, plan). */
-export function omegaStart(board: AnyBoard, nodeLabel: number): number[] {
-  return labelOrder(board).map((l) => (l === nodeLabel ? 1 : 0));
+/**
+ * The default start, all ones in label order (SPEC 6.6, field `start`: "default: all ones for numbers"), on
+ * the tool route and after a pick of a board or a node; an author's start stays (RT-FIX P5-RT-10-03: it was
+ * the fundamental position of the node).
+ */
+export function defaultStart(board: AnyBoard): number[] {
+  return labelOrder(board).map(() => 1);
 }
 
 /** The tool's default state for a board, and a node (default: defaultNode), as a picker sets it (4.0; plan). */
@@ -277,7 +283,7 @@ export function defaultsFor(spec: string, nodeLabel?: number): ToolState {
   const board = resolveBoard(spec);
   const node = nodeLabel ?? defaultNode(board);
   const rep = representationOf(spec, node, 'default');
-  return { schema: 1, tool: 'rep', board: spec, node, relation: defaultRelation(rep), coords: 'numbers', start: omegaStart(board, node), moves: [] };
+  return { schema: 1, tool: 'rep', board: spec, node, relation: defaultRelation(rep), coords: 'numbers', start: defaultStart(board), moves: [] };
 }
 
 /** The state of a preset (its fields; the panel it puts first is not part of the state, 6.6). */
@@ -618,7 +624,7 @@ export function startSentence(tool: T12Tool): string {
 /** The announcement after a board or a node was picked (plan). */
 export function pickSentence(tool: T12Tool): string {
   const rep = tool.rep;
-  return `${tool.spec}, node ${tool.node}: the orbit of ω${tool.node} has ${rep.orbitSize} positions. ${explanation(rep)}`;
+  return `${tool.spec}, node ${tool.node}: the orbit of ${omegaName(tool.node)} has ${rep.orbitSize} positions. ${explanation(rep)}`;
 }
 
 /** The announcement after a relation was picked (plan): the formula and the verdict. */
@@ -670,7 +676,8 @@ export function exportData(tool: T12Tool, digest: RelationDigest | null = null):
     minuscule: rep.minuscule,
     orbitSize: rep.orbitSize,
     built: rep.built,
-    dimension: rep.basis?.length ?? null,
+    // The representation's dimension (RT-FIX P5-RT-09-02); the size of the matrices is orbitSize.
+    dimension: out(representationDimension(rep, mainRoute)),
     explanation: explanation(rep),
     basis: rep.basis === null ? null : rep.basis.map((v) => inLabelOrder(tool.board, v)),
     E: lists(rep.E),

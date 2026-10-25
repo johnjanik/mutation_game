@@ -25,10 +25,13 @@
 // data-out names (every one T12 renders; the registry's `outs`):
 //   caption, notice, noscript, exportNotice (ToolFrame); moveCounter, historyStrip, historyCounter
 //   (History.svelte); predictResult, predictReveal (Predict.svelte);
-//   state-board, state-node (the board and the node of the state shown, labels), dimension, minuscule,
+//   state-board, state-node (the board and the node of the state shown, labels), dimension (the dimension
+//   of the representation, weylDimension), orbit-size (the positions of the orbit: the size of the
+//   matrices), minuscule,
 //   explanation, no-minuscule, limit, orbit-graph, matrix-e, matrix-f, matrix-h, relation-formula,
 //   relation-verdict, relation-left, relation-right, all-relations (with data-total, data-failing),
-//   move-matrix, signed-move, string-position, string-length, string-note, start-message
+//   move-matrix, signed-move, string-position, string-length (data-value: the exact length), string-gap
+//   (the count of positions not listed; data-value: the exact count), string-note, start-message
 // data-control names: picker, node, matrix-node, relation, relation-i, relation-j, start-entry (with
 //   data-entry), set-start; undo, redo, reset, historySlider (History.svelte); copyLink, downloadData
 //   (ToolFrame); data-export="svg" | "png" (ToolFrame)
@@ -124,7 +127,7 @@ test('acceptance: every listed representation shows its golden dimension, is min
     // Above 27 positions the list comes from the worker (decisions/P5-A2.md); the sentence is the same.
     await expect(out(page, 'all-relations'), what).toHaveText(`All ${relationCount(B(rec.type).n)} relations hold.`, { timeout: 20000 });
     await expect(out(page, 'relation-verdict'), what).toHaveAttribute('data-holds', 'true');
-    await expect(out(page, 'explanation'), what).toHaveText(`Node ${rec.node} is minuscule: every number in the orbit of ω${rec.node} is −1, 0 or 1, and all the relations hold.`);
+    await expect(out(page, 'explanation'), what).toHaveText(`Node ${rec.node} is minuscule: every number in the orbit of e${rec.node} is −1, 0 or 1, and all the relations hold.`);
     await expect(out(page, 'orbit-graph'), what).toHaveAttribute('data-positions', String(rec.dimension));
   }
 });
@@ -135,7 +138,7 @@ test('acceptance: choosing node 2 of D4 shows a failing relation and the explana
   await open(page, 'g=D4');
   await expect(out(page, 'dimension')).toHaveText('8');
   await control(page, 'node').selectOption('2');
-  await expect(out(page, 'dimension')).toHaveText('24');
+  await expect(out(page, 'orbit-size')).toHaveText('24');
   await settled(page);
   await expect(out(page, 'minuscule')).toHaveAttribute('data-minuscule', 'false');
   await expect(out(page, 'minuscule')).toHaveText('no');
@@ -149,7 +152,7 @@ test('acceptance: choosing node 2 of D4 shows a failing relation and the explana
   await expect(out(page, 'all-relations')).toHaveText(`10 of ${relationCount(4)} relations fail.`);
   // The edges of a number 2 are no entry of E or F: dashed, with data-step="false".
   await expect(out(page, 'orbit-graph').locator('[data-edge][data-step="false"]').first()).toBeAttached();
-  await expect(live(page)).toContainText('D4, node 2: the orbit of ω2 has 24 positions. Node 2 is not minuscule: some number in the orbit is 2');
+  await expect(live(page)).toContainText('D4, node 2: the orbit of e2 has 24 positions. Node 2 is not minuscule: some number in the orbit is 2');
   // The link of the state names the node; the matrices are 24 by 24 grids.
   await expect.poll(() => page.evaluate(() => new URLSearchParams(location.search).get('k'))).toBe('2');
   await expect(out(page, 'matrix-e')).toHaveAttribute('data-format', 'grid');
@@ -192,7 +195,7 @@ test('above 300 positions the orbit is given as layer counts: E7 nodes 2 and 6',
     const counts = (await graph.locator('[data-layer-count]').evaluateAll((li) => li.map((l) => Number(l.getAttribute('data-layer-count'))))) as number[];
     expect(counts[0]).toBe(1);
     expect(counts.reduce((a, b) => a + b, 0)).toBe(size);
-    await expect(out(page, 'dimension')).toHaveText(String(size));
+    await expect(out(page, 'orbit-size')).toHaveText(String(size));
     await expect(out(page, 'matrix-e')).toHaveAttribute('data-format', 'list');
     await expect(out(page, 'all-relations')).toHaveText(/^\d+ of 280 relations fails?\.$/, { timeout: 20000 });
   }
@@ -299,13 +302,13 @@ test('G2 node 2 fails with some number in the orbit is 3, and F4 and G2, without
   expect(golden.types.G2!.minuscule_nodes).toEqual([]);
   await open(page, 'g=G2&k=2');
   await expect(out(page, 'explanation')).toContainText('some number in the orbit is 3');
-  await expect(out(page, 'no-minuscule')).toHaveText('This board has no minuscule node; its representations need more than the game.');
+  await expect(out(page, 'no-minuscule')).toHaveText('This board has no minuscule node, so the recipe of this tool builds none of its representations.');
   await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
   // F4: the default node is 1 (no minuscule node), its orbit is built, and some relation fails.
   expect(golden.types.F4!.minuscule_nodes).toEqual([]);
   await open(page, 'g=F4');
   await expect(control(page, 'node')).toHaveValue('1');
-  await expect(out(page, 'dimension')).toHaveText(String(golden.types.F4!.fundamental_orbit_sizes[0]));
+  await expect(out(page, 'orbit-size')).toHaveText(String(golden.types.F4!.fundamental_orbit_sizes[0]));
   await expect(out(page, 'no-minuscule')).toHaveCount(1);
   await expect(out(page, 'minuscule')).toHaveAttribute('data-minuscule', 'false');
   await expect(out(page, 'all-relations')).toHaveText(/^\d+ of 88 relations fails?\.$/);
@@ -315,8 +318,8 @@ test('above 2000 positions the tool shows the explanation alone: E8 node 1', asy
   const size = golden.types.E8!.fundamental_orbit_sizes[0]!;
   expect(size).toBeGreaterThan(2000);
   await open(page, 'g=E8');
-  await expect(out(page, 'dimension')).toHaveText(String(size));
-  await expect(out(page, 'limit')).toHaveText(`The orbit of ω1 has ${size} positions, more than 2000, so the matrices are not built here.`);
+  await expect(out(page, 'orbit-size')).toHaveText(String(size));
+  await expect(out(page, 'limit')).toHaveText(`The orbit of e1 has ${size} positions, more than 2000, so the matrices are not built here.`);
   await expect(out(page, 'explanation')).toContainText('some number in the orbit is');
   await expect(out(page, 'orbit-graph')).toHaveCount(0);
   await expect(root(page).locator('[data-format]')).toHaveCount(0);
@@ -334,7 +337,7 @@ test('unreadable links load the default state with the notice', async ({ page })
     await open(page, query);
     await expect(out(page, 'notice'), query).toHaveText(NOTICE);
     await expect(out(page, 'dimension'), query).toHaveText('3');
-    expect(await valuesOf(page), query).toEqual(['1', '0']);
+    expect(await valuesOf(page), query).toEqual(['1', '1']);
     await expect(control(page, 'relation'), query).toHaveValue('ef');
   }
 });
@@ -350,10 +353,10 @@ test('nothing is written to the address bar before the reader acts, and changing
   await expect(out(page, 'dimension')).toHaveText('4');
   await settled(page);
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  expect(await valuesOf(page)).toEqual(['1', '0', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1', '1']);
   await expect(control(page, 'node')).toHaveValue('1');
   await expect(control(page, 'relation')).toHaveValue('ef');
-  await expect(live(page)).toHaveText('A3, node 1: the orbit of ω1 has 4 positions. Node 1 is minuscule: every number in the orbit of ω1 is −1, 0 or 1, and all the relations hold.');
+  await expect(live(page)).toHaveText('A3, node 1: the orbit of e1 has 4 positions. Node 1 is minuscule: every number in the orbit of e1 is −1, 0 or 1, and all the relations hold.');
   await expect.poll(() => page.evaluate(() => new URLSearchParams(location.search).get('g'))).toBe('A3');
   // The picker marks the minuscule nodes in text (A-5).
   expect(await control(page, 'node').locator('option').allTextContents()).toEqual(['1 (minuscule)', '2 (minuscule)', '3 (minuscule)']);
@@ -369,11 +372,11 @@ test('keyboard: Enter on a node fires it, u undoes and r redoes', async ({ page 
   await expect(node(page, 1)).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(root(page)).toHaveAttribute('data-moves', '1');
-  expect(await valuesOf(page)).toEqual(fired('A2', [1, 0], 1));
-  await expect(live(page)).toHaveText('Fired node 1. Numbers now minus 1, 1. Move 1.');
+  expect(await valuesOf(page)).toEqual(fired('A2', [1, 1], 1));
+  await expect(live(page)).toHaveText('Fired node 1. Numbers now minus 1, 2. Move 1.');
   await page.keyboard.press('u');
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  await expect(live(page)).toHaveText('Undid move 1. Numbers now 1, 0.');
+  await expect(live(page)).toHaveText('Undid move 1. Numbers now 1, 1.');
   await page.keyboard.press('r');
   await expect(root(page)).toHaveAttribute('data-moves', '1');
 });
@@ -385,16 +388,17 @@ test('redo, reset and the strip of past positions', async ({ page }) => {
   await node(page, 1).click();
   await expect(root(page)).toHaveAttribute('data-moves', '3');
   const third = await valuesOf(page);
-  await root(page).locator('[data-step="1"]').click();
+  // The strip's button (from the start all ones the string line has a position at step 1 too).
+  await out(page, 'historyStrip').locator('[data-step="1"]').click();
   await expect(root(page)).toHaveAttribute('data-moves', '1');
-  expect(await valuesOf(page)).toEqual(fired('A2', [1, 0], 1));
+  expect(await valuesOf(page)).toEqual(fired('A2', [1, 1], 1));
   await control(page, 'redo').click();
   await control(page, 'redo').click();
   await expect(root(page)).toHaveAttribute('data-moves', '3');
   expect(await valuesOf(page)).toEqual(third);
   await control(page, 'reset').click();
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  expect(await valuesOf(page)).toEqual(['1', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1']);
 });
 
 test('a link with 51 moves shows the slider, and the slider scrubs', async ({ page }) => {
@@ -402,10 +406,10 @@ test('a link with 51 moves shows the slider, and the slider scrubs', async ({ pa
   await open(page, `g=A2&k=1&w=${moves}`);
   await expect(root(page)).toHaveAttribute('data-moves', '51');
   await expect(out(page, 'historyCounter')).toHaveText('51 of 51');
-  expect(await valuesOf(page)).toEqual(['-1', '1']);
+  expect(await valuesOf(page)).toEqual(['-1', '2']);
   await control(page, 'historySlider').fill('10');
   await expect(root(page)).toHaveAttribute('data-moves', '10');
-  expect(await valuesOf(page)).toEqual(['1', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1']);
 });
 
 test('a link with 2001 moves is replayed in the worker and shows the end of the play', async ({ page }) => {
@@ -416,7 +420,7 @@ test('a link with 2001 moves is replayed in the worker and shows the end of the 
   await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
   await expect(node(page, 1)).toHaveAttribute('data-can-act', 'true', { timeout: 20000 });
   await expect(root(page)).toHaveAttribute('data-moves', '2001');
-  expect(await valuesOf(page)).toEqual(['-1', '1']);
+  expect(await valuesOf(page)).toEqual(['-1', '2']);
   expect(workers.length).toBeGreaterThan(0);
 });
 
@@ -444,7 +448,7 @@ test('the table view lists the orbit and has a button per node that fires it', a
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   // A true minus sign (SPEC 6.3; review P5-A2, finding 7).
   await expect(button).toHaveText('−1');
-  expect(await valuesOf(page)).toEqual(['-1', '1']);
+  expect(await valuesOf(page)).toEqual(['-1', '2']);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -471,7 +475,7 @@ test('Copy link gives the link of the current state, and opening it restores it'
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   expect(await valuesOf(page)).toEqual(values);
   await expect(control(page, 'relation-j')).toHaveValue('2');
-  await expect(out(page, 'dimension')).toHaveText('24');
+  await expect(out(page, 'orbit-size')).toHaveText('24');
   // The verdict and the string viewer's line come back with the link (review P5-A2, finding 5).
   await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', verdict!);
   expect(await lineKeys(page)).toEqual(lineBefore);
@@ -484,7 +488,7 @@ test('Download data gives the basis, the matrices, the relations and the string,
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   const { raw, doc } = await downloadData(page);
   expect(doc.tool).toBe('rep');
-  expect(doc.state).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 0], moves: [1] });
+  expect(doc.state).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 1], moves: [1] });
   expect(doc.derived.dimension).toBe(3);
   expect(doc.derived.basis).toEqual([[1, 0], [0, -1], [-1, 1]]);
   expect(doc.derived.E[0]).toEqual([[1, 3, 1]]);
@@ -502,7 +506,7 @@ test('Download data gives the basis, the matrices, the relations and the string,
   expect(doc.derived.edges).toHaveLength(2);
   expect(doc.derived.edges).toContainEqual([1, 3, 1]);
   expect(doc.derived.relationSides).toEqual({ relation: 'ef:1,1', holds: true, left: [[1, 1, 1], [3, 3, -1]], right: [[1, 1, 1], [3, 3, -1]] });
-  expect(doc.derived.positions).toEqual([[1, 0], [-1, 1]]);
+  expect(doc.derived.positions).toEqual([[1, 1], [-1, 2]]);
   expect(unsafeNumbers(raw)).toEqual([]);
   // A start beyond the safe integers keeps its digits as text (6.6), in the state and the derived tables.
   const big = '12345678901234567890';
@@ -532,7 +536,9 @@ test('a long number is shown shortened with its digits in the tooltip and the ho
   await expect(line(page).first()).toHaveAttribute('data-value', `${big},0`);
   await expect(line(page).first()).toContainText('x 10^19 (20 digits)');
   await expect(line(page).first()).toHaveAttribute('title', `(${big}, 0)`);
-  await expect(out(page, 'string-length')).toHaveText(String(BigInt(big) + 1n));
+  // The length, a value of 20 digits, is shown shortened, its digits in the hook (RT-FIX P5-RT-03-01).
+  await expect(out(page, 'string-length')).toHaveAttribute('data-value', String(BigInt(big) + 1n));
+  await expect(out(page, 'string-length')).toHaveText('1.2345... x 10^19 (20 digits)');
   // The line of more than 2000 positions is given by its ends, with the stated limit (5.9; review finding 5).
   await expect(line(page)).toHaveCount(2);
   await expect(out(page, 'string-note')).toContainText('more than 2000');
@@ -556,7 +562,7 @@ test('every node button carries data-node, data-board, data-value and data-can-a
     await expect(b).toHaveAttribute('data-can-act', 'true');
   }
   await expect(node(page, 1)).toHaveAttribute('aria-label', 'Node 1, value 1, can be fired');
-  await expect(node(page, 2)).toHaveAttribute('aria-label', 'Node 2, value 0, can be fired');
+  await expect(node(page, 2)).toHaveAttribute('aria-label', 'Node 2, value 1, can be fired');
   await expect(root(page).getByRole('group', { name: 'String viewer board A2' })).toHaveCount(1);
 });
 
@@ -608,7 +614,7 @@ test.describe('without JavaScript', () => {
     for (const name of ['matrix-e', 'matrix-f', 'matrix-h', 'relation-left', 'relation-right', 'move-matrix', 'signed-move']) await expect(out(page, name)).toHaveAttribute('data-format', 'grid');
     await expect(out(page, 'all-relations')).toHaveText(`All ${relationCount(2)} relations hold.`);
     await expect(out(page, 'relation-formula').locator('math')).toHaveCount(1);
-    expect(await lineKeys(page)).toEqual(['1,0', '-1,1']);
+    expect(await lineKeys(page)).toEqual(['1,1', '-1,2']);
     await expect(out(page, 'caption')).toContainText('Chevalley-Serre relations');
     await expect(root(page).locator('details [data-table="orbit"]')).toHaveCount(1);
     for (const el of await root(page).locator('button, select, input').all()) await expect(el).toBeDisabled();
@@ -780,10 +786,10 @@ test('every action works without a drag: pickers, relations, firing, the strip b
   await node(page, 1).click();
   await node(page, 2).click();
   await expect(root(page)).toHaveAttribute('data-moves', '2');
-  await root(page).locator('[data-step="1"]').click();
+  await out(page, 'historyStrip').locator('[data-step="1"]').click();
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   // A position of the strip is also reached with the keyboard (a button: Enter).
-  await root(page).locator('[data-step="2"]').focus();
+  await out(page, 'historyStrip').locator('[data-step="2"]').focus();
   await page.keyboard.press('Enter');
   await expect(root(page)).toHaveAttribute('data-moves', '2');
   // A strip of more than 50 positions is a slider, scrubbed by its keys.
@@ -795,7 +801,7 @@ test('every action works without a drag: pickers, relations, firing, the strip b
   await expect(root(page)).toHaveAttribute('data-moves', '50');
   await page.keyboard.press('Home');
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  expect(await valuesOf(page)).toEqual(['1', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1']);
   await page.keyboard.press('End');
   await expect(root(page)).toHaveAttribute('data-moves', '51');
   expect(await root(page).locator('[draggable="true"]').count()).toBe(0);
@@ -872,9 +878,9 @@ test('the tables of the server stay in place when the reader acts on the string 
     return tables.length;
   });
   expect(marked).toBe(5);
-  expect(await valuesOf(page)).toEqual(['1', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1']);
   await node(page, 1).click();
-  await expect.poll(() => valuesOf(page)).toEqual(fired('A2', [1, 0], 1));
+  await expect.poll(() => valuesOf(page)).toEqual(fired('A2', [1, 1], 1));
   await page.waitForTimeout(300);
   // Firing changes the state (and the tool's version): the five tables are still the server's elements.
   await expect(root(page).locator('[data-test-kept="true"]')).toHaveCount(5);
@@ -934,3 +940,60 @@ for (const [board, label, size] of [['E6', 1, 27], ['E7', 7, 56]] as const) {
     await expect(control(page, 'node')).toHaveValue(String(label));
   });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 5 red-team round (build-plan/red-team/RT-FIX.md 5.3)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from site/tests/e2e/redteam-RT-13-p5-dimension.spec.ts (RT-13, phase 5 round, attack 9); the
+  // same cause as P5-RT-09-02 (site/tests/unit/tools/T12.test.ts). On a node that is not minuscule T12
+  // printed the orbit size under the label "Dimension", which is the size of the representation only on a
+  // minuscule node. M8 beat 6 gives 248 for E8 and 26 for F4, beat 7 the 7 of G2. Oracle
+  // (lie_games.weyl_dimension and orbit_size): E8 node 8 orbit 240, representation 248; F4 node 4 orbit
+  // 24, representation 26; G2 node 1 orbit 6, representation 7; D4 node 2 orbit 24, representation 28.
+  const CASES: [string, number, number, number][] = [
+    // board, node, orbit size, dimension of the representation (oracle)
+    ['E8', 8, 240, 248], ['F4', 4, 24, 26], ['G2', 1, 6, 7], ['D4', 2, 24, 28],
+  ];
+  for (const [g, k, orbit, dim] of CASES) {
+    // regression: P5-RT-13-03
+    test(`attack 9: T12 on ${g} node ${k} does not print "Dimension: ${orbit}" for the ${dim}-dimensional representation`, async ({ page }) => {
+      await page.goto(`tools/rep/?g=${g}&k=${k}`);
+      const t = page.locator('[data-tool="rep"]').first();
+      await expect(t).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      await expect(t.locator('[data-out="state-node"]').first()).toHaveText(String(k), { timeout: 30000 });
+      const shown = (await t.locator('[data-out="dimension"]').first().textContent())?.trim();
+      const minuscule = (await t.locator('[data-out="minuscule"]').first().textContent())?.trim();
+      expect(minuscule).toBe('no');
+      expect(shown, `${g} node ${k}: the tool labels the orbit size ${shown} "Dimension", the representation has dimension ${dim}`).not.toBe(String(orbit));
+      // The fix: the representation's dimension under "Dimension", the orbit's positions under their own name.
+      expect(shown).toBe(String(dim));
+      expect(golden.types[g]!.fundamental_orbit_sizes[k - 1]).toBe(orbit);
+      await expect(t.locator('[data-out="orbit-size"]').first()).toHaveText(String(orbit));
+    });
+  }
+
+  // Adopted from site/tests/e2e/redteam-RT-03-t12.spec.ts (RT-03, phase 5 round, attack 12, SPEC 4.0 Long
+  // numbers: "A value of more than 12 digits is shown shortened"). The string viewer shortened the positions
+  // it lists but printed the length of the line and the count of positions not listed in full. The gap item
+  // is read through its hook data-out="string-gap" (the reproducer read its class); the exact digits are in
+  // the hooks' data-value and in the tooltip.
+  // regression: P5-RT-03-01
+  test('the length of a line of 12345678901234567891 positions, and the count of positions not listed', async ({ page }) => {
+    await page.goto(`${ROUTE}?g=A2&k=1&c=n&s=12345678901234567890,0`);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await settled(page);
+    // The positions on the line are shortened (the tool's own test checks this) ...
+    await expect(out(page, 'string-position').first()).toContainText('x 10^19 (20 digits)');
+    // ... and so must be the length and the count of positions between the two ends, each a value of 20 digits.
+    const length = (await out(page, 'string-length').innerText()).trim();
+    const gap = (await out(page, 'string-gap').innerText()).trim();
+    expect({ length, gap }).toEqual({ length: '1.2345... x 10^19 (20 digits)', gap: expect.stringContaining('x 10^19 (20 digits)') });
+    // The exact digits stay in the hook and the tooltip (4.0).
+    await expect(out(page, 'string-length')).toHaveAttribute('data-value', '12345678901234567891');
+    await expect(out(page, 'string-length')).toHaveAttribute('title', '12345678901234567891');
+    await expect(out(page, 'string-gap')).toHaveAttribute('data-value', '12345678901234567889');
+    await expect(out(page, 'string-gap')).toHaveAttribute('title', '12345678901234567889');
+  });
+});
