@@ -1,0 +1,220 @@
+{
+ "agent": "rtfix-p5-t12-perf",
+ "status": "done",
+ "branch": "worktree-agent-acde921d969566237",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-acde921d969566237",
+ "base": "b6b538da6c9984bd9da02b4c13afb30cce555877",
+ "commits": [
+  "c79669e RT-FIX P5-RT-07-02: T12 resolves each board once for the page",
+  "9d7169f RT-FIX P5-RT-07-01: a link builds T12's representation one engine call per task",
+  "1f50123 RT-FIX P5-RT-07-01 P5-RT-07-02: /tools/rep/ within its 90 kB, inLabelOrder in a module of its own",
+  "cd23d88 RT-FIX P5-RT-07-01 P5-RT-07-02: decisions fragment of the T12 main-thread and size fixes"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/t12/model.ts",
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/src/components/tools/t01/inLabelOrder.ts",
+  "site/src/components/tools/t01/interop.ts",
+  "site/src/components/tools/t01/model.ts",
+  "site/tests/e2e/T12.spec.ts",
+  "site/tests/unit/tools/T12.test.ts",
+  "decisions/RT-FIX-P5-t12-perf.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard b6b538d; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "worktree agent-acde921d969566237, branch worktree-agent-acde921d969566237, base b6b538da6c9984bd9da02b4c13afb30cce555877"
+  },
+  {
+   "cmd": "shasum -a 256 reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: all equal to CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 74 passed (74); Tests 2418 passed (2418)"
+  },
+  {
+   "cmd": "npm run build (base b6b538d) && npm run size -- --port 7011",
+   "exit": 1,
+   "summary": "/tools/rep/ 90012 B OVER (90 kB); /modules/m8-lie-algebras/ 90012 B; 1 over budget"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T12.test.ts -t 'a link to a large orbit is read' (source at base, red run)",
+   "exit": 1,
+   "summary": "1 failed: engine calls while ?g=E7&k=6 is read: expected {} received { minusculeMatrices: 1, signedMoves: 1 }"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7010> T12.spec.ts -g 'classifies the same board once' (base build, red run)",
+   "exit": 1,
+   "summary": "1 failed: classify computed on the pick of E6 (/tools/rep/): Expected 1, Received 3"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> T12.spec.ts -g 'hydrates without a long task' (base build, red run, load 0.5)",
+   "exit": 1,
+   "summary": "4 failed: E7:6 [73,77,81] median 77 vs control 0; C8:7 median 78 vs 52 (limit 67); B8:7 median 72 vs 0; D8:3 median 66 vs 0"
+  },
+  {
+   "cmd": "npm run build; npx playwright test T12.spec.ts -g 'classifies the same board once|picked and node' (commit c79669e state)",
+   "exit": 0,
+   "summary": "3 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T12.test.ts (final)",
+   "exit": 0,
+   "summary": "81 passed (80 at base plus 1)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (whole site unit project, final)",
+   "exit": 0,
+   "summary": "Test Files 92 passed; Tests 971 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit T01, T03, T07, T08, T09, T09-phase2, T10, T12, T16, state-classify-once, content-m6-root-lengths",
+   "exit": 0,
+   "summary": "11 files, 297 passed"
+  },
+  {
+   "cmd": "npm run build (final)",
+   "exit": 0,
+   "summary": "35 pages; links: 1292 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> T12.spec.ts (final build)",
+   "exit": 0,
+   "summary": "66 passed (4.6m); link cases: hydration task medians 0 (not long) against control 0; pick tests: no long task"
+  },
+  {
+   "cmd": "npx playwright test T12.spec.ts M8.spec.ts (first variant, which deferred reading the link)",
+   "exit": 1,
+   "summary": "94 passed, 2 failed (2001-move link, G2 dimension): variant dropped, see the decisions fragment"
+  },
+  {
+   "cmd": "npx playwright test T01 to T08 specs (final build)",
+   "exit": 0,
+   "summary": "205 passed"
+  },
+  {
+   "cmd": "npx playwright test T09 T10 T11 T15 T16 prediction-links predict-focus predict-invalid predict-result (final build)",
+   "exit": 0,
+   "summary": "154 passed"
+  },
+  {
+   "cmd": "npx playwright test M0 to M8, history-popstate, history-popstate-sweep, nojs (final build)",
+   "exit": 0,
+   "summary": "373 passed"
+  },
+  {
+   "cmd": "picks-ab.sh: T12.spec.ts 'no long task when' alternately on the final build and a base build in a scratch OUT_DIR, 8 rounds, load 0.8 to 1.2",
+   "exit": 1,
+   "summary": "marginal on both: fix 2 of 16 tests had one 54 or 60 ms task (plus one 53 ms in a full-suite run), base 3 of 16 had one 51 to 63 ms task; same pick path"
+  },
+  {
+   "cmd": "RATE=1 RUNS=3 node <scratch copy of redteam-RT-07-t12-link-task.mjs> site/dist 7012 E7:6 C8:7 B8:7 D8:3 E8:8 (final build)",
+   "exit": 0,
+   "summary": "hydration task not long in 15 of 15 link loads; no long task after hydration; picks median 0"
+  },
+  {
+   "cmd": "RATE=4 RUNS=3 lens script E7:6 E8:8, final build and base build",
+   "exit": 1,
+   "summary": "the island's own hydration stays long at 4x: E7:6 median 222 ms after against 403 before; E8:8 344 after against 312 before (noise from the island's 100 to 150 ms hydration dominates)"
+  },
+  {
+   "cmd": "npm run size -- --port 7011 (final)",
+   "exit": 0,
+   "summary": "35 routes, 0 over budget; /tools/rep/ 86803 B and M8 86803 B (were 90012); T1 route 74615 B (was 74442)"
+  },
+  {
+   "cmd": "GITHUB_REPOSITORY=johnjanik/mutation_game CI=1 OUT_DIR=<scratch>/dist-pages astro build; same environment npm run size -- --dist <scratch>/dist-pages --port 7011",
+   "exit": 0,
+   "summary": "base /mutation_game/; /tools/rep/ 86817 B, M8 86817 B; 0 over budget (size.mjs takes --dist, not --dir)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors; svelte-check 0 errors, 1 warning (t02/LayerChart.svelte, earlier)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 0,
+   "summary": "Test Files 74 passed; Tests 2418 passed (baseline 2418)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run typecheck",
+   "exit": 0,
+   "summary": "0 errors (astro check and svelte-check)"
+  },
+  {
+   "cmd": "git diff b6b538d..HEAD | grep -nE '^\\+.*(\\.only\\(|\\.skip\\(|xit\\(|toBeCloseTo|console\\.log|: any\\b|astro dev|export let|\\$:|on:click|em-dash)'",
+   "exit": 1,
+   "summary": "nothing found"
+  },
+  {
+   "cmd": "git diff --name-only b6b538d..HEAD | grep -ci redteam",
+   "exit": 1,
+   "summary": "0 (the redteam files that git ls-files lists are archived reproducers under build-plan/reports, already at base)"
+  },
+  {
+   "cmd": "git log --format=%s b6b538d..HEAD",
+   "exit": 0,
+   "summary": "4 subjects, each begins with RT-FIX P5-RT-07-0x"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep -fl 'port 701[0-3]'",
+   "exit": 0,
+   "summary": "status empty; no preview server of mine is running"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P5-RT-07-01: A link to a large T12 orbit runs the whole representation build in the island's hydration task: a long task of 51 to 103 ms at full speed, where a pick of the same node has none",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > a link to E7 node 6 (756 positions) hydrates without a long task, as when it is picked (also C8 node 7, B8 node 7, D8 node 3); site/tests/unit/tools/T12.test.ts > regressions > a link to a large orbit is read in the browser with the facts of its node only: no minusculeMatrices, signedMoves or chevalleySerre",
+   "evidence": "Severity major (no adjustment). Red at base b6b538d (load 0.5): 4 failed, link medians 77, 78, 72 and 66 ms against controls 0, 52, 0 and 0. Unit test red: minusculeMatrices 1 and signedMoves 1 while ?g=E7&k=6 is read. Cause: admitLink validated, and load() built, the state with need 'staged', which computes minusculeMatrices and every node's signed moves in the task that reads the link (on hydration, the island's task). Fix: both now read only the node's facts. load() runs representationSteps (one engine call per task, signed moves one node per task above 300 positions) before stage draws the panels. On the node already shown, the matrices are built in a task of their own before the relation. admitLink no longer computes the defaults of g's default node when k names another node. Green: 4 passed, link medians 0 (twice), plus the full T12.spec (66 passed) and the unit file (81 passed). Commit 9d7169f. Adoption changes: the spec waits for data-out=\"orbit-size\" (since RT-FIX P5-RT-09-02, data-out=\"dimension\" shows weylDimension) instead of \"dimension\"; it marks hydration by the data-hydrated hook instead of Astro's ssr attribute (seen red at base with this marker); it reads [data-drawn] instead of .t12; it checks the typed orbit sizes against golden. Thresholds and inputs are unchanged."
+  },
+  {
+   "item": "P5-RT-07-02: T12 classifies the same board three times on every pick: the steps of a pick resolve the board in three tasks, which defeats resolveBoard's per-microtask reuse",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > T12 classifies the same board once on a pick, though the steps of a pick run in three tasks",
+   "evidence": "Severity minor (no adjustment). It was fixed rather than logged because the cause lies in t12/model.ts and the component, which the fix of P5-RT-07-01 changes. Red at base b6b538d: 'classify computed on the pick of E6 (/tools/rep/): Expected 1, Received 3', the lens's observed value. Cause: a pick resolves its board in three tasks (the default node, representationSteps, load), and resolveBoard returns a new object in each one, so E-11's per-object caches classify each new object. Fix: boardOf in t12/model.ts keeps one object per offered name for the page (at most 32). Every board T12 uses comes from it. lib/state.ts is unchanged. Green: 1 passed (exactly 1 computation for each pick of E6, E7, D4, B8 and G2, and for C8 after a link to E7 node 6). Commit c79669e. The lens's script used a logpoint through a source-map build. The adopted test sets a counting breakpoint, through the DevTools protocol, on the statement of classifyUncached that checks the board. It finds that statement in the engine's chunk by the error message the statement throws."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX.md 5.3 (adoption changes only names, paths and selectors)",
+   "what": "The adopted link-task spec waits for data-out=\"orbit-size\" instead of data-out=\"dimension\", and marks hydration by the data-hydrated attribute instead of Astro's ssr attribute.",
+   "why": "Since RT-FIX P5-RT-09-02 (merged in the base), data-out=\"dimension\" shows the representation's dimension and data-out=\"orbit-size\" shows the orbit's size, which the reproducer waited for. data-hydrated is a hook of SPEC 4.0, set in the same task; the test was red at base with it."
+  },
+  {
+   "spec": "RT-FIX.md 5.4 item 1 (files outside the cluster's area)",
+   "what": "site/src/components/tools/t01/model.ts, t01/interop.ts and the new t01/inLabelOrder.ts (T1's area, shared by every tool through Predict.svelte) changed.",
+   "why": "This keeps /tools/rep/ within its 90 kB, as the prompt asked. It is behaviour-neutral: inLabelOrder moved, and model.ts re-exports it."
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P5-t12-perf.md",
+ "openQuestions": [
+  "Seen at base as well (b6b538d): after a link that keeps the configured node and changes only the start or the relation (/tools/rep/?c=n&s=2,0 or /tools/rep/?q=hh:1,2), the matrices panel stays the server's markup, so its node k select ([data-control=\"matrix-node\"]) stays disabled. load()'s same-node branch makes only the relations, string and table-board parts live, and activate() does not run when the link loads a state. Not fixed here, because no finding names it.",
+  "pickMatrixNode and exportData (ensureMatrices) compute the signed moves of every node in one call (addSignedMoves without a node). On a configured state whose orbit has more than 300 positions, this is the grouping that representationSteps splits one node per task. It was not measured, and no finding names it.",
+  "The tests 'no long task when E6/E7 is picked' stay marginal on this machine. Over 8 alternating rounds at load 0.8 to 1.2 they failed 2 of 16 times on this branch and 3 of 16 times on the base, each time on one task of 51 to 63 ms, on the same pick path.",
+  "With the processor slowed four times, the hydration task of a link stays a long task (192 to 454 ms). This is the island's hydration, taking down the server's panels and computing the node's facts, not engine work beyond those facts. The configured state's hydration has the same shape (decisions/P5-A2.md)."
+ ],
+ "handoff": "Files outside the T12 area: t01/model.ts, t01/interop.ts and the new t01/inLabelOrder.ts. MERGE should look for conflicts there with any T1 or Predict change of the round. T1, every tool with a prediction, the lessons and prediction-links ran green. No finding needs a decision. I followed the lens's proposedFix for P5-RT-07-01: admitLink and load() read the facts, and load() runs representationSteps before drawing the panels. A first variant that built the representation before reading the link was dropped, because two existing T12 tests read the link's state right after hydration. A link to a small node that is not minuscule still computes its list (at most 2500 units of work) where the link is read, because its default relation comes from that list; the fragment records this. On rerun, the lens should measure the hydration task at full speed (now not long in 15 of 15 link loads) and count classify with the new T12.spec test (1 per pick). It should expect the island's own hydration to remain long at 4x."
+}
