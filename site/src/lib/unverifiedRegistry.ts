@@ -36,10 +36,14 @@ export interface OpenItemsReport {
    * A build that stops part way leaves false, and npm run report refuses such a report (and one
    * without the field, written before the field existed). The postbuild link check sets it false
    * while it runs and true again only when it passes; a build process that exits with a failure
-   * after the build-done hook sets it false.
+   * after the build-done hook sets it false. The first command of the prebuild of a later release
+   * build sets it false (RT-FIX P5-RT-12-01).
    */
   complete?: boolean;
-  /** The postbuild link check of the release build (scripts/links.mjs): absent until it starts. */
+  /**
+   * The postbuild link check of the release build (scripts/links.mjs): absent until it starts, and
+   * removed when a later release build starts (RT-FIX P5-RT-12-01).
+   */
   linkCheck?: 'running' | 'passed' | 'failed';
   /**
    * `fallbackPages`, present when not empty: the pages on which at least one use of the item shows
