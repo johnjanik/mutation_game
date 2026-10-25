@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { holdForReleaseBuild } from '../site/src/lib/openItemsReport.mjs';
 
 const siteDir = fileURLToPath(new URL('../site/', import.meta.url));
 
@@ -50,6 +51,10 @@ export function copyKatexAssets(destRoot, generatedDir) {
 const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (isMain) {
   try {
+    // The first command of the root prebuild, so the first step of every npm run build: in a release
+    // build, the report of an earlier release build is marked incomplete before anything of this
+    // build can fail (site/src/lib/openItemsReport.mjs; RT-FIX P5-RT-12-01).
+    holdForReleaseBuild();
     const { version, files } = copyKatexAssets(join(siteDir, 'public', 'katex'), join(siteDir, 'src', 'generated'));
     process.stdout.write(`katex ${version}: ${files} files copied to site/public/katex/${version}/\n`);
   } catch (error) {

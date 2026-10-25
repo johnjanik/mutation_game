@@ -8,7 +8,9 @@
 // check. The Astro build marks the report complete when it is done; the postbuild marks it
 // incomplete while it runs and complete again only when the check passes, so that a release build
 // that fails anywhere, postbuild included, leaves a report that npm run report refuses
-// (RT-FIX P4-RT-12-04).
+// (RT-FIX P4-RT-12-04). Before all of these, the first command of the prebuild marks the report of
+// an earlier release build incomplete, so that a release build that fails before the Astro build
+// starts leaves a report that npm run report refuses too (RT-FIX P5-RT-12-01).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
@@ -105,6 +107,25 @@ export function readReleaseReport() {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The start of a release build, before anything of it can fail: scripts/katex-assets.mjs, the first
+ * command of the root prebuild, calls this first. A release report on disk, written by an earlier
+ * release build, is marked incomplete and loses its linkCheck, so that npm run report refuses it and
+ * no link check completes it; only the Astro build of a release build writes a report that becomes
+ * complete again (RT-FIX P5-RT-12-01). Returns whether it marked a report. Outside a release build it
+ * touches nothing.
+ * @returns {boolean}
+ */
+export function holdForReleaseBuild() {
+  if (!isReleaseBuild()) return false;
+  const r = readReleaseReport();
+  if (!r) return false;
+  const held = { ...r, complete: false };
+  delete held.linkCheck;
+  writeReportFiles(held);
+  return true;
 }
 
 /**
