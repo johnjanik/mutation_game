@@ -1,9 +1,10 @@
 // P6-A5: LaTeX export (SPEC.md 6.7; 2.15 "The decorated board", "What the diagram does not show";
 // 6.4 fields of a catalogue record; 4.0 "Share and export", "Long numbers"; 7.4 "Citing"; CONTRACTS.md 4).
-// The inputs of the Satake sweeps are the stored fields `black_nodes` and `tau` of the 167 records of
-// the golden key `satake`, read as data; the expected strings of the three forms are typed from SPEC
-// 6.7 (they are text of the specification, not golden values). No covers() call: `satake` is covered by
-// P6-A1 and P6-A2's golden tests; this file only reads it as input.
+// Every input taken from a real form is the stored fields `black_nodes` and `tau` of a record of the
+// golden key `satake` (167 records), read as data, never typed; the only expected strings typed are
+// the three forms SPEC 6.7 prints (text of the specification, not golden values). Other expected
+// marks are built from the record's black_nodes. No covers() call: `satake` is covered by P6-A1 and
+// P6-A2's golden tests; this file only reads it as input.
 import { describe, expect, it } from 'vitest';
 import golden from '../../../reference/golden_data.json';
 import * as ex from '@lib/export';
@@ -45,6 +46,24 @@ function record(type: string, form: string): SatakeRow {
 
 const dynkinOf = (r: SatakeRow): string => exportLaTeX('dynkin', { type: r.dynkin_type, black: r.black_nodes, tau: r.tau });
 
+/** The marks of a record in label order, built from its black_nodes: '*' for black, 'o' for white. */
+const marksOf = (r: SatakeRow): string => Array.from({ length: r.rank }, (_, k) => (r.black_nodes.includes(k + 1) ? '*' : 'o')).join('');
+
+/** The pairs {i, tau(i)} with i < tau(i) of a record's tau, labels 1..n. */
+const tauPairs = (r: SatakeRow): [number, number][] => r.tau.flatMap((t, k) => (k + 1 < t ? [[k + 1, t] as [number, number]] : []));
+
+/** Runs `f` with the process in the time zone `tz` (Node reads TZ again whenever it is set). */
+function inZone<T>(tz: string, f: () => T): T {
+  const saved = process.env.TZ;
+  process.env.TZ = tz;
+  try {
+    return f();
+  } finally {
+    if (saved === undefined) delete process.env.TZ;
+    else process.env.TZ = saved;
+  }
+}
+
 /** The parts of a \dynkin line: the involutions option (null when absent), the family letter, the marks. */
 function parse(line: string): { option: string | null; letter: string; marks: string } {
   const m = /^\\dynkin(?:\[involutions=\{([0-9;]+)\}\])? ([A-G])\{([o*]+)\}$/.exec(line);
@@ -57,10 +76,12 @@ describe('exportLaTeX dynkin (SPEC 6.7)', () => {
     expect(dynkinOf(record('E6', 'e6(-14)'))).toBe('\\dynkin[involutions={16}] E{oo***o}');
     expect(dynkinOf(record('E7', 'e7(-5)'))).toBe('\\dynkin E{o*oo*o*}');
     expect(dynkinOf(record('A5', 'su(2,4)'))).toBe('\\dynkin[involutions={15;24}] A{oo*oo}');
-    // The same inputs written out, as P6-A3 and P6-A4 will pass them.
-    expect(exportLaTeX('dynkin', { type: 'E6', black: [3, 4, 5], tau: [6, 2, 5, 4, 3, 1] })).toBe('\\dynkin[involutions={16}] E{oo***o}');
-    // No trailing newline: latexFile adds the line ends.
-    expect(exportLaTeX('dynkin', { type: 'E7', black: [2, 5, 7] }).endsWith('}')).toBe(true);
+    // The same inputs as fresh arrays, as P6-A3 and P6-A4 will pass them, the black nodes in any order.
+    const e6 = record('E6', 'e6(-14)');
+    expect(exportLaTeX('dynkin', { type: e6.dynkin_type, black: [...e6.black_nodes].reverse(), tau: [...e6.tau] })).toBe('\\dynkin[involutions={16}] E{oo***o}');
+    // Without tau the identity is read (E7's diagram has no symmetry). No trailing newline: latexFile adds the line ends.
+    const e7 = record('E7', 'e7(-5)');
+    expect(exportLaTeX('dynkin', { type: e7.dynkin_type, black: [...e7.black_nodes] })).toBe('\\dynkin E{o*oo*o*}');
   });
 
   it('one mark per node in Bourbaki order for every satake record', () => {
@@ -94,12 +115,22 @@ describe('exportLaTeX dynkin (SPEC 6.7)', () => {
   });
 
   it('tau on black nodes is never exported', () => {
-    // e6(-14): tau swaps 3 and 5, both black; only 1 and 6 are joined (the classic mistake is {16;35}).
-    expect(dynkinOf(record('E6', 'e6(-14)'))).not.toContain('35');
-    // so(1,7) on D4: tau swaps 3 and 4, both black: no arrow at all.
-    expect(dynkinOf(record('D4', 'so(1,7)'))).toBe('\\dynkin D{o***}');
-    // The compact form su(4): tau is the flip, every node black.
-    expect(dynkinOf(record('A3', 'su(4)'))).toBe('\\dynkin A{***}');
+    // e6(-14): tau swaps two black nodes as well as two white ones; only the white pair is joined (the
+    // classic mistake joins both).
+    const e6 = record('E6', 'e6(-14)');
+    const blackPairs = tauPairs(e6).filter(([i, j]) => e6.black_nodes.includes(i) && e6.black_nodes.includes(j));
+    expect(blackPairs.length).toBeGreaterThan(0);
+    const e6Pairs = (parse(dynkinOf(e6)).option ?? '').split(';');
+    for (const [i, j] of blackPairs) expect(e6Pairs).not.toContain(`${i}${j}`);
+    // so(1,7) on D4: tau swaps two black nodes and fixes the white one: no arrow at all.
+    const so17 = record('D4', 'so(1,7)');
+    expect(tauPairs(so17).length).toBeGreaterThan(0);
+    expect(dynkinOf(so17)).toBe(`\\dynkin D{${marksOf(so17)}}`);
+    // The compact form su(4): tau is not the identity, every node black: marks only.
+    const su4 = record('A3', 'su(4)');
+    expect(tauPairs(su4).length).toBeGreaterThan(0);
+    expect(su4.black_nodes).toHaveLength(su4.rank);
+    expect(dynkinOf(su4)).toBe(`\\dynkin A{${'*'.repeat(su4.rank)}}`);
     // Every pair written joins two white nodes, also on every record where tau moves black nodes.
     let moved = 0;
     for (const r of RECORDS) {
@@ -137,7 +168,9 @@ describe('exportLaTeX dynkin (SPEC 6.7)', () => {
     // B2 and C2: the letter of the name given (D19), never normalised.
     expect(exportLaTeX('dynkin', { type: 'C2' })).toBe('\\dynkin C{oo}');
     expect(exportLaTeX('dynkin', { type: 'B2' })).toBe('\\dynkin B{oo}');
-    expect(dynkinOf(record('C2', 'sp(1,1)'))).toBe('\\dynkin C{*o}');
+    const sp11 = record('C2', 'sp(1,1)');
+    expect(sp11.black_nodes.length).toBeGreaterThan(0);
+    expect(dynkinOf(sp11)).toBe(`\\dynkin C{${marksOf(sp11)}}`);
   });
 
   it('invalid dynkin data throws RangeError', () => {
@@ -314,17 +347,32 @@ describe('the downloaded file and the citation', () => {
     expect(citationTitle('Game Board')).toBe('Game Board');
     expect(citationTitle('Two Games on a Dynkin Diagram')).toBe('Two Games on a Dynkin Diagram');
     expect(citationTitle('  Orbit Garden  ')).toBe('Orbit Garden');
-    // The reader's local date, ISO 8601.
-    expect(localIsoDate(new Date(2026, 10, 2, 23, 59))).toBe('2026-11-02');
+    // The reader's local date, ISO 8601, read in time zones far from UTC on both sides, near midnight.
+    inZone('Pacific/Kiritimati', () => {
+      // UTC+14: 00:30 on 3 November is still 2 November in UTC.
+      const d = new Date(2026, 10, 3, 0, 30);
+      expect(d.toISOString().slice(0, 10)).toBe('2026-11-02');
+      expect(localIsoDate(d)).toBe('2026-11-03');
+    });
+    inZone('Pacific/Pago_Pago', () => {
+      // UTC-11: 23:59 on 2 November is already 3 November in UTC.
+      const d = new Date(2026, 10, 2, 23, 59);
+      expect(d.toISOString().slice(0, 10)).toBe('2026-11-03');
+      expect(localIsoDate(d)).toBe('2026-11-02');
+    });
     expect(localIsoDate(new Date(2027, 0, 9, 0, 0))).toBe('2027-01-09');
   });
 
   it('the default export of a tool is the diagram of its named finite board', () => {
     const state = (board: ToolState['board'], extra: Partial<ToolState> = {}): ToolState => ({ schema: 1, tool: 'board', board, ...extra });
     expect(defaultLatexExport(state('E6'))).toEqual({ kind: 'dynkin', data: { type: 'E6', black: [], tau: [1, 2, 3, 4, 5, 6] } });
-    expect(defaultLatexExport(state('A3', { black: [2], tau: [3, 2, 1] }))).toEqual({ kind: 'dynkin', data: { type: 'A3', black: [2], tau: [3, 2, 1] } });
-    const d = defaultLatexExport(state('A3', { black: [2], tau: [3, 2, 1] }))!;
-    expect(exportLaTeX(d.kind, d.data)).toBe('\\dynkin[involutions={13}] A{o*o}');
+    // A decorated board: the first record with black nodes and arrows, its fields read from the golden file.
+    const r = RECORDS.find((x) => x.black_nodes.length > 0 && x.arrows.length > 0)!;
+    const decorated = state(r.dynkin_type as ToolState['board'], { black: [...r.black_nodes], tau: [...r.tau] });
+    expect(defaultLatexExport(decorated)).toEqual({ kind: 'dynkin', data: { type: r.dynkin_type, black: r.black_nodes, tau: r.tau } });
+    const d = defaultLatexExport(decorated)!;
+    expect(exportLaTeX(d.kind, d.data)).toBe(dynkinOf(r));
+    expect(exportLaTeX(d.kind, d.data)).toContain('[involutions=');
     for (const board of ['A4~', 'C2~', 'D4^(3)', 'pentagon', 'square', 'H3'] as const) expect(defaultLatexExport(state(board)), board).toBeNull();
     expect(defaultLatexExport(state({ cartan: [[2, -1], [-1, 2]] }))).toBeNull();
     expect(NOTHING_TO_EXPORT_LATEX).toBe('nothing to export as LaTeX');
@@ -348,13 +396,16 @@ describe('the downloaded file and the citation', () => {
   });
 
   it('the text of Cite is composed at the click', () => {
-    const at = new Date(2026, 10, 2, 9, 15);
-    expect(citation('The mutation game: Two Games on a Dynkin Diagram', 'http://localhost/modules/m1-mutation/', at)).toBe(
-      `The mutation game. Two Games on a Dynkin Diagram, site version ${GIT_COMMIT}, 2026-11-02. http://localhost/modules/m1-mutation/`,
-    );
-    expect(citation('Game Board', 'http://localhost/tools/board/?z=1&g=A2', at)).toBe(
-      citeText({ title: 'Game Board', siteName: SITE_NAME, commit: GIT_COMMIT, date: '2026-11-02', link: 'http://localhost/tools/board/?z=1&g=A2' }),
-    );
+    // At this instant it is 2 November in UTC and 3 November at UTC+14: the reader's date is cited.
+    const at = new Date(Date.UTC(2026, 10, 2, 12, 30));
+    inZone('Pacific/Kiritimati', () => {
+      expect(citation('The mutation game: Two Games on a Dynkin Diagram', 'http://localhost/modules/m1-mutation/', at)).toBe(
+        `The mutation game. Two Games on a Dynkin Diagram, site version ${GIT_COMMIT}, 2026-11-03. http://localhost/modules/m1-mutation/`,
+      );
+      expect(citation('Game Board', 'http://localhost/tools/board/?z=1&g=A2', at)).toBe(
+        citeText({ title: 'Game Board', siteName: SITE_NAME, commit: GIT_COMMIT, date: '2026-11-03', link: 'http://localhost/tools/board/?z=1&g=A2' }),
+      );
+    });
     // The commit is the one "Download data" writes.
     expect(JSON.parse(ex.exportJSON({ schema: 1, tool: 'board', board: 'A2' }, {})).commit).toBe(GIT_COMMIT);
   });
