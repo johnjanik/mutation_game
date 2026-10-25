@@ -10,3 +10,4 @@
 - P6-A5 merged (84960fc with request R1: src/tools/ToolIsland.astro shared by /tools/ and /embed/); P6-A2 merged (da9e368); P6-A6 merged (e947205). Merge checks after P6-A5 running (build 49 pages, 0 link problems).
 - Reviews running: P6-A2 (on da9e368), P6-A5 and P6-A6 (on e947205).
 - Carried for later stages: T2 and T10 tikz exports for the owner's G6 LaTeX compile; 'citeText' in registry outs; T16's static export import; the M10 hub slugs (history, confusions, credits) for P6-A8.
+- Merge check after P6-A5 (84960fc build): 49 pages, 337 e2e passed; npm run size FAILED: /tools/rep/ and /embed/rep/ 90.4 kB. Cause: site/src/lib/worker.ts spreads the whole engine namespace into engineApi, so every route using engineCall ships every engine module; satake.ts added about 2.3 kB to every route ('/' 48.6 to 50.9). Size repair P6-size running on f2177d7 (callers provide their functions; fallback dynamic import).
