@@ -1,0 +1,197 @@
+{
+ "agent": "rtfix-p5-history",
+ "status": "done",
+ "branch": "worktree-agent-a2c153203dcb1caa8",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a2c153203dcb1caa8",
+ "base": "0be3c0e3e9dfc899f2618514ef4d1b21374a8d33",
+ "commits": [
+  "77292eb RT-FIX P5-RT-04-01: on popstate keep the state the tool shows as the recorded state",
+  "afa4273 RT-FIX P5-RT-04-01: decisions fragment for the popstate rule of history.ts"
+ ],
+ "filesChanged": [
+  "site/src/lib/history.ts",
+  "site/tests/unit/history-popstate-copy-link.test.ts",
+  "site/tests/e2e/history-popstate.spec.ts",
+  "site/tests/e2e/history-popstate-sweep.spec.ts",
+  "decisions/RT-FIX-P5-history.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 0be3c0e",
+   "exit": 0,
+   "summary": "HEAD is now at 0be3c0e Red team phase 5 round: history fix cluster"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed from the lockfile"
+  },
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-a2c153203dcb1caa8; worktree-agent-a2c153203dcb1caa8; 0be3c0e3e9dfc899f2618514ef4d1b21374a8d33"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: all three match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 73 passed (73); Tests 2411 passed (2411)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/history-popstate-copy-link.test.ts (adopted, on the base source, red)",
+   "exit": 1,
+   "summary": "Tests 4 failed (4); ?g=E7 Expected ...s=0,0,0,0,0,0,1&w=&k=7&q=ef:7,7 Received ...s=1,1,1,1,1,1,1&w=; ?k=2 Received s=1,0&w=&k=2&q=ef:1,1; ?g=A3&c=n Received s=1,1,1&w=; ?b12.k=2 Received b12.s=1,0,0...b12.q=ef:1,1"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/history-popstate-copy-link.test.ts site/tests/unit/history.test.ts (scratch revert of history.ts to base)",
+   "exit": 1,
+   "summary": "Tests 5 failed | 18 passed (23): the 4 adopted cases, and 'T12 back to its link after a move' (the back button writes nothing: expected length 1 but got 2)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/history-popstate-copy-link.test.ts site/tests/unit/history.test.ts (with the fix)",
+   "exit": 0,
+   "summary": "Test Files 2 passed (2); Tests 23 passed (23)"
+  },
+  {
+   "cmd": "npm run build (base history.ts, for the browser red run)",
+   "exit": 0,
+   "summary": "35 pages; links: 1286 internal links, 0 problems"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/rtfix-p5-history/pw.config.ts (port 6910) history-popstate.spec.ts history-popstate-sweep.spec.ts --workers 1 (base build, red)",
+   "exit": 1,
+   "summary": "14 failed, 11 passed (4.4m): sweep rep ?g=E7, fold ?g=D4, fold ?g=D4&y=3.2.4.1&c=p, rep ?k=2&m=l&w=1.1 (after ''), geometry ?g=E8 (r dropped); the 5 T12 cases (e.g. ?k=2 after s=1,0...q=ef:1,1); the 3 export-footer cases (rep Received s=1,1,1,1,1,1,1&w=; fold Received v=n&c=p&s=1,0,0,0); the back-after-move case (Expected '?k=2', Received '?z=1&g=A2&c=n&s=0,1&w=&k=2&q=ef:2,2'); the 11 plain-codec routes pass"
+  },
+  {
+   "cmd": "npm run build (with the fix)",
+   "exit": 0,
+   "summary": "35 page(s) built; links: 1286 internal links on 35 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> history-popstate.spec.ts history-popstate-sweep.spec.ts --workers 1 (fixed build)",
+   "exit": 0,
+   "summary": "25 passed (2.9m); every Copy link after equals before, every reopened link 0 lines differ (geometry only drawMs)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> history-after-action.spec.ts history-no-write-on-load.spec.ts prediction-links.spec.ts module-links.spec.ts nojs.spec.ts a11y.spec.ts --workers 1",
+   "exit": 0,
+   "summary": "148 passed (9.0m)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> T10.spec.ts T11.spec.ts T12.spec.ts --workers 1",
+   "exit": 1,
+   "summary": "110 passed, 3 failed: long-task timing tests only (T10:523, T10:562, T12:907 E7), load average 11 to 16"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> T10.spec.ts:523 T10.spec.ts:562 T12.spec.ts:907 (rerun alone, fixed build, twice)",
+   "exit": 1,
+   "summary": "run 1: 2 failed 2 passed (T10:562, T12 E6; load 13 to 16); run 2: 2 failed 2 passed (T10:562, T12 E7; load 5.6 to 8.1); a different subset each run, long tasks of 50 to 76 ms"
+  },
+  {
+   "cmd": "same three timing tests on a build of the base history.ts (once, then --repeat-each 2)",
+   "exit": 1,
+   "summary": "base: 1 failed 3 passed (T10:523), then 3 failed 3 passed (T10:562 twice, T12 E7 once), load 13 to 16: the same tests fail without the change"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (full site unit suite)",
+   "exit": 1,
+   "summary": "Tests 1 failed | 927 passed (928): T12.test.ts 'minusculeNodes agrees...' timed out at 5000 ms under load"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T12.test.ts (rerun alone)",
+   "exit": 0,
+   "summary": "Test Files 1 passed (1); Tests 56 passed (56)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 324 files 0 errors 0 warnings 1 hint; svelte-check 1153 files 0 errors 1 warning (pre-existing, t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm run typecheck (clean tree)",
+   "exit": 0,
+   "summary": "tsc engine 0 errors; astro check 0 errors; svelte-check 0 errors"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no output"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after the fix)",
+   "exit": 0,
+   "summary": "Test Files 73 passed (73); Tests 2411 passed (2411), baseline 2411"
+  },
+  {
+   "cmd": "npm run build (clean tree)",
+   "exit": 0,
+   "summary": "35 page(s) built; links: 1286 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> history-popstate.spec.ts history-popstate-sweep.spec.ts history-after-action.spec.ts history-no-write-on-load.spec.ts --workers 1 (clean tree)",
+   "exit": 0,
+   "summary": "41 passed (4.0m)"
+  },
+  {
+   "cmd": "sh <scratch>/rtfix-p5-history/diffchecks.sh (git diff 0be3c0e..HEAD, added lines)",
+   "exit": 0,
+   "summary": ".only( 0, .skip( 0, xit( 0, toBeCloseTo 0, console.log 0, ': any' 0, astro dev 0, export let 0, '$:' 0, on: 0, em-dash 0"
+  },
+  {
+   "cmd": "git diff --name-only 0be3c0e..HEAD | grep -i -E 'redteam|^reference/|^build-plan/|CONTRACTS.md|DECISIONS.md|CLAUDE.md|unverified.json|^package.json|package-lock.json|.gitignore|playwright.config.ts|vitest.config|^.github/|caps.ts|_harness.ts|reports/gate-|LICENSE'",
+   "exit": 1,
+   "summary": "prints nothing"
+  },
+  {
+   "cmd": "git ls-files | grep -i redteam",
+   "exit": 0,
+   "summary": "lists only the archive under build-plan/reports/orchestrator/ and build-plan/workflows/, all present at the base; this branch adds none"
+  },
+  {
+   "cmd": "git log --format=%s 0be3c0e..HEAD",
+   "exit": 0,
+   "summary": "both subjects begin 'RT-FIX P5-RT-04-01:'"
+  },
+  {
+   "cmd": "grep -rn 'regression: P5-RT-' site/tests packages/engine/test | wc -l",
+   "exit": 0,
+   "summary": "6"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "status empty; no preview server on port 6910"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P5-RT-04-01: After one press of the skip link (or Back), Copy link on T12, T10 and T11 encodes the codec's reading of the bar, not the state shown: another start and relation, a bare link, or a link that cannot be read",
+   "status": "fixed",
+   "test": "site/tests/unit/history-popstate-copy-link.test.ts > Copy link after a popstate on a T12 instance opened from a link > <query>: linkFor encodes the state T12 shows, before and after popstate; site/tests/e2e/history-popstate.spec.ts > <route>?<query>: after the skip link, Copy link still encodes the state shown, and > <route>?<query>: after the skip link, the export footer links to the state shown; site/tests/e2e/history-popstate-sweep.spec.ts > <route>?<query>: Copy link is the same before and after the skip link",
+   "evidence": "Severity major (the lens's level; neither verifier adjusted it). Red at base 0be3c0e: unit 'Tests 4 failed (4)' with the verifier's values (?g=E7 Received ...s=1,1,1,1,1,1,1&w=); browser on the base build 14 failed, 11 passed: the 5 sweep failures and 5 T12 failures the verifier saw, plus my 3 export-footer cases on T12, T11 and T10 (same wrong links in the SVG footer); the 11 plain-codec routes passed. Cause: onPopState_ in site/src/lib/history.ts set entry.current to decodeState's reading before calling the tool's handler, and T10 to T12, which admit links by rules of their own, found their state unchanged and reported nothing, so linkFor (Copy link and the export footer) encoded a state not on screen. Fix: the recorded state is no longer replaced; it stays what the tool last reported through stateChanged, and a change that arrives after a popstate before the reader acts again is recorded as that instance's load and not written. Green: unit 23 passed (with history.test.ts unchanged); browser 25 passed, and 41 passed from the clean tree with history-after-action.spec.ts and history-no-write-on-load.spec.ts; engine 2411 passed (baseline 2411). Commit 77292eb."
+  },
+  {
+   "item": "P5-RT-04-01 (sibling): the back button rewrote the bar of the entry it returned to on a tool that reads links by its own rules (T12 shown; T10 and T11 share the path)",
+   "status": "fixed",
+   "test": "site/tests/unit/history-popstate-copy-link.test.ts > the state a popstate loads > T12 back to its link after a move: the state it loads is recorded, not written, and Copy link encodes it; site/tests/e2e/history-popstate.spec.ts > tools/rep/?k=2: back to the link after a move writes nothing, and Copy link encodes the state shown",
+   "evidence": "Same cause. The codec's reading replaced the recorded state, so when T12 loaded its link's state after Back, that state differed from the recorded one and, once the reader had acted, counted as the reader's change and was written. Red at base: unit 'the back button writes nothing: expected length 1 but got 2'; browser Expected '?k=2', Received '?z=1&g=A2&c=n&s=0,1&w=&k=2&q=ef:2,2'. Green after the fix in both. Guard, which passes before and after: 'a tool that reads its links by the codec, on a page opened without a link: back loads, writes nothing, and Copy link encodes the state shown'. Commit 77292eb."
+  }
+ ],
+ "deviations": [],
+ "decisionsFragment": "decisions/RT-FIX-P5-history.md",
+ "openQuestions": [
+  "Long-task timing tests fail at random on this shared machine with and without the change (load average 5.6 to 16 on 4 processors). On the fixed build: T10.spec.ts:523, T10.spec.ts:562 and T12.spec.ts:907 (E6 or E7), a different subset each run, long tasks of 50 to 76 ms. On a build of the base history.ts: T10:523 once, T10:562 twice, T12 E7 once. These tests are for MERGE or GATE to run on a quiet machine.",
+  "The full site unit run timed out once in T12.test.ts 'on every node built, minusculeNodes agrees with whether every relation holds' (5000 ms) under load; the file passes alone (56 passed).",
+  "Not fixed, separate cause: a replaceState burst still pending when popstate fires (a move, then Back within 500 ms) is written into the entry the reader returned to, and the entry the reader left keeps its pre-burst URL. With this fix it writes the state shown, not the codec's reading. Cancelling the timer on popstate would be a separate decision."
+ ],
+ "handoff": "Only site/src/lib/history.ts changed (no new export, no signature change). ToolFrame.svelte, T10GeometryStudio.svelte, T11FoldingBench.svelte and T12RepresentationBuilder.svelte needed no edit: their handlers already load what they admit, and ToolFrame's stateChanged effect now records it. So the T12 fixer of the later cluster has nothing of mine to merge around. The proposedFix's two options (ToolFrame records after the handler through a new history.ts function, or the handler returns its state) were not followed: both change an interface (a new export, or a new return type for onPopState), and neither covers loads that finish later (T10's tasks, T11 or T12 worker replay, T8 and T15 async loadLink). The popstate load window, which reuses the phase 4 count of the reader's actions, covers them. The lens should also rerun the back-after-move case and the export footer, now in history-popstate.spec.ts."
+}
