@@ -94,6 +94,8 @@ const STRONG_TO_ANCHOR: Record<string, string> = {
   'restricted root': 'shadow', 'restricted roots': 'shadow', multiplicity: 'multiplicity', multiplicities: 'multiplicity',
   'real rank': 'real-rank', 'restricted board': 'restricted-board', 'composite move': 'composite-move',
   'composite moves': 'composite-move', 'vogan diagram': 'vogan-diagram', 'vogan diagrams': 'vogan-diagram',
+  // Module nine as built (P6-A7): the terms it also sets in bold, with the entries added by P6-terms.
+  compact: 'compact', character: 'character', 'split form': 'split-form', 'quasi-split form': 'quasi-split-form',
 };
 /** Bold words that name no term, with the reason. A bold run that is a whole sentence (it ends with a full stop) is emphasis. */
 const NOT_TERMS: Record<string, string> = {
@@ -422,8 +424,12 @@ test.describe('M10', () => {
       }
     }
     expect(problems).toEqual([]);
-    // Recorded for the report: the terms whose first use is in a module this build does not contain.
-    for (const u of unpublished) expect(u).toMatch(/-> m9-real-forms$/);
+    // Module nine is built (P6-A7): every module a first-use line names is in the build, and every first-use
+    // link, those of module nine included, points to the beat of the first use (P6-terms).
+    expect(unpublished, 'first uses in a module this build does not contain').toEqual([]);
+    const noBeat = entries.flatMap((e) => e.uses.filter((u) => !/#beat-\d+$/.test(u.target)).map((u) => `${u.term} -> ${u.target}`));
+    expect(noBeat, 'first-use links without the beat of the first use').toEqual([]);
+    expect(entries.flatMap((e) => e.uses).filter((u) => u.target.startsWith('m9-real-forms#beat-')).length, 'first uses in module nine').toBeGreaterThan(15);
   });
 
   test('reference page: no prediction, no challenge, no tool', async ({ page }) => {
