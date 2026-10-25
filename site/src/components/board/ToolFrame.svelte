@@ -179,7 +179,8 @@
   }
 
   // P6-A5: LaTeX export and the citation (SPEC 6.7, 7.4 "Citing"). export.ts is fetched on the first
-  // click, as for the other exports; nothing starts on load.
+  // click, as for the other exports; nothing starts on load. The result is announced in the live
+  // region, as for Download data and Cite (SPEC 7.5, WCAG 4.1.3): the file, or the notice.
   let citation = $state('');
 
   async function onExportLatex(): Promise<void> {
@@ -188,8 +189,10 @@
       const { filename, text } = latexDownload(latexForExport, toolState, toolId, boardName, linkFor(instanceId));
       save(new Blob([text], { type: 'application/x-tex' }), filename);
       exportNotice = '';
+      announce(`Downloaded ${filename}.`);
     } catch (e) {
       exportNotice = e instanceof Error ? e.message : String(e);
+      announce(exportNotice);
     }
   }
 
