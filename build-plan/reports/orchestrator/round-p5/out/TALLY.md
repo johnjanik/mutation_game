@@ -1,5 +1,5 @@
 # Phase 5 red-team round: tally (gate commit 006f50d)
-- Lenses running (2026-10-25 05:32): RT-07, RT-11. Done: RT-01 to RT-06, RT-08, RT-09, RT-10, RT-12, RT-13.
+- Lenses running (2026-10-25 05:35): RT-07. Done: the other 12.
 ## RT-01: 1 finding (minor). Retests hold: 01-01, 01-02 (one sibling missed, below). rep.ts and T12 against the oracle: 12,624 + tool-boundary comparisons, 0 disagreements.
 - P5-RT-01-01 minor: formIsInvariant throws RangeError 'is not an integer' on an integer form entry beyond 2^53 (form.ts:104 isSafeInteger), so gram(C) of a board with such road counts cannot be tested.
 - Notes: T12 prints 'Dimension: N' on non-minuscule nodes where N is the orbit size, not dim V(omega_i) (D4 node 2: 24 vs 28; F4 node 4: 24 vs 26; E8 node 8: 240 vs 248); SafeInt checks intermediate products (E-2, documented); P3-RT-01-01 still reproduces (held).
@@ -62,7 +62,7 @@
 - RT-04 verdicts: 01 CONFIRMED major (unit 4 failed; browser 5 + 5 failed in two runs; not refuted).
 - RT-06 refute: 01 not refuted (7.4 every default figure of every lesson; M8's figure table makes the matrices the figure of beats 3 to 5); the server-against-hydrated comparison may catch lost matrix cells, not a lost orbit drawing. Reproduce pending.
 - RT-06 verdicts: 01 CONFIRMED minor (12 of 12 roots accepted blank; not refuted).
-- Fix clusters running (04:50): lessons (P5-RT-08-02, 08-03, 08-04, 09-04, 13-01), history (P5-RT-04-01).
+- Fix clusters running (05:35): lessons (P5-RT-08-02, 08-03, 08-04, 09-04, 13-01), history (P5-RT-04-01), t12-content (P5-RT-08-05, 09-01, 09-02+13-03, 08-01+13-02, 03-01, 10-03). To come: t12-a11y-tests (05-01, 05-02, 05-03, 10-01, 10-02, 06-01, RT-11 if confirmed), toolchain (12-01 if confirmed), RT-07.
 ## RT-12: 1 finding (minor). Retests hold: 12-02 (CI base), 12-03 (Node 22.12.0), 12-04 for its own case. Pins 20 of 20 exact; KaTeX one copy, fonts byte-equal; base path crawl 0 outside; verify byte for byte.
 - P5-RT-12-01 minor: a release build that fails in the prebuild leaves the earlier release report marked complete, and npm run report exits 0 with it (edge of the P4-RT-12-04 fix).
 - Notes: T12.test.ts:303 costs about 2.5 s CPU under a 5000 ms default timeout (flake risk on a busy runner); T05.spec Symbol(filename) intermittent with a fresh SSR cache; a malformed $...$ formula builds with exit 0 (P0-A3 open question; 7.7 silent); Node 22.12-22.18 EBADENGINE warnings (undici, wasm-runtime; owner); e2e:ci-base root script not added (RT-FIX-P4-toolchain request); M8 beat 7 released={false} renders (RT-10 note).
