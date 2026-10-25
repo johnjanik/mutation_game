@@ -20,7 +20,8 @@ export const credits = linkIfReleased({ kind: 'page', slug: 'credits' });
 {/* P6-A6: the history page of module M10 (SPEC.md 3 M10, 8.4, SOURCES.md 11.1 to 11.4 and 11.9). The
     timeline is the ordered list of M10 in order of date, one entry per item of M10, each with data-year
     (its first year) and data-entry; beside it an aside with Kostant's game and the diagrams of Satake
-    and Araki. Every sentence that rests on the content of Mozes' paper is wrapped as open item E2, the
+    and Araki. Every sentence that rests on the content of Mozes' paper is wrapped as open item E2 (in
+    the entry of 1990, and the attribution of strong convergence to Mozes in the entry of 2008), the
     video lectures as E5, the fuller attribution of Kostant's game as E13. The proposer of the 1986
     problem is not named (E11 unused). Years, volumes, pages and theorem numbers of sources are locators
     with no golden value. No tool and no script. */}
@@ -63,7 +64,7 @@ This page tells where the two games of this site come from, in order of date, an
 </li>
 <li data-year="2008" data-entry="Don08">
 <h3>2008: Donnelly</h3>
-<p>R. G. Donnelly, <cite>Eriksson's numbers game and finite Coxeter groups</cite>, European Journal of Combinatorics, volume 29 <Cite k="Don08"/>. Donnelly fires positive numbers, following Proctor, as this site does; his matrix $M$ is the transpose of this site's Cartan matrix, $C=M^{\mathsf T}$. The paper proves strong convergence in this convention (Theorem 2.1) and describes Wildberger's mutation game as the dual game. It is free to read, and it is the reference this site uses most for the numbers game. In a joint preprint of the same year, arXiv:0810.5371 <Cite k="DE08"/>, Donnelly and Eriksson use the game to prove that a connected graph with whole-number road counts is a Dynkin diagram of finite type exactly when some start that has no negative number and is not all zeros gives a game that ends.</p>
+<p>R. G. Donnelly, <cite>Eriksson's numbers game and finite Coxeter groups</cite>, European Journal of Combinatorics, volume 29 <Cite k="Don08"/>. Donnelly fires positive numbers, following Proctor, as this site does; his matrix $M$ is the transpose of this site's Cartan matrix, $C=M^{\mathsf T}$. The paper states strong convergence in this convention as its Theorem 2.1, <Unverified item="E2" fallback="a theorem that later authors attribute to Eriksson, among others">a theorem that later authors attribute to Mozes and Eriksson</Unverified>, and it describes Wildberger's mutation game as the dual game. It is free to read, and it is the reference this site uses most for the numbers game. In a joint preprint of the same year, arXiv:0810.5371 <Cite k="DE08"/>, Donnelly and Eriksson use the game to prove that a connected graph with whole-number road counts is a Dynkin diagram of finite type exactly when some start that has no negative number and is not all zeros gives a game that ends.</p>
 </li>
 <li data-year="2012" data-entry="GSS12">
 <h3>2012: Gashi, Schedler and Speyer</h3>
@@ -71,7 +72,7 @@ This page tells where the two games of this site come from, in order of date, an
 </li>
 <li data-year="2020" data-entry="W20">
 <h3>2020: Wildberger's paper in Algebra Colloquium</h3>
-<p>N. J. Wildberger, <cite>The Mutation Game, Coxeter-Dynkin Graphs, and Generalized Root Systems</cite>, Algebra Colloquium, volume 27 (2020), number 1, pages 55 to 78 <Cite k="W20"/>. It is the citable published source for the mutation game on boards, which it calls directed multigraphs: the story of Martians and anti-Martians in its section 2, the classification of the connected boards whose roads run both ways by the spectral radius of their adjacency matrix (Theorem 4.1), the invariant form (Theorems 8.4 and 8.7), and lists of positive roots (section 9). Near its end it states the Mutation Conjecture, which has {openProblem ? <a href={openProblem}>a page of its own</a> : 'a page of its own'} on this site.</p>
+<p>N. J. Wildberger, <cite>The Mutation Game, Coxeter-Dynkin Graphs, and Generalized Root Systems</cite>, Algebra Colloquium, volume 27 (2020), number 1, pages 55 to 78 <Cite k="W20"/>. It is the citable published source for the mutation game on boards, which it calls directed multigraphs: the story of Martians and anti-Martians in its section 2, the classification of the connected boards whose roads run both ways by the spectral radius of their adjacency matrix (Theorem 4.1), the invariant form (Theorems 8.4 and 8.7), and lists of positive roots (section 9). Its section 2 also states the Mutation Conjecture, on page 57; the conjecture has {openProblem ? <a href={openProblem}>a page of its own</a> : 'a page of its own'} on this site.</p>
 </li>
 </ol>
 
@@ -83,7 +84,7 @@ This page tells where the two games of this site come from, in order of date, an
 </section>
 <section data-beside="satake">
 <h3>Satake (1960) and Araki (1962): the diagrams</h3>
-<p>The decorated boards of module nine, with <Term a="black">black</Term> nodes, <Term a="white">white</Term> nodes and <Term a="arrows">arrows</Term>, are Satake diagrams. They are reported to appear on page 109 of Satake's paper of 1960 <Cite k="Sat60"/>. Araki's paper of 1962 <Cite k="Ara62"/> has a table of the diagrams with the multiplicities of their restricted roots, the <Term a="shadow">shadows</Term> of this site, which later papers cite as pages 32 and 33. This site has not read either text.{m9 ? <> <a href={m9}>Module nine</a> plays these diagrams.</> : null}</p>
+<p>The decorated boards of module nine, with <Term a="black">black</Term> nodes, <Term a="white">white</Term> nodes and <Term a="arrows">arrows</Term>, are Satake diagrams. They are reported to appear on page 109 of Satake's paper of 1960 <Cite k="Sat60"/>. Araki's paper of 1962 <Cite k="Ara62"/> is reported by later papers to have a table of the diagrams with the multiplicities of their restricted roots, the <Term a="shadow">shadows</Term> of this site; they cite the table as pages 32 and 33. This site has not read either text.{m9 ? <> <a href={m9}>Module nine</a> plays these diagrams.</> : null}</p>
 </section>
 </aside>
 
