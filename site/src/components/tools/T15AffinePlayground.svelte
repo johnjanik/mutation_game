@@ -19,7 +19,7 @@
   // plan property unverifiedMode ('marked' | 'fallback' | 'plain', default 'fallback'), decided at build
   // time by the page (t15/T15Route.astro applies the rule of <Unverified>).
   import { untrack } from 'svelte';
-  import { CAPS, boardFromName, classify, comarks as comarksOf, isRootPopulation, level as levelOf, marks as marksOf, toLabels } from '@two-games/engine';
+  import { CAPS, applyWord, boardFromName, classify, comarks as comarksOf, isRootPopulation, level as levelOf, marks as marksOf, toLabels } from '@two-games/engine';
   import type { Board as EngineBoard, ClassifyRecord } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -30,7 +30,7 @@
   import { displayValue } from '../board/sign';
   import { decodeState, encodeState, LINK_NOTICE } from '../../lib/urlCodec';
   import { firstForbiddenMove, integerOut, labelOrder, type ToolState } from '../../lib/state';
-  import { engineCall } from '../../lib/worker';
+  import { engineCall, provide } from '../../lib/worker';
   import { announceTemplates, moveAnnouncement, speak, type NodeState } from '../../lib/a11y';
   import type { Prediction } from '../../tools/types';
   import { isLong, shortValue } from './t01/longNumber';
@@ -45,6 +45,10 @@
   import MarksComarks from './t15/MarksComarks.svelte';
   import StartEditor from './t15/StartEditor.svelte';
   import ConventionSwitch from './t15/ConventionSwitch.svelte';
+
+  // The engine function this tool calls by name through engineCall (playFate runs only in the worker;
+  // firstForbiddenMove is worker.ts's own).
+  provide({ applyWord });
 
   interface Props {
     id?: string;

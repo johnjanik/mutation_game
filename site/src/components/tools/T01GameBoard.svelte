@@ -36,7 +36,7 @@
   //   linkTo (ignored: T1 is the tool others follow), layers (ignored: T1 never grows a set),
   //   script, goal, prediction, hints, panels, roadStyle, rounds, settings, onChange.
   import { untrack } from 'svelte';
-  import { CAPS } from '@two-games/engine';
+  import { CAPS, play as enginePlay, raisingPlay } from '@two-games/engine';
   import type { AnyBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -48,7 +48,7 @@
   import { shortcutOf } from '../board/keyboard';
   import { decodeState, encodeState } from '../../lib/urlCodec';
   import { boardVerdictInLabels, defaultStart, firstForbiddenMove, isFiniteType, publishToolState, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
-  import { engineCall, whereToRun } from '../../lib/worker';
+  import { engineCall, provide, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
   import { POPULATIONS_ICON, NUMBERS_ICON } from '../draw/palette';
   import type { NodeState } from '../../lib/a11y';
@@ -99,6 +99,9 @@
     playOnCap,
     signedText,
   } from './t01/phase2';
+
+  // The engine functions this tool calls by name through engineCall (playFate runs only in the worker).
+  provide({ play: enginePlay, raisingPlay });
 
   interface Props {
     id?: string;

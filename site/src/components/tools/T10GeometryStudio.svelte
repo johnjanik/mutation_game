@@ -23,7 +23,7 @@
   // 'coxeter-plane'), caption, prediction, and T10's rings, projection (the j value of 6.6), graph
   // ('polytope' | 'moves'). linkTo, coords, start, moves and layers are accepted and ignored.
   import { untrack } from 'svelte';
-  import { CAPS, orbitGraph, toNumbers } from '@two-games/engine';
+  import { CAPS, orbitGraph, toNumbers, wythoffEdges } from '@two-games/engine';
   import type { OrbitGraph } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -32,7 +32,7 @@
   import { predictionAnswerText } from './t01/interop';
   import { isLong, shortValue } from './t01/longNumber';
   import { decodeState } from '../../lib/urlCodec';
-  import { engineCall, whereToRun } from '../../lib/worker';
+  import { engineCall, provide, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
   import { integerOut, type ToolState } from '../../lib/state';
   import type { Prediction } from '../../tools/types';
@@ -90,6 +90,9 @@
   import { buildPicture, drawPicture, projectionOf, rotateInPlane, type Picture, type PictureColours } from './t10/drawing';
   import { snapshotOf, ssrNames } from './t10/snapshot';
   import { boardNameHtml, polytopeNameHtml, type NameLookup } from './t10/names';
+
+  // The engine functions this tool calls by name through engineCall.
+  provide({ orbitGraph, wythoffEdges });
 
   interface Props {
     id?: string;

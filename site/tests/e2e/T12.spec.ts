@@ -1257,8 +1257,9 @@ test.describe('regressions', () => {
   /**
    * Counts in the page the computations of the engine's classify (classifyUncached, which the cache of E-11
    * calls once per board object): a DevTools breakpoint that counts and never pauses, on the statement of
-   * classifyUncached that checks the board, found in the engine's chunk (_astro/src.*.js) by the message it
-   * throws, set by URL so that it holds for every page of the context. Resolves once it is set.
+   * classifyUncached that checks the board, found in the engine chunk that holds it (P6-size: the engine is no
+   * longer one chunk _astro/src.*.js, so the chunk is the script of _astro/ whose source holds the message it
+   * throws), set by URL so that it holds for every page of the context. Resolves once it is set.
    */
   function countClassify(page: Page): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -1268,10 +1269,11 @@ test.describe('regressions', () => {
         .then(async (cdp) => {
           let found = false;
           cdp.on('Debugger.scriptParsed', (e) => {
-            if (found || !/\/_astro\/src\.[^/]+\.js$/.test(e.url)) return;
-            found = true;
+            if (found || !/\/_astro\/[^/]+\.js$/.test(e.url) || /\/engine\.worker/.test(e.url)) return;
             void (async () => {
               const { scriptSource } = await cdp.send('Debugger.getScriptSource', { scriptId: e.scriptId });
+              if (found || !scriptSource.includes('not a board: the diagonal must be 2')) return;
+              found = true;
               const at = scriptSource.indexOf('not a board: the diagonal must be 2');
               let stmt = -1;
               for (const m of scriptSource.slice(0, at).matchAll(/\bif\s*\(/g)) stmt = m.index;
