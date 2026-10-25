@@ -1051,6 +1051,8 @@ type MatrixModule = {
   valueText: (v: bigint | number | string) => string;
   listCaption: (caption: string, count: number, rows: number, cols: number) => string;
   matrixTable: (t: TableInput) => string;
+  matrixTableParts: (t: TableInput) => { head: string; rows: string[]; tail: string };
+  matrixInput: (p: Record<string, unknown>, captionId: string) => TableInput;
   tableColumns: (t: TableInput) => { widths: number[]; rows: number };
   matrixBoxSize: (t: TableInput) => { width: number; height: number };
 };
@@ -1180,6 +1182,34 @@ describe('MatrixView', () => {
     expect(tall.height - MV.matrixBoxSize({ ...list, listMax: 39 }).height).toBe(29);
     expect(small.width).toBeGreaterThan(0);
     expect(MV.tableColumns({ ...list, entries: [] })).toEqual({ widths: [6, 6, 8], rows: 1 });
+  });
+
+  // G5 repair (decisions/P5-A2.md): T12 builds a grid outside the page from matrixTableParts, a few rows a
+  // task, for its MatrixView to take over; the parts must make the very table the view writes.
+  it('matrixTableParts joined is matrixTable, one string per body row, and matrixInput gives the table the component renders', () => {
+    const headers = Array.from({ length: 27 }, (_, k) => `(${k})`);
+    const m = sparse({ '0,2': 1, '5,5': -2, '26,0': 3 });
+    const grid = MV.matrixInput({ caption: 'E1', rowHeaders: headers, colHeaders: headers, sparse: m, format: 'auto', sparseDisplay: true, indexHeaders: true, listMax: 300 }, 'c1');
+    expect(grid.shape).toBe('grid');
+    const parts = MV.matrixTableParts(grid);
+    expect(parts.rows).toHaveLength(27);
+    expect(parts.head.endsWith('<tbody>')).toBe(true);
+    expect(parts.tail).toBe('</tbody></table>');
+    expect(parts.rows.every((r, k) => r.startsWith(`<tr><th scope="row">${k + 1}: (${k})</th>`) && r.endsWith('</tr>'))).toBe(true);
+    expect(parts.head + parts.rows.join('') + parts.tail).toBe(MV.matrixTable(grid));
+    const more = Array.from({ length: 30 }, (_, k) => `(${k})`);
+    const list = MV.matrixInput({ caption: 'F7', rowHeaders: more, colHeaders: more, sparse: m, indexHeaders: true, listMax: 2 }, 'c2');
+    expect(list.shape).toBe('list');
+    const listParts = MV.matrixTableParts(list);
+    expect(listParts.rows).toHaveLength(2);
+    expect(listParts.head + listParts.rows.join('') + listParts.tail).toBe(MV.matrixTable(list));
+    const none = MV.matrixInput({ caption: 'L', rowHeaders: more, colHeaders: more, sparse: new Map() }, 'c3');
+    expect(MV.matrixTableParts(none).rows).toEqual(['<tr><td colspan="3">no nonzero entries</td></tr>']);
+    // The component's table is matrixTable of matrixInput of its props (with its own caption id).
+    const props = { caption: 'H1', rowHeaders: headers, colHeaders: headers, sparse: m, sparseDisplay: true, indexHeaders: true, listMax: 300, out: 'matrix-h' };
+    const html = loader.render(MV.default, props);
+    const id = /<caption id="([^"]+)"/.exec(html)![1]!;
+    expect(html).toContain(MV.matrixTable(MV.matrixInput(props, id)));
   });
 });
 

@@ -1292,6 +1292,39 @@ test.describe('regressions', () => {
   }
   const classified = (page: Page): Promise<number> => page.evaluate(() => (globalThis as { __classified?: number }).__classified ?? 0);
 
+  // G5 repair (decisions/P5-A2.md): after a pick each grid is built outside the page, its rows parsed a few
+  // tasks at a time, and taken over by its MatrixView. Every row must arrive once, in order, with the
+  // engine's entries: the seven grids of E6, node 1 (27 by 27), read cell by cell after the pick.
+  test('a pick of E6, node 1, draws its seven grids in parts, each the engine matrix row by row', async ({ page }) => {
+    test.setTimeout(120000);
+    const E6 = boardFromName('E6');
+    const [p1] = toPositions(E6, [1]) as [number];
+    const m = minusculeMatrices(E6, p1)!;
+    const signed = signedMoves(m.basis, m.E, m.F);
+    const rec = chevalleySerre(E6, m.E, m.F, m.H).find((c) => c.relation === 'ef' && c.i === p1 && c.j === p1)!;
+    const size = goldenDim('E6', 1);
+    await open(page);
+    await control(page, 'picker').selectOption('E6');
+    await expect(out(page, 'state-board')).toHaveText('E6');
+    await expect(out(page, 'all-relations')).toHaveText(/relations hold\./, { timeout: 30000 });
+    await settled(page);
+    const expected: [string, SparseMatrix][] = [
+      ['matrix-e', m.E[p1]!],
+      ['matrix-f', m.F[p1]!],
+      ['matrix-h', m.H[p1]!],
+      ['move-matrix', m.moves[p1]!],
+      ['signed-move', signed[p1]!],
+      ['relation-left', rec.left],
+      ['relation-right', rec.right],
+    ];
+    for (const [name, matrix] of expected) {
+      await expect(out(page, name)).toHaveAttribute('data-format', 'grid');
+      const rows = await out(page, name).locator('tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll('td[data-row]')].map((td) => td.getAttribute('data-row')).join(',')));
+      expect(rows, `${name}: ${size} rows, row r holding ${size} cells of row r`).toEqual(Array.from({ length: size }, (_, r) => Array.from({ length: size }, () => String(r + 1)).join(',')));
+      expect(await cellsOf(out(page, name)), `${name} is the engine's matrix`).toEqual(engineCells(matrix).filter((c) => !c.endsWith('=0')));
+    }
+  });
+
   // Adopted from redteam/redteam-RT-07-classify-count-p5.mjs (RT-07, phase 5 round, attack 24). SPEC 5.6, last
   // sentence: "A tool decides whether a board is of finite type by calling classify once when the board is
   // loaded"; E-11 caches the verdict per board object. A pick spreads its work over tasks (SPEC 7.6), and T12
@@ -1314,5 +1347,118 @@ test.describe('regressions', () => {
         expect((await classified(page)) - before, `classify computed on the pick of ${g} (/${ROUTE}${query ? `?${query}` : ''})`).toBe(1);
       }
     }
+  });
+
+  /** What the page does while a pick builds: choose a node of the node picker, follow a link (popstate), or set a typed start. */
+  type WhileBuilding = { node: number } | { link: string } | { start: string[] };
+  /**
+   * Picks `board` from the board picker and, while that pick builds, does `act` in the page: in the same task
+   * as the pick ('first': the previous state's panels are still shown and the node picker lists its labels), or
+   * ('window') as soon as the node picker lists the picked board's labels while data-out="state-board" still
+   * names the board shown (the step before the state loads, one frame long). Done in the page, so that the
+   * moment is exact whatever the speed of the machine.
+   */
+  async function pickWhileBuilding(page: Page, board: string, when: 'first' | 'window', act: WhileBuilding): Promise<void> {
+    await page.evaluate(
+      ({ board, when, count, act }) => {
+        const t = document.querySelector('[data-tool="rep"]')!;
+        const select = (name: string): HTMLSelectElement => t.querySelector<HTMLSelectElement>(`[data-control="${name}"]`)!;
+        const shown = t.querySelector('[data-out="state-board"]')!.textContent;
+        const g = globalThis as { __acted?: string };
+        g.__acted = '';
+        const run = (): void => {
+          g.__acted = `${when}: board shown ${t.querySelector('[data-out="state-board"]')!.textContent}, node picker ${select('node').options.length} labels`;
+          if ('node' in act) {
+            const s = select('node');
+            s.value = String(act.node);
+            s.dispatchEvent(new Event('change', { bubbles: true }));
+          } else if ('link' in act) {
+            history.pushState(null, '', act.link);
+            dispatchEvent(new PopStateEvent('popstate', { state: null }));
+          } else {
+            const fields = [...t.querySelectorAll<HTMLInputElement>('[data-control="start-entry"]')];
+            fields.forEach((f, k) => {
+              f.value = act.start[k]!;
+              f.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            fields[0]!.form!.requestSubmit();
+          }
+        };
+        if (when === 'window') {
+          const s = select('node');
+          const watch = new MutationObserver(() => {
+            if (s.options.length === count && t.querySelector('[data-out="state-board"]')!.textContent === shown) {
+              watch.disconnect();
+              run();
+            }
+          });
+          watch.observe(s, { childList: true, subtree: true });
+        }
+        const picker = select('picker');
+        picker.value = board;
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+        if (when === 'first') run();
+      },
+      { board, when, count: boardFromName(board).n, act },
+    );
+    await expect.poll(() => page.evaluate(() => (globalThis as { __acted?: string }).__acted ?? ''), { message: `the page acted (${when})` }).not.toBe('');
+  }
+  /** The labels of a named board in increasing order, as the node picker lists them. */
+  const labelsOf = (board: string): string[] => [...B(board).labels].sort((a, b) => a - b).map(String);
+  /**
+   * The tool settles on `board`, node `label`: the facts, the two pickers (values and the node picker's labels)
+   * agree, and no line of a pick in progress is left.
+   */
+  async function shownAndPicked(page: Page, board: string, label: number): Promise<void> {
+    await expect(out(page, 'state-board')).toHaveText(board, { timeout: 30000 });
+    await expect(out(page, 'state-node')).toHaveText(String(label));
+    await settled(page);
+    await expect(control(page, 'picker')).toHaveValue(board);
+    await expect(control(page, 'node')).toHaveValue(String(label));
+    expect(await control(page, 'node').locator('option').evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value))).toEqual(labelsOf(board));
+    await expect(root(page).getByText(/^Building /)).toHaveCount(0);
+  }
+
+  // G5 rerun repair (decisions/P5-A2.md; the review of the first G5 repair, results 2e): the node picker lists
+  // the picked board's labels one step before the state loads. A node chosen in that frame was built on the
+  // board shown: node 3 of A2, which threw 'label 3 is not on this board' and left the tool on 'Building A2,
+  // node 3.' with its panels waiting. A node chosen while the node picker still lists the board shown is built
+  // on that board, and the board picker, which showed the board picked, must come back to it.
+  // regression: P5-A2-G5-repair review 2e
+  test('a node chosen while a pick builds is built on the board whose labels the node picker lists, and the pickers show it', async ({ page }) => {
+    test.setTimeout(120000);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await open(page);
+    await pickWhileBuilding(page, 'E6', 'window', { node: 3 });
+    await shownAndPicked(page, 'E6', 3);
+    await expect(live(page)).toHaveText(/^E6, node 3: /);
+    await open(page);
+    await pickWhileBuilding(page, 'E6', 'first', { node: 2 });
+    await shownAndPicked(page, 'A2', 2);
+    await expect(live(page)).toHaveText(/^A2, node 2: /);
+    expect(errors).toEqual([]);
+  });
+
+  // G5 rerun repair (the review of the first G5 repair, sideEffects; seen on 00e6a4c too): a state loaded while a
+  // pick builds (a link by popstate, a typed start) ends the pick, but the line 'Building E6.' stayed on screen
+  // and the board picker kept E6 when the state loaded was on the board shown.
+  // regression: P5-A2-G5-repair review, the building line after a link
+  test('a link or a typed start that loads a state while a pick builds ends the pick: its line goes and the pickers show the state', async ({ page }) => {
+    test.setTimeout(120000);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    for (const when of ['window', 'first'] as const) {
+      await open(page);
+      await pickWhileBuilding(page, 'E6', when, { link: '?g=D4&k=2' });
+      await shownAndPicked(page, 'D4', 2);
+      expect(await page.evaluate(() => location.search), when).toBe('?g=D4&k=2');
+    }
+    await open(page);
+    await pickWhileBuilding(page, 'E6', 'first', { start: ['2', '0'] });
+    await shownAndPicked(page, 'A2', 1);
+    expect(await valuesOf(page)).toEqual(['2', '0']);
+    await expect(live(page)).toHaveText('Start set. Numbers now 2, 0.');
+    expect(errors).toEqual([]);
   });
 });

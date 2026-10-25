@@ -435,6 +435,9 @@ export function dimensionOf(rep: Representation): number {
   return rep.basis?.length ?? rep.orbitSize;
 }
 
+/** The dimension of each representation once computed (a pick computes it before the task that shows it, G5 repair). */
+const dimensions = new WeakMap<Representation, bigint>();
+
 /**
  * The dimension of the representation whose highest weight is the fundamental position of the node
  * (weylDimension, F9; data-out="dimension"): the size of the orbit on a minuscule node (F11), more on any
@@ -443,7 +446,12 @@ export function dimensionOf(rep: Representation): number {
  */
 export function representationDimension(rep: Representation, route: Route = noRoute): bigint {
   route('play', playHint(rep.board));
-  return weylDimension(rep.board, omega(rep.board, rep.position));
+  let d = dimensions.get(rep);
+  if (d === undefined) {
+    d = weylDimension(rep.board, omega(rep.board, rep.position));
+    dimensions.set(rep, d);
+  }
+  return d;
 }
 
 const minusculeByName = new Map<string, number[]>();
