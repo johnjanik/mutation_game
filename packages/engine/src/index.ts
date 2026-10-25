@@ -98,3 +98,7 @@ export type { FaceType } from './wythoff';
 // phase 5 (P5-A1): rep.ts
 export { spKey, spMul, spAdd, spComm, spScale, spEq, minusculeMatrices, signedMoves, chevalleySerre, stringThrough } from './rep';
 export type { SparseMatrix, RelationCheck } from './rep';
+
+// phase 6 (P6-A1): satake.ts
+export { theta, shadow2, admissibility, satake, restrictedBoard } from './satake';
+export type { SatakeDiagram, SatakeComputed, RestrictedBoard } from './satake';
