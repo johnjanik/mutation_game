@@ -34,17 +34,37 @@ test.describe('RT-10: rendered data-out names are in the registry outs', () => {
 // (read from the sources), and on lesson instances with a prediction (T10 on M7, T11 on M6) every data-out
 // name rendered inside the instance, before and after "Show me", is in the outs of its tool.
 const PREDICT_OUTS = ['predictResult', 'predictReveal'];
-const COMPONENTS = new URL('../../src/components/tools/', import.meta.url);
+const SITE = new URL('../../', import.meta.url);
+const COMPONENTS = new URL('src/components/', SITE);
+
+// P6-A4 (repair after review, pre-approved by MERGE): the specifier of an entry's component is resolved here,
+// not matched against one directory. An alias of the paths of site/tsconfig.json (the one declaration the build,
+// the type check and the unit tests read) is replaced by its target; any other specifier is relative to the
+// registry file. The component may live in any directory under src/components/ (T14's is in atlas/).
+const ALIASES: [string, URL][] = Object.entries(
+  (JSON.parse(readFileSync(fileURLToPath(new URL('tsconfig.json', SITE)), 'utf8')) as { compilerOptions: { paths: Record<string, string[]> } }).compilerOptions.paths,
+)
+  .filter(([alias]) => alias.endsWith('/*'))
+  .map(([alias, [target]]) => [alias.slice(0, -1), new URL(target!.slice(0, -1), SITE)]);
+
+/** The file a component specifier names, seen from the registry file `from`. */
+function componentFile(specifier: string, from: URL): URL {
+  for (const [prefix, dir] of ALIASES) if (specifier.startsWith(prefix)) return new URL(specifier.slice(prefix.length), dir);
+  return new URL(specifier, from);
+}
 
 test.describe('RT-10: a tool that renders a prediction lists its data-out names', () => {
   for (const [path, mod] of Object.entries(registry)) {
     const { id, outs } = mod.default;
     // regression: residual of P3-RT-10-06 (T10_OUTS lacked predictResult and predictReveal)
     test(`${path.split('/').pop()} (${id}): Predict.svelte's names, if it renders Predict`, () => {
-      const entry = readFileSync(fileURLToPath(new URL(path.replace('../../src/tools/registry/', ''), REGISTRY)), 'utf8');
-      const file = /import\('(?:\.\.\/\.\.\/components|@components)\/tools\/([^']+\.svelte)'\)/.exec(entry)?.[1];
-      expect(file, `${path}: the component it loads`).toBeTruthy();
-      const source = readFileSync(fileURLToPath(new URL(file!, COMPONENTS)), 'utf8');
+      const entryFile = new URL(path.replace('../../src/tools/registry/', ''), REGISTRY);
+      const entry = readFileSync(fileURLToPath(entryFile), 'utf8');
+      const specifier = /component:\s*\(\)\s*=>\s*import\('([^']+\.svelte)'\)/.exec(entry)?.[1];
+      expect(specifier, `${path}: the component it loads`).toBeTruthy();
+      const file = componentFile(specifier!, entryFile);
+      expect(file.href.startsWith(COMPONENTS.href), `${path}: ${specifier} is a file under src/components/`).toBe(true);
+      const source = readFileSync(fileURLToPath(file), 'utf8');
       // A static or a dynamic import of the component (T10 fetches it only where a prediction is given); an
       // import of its type alone renders nothing.
       const renders = /(?:^|\n)\s*import\s+(?!type\b)\w+\s+from\s+'\.\.\/board\/Predict\.svelte'|import\('\.\.\/board\/Predict\.svelte'\)/.test(source);

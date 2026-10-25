@@ -6,10 +6,8 @@
 // collectRegistry requires, with a caption and no state field (CONTRACTS 6). This module is loaded on the
 // pages at build time and imports only the list of boards (no engine function).
 //
-// The component path runs through components/tools/ (`tools/../atlas/`): it names the same file as
-// @components/atlas/AtlasPicker.svelte, written so that site/tests/e2e/registry-outs.spec.ts, which reads
-// the component of every registry entry from an import under components/tools/, finds it (plan; a request
-// to MERGE to let that pattern accept components/atlas/ is in decisions/P6-A4.md).
+// The component is imported by the @components alias, as ToolIsland imports it; registry-outs.spec.ts
+// resolves that specifier itself and accepts any directory under components/ (repair after review).
 import type { ToolRegistryEntry } from '../types';
 import { ATLAS_BOARDS } from '../../components/atlas/boards';
 
@@ -62,5 +60,5 @@ export default {
     },
   },
   outs: [...T14_OUTS],
-  component: () => import('../../components/tools/../atlas/AtlasPicker.svelte'),
+  component: () => import('@components/atlas/AtlasPicker.svelte'),
 } satisfies ToolRegistryEntry;
