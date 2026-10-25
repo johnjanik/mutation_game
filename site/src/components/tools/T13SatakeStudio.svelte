@@ -30,12 +30,13 @@
   import RestrictedBoardView from './t13/RestrictedBoardView.svelte';
   import ShadowPicture from './t13/ShadowPicture.svelte';
   import RichText from './t13/RichText.svelte';
-  import { T13_BOARDS, T13_EXAMPLES, T13_PANELS, T13_PRESETS, type T13Panel, type T13PresetId } from './t13/config';
+  import { T13_BOARDS, T13_EXAMPLES, T13_PANELS, T13_PRESETS, T13_PRESET_IDS, type T13Panel, type T13PresetId } from './t13/config';
   import {
     MINUS,
     T13_CONDITIONS,
     announceComposite,
     announcePaint,
+    announceRestart,
     announceStage,
     announceTau,
     arrowsOf,
@@ -48,8 +49,10 @@
     coordinatesInBourbaki,
     defaultRoot,
     diagramOf,
+    displayName,
     exportData,
     failureNote,
+    failureSentence,
     fromLabelOrder,
     halfText,
     inLabelOrder,
@@ -60,6 +63,7 @@
     listText,
     multiplicitiesText,
     orbitText,
+    pairKey,
     pairsText,
     restrictedClick,
     restrictedNodeName,
@@ -75,7 +79,7 @@
     wordOfWX,
     type Assembled,
   } from './t13/model';
-  import { computeNow, dataOnMainThread, fetchData, type PairData } from './t13/load';
+  import { computeNow, dataOnMainThread, fetchData, islandScript, pairJson, readIsland, type PairData } from './t13/load';
   import { admitLink, satakeStateOf, splitState, toolStateOf, type SatakeState } from './t13/link';
   import { loadNames, realFormAltHtml, realFormHtml } from './t13/names';
 
@@ -103,7 +107,12 @@
 
   const instanceId = untrack(() => id);
   const where = instanceId || '(tool route)';
-  const presetId: T13PresetId = untrack(() => (preset !== undefined && preset in T13_PRESETS ? (preset as T13PresetId) : 'default'));
+  /** An unknown preset id fails the build with the list of presets (as T8 does). */
+  const presetId: T13PresetId = untrack(() => {
+    if (preset === undefined) return 'default';
+    if (!(T13_PRESET_IDS as readonly string[]).includes(preset)) throw new Error(`T13 instance ${where}: unknown preset ${preset} (presets: ${T13_PRESET_IDS.join(', ')})`);
+    return preset as T13PresetId;
+  });
   const presetFields = T13_PRESETS[presetId];
 
   /** The configured state; authoring errors fail the build with a message naming the instance (plan). */
@@ -131,8 +140,18 @@
     return p;
   });
   const initialAdm = admissibility(initialD);
-  /** The server render and a main-thread board compute the data at once; on E7 and E8 the browser asks the worker (E-9). */
-  const initialPair = import.meta.env.SSR || dataOnMainThread(initialD.board) ? computeNow(initialD, initialAdm) : null;
+  const configuredKey = pairKey(authorState);
+  const configuredOnMain = dataOnMainThread(initialD.board);
+  /**
+   * The server render and a main-thread board compute the data at once. On E7 and E8 (E-9) the server writes the
+   * configured pair's data into the island and hydration reads them back (t13/load.ts), so that no default state
+   * needs the worker; the worker is asked only after a change, or when the data are not in the page.
+   */
+  const fromIsland = import.meta.env.SSR || configuredOnMain ? null : readIsland(instanceId, configuredKey);
+  const initialPair: PairData | null = import.meta.env.SSR || configuredOnMain ? computeNow(initialD, initialAdm) : (fromIsland?.data ?? null);
+  /** The element that carries those data in the island, rendered by the server and adopted at hydration (E7, E8 only). */
+  const islandHtml: string | null =
+    configuredOnMain || initialPair === null ? null : islandScript(instanceId, configuredKey, fromIsland?.json ?? pairJson(initialPair));
 
   // ------------------------------------------------------------------------------------------
   // State
@@ -149,13 +168,15 @@
     cursor: number;
   }
 
-  const keyOf = (s: SatakeState): string => `${s.board}|${[...s.black].sort((a, b) => a - b).join('.')}|${s.tau.join('.')}`;
+  const keyOf = pairKey;
 
   let cfg = $state.raw<SatakeState>(authorState);
   let panel = $state<T13Panel>(untrack(() => presetFields.panel));
   let toggle = $state(untrack(() => presetFields.toggle));
   let notice = $state<string | null>(null);
-  let pair = $state.raw<{ key: string; data: PairData } | null>(initialPair === null ? null : { key: keyOf(authorState), data: initialPair });
+  let pair = $state.raw<{ key: string; data: PairData } | null>(initialPair === null ? null : { key: configuredKey, data: initialPair });
+  /** The pair whose data could not be computed, with the reason (a worker that failed); the next change asks again. */
+  let failure = $state.raw<{ key: string; message: string } | null>(null);
   let play = $state.raw<Play>({ start: initialRoot, steps: [], cursor: 0 });
   let anim = $state.raw<{ frames: number[][]; index: number } | null>(null);
   let namesVersion = $state(0);
@@ -172,7 +193,8 @@
   const lv = $derived(lights(adm, board));
   const pairData = $derived(pair !== null && pair.key === keyOf(cfg) ? pair.data : null);
   const data: Assembled | null = $derived(pairData === null ? null : assembleData(pairData.sat, pairData.rb, pairData.records, d));
-  const pending = $derived(adm.admissible && data === null);
+  const failedText = $derived(adm.admissible && data === null && failure !== null && failure.key === keyOf(cfg) ? failureSentence(failure.message) : null);
+  const pending = $derived(adm.admissible && data === null && failedText === null);
   const frozen = $derived(!predictionResolved);
   const labels = $derived(labelOrder(board));
   const positions = $derived([play.start, ...play.steps.map((s) => s.population)]);
@@ -226,11 +248,11 @@
   const initialCaption = captionText({ d: initialD, panel: presetFields.panel, toggle: presetFields.toggle, adm: initialAdm, data: initialPair === null ? null : assembleData(initialPair.sat, initialPair.rb, initialPair.records, initialD), root: initialRoot });
   /** An author's own caption stays; the preset's (the tool route passes the registry's) follows the state. */
   const fixedCaption = untrack(() => (caption !== undefined && caption !== initialCaption ? caption : null));
-  const captionNow = $derived(fixedCaption ?? captionText({ d, panel, toggle, adm, data, root: play.start }));
+  const captionNow = $derived(fixedCaption ?? captionText({ d, panel, toggle, adm, data, root: play.start, failed: failedText !== null }));
 
   const toolState = $derived(toolStateOf(cfg));
   const figureLabel = $derived(
-    `Satake Studio on ${cfg.board} with ${blackPhrase(board, d.black)} and τ ${tauPhrase(board, d.tau)}: ${lv.verdict}${data !== null ? `, ${listText(data.entries.map((e) => e.real_form))}` : ''}.`,
+    `Satake Studio on ${cfg.board} with ${blackPhrase(board, d.black)} and τ ${tauPhrase(board, d.tau)}: ${lv.verdict}${data !== null ? `, ${listText(data.entries.map((e) => displayName(e.real_form)))}` : ''}.`,
   );
 
   const nameHtml = (n: string): string => {
@@ -246,16 +268,26 @@
   // Loading a state (a link, the back button, a picker, an example, a catalogue entry)
   // ------------------------------------------------------------------------------------------
 
-  /** Asks for the data of the current pair where E-9 says, unless they are there; a later request wins. */
+  /**
+   * Asks for the data of the current pair where E-9 says, unless they are there; a later request wins. A request
+   * that fails (a worker that could not start or that failed) ends the wait with a sentence saying so, and the
+   * next change asks again (instruction 5.12: never a frozen page).
+   */
   function refresh(): void {
     const k = keyOf(cfg);
     if (!adm.admissible || pair?.key === k || inFlight === k) return;
     const g = ++generation;
     inFlight = k;
+    failure = null;
     void fetchData(d, adm)
-      .then((r) => {
-        if (g === generation && r !== null) pair = { key: k, data: r };
-      })
+      .then(
+        (r) => {
+          if (g === generation && r !== null) pair = { key: k, data: r };
+        },
+        (e: unknown) => {
+          if (g === generation) failure = { key: k, message: e instanceof Error ? e.message : String(e) };
+        },
+      )
       .finally(() => {
         if (g === generation) inFlight = null;
       });
@@ -340,8 +372,9 @@
     const r = roots.find((x) => x.join(',') === key);
     if (r === undefined) return;
     stopAnimation();
+    const before = current;
     play = { start: [...r], steps: [], cursor: 0 };
-    announce(`Root chosen. Populations now ${speakList(inLabelOrder(board, r))}.`);
+    announce(announceRestart(board, 'Root chosen.', before, r));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -386,15 +419,17 @@
   function nextStage(announce: (t: string) => void): void {
     if (frozen || !thetaOffered) return;
     const s = (stage === 3 ? 1 : stage + 1) as 1 | 2 | 3;
-    const st = stageFrom(current, s);
+    const before = current;
+    const st = stageFrom(before, s);
     pushSteps([st]);
-    announce(announceStage(s, inLabelOrder(board, st.population)));
+    announce(announceStage(board, s, before, st.population, play.cursor));
   }
 
   function playTheta(announce: (t: string) => void): void {
     if (frozen || !thetaOffered) return;
     const from = stage === 3 ? 0 : stage;
     const steps: Step[] = [];
+    const before = current;
     let p = current;
     for (let s = from + 1; s <= 3; s++) {
       const st = stageFrom(p, s as 1 | 2 | 3);
@@ -402,21 +437,24 @@
       p = st.population;
     }
     pushSteps(steps);
-    announce(announceStage(3, inLabelOrder(board, p)));
+    announce(announceStage(board, 3, before, p, play.cursor));
   }
 
   function compositeMove(label: number, announce: (t: string) => void): void {
     if (frozen || data === null || data.drawing === null) return;
-    const mv = restrictedClick(d, data, label, current);
-    const population = mv.populations.length > 0 ? mv.populations[mv.populations.length - 1]! : [...current];
+    const before = current;
+    const mv = restrictedClick(d, data, label, before);
+    const population = mv.populations.length > 0 ? mv.populations[mv.populations.length - 1]! : [...before];
     pushSteps([{ kind: 'composite', label, word: mv.word, reducedLength: mv.reducedLength, population, frames: mv.populations }]);
-    announce(announceComposite(label, mv.word.length, coordinatesInBourbaki(d, data, shadow2(d, population))));
+    announce(announceComposite(board, label, mv.word.length, coordinatesInBourbaki(d, data, shadow2(d, population)), before, population, play.cursor));
   }
 
+  /** The announcement of step k (a redo or a scrub forward), against the position before it. */
   function stepAnnouncement(k: number): string {
     const st = play.steps[k - 1]!;
-    if (st.kind === 'stage') return announceStage(st.stage, inLabelOrder(board, st.population));
-    return announceComposite(st.label, st.word.length, data === null ? null : coordinatesInBourbaki(d, data, shadow2(d, st.population)));
+    const before = positions[k - 1]!;
+    if (st.kind === 'stage') return announceStage(board, st.stage, before, st.population, k);
+    return announceComposite(board, st.label, st.word.length, data === null ? null : coordinatesInBourbaki(d, data, shadow2(d, st.population)), before, st.population, k);
   }
 
   function scrub(to: number, announce: (t: string) => void): void {
@@ -435,8 +473,9 @@
   function reset(announce: (t: string) => void): void {
     if (frozen) return;
     stopAnimation();
+    const before = current;
     play = { start: play.start, steps: [], cursor: 0 };
-    announce(`Reset. Populations now ${speakList(inLabelOrder(board, play.start))}.`);
+    announce(announceRestart(board, 'Reset.', before, play.start));
   }
 
   function onKeydown(event: KeyboardEvent, announce: (t: string) => void): void {
@@ -508,6 +547,7 @@
 {#snippet figure(api: FrameApi)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="t13" data-panel-open={panel} onkeydown={(e) => onKeydown(e, api.announce)}>
+    {#if islandHtml !== null}{@html islandHtml}{/if}
     {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} {labels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
@@ -599,17 +639,6 @@
         </p>
       {/if}
     </div>
-    <History
-      total={play.steps.length}
-      cursor={play.cursor}
-      {positionNames}
-      hydrated={api.hydrated}
-      {frozen}
-      onUndo={() => undo(api.announce)}
-      onRedo={() => redo(api.announce)}
-      onReset={() => reset(api.announce)}
-      onScrub={(to) => scrub(to, api.announce)}
-    />
     <section class="lights" aria-label="The three conditions">
       {#if !lv.symmetry.holds && lv.symmetry.reason}
         <p class="line" data-out="symmetry-reason"><RichText text={lv.symmetry.reason} /></p>
@@ -701,6 +730,8 @@
           {/if}
         {:else if pending}
           <p class="line" data-out="data-pending">computing the data in the background</p>
+        {:else if failedText !== null}
+          <p class="line" data-out="data-error">{failedText}</p>
         {:else}
           <p class="line">No data: the decoration is not admissible.</p>
         {/if}
@@ -731,7 +762,11 @@
         {/if}
       {:else if panel === 'shadows'}
         {#if data === null}
-          <p class="line">{pending ? 'computing the data in the background' : 'No shadows: the decoration is not admissible.'}</p>
+          {#if failedText !== null}
+            <p class="line" data-out="data-error">{failedText}</p>
+          {:else}
+            <p class="line">{pending ? 'computing the data in the background' : 'No shadows: the decoration is not admissible.'}</p>
+          {/if}
         {:else if data.sat.real_rank === 0 || rows === null}
           <p class="line" data-out="no-restricted-roots">Every root is fixed by θ: there are no restricted roots.</p>
         {:else}
@@ -761,7 +796,11 @@
         {/if}
       {:else if panel === 'restricted'}
         {#if data === null}
-          <p class="line">{pending ? 'computing the data in the background' : 'No restricted board: the decoration is not admissible.'}</p>
+          {#if failedText !== null}
+            <p class="line" data-out="data-error">{failedText}</p>
+          {:else}
+            <p class="line">{pending ? 'computing the data in the background' : 'No restricted board: the decoration is not admissible.'}</p>
+          {/if}
         {:else if data.drawing === null || drawn === null}
           <p class="line" data-out="no-restricted-roots">The compact form has no restricted roots and no restricted board.</p>
         {:else}
@@ -801,8 +840,9 @@
             {#each catalogue as row (row.realForm)}
               <tr data-out="catalogue-row" data-name={row.realForm} aria-current={pairData !== null && pairData.records.some((r) => r.real_form === row.realForm) ? 'true' : undefined}>
                 <th scope="row">
-                  <span class="name">{@html nameHtml(row.realForm)}</span>
-                  {#if row.sameAs.length > 0}<span class="same" data-out="same-form">same real form as {listText(row.sameAs)}</span>{/if}
+                  <!-- text for the row header (axe empty-table-header); the name itself stays MathML for assistive technology (A-12) -->
+                  <span class="visually-hidden">{'Real form, '}</span><span class="name">{@html nameHtml(row.realForm)}</span>
+                  {#if row.sameAs.length > 0}<span class="same" data-out="same-form">same real form as {listText(row.sameAs.map(displayName))}</span>{/if}
                 </th>
                 <td>{row.cartanLabel}</td>
                 <td class="numeral">{row.black.length === 0 ? 'none' : row.black.join(', ')}</td>
@@ -815,8 +855,8 @@
                     data-control="catalogue-load"
                     data-name={row.realForm}
                     disabled={!api.hydrated || frozen}
-                    aria-label="Load {row.realForm}"
-                    onclick={() => loadState({ board: cfg.board, black: [...row.black], tau: [...row.tau] }, row.realForm, api.announce)}>Load</button
+                    aria-label="Load {displayName(row.realForm)}"
+                    onclick={() => loadState({ board: cfg.board, black: [...row.black], tau: [...row.tau] }, displayName(row.realForm), api.announce)}>Load</button
                   >
                 </td>
               </tr>
@@ -825,6 +865,19 @@
         </table>
       {/if}
     </div>
+    <!-- Undo, redo and reset come after every board that plays moves, the game board above and the theta
+         controls and the restricted board in the panel (A-1; decisions/P6-A3.md, the repair). -->
+    <History
+      total={play.steps.length}
+      cursor={play.cursor}
+      {positionNames}
+      hydrated={api.hydrated}
+      {frozen}
+      onUndo={() => undo(api.announce)}
+      onRedo={() => redo(api.announce)}
+      onReset={() => reset(api.announce)}
+      onScrub={(to) => scrub(to, api.announce)}
+    />
   </div>
 {/snippet}
 
@@ -907,6 +960,7 @@
   title="Satake Studio"
   caption={captionNow}
   state={toolState}
+  moves={play.cursor}
   {defaults}
   {notice}
   {figureLabel}
@@ -1146,6 +1200,18 @@
   }
   .picture {
     min-width: 0;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
   .tab:focus-visible,
   .control:focus-visible,

@@ -80,8 +80,81 @@ function nextTask(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/** The three engine functions computeNow calls (spied on in the unit test). */
+export interface DataFns {
+  satake: typeof satake;
+  restrictedBoard: typeof restrictedBoard;
+  matchCatalogue: typeof matchCatalogue;
+}
+
+const ENGINE: DataFns = { satake, restrictedBoard, matchCatalogue };
+
 /** The same data at once (the server render, and the first render on a main-thread board); null when not admissible. */
-export function computeNow(d: SatakeDiagram, adm: Admissibility): PairData | null {
+export function computeNow(d: SatakeDiagram, adm: Admissibility, fns: DataFns = ENGINE): PairData | null {
   if (!adm.admissible) return null;
-  return { sat: satake(d), rb: noWhiteNode(d) ? EMPTY_RESTRICTED : restrictedBoard(d), records: matchCatalogue(d) };
+  return { sat: fns.satake(d), rb: noWhiteNode(d) ? EMPTY_RESTRICTED : fns.restrictedBoard(d), records: fns.matchCatalogue(d) };
+}
+
+// ---------------------------------------------------------------------------------------------
+// The data of an instance configured on E7 or E8, written into the island (E-9, 7.6)
+// ---------------------------------------------------------------------------------------------
+//
+// No default state may need the worker (E-9). On E7 and E8 the server render therefore writes the data of
+// the configured pair into the island as JSON (<script type="application/json" data-t13-pair="...">), and
+// hydration reads them back when the instance and the pair match, so the worker is asked only after the
+// reader's first change. The attribute holds the instance id and the pair, so two instances on one page
+// never read each other's data (instance ids are unique on a page, 6.6).
+
+/** The value of data-t13-pair: the instance id and the pair's key. */
+export function islandKey(instanceId: string, pairKey: string): string {
+  return `${instanceId}|${pairKey}`;
+}
+
+/** The data as JSON safe inside a <script> element (no <, >, & or line separators left as such). */
+export function pairJson(p: PairData): string {
+  const rb: RestrictedLike = { orbits: p.rb.orbits, simpleRestrictedRoots2: p.rb.simpleRestrictedRoots2, cartan: p.rb.cartan, compositeWords: p.rb.compositeWords };
+  return JSON.stringify({ sat: p.sat, rb, records: p.records })
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+/** The data read back from pairJson's text; null when the text is not such data. */
+export function pairFromJson(text: string): PairData | null {
+  try {
+    const v = JSON.parse(text) as Partial<PairData> | null;
+    if (v === null || typeof v !== 'object' || typeof v.sat?.rank !== 'number' || !Array.isArray(v.rb?.orbits) || !Array.isArray(v.rb?.compositeWords) || !Array.isArray(v.records)) return null;
+    return v as PairData;
+  } catch {
+    return null;
+  }
+}
+
+/** The element the server render writes into the island (markup, through {@html}). */
+export function islandScript(instanceId: string, pairKey: string, json: string): string {
+  const key = islandKey(instanceId, pairKey).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  return `<script type="application/json" data-t13-pair="${key}">${json}</script>`;
+}
+
+/** What hydration read, kept so that a second run of the component (Svelte's recovery from a mismatch) finds it too. */
+const fromIslands = new Map<string, { json: string; data: PairData }>();
+
+/** The data the server wrote into the page for this instance and pair, or null (no document, no element, not data). */
+export function readIsland(instanceId: string, pairKey: string): { json: string; data: PairData } | null {
+  const key = islandKey(instanceId, pairKey);
+  const kept = fromIslands.get(key);
+  if (kept !== undefined) return kept;
+  if (typeof document === 'undefined') return null;
+  for (const el of document.querySelectorAll('script[type="application/json"][data-t13-pair]')) {
+    if (el.getAttribute('data-t13-pair') !== key) continue;
+    const json = el.textContent ?? '';
+    const data = pairFromJson(json);
+    if (data === null) return null;
+    const found = { json, data };
+    fromIslands.set(key, found);
+    return found;
+  }
+  return null;
 }
