@@ -1,0 +1,249 @@
+{
+ "agent": "rtfix-p5-t12-content",
+ "status": "done",
+ "branch": "worktree-agent-a1374439c709a759a",
+ "base": "fcb02a570b683ab4c7315f62e06dd3e3406005f8",
+ "commits": [
+  "803af94 RT-FIX P5-RT-08-05: scope the no-minuscule sentence to the tool's recipe",
+  "e12acac RT-FIX P5-RT-09-01: the signed-move panel states the identities only where they hold",
+  "e69b582 RT-FIX P5-RT-09-02 P5-RT-13-03: Dimension is the representation's dimension; the orbit's positions are labelled",
+  "10bb39f RT-FIX P5-RT-08-01 P5-RT-13-02: T12 writes the fundamental position e_i, not omega_i",
+  "d0f1219 RT-FIX P5-RT-03-01: the string viewer shortens its long counts (SPEC 4.0 Long numbers)",
+  "c7eab40 RT-FIX P5-RT-09-01: the signed-move panel's sentences come from one function",
+  "d766d7a RT-FIX P5-RT-10-03: the default start is all ones (SPEC 6.6)",
+  "e56fe6a RT-FIX P5-RT-08-05 P5-RT-09-01 P5-RT-09-02 P5-RT-13-03 P5-RT-08-01 P5-RT-13-02 P5-RT-03-01 P5-RT-10-03: decisions fragment",
+  "5c14878 RT-FIX P5-RT-03-01 P5-RT-09-02: rep.ts's header names its new imports",
+  "849e2e5 RT-FIX P5-RT-10-03: the strip's steps are read inside the history strip",
+  "e3619b6 RT-FIX P5-RT-13-03: decisions fragment, wording of the adoption entry"
+ ],
+ "filesChanged": [
+  "decisions/RT-FIX-P5-t12-content.md",
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/src/components/tools/t12/OrbitLayers.svelte",
+  "site/src/components/tools/t12/config.ts",
+  "site/src/components/tools/t12/model.ts",
+  "site/src/components/tools/t12/rep.ts",
+  "site/tests/e2e/M8.spec.ts",
+  "site/tests/e2e/T12.spec.ts",
+  "site/tests/unit/tools/T12.test.ts"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version; git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "v22.22.0; worktree agent-a1374439c709a759a; branch worktree-agent-a1374439c709a759a; base fcb02a5 after git reset --hard fcb02a5"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474..., 485cae..., 1fc9f8...: all three match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "73 files, 2411 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T12.test.ts (base)",
+   "exit": 0,
+   "summary": "56 passed"
+  },
+  {
+   "cmd": "npm run build && npm run size -- --port 6921 (base)",
+   "exit": 0,
+   "summary": "/tools/rep/ 89758 B gzip of 90 kB; M8 89758 B of 120 kB"
+  },
+  {
+   "cmd": "vitest T12.test.ts -t P5-RT-08-05 (red)",
+   "exit": 1,
+   "summary": "2 failed: expected 'This board has no minuscule node; its…' not to match /its representations need more than th…/"
+  },
+  {
+   "cmd": "vitest T12.test.ts -t P5-RT-09-01 (red)",
+   "exit": 1,
+   "summary": "3 failed: D4 node 2 panel claims {moveIsEFP: true, expIsSigned: true} where the engine gives false; B3 node 1 says 'no longer the move with signs' where both identities hold; largestAt missing"
+  },
+  {
+   "cmd": "vitest T12.test.ts -t P5-RT-09-02 (red)",
+   "exit": 1,
+   "summary": "8 failed: expected 24 to be 28, 6 to be 7, 24 to be 26, 240 to be 248, 6 to be 7, 2160 to be 3875, 24 to be 52; representationDimension missing"
+  },
+  {
+   "cmd": "vitest T12.test.ts -t P5-RT-08-01 (red)",
+   "exit": 1,
+   "summary": "1 failed: A1 node 1 explanation contains omega"
+  },
+  {
+   "cmd": "playwright -c <scratch config, port 6920> M8.spec.ts -g 'no omega outside' (base build, red)",
+   "exit": 1,
+   "summary": "1 failed: Expected 0, Received 65 elements with omega (b1 to b12 and the captions of b10 to b12)"
+  },
+  {
+   "cmd": "vitest T12.test.ts -t P5-RT-03-01 (red)",
+   "exit": 1,
+   "summary": "2 failed: no string-gap hook; caption 'On A2 the line through (1234567890123…' matches /\\d{13}/"
+  },
+  {
+   "cmd": "playwright: the original reproducer redteam-RT-03-t12.spec.ts -g 'Long numbers' on the base build (temporary, not committed)",
+   "exit": 1,
+   "summary": "1 failed: received {length: '12345678901234567891', gap: 'and 12345678901234567889 more positions'}"
+  },
+  {
+   "cmd": "vitest T12.test.ts -t P5-RT-10-03 (red)",
+   "exit": 1,
+   "summary": "5 failed: A2 [1,0] not [1,1]; D4 [1,0,0,0]; E7 [0,0,0,0,0,0,1]; default preset [1,0]; D4 node 2 [0,1,0,0]"
+  },
+  {
+   "cmd": "playwright T12.spec.ts M8.spec.ts -g regressions on a build of the base T12 sources (red)",
+   "exit": 1,
+   "summary": "6 failed: M8 omega (65); attack 9 E8 8, F4 4, G2 1, D4 2 show 240, 24, 6, 24 under 'Dimension'; long numbers (no string-gap hook)"
+  },
+  {
+   "cmd": "npm run size -- --port 6921 (after five fixes, before signedNote)",
+   "exit": 1,
+   "summary": "/tools/rep/ 90174 B: OVER; the panel markup with 14 subscripts per case cost about 350 B"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T12.test.ts (final)",
+   "exit": 0,
+   "summary": "78 passed (56 at base, 22 added)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after)",
+   "exit": 0,
+   "summary": "73 files, 2411 passed (baseline 2411)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors 0 warnings; svelte-check 0 errors, 1 warning in t02/LayerChart.svelte (there before this branch)"
+  },
+  {
+   "cmd": "npm run build (final)",
+   "exit": 0,
+   "summary": "35 pages built; links: 1286 internal links, 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 6921 (final)",
+   "exit": 0,
+   "summary": "35 routes, 0 over budget; /tools/rep/ 89830 B of 90 kB (base 89758); M8 89830 B of 120 kB"
+  },
+  {
+   "cmd": "playwright -c <scratch config, port 6920> T12.spec.ts (final, load 2 to 3)",
+   "exit": 0,
+   "summary": "47 passed"
+  },
+  {
+   "cmd": "playwright T12.spec.ts (earlier full runs, load 7 to 10)",
+   "exit": 1,
+   "summary": "two runs, each with only 'no long task when E6 is picked' failing (one long task of 53 ms, then 56 ms); 2 locator failures fixed in 849e2e5"
+  },
+  {
+   "cmd": "playwright T12.spec.ts -g 'no long task' repeated (branch head vs base T12 sources)",
+   "exit": 1,
+   "summary": "head: 3 long tasks of 53 to 54 ms in 30 runs, all at load 8 to 10, and 0 in 12 runs at load 3; base: 0 in 14 runs plus one full-file pass; Node: the string viewer from all ones costs about 0.1 ms per pick and weylDimension 0.03 to 0.12 ms"
+  },
+  {
+   "cmd": "playwright M8.spec.ts",
+   "exit": 0,
+   "summary": "29 passed"
+  },
+  {
+   "cmd": "playwright nojs.spec.ts registry-outs.spec.ts",
+   "exit": 0,
+   "summary": "114 passed"
+  },
+  {
+   "cmd": "playwright a11y.spec.ts",
+   "exit": 0,
+   "summary": "36 passed (tools/rep/ and modules/m8-lie-algebras/ included)"
+  },
+  {
+   "cmd": "playwright worker-on-demand.spec.ts disabled-look.spec.ts",
+   "exit": 0,
+   "summary": "54 passed"
+  },
+  {
+   "cmd": "grep -rn 'regression: P5-RT-' site/tests",
+   "exit": 0,
+   "summary": "15 tests: T12.test.ts (08-05, 09-01 x3, 09-02 x2, 08-01, 03-01 x2, 10-03 x3), T12.spec.ts (13-03, 03-01), M8.spec.ts (08-01)"
+  },
+  {
+   "cmd": "git diff --name-only fcb02a5..HEAD | grep -i redteam; check for forbidden paths",
+   "exit": 0,
+   "summary": "no redteam file added; no forbidden path"
+  },
+  {
+   "cmd": "greps of the added lines for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' 'on:' and the em-dash",
+   "exit": 0,
+   "summary": "0 each"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "empty; no preview server on ports 6920 to 6923"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P5-RT-08-05: T12 tells the reader on G2 that every representation of the board 'needs more than the game', which SPEC 2.18 and M8 beat 7 contradict",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T12.test.ts > regressions > P5-RT-08-05: T12 on G2 says every representation needs more than the game > G2 node 1 / G2 node 2: the sentence does not say that all its representations need more than the game",
+   "evidence": "Severity blocker (no adjustment). Red at base fcb02a5: 2 failed with the observed sentence. Cause: noMinusculeSentence stretched 2.18's [D] 'need more than the game' (which covers only representations out of reach of both recipes) to every representation of E8, F4 and G2. Now it reads 'This board has no minuscule node, so the recipe of this tool builds none of its representations.' No board-specific text. Green: 78 passed. Commit 803af94."
+  },
+  {
+   "item": "P5-RT-09-01: T12's signed-move panel states the minuscule identities on every built node, where they are false (D4 node 2, the acceptance example) or their stated failure is false (B3 node 1)",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T12.test.ts > regressions > P5-RT-09-01: T12 states the identities of a minuscule orbit on every built node (3 tests: D4 node 2 k = 2; B3 node 1 k = 1; every node k of every built node of A3, B2, B3, C3, D4, D5, G2, F4)",
+   "evidence": "Severity blocker (no adjustment). Red at base: 3 failed. The D4 panel claimed both identities where the engine gives false; the B3 panel said 'no longer the move with signs' where both hold. Cause: the panel text did not depend on the state. Both identities, and the square (-1)^{H_k}, hold exactly when no number at node k in the orbit is 2 or more. largestAt decides this, and signedNote writes either the identities or why both fail. The reproducer could not be adopted unchanged: it asserted the claim and the engine's verdict together, so it fails whatever the panel says. Its inputs and engine computation are kept, and it asserts that each claim matches the engine. Green: 78 passed. Commits e12acac and c7eab40 (the second moves the text into signedNote with {@html} for size; text unchanged)."
+  },
+  {
+   "item": "P5-RT-09-02 and P5-RT-13-03 (DUPLICATE): T12's 'Dimension:' readout shows the size of the orbit on nodes that are not minuscule",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T12.test.ts > regressions > P5-RT-09-02 (7 cases '<board> node <n>: \"Dimension:\" against golden weyl_dimension', plus 'on every minuscule node the dimension is the orbit size and the golden dimension; Download data carries the dimension and the orbit size'); site/tests/e2e/T12.spec.ts > regressions > attack 9: T12 on E8/F4/G2/D4 ... does not print \"Dimension: <orbit>\"",
+   "evidence": "Severity major (no adjustment). Red at base: unit 8 failed (24/28, 6/7, 24/26, 240/248, 6/7, 2160/3875, 24/52); e2e on a base build 4 failed (240, 24, 6, 24). Cause: dimensionOf (the basis size) was shown and exported as 'Dimension'. 'Dimension' now shows representationDimension (the engine's weylDimension of the fundamental position) on every node. The orbit's size, which is the size of the matrices, is labelled 'Positions in the orbit' (new data-out orbit-size). Download data 'dimension' is the representation's dimension. Both reproducers pass unchanged. Tests that read the orbit size under 'dimension' now read 'orbit-size' (T12.spec.ts x5, T12.test.ts x1, M8.spec.ts x1). Green: unit 78 passed, T12.spec.ts 47 passed. Commit e69b582. The two senses of 'dimension' are left to the owner; options are in the fragment."
+  },
+  {
+   "item": "P5-RT-08-01 and P5-RT-13-02 (DUPLICATE): T12 writes the Lie theory symbol omega_i for the fundamental position all through M8 and /tools/rep/",
+   "status": "fixed",
+   "test": "site/tests/e2e/M8.spec.ts > regressions > M8: no omega outside the Lie theory paragraph, as on M7; site/tests/unit/tools/T12.test.ts > regressions > P5-RT-08-01 > no sentence T12 writes holds omega, on every node of the 32 boards; the fundamental position is written e_i",
+   "evidence": "Severity major (no adjustment). Red: M8 spec on the base build failed with 65 elements (as observed); unit test failed (A1 node 1). Cause: omegaName returned 'ω<i>', and pickSentence typed 'ω' itself. Both now write e_i (Appendix C), so ownCaption and M8's b10 to b12 captions follow. Tests that quoted ω now quote e (T12.test.ts x4, T12.spec.ts x4, M8.spec.ts x5, including the two regexes that read a challenge's node). Green: M8.spec.ts 29 passed, unit 78 passed, T12.spec.ts 47 passed. Commit 10bb39f."
+  },
+  {
+   "item": "P5-RT-03-01: T12's string viewer prints the length of the line and the count of positions not listed in full, beyond 12 digits",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > the length of a line of 12345678901234567891 positions, and the count of positions not listed; site/tests/unit/tools/T12.test.ts > regressions > P5-RT-03-01 (server markup; stringCaption)",
+   "evidence": "Severity major (no adjustment). Red: the original reproducer on the base build gave {length: '12345678901234567891', gap: 'and 12345678901234567889 more positions'}; the adopted version (gap read through the new hook) failed on base; unit 2 failed. Cause: view.length and view.elided were printed raw. They now go through the tool's shortening ('1.2345... x 10^19 (20 digits)'), with exact digits in data-value and the title. The same fix covers stringCaption, as the finding asked, and the figure's aria-label. T12.spec.ts line 535 now reads the length's data-value. Green: unit 78 passed, T12.spec.ts 47 passed. Commit d0f1219."
+  },
+  {
+   "item": "P5-RT-10-03: T12's default start is omega_i, not 6.6's 'all ones for numbers'",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T12.test.ts > regressions > P5-RT-10-03: the default start of T12 is the default of 6.6 (defaultsFor A2, D4, E7; the default preset; picks, links and author starts)",
+   "evidence": "Severity minor, raised to major by the refuter. Red at base: 5 failed ([1,0], [1,0,0,0], [0,0,0,0,0,0,1], preset [1,0], D4 node 2 [0,1,0,0]). No [D] passage sets another start, and no behaviour SPEC 4 T12 states depends on it, so 6.6 is followed. defaultStart (all ones) is used on /tools/rep/ (default preset [1,1]) and on every board or node pick, including links that change g or k. Author starts stay; the presets relation-checker and signed-move keep (1,0). The fragment records that this replaces the start in P5-A2's entries 'boards offered, the picker, the default state' and 'the string viewer'. Tests that pinned the old start were updated with values from the engine where possible, and two locators were scoped to the history strip. Green: unit 78 passed, T12.spec.ts 47 passed, M8.spec.ts 29 passed. Commits d766d7a and 849e2e5."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX.md 5.3 (adoption)",
+   "what": "Three reproducers needed more than a rename. RT-09's panel test now checks the claims against the engine on the same inputs. RT-03's gap item is read through a new data-out instead of its class, and its unused worker log is dropped. RT-13's dimension spec dropped its terminal logging line, and its assertions gained the expected values. Script reproducers are covered by unit tests.",
+   "why": "RT-09's test could never pass; RT-FIX 5.3 requires browser tests to read data-* hooks; the section 6 grep forbids console.log; scripts become equivalent tests."
+  },
+  {
+   "spec": "SPEC 4 T12 / decisions/P5-A2.md",
+   "what": "Two new data-out names (orbit-size, string-gap). Download data 'dimension' now means the representation's dimension. T12 shows weylDimension under 'Dimension' on every node.",
+   "why": "P5-RT-09-02 and P5-RT-03-01; recorded in decisions/RT-FIX-P5-t12-content.md with the options for the owner."
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P5-t12-content.md",
+ "handoff": "Every changed file is in T12 or in its tests (M8.spec.ts only for the hooks and e_i, plus the new omega check); nothing under site/src/content/modules/ was touched. onPopState, readLink and admitLink were not edited. One request is in the fragment: the JSDoc of admitLink still says 'the start omega_k' and should say 'the start all ones of SPEC 6.6'. Dimension: the coordinator's 'keep Dimension only where it is the representation's dimension' is met by always showing weylDimension under 'Dimension' and the orbit count under 'Positions in the orbit'. This lets both reproducers pass unchanged. The finding's proposedFix (Dimension on minuscule nodes only) is the owner's option (b) in the fragment. Its cost on /tools/rep/ is a few bytes, because weylDimension was already in the shared engine chunk. Size is now 89830 B of 90000; any later T12 change has about 170 B. The timing test 'no long task when E6/E7 is picked' (4x slowdown) is marginal in this shared container. At load 8 to 10 the branch had 3 long tasks of 53 to 56 ms (including both earlier full-file runs); at load 3 it passed 12/12 and the final full file passed 47/47. The base passed 14/14 isolated runs and one full-file run. The extra work per pick (string viewer from all ones, weylDimension) is about 0.1 to 0.25 ms in Node. MERGE and GATE should rerun these two tests alone on a quiet machine. For the lens rerun: M8's b3, b5 to b7 and b10 to b12 give no start, so their string viewers now start at all ones. The other RT-03 bounds test (not in this cluster) still expects the old ω3 limit sentence and needs 'e3'."
+}
