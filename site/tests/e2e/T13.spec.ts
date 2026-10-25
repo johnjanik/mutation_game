@@ -94,7 +94,6 @@ const NOTICE = 'The link could not be read, so the tool shows its default state.
 const MINUS = '−';
 const word = (b: boolean): string => (b ? 'holds' : 'fails');
 const minus = (x: number): string => (x < 0 ? `${MINUS}${-x}` : String(x));
-const vec = (v: readonly number[]): string => `(${v.map(minus).join(', ')})`;
 /** The multiplicities text of the tool: each Bourbaki node with its pair, the pair found by orbit. */
 const multText = (r: GoldenRecord): string =>
   r.restricted_orbits_in_bourbaki_order!.map((o, k) => {

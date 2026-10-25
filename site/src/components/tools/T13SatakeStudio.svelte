@@ -207,6 +207,12 @@
   const roots = $derived(rootsOffered(board));
   const rootKey = $derived(play.start.join(','));
 
+  // Only the names History reads: at most 50 positions are named, however long the play (7.4).
+  const positionNames = $derived.by(() => {
+    const ps = positions;
+    return historyNames(play.steps.length, play.cursor, (k) => `${k === 0 ? 'Start' : `After step ${k}`}: populations ${speakList(inLabelOrder(board, ps[k]!))}`);
+  });
+
   /** The theta panel: the stages from the population where the current run of theta started. */
   const runStart = $derived(stage === 0 ? current : positions[play.cursor - stage]!);
   const stagesShown = $derived.by(() => {
@@ -596,7 +602,7 @@
     <History
       total={play.steps.length}
       cursor={play.cursor}
-      positionNames={historyNames(play.steps.length, play.cursor, (k) => `${k === 0 ? 'Start' : `After step ${k}`}: populations ${speakList(inLabelOrder(board, positions[k]!))}`)}
+      {positionNames}
       hydrated={api.hydrated}
       {frozen}
       onUndo={() => undo(api.announce)}
