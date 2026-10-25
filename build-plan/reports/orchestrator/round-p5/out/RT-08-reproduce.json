@@ -1,0 +1,56 @@
+{
+ "lens": "RT-08",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P5-RT-08-05",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 2.18 'One zero weight' and 'Out of reach' [D]; SPEC 3 M8 beat 7; golden orbit_plus_zero_representations[type=G2]; RED-TEAM-COMMON 4 ('a mathematical statement presented as fact that is wrong')",
+   "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a9b43195252729294 (started on branch worktree-agent-a9b43195252729294 at aea1802), detached with git checkout --detach 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39; HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39; clean status before applying. Lens branch worktree-agent-abcb3b9fe3eb2308b (e6750df) exists. The path is on the branch and not at the gate commit. Applied: git checkout worktree-agent-abcb3b9fe3eb2308b -- site/tests/unit/redteam-RT-08-p5-g2-sentence.test.ts; status 'A  site/tests/unit/redteam-RT-08-p5-g2-sentence.test.ts'. It imports only @two-games/engine and site/src modules, nothing under redteam/. npm ci --prefer-offline: exit 0 (764 packages). Ran: npx vitest run site/tests/unit/redteam-RT-08-p5-g2-sentence.test.ts; exit 1. Output: 'Tests  2 failed | 1 passed (3)'; 'x G2 node 1: the sentence does not say ...', 'x G2 node 2: ...'; 'AssertionError: expected 'This board has no minuscule node; its... not to match /its representations need more than th.../' with Received: \"This board has no minuscule node; its representations need more than the game.\" The golden check passed (orbit_plus_zero_representations[type=G2;highest_weight=1,0].dimension = 7). Source at the gate: site/src/components/tools/t12/rep.ts:443. SPEC.md:741 reads 'The Chevalley-Serre relations hold [V for A1, B2, B3, B4 and G2]. This gives the site a route to G2 that stays inside the game'. Observed matches. The hydrated /tools/rep/ part of observed was not run, since the reproduction names only the unit test. The lens branch only adds files (20 added, 0 modified). Its other redteam/ files were not applied.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: noMinusculeSentence on G2 nodes 1 and 2 returns 'This board has no minuscule node; its representations need more than the game.' while golden G2 orbit-plus-zero dimension is 7; a wrong mathematical statement shown as fact is a blocker under RED-TEAM-COMMON 4"
+  },
+  {
+   "findingId": "P5-RT-08-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 8.4 bullets 1 and 2; Appendix C row 'fundamental position e_i'; decision P4-A6 'words, terms and glossary links'; lens attack 30 (a) (major)",
+   "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39 (detached). Applied: git checkout worktree-agent-abcb3b9fe3eb2308b -- site/tests/e2e/redteam-RT-08-p5-omega.spec.ts; status 'A  site/tests/e2e/redteam-RT-08-p5-omega.spec.ts', plus the separate unit files of other findings, which are not run by this command. npm ci --prefer-offline was done once. Ran: npm --prefix <wt> run build; exit 0 ('35 page(s) built', 'links: 1286 internal links on 35 pages of site/dist checked, 0 problems'). Then PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test site/tests/e2e/redteam-RT-08-p5-omega.spec.ts --config <scratch>/verify-p5-rt08-reproduce/playwright.config.ts; exit 1. P5-VERIFY-INSTRUCTIONS required that config: a copy of the repository config with port 6420 in the webServer command and baseURL. Because it lives outside the worktree, it uses absolute paths for the @playwright/test and astro.config.mjs imports, testDir and the webServer cwd. A first attempt without the absolute @playwright/test import failed with 'Cannot find module @playwright/test' before any test ran. Output: '1 failed ... M8: no omega outside the Lie theory paragraph, as on M7'; 'Error: omega_i outside the Lie theory paragraph of M8'; '- Expected - 1 / + Received + 65'. Examples: 'b1: Node 1 is minuscule: every number in the orbit of ω1 is −1, 0 or 1, and all the relations hold.', 'b1: The orbit of ω1 in layers', 'b10: On D4 the 8 positions of the orbit of ω4 give 8 by 8 matrices E, F and H that satisfy all 88 Chevalley-Serre relations.', 'b12: On A3 the 4 positions of the orbit of ω1 give 4 by 4 matrices ...'. The test stopped before its e1 check. The built M8 HTML contains 'On D4 the orbit of e1 has 8 positions, and the 8 by 8 matrices read off the game satisfy every relation.' Observed matches: 65 elements. Playwright's test-results/ in the worktree (git-ignored) was deleted. The preview server on 6420 stopped.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: 65 elements of M8 outside the Lie theory paragraph contain ω (T12 text on b1 to b12 and the captions of b10 to b12), while b5's caption says 'the orbit of e1'; a broken 8.4 prose rule is major"
+  },
+  {
+   "findingId": "P5-RT-08-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.3 (<G>), 8.4 bullet 5, 9.2; CONTRACTS 7 'Numbers'; golden weyl_dimension[type=F4;highest_weight=0,0,0,1]",
+   "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39. Applied: git checkout worktree-agent-abcb3b9fe3eb2308b -- site/tests/unit/redteam-RT-08-p5-typed-26.test.ts; status lists it as 'A'. It imports only site/src/lib/golden and reads m8-lie-algebras.mdx. Ran: npx vitest run site/tests/unit/redteam-RT-08-p5-typed-26.test.ts; exit 1. Output: 'Tests  1 failed | 1 passed (2)'; 'x m8-lie-algebras.mdx does not type it'; 'AssertionError: M8 types a golden value; expected <G k=\"weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension\"/>'; Received [\"m8-lie-algebras.mdx:113: ...Out of their reach are the {'26'}-dimensional representation of <Tex src=\\\"F_4\\\"/>, studied in <Cite k=\\\"vE\\\"/>, ...\"]. The passing test confirms resolveGoldenPath(...) = 26 and formatGoldenValue = '26'. Cross-checked with python3 -I on <wt>/reference/golden_data.json: weyl_dimension F4 [0,0,0,1] -> 26. At the gate, M8.spec.ts:763-764 lists it under 'Numbers with no golden value (instruction 5.8).' with reason 'the 26 of F4, the subject of [vE]', and decisions/P5-A3.md line 43 lists 'the 26 of F4' among the typed numbers. Observed matches.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: line 113 types {'26'} while weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension = 26, and the allowlist calls it a number with no golden value; a broken 8.4 numbers rule is major"
+  },
+  {
+   "findingId": "P5-RT-08-03",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.3 (<G>); CONTRACTS 7 'Numbers'; lens attack 13 (major)",
+   "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39. Applied: git checkout worktree-agent-abcb3b9fe3eb2308b -- site/tests/unit/redteam-RT-08-p5-wrong-path.test.ts; status lists it as 'A'. It imports @two-games/engine and site/src/lib/golden. Ran: npx vitest run site/tests/unit/redteam-RT-08-p5-wrong-path.test.ts; exit 1. Output: 'Tests  2 failed | 1 passed (3)'. 'AssertionError: the string through (2, 0) printed through a path to another representation' with Received [\"m8-lie-algebras.mdx:61\", \"m8-lie-algebras.mdx:65\"]. 'AssertionError: three boards named, one board in the path' with Received [\"m8-lie-algebras.mdx:113\"]. The passing coincidence test confirms stringThrough(A2,[2,0],0) = [[2,0],[0,1],[-2,2]] and that the node-2 weights do not contain [2,0]. Cross-checked with python3 -I on the golden file: minuscule_representations A2 node 2 weights [[1,-1],[0,1],[-1,0]]; det_cartan E8 1, F4 1, G2 1. grep at the gate: line 61 'minuscule_representations[type=A2;node=2].weights_dynkin_labels[1]', line 65 \"wt('A2', 2, 1))\", line 30 'export const STRING_TWO = stringThrough(A2, [2, 0], 0);'. Observed matches.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: lines 61 and 65 print the string's middle position through the A2 node-2 weight path, and line 113 prints the determinant of E8, F4 and G2 from types.E8.det_cartan alone; the rubric does not name a <G> path to the wrong record, so the claimed major stands"
+  },
+  {
+   "findingId": "P5-RT-08-04",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 8.4 bullet 1; Appendix C rows 'population', 'mutate', 'fire'; decision P1-A8 'glossary links'; lens attack 30 (b) (major)",
+   "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39. Applied: git checkout worktree-agent-abcb3b9fe3eb2308b -- site/tests/unit/redteam-RT-08-p5-glossary-fire.test.ts; status lists it as 'A'. It reads only site/src/content files. Ran: npx vitest run site/tests/unit/redteam-RT-08-p5-glossary-fire.test.ts; exit 1. Output: 'Tests  4 failed | 1 passed (5)'. Messages: 'M8 uses \"fire\" 7 times and never links glossary#fire: expected 0 to be greater than 0'; 'M8 uses \"population\" 4 times and never links glossary#population'; 'M8 uses \"mutate\" 1 times and never links glossary#mutate'; siblings '[{\"m\":\"m5-weyl\",\"uses\":26,\"links\":0},{\"m\":\"m6-multiple-edges\",\"uses\":7,\"links\":0},{\"m\":\"m7-geometry\",\"uses\":6,\"links\":0}]'. The test checking that the glossary anchors exist passed. A grep of M8, M5, M6 and M7 for '#fire', '#population', '#mutate' and single-quoted Term forms found nothing (exit 1). The built site/dist/modules/m8-lie-algebras/index.html has no glossary/#fire, #population or #mutate link. Observed matches. Final tree: git status --porcelain lists only the five applied files, each 'A'. node_modules, site/node_modules, site/dist and test-results were deleted (packages/engine/node_modules did not exist). Ports 6420 to 6423 are free.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: M8 uses fire 7, population 4 and mutate 1 times with 0 glossary links, and M5, M6 and M7 use fire 26, 7 and 6 times with 0 links; a broken 8.4 prose rule is major"
+  }
+ ]
+}

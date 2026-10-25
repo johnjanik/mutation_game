@@ -10,3 +10,7 @@
 - P5-RT-08-03 major: two M8 <G> paths print the right digits from the wrong record (string (0,1) from the node-2 representation; det of E8, F4, G2 from E8 alone).
 - P5-RT-08-04 major: M8 (and M5, M6, M7) use fire, population, mutate without glossary links.
 - Notes: T12 'Dimension' shows the orbit size on non-minuscule nodes (also RT-01); Gab72 priority claim (owner); Kostant 'every move' verified by one random play per node (RT-09/owner); E10 fallback 'found in the standard texts'; glossary lacks string, single step, Chevalley-Serre, signed move, quiver (P1-A4 request); M1 at 1800, M3 1797, M8 1795.
+- RT-01 reproduce: 01 reproduced (oracle: True, False with witness (0,(0,1)), True). Note: decisions/P2-A1.md line 34 says M must be safe integers, RangeError otherwise (for the refuter). Refute pending.
+- RT-01 verdicts: 01 REFUTED (decisions/P2-A1.md requires M of safe integers, RangeError otherwise; the finding quoted the general clause). Incidental: the RangeError text calls -2^53 'not an integer' (wording, minor; for the owner).
+- RT-08 reproduce: all 5 reproduced. Refute pending.
+- RT-08 verdicts: all 5 CONFIRMED (05 blocker; 01, 02, 03, 04 major). Owner note: whether 8.4 governs text built inside a tool is not stated outright (T5 itself names 'a fundamental weight').
