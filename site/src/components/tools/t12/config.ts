@@ -57,6 +57,7 @@ export const T12_OUTS = [
   'notice',
   'noscript',
   'exportNotice',
+  'citeText', // ToolFrame, after a click on Cite (P6-A5)
   'moveCounter',
   'historyStrip',
   'historyCounter',
@@ -90,8 +91,8 @@ export const T12_OUTS = [
   'start-message',
 ] as const;
 
-/** The names of T12_OUTS that the default state does not render (a prediction; above the cap; a typed start refused; a line of more than 12 positions). */
-export const T12_CONDITIONAL_OUTS: readonly string[] = ['notice', 'predictResult', 'predictReveal', 'historyCounter', 'no-minuscule', 'limit', 'start-message', 'string-gap'];
+/** The names of T12_OUTS that the default state does not render (a prediction; above the cap; a typed start refused; a line of more than 12 positions; a click on Cite). */
+export const T12_CONDITIONAL_OUTS: readonly string[] = ['notice', 'predictResult', 'predictReveal', 'historyCounter', 'no-minuscule', 'limit', 'start-message', 'string-gap', 'citeText'];
 
 /** The board list as data for the picker: one group per letter (4.0 Board pickers). */
 export const T12_GROUPS: readonly { letter: string; names: readonly string[] }[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((letter) => ({

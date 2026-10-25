@@ -13,6 +13,7 @@ export const T06_OUTS = [
   'notice',
   'noscript',
   'exportNotice',
+  'citeText', // ToolFrame, after a click on Cite (P6-A5)
   'moveCounter',
   'historyStrip',
   'historyCounter',

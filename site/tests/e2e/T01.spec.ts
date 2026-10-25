@@ -256,7 +256,10 @@ test('controls enabled after hydration', async ({ page }) => {
   }
   const buttons = root(page).locator('button[data-node]');
   for (let k = 0; k < (await buttons.count()); k++) await expect(buttons.nth(k)).toBeEnabled();
-  // Phase 1 offers Copy link and Download data only: no SVG, PNG or LaTeX export.
+  // Phase 1 offered Copy link and Download data only. Phase 2 added Export SVG and PNG under data-export
+  // (P2-A6); phase 6 adds Export LaTeX and Cite under data-control="latex" and "cite" (P6-A5, CONTRACTS 5.1),
+  // enabled after hydration like the controls above. No control carries the plan's earlier names.
+  for (const name of ['latex', 'cite']) await expect(control(page, name), name).toBeEnabled();
   for (const name of ['exportSvg', 'exportSVG', 'exportPng', 'exportPNG', 'exportLatex', 'exportLaTeX']) await expect(control(page, name)).toHaveCount(0);
 });
 

@@ -34,6 +34,7 @@ export const T04_OUTS = [
   'notice',
   'noscript',
   'exportNotice',
+  'citeText', // ToolFrame, after a click on Cite (P6-A5)
 ] as const;
 
 function fields(id: LabPresetId): PresetFields {
