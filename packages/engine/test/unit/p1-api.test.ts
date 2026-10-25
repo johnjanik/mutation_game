@@ -50,6 +50,9 @@ const PHASE_5_NAMES = [
   'minusculeMatrices', 'signedMoves', 'chevalleySerre', 'stringThrough',
 ] as const;
 
+// Phase 6 (P6-A1, applied by MERGE on its request): the names of satake.ts.
+const PHASE_6_NAMES = ['theta', 'shadow2', 'admissibility', 'satake', 'restrictedBoard'] as const;
+
 const PHASE_0_NAMES = [
   'SafeInt', 'Big', 'EngineError', 'NotABoard', 'NeedsTwoWayRoads', 'NeedsConnectedBoard', 'NotFiniteType',
   'NotAffine', 'NotAdmissible', 'EngineOverflow', 'CAPS', 'cartan', 'boardFromName', 'fromAdjacency',
@@ -68,8 +71,9 @@ describe('exports of src/index.ts', () => {
     for (const n of PHASE_3_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
     for (const n of PHASE_4_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
     for (const n of PHASE_5_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
+    for (const n of PHASE_6_NAMES) expect(typeof (api as Record<string, unknown>)[n]).toBe('function');
     expect(Object.keys(api).sort()).toEqual(
-      [...PHASE_0_NAMES, ...PHASE_1_NAMES, ...PHASE_2_NAMES, ...PHASE_3_NAMES, ...PHASE_4_NAMES, ...PHASE_5_NAMES].sort(),
+      [...PHASE_0_NAMES, ...PHASE_1_NAMES, ...PHASE_2_NAMES, ...PHASE_3_NAMES, ...PHASE_4_NAMES, ...PHASE_5_NAMES, ...PHASE_6_NAMES].sort(),
     );
   });
 
