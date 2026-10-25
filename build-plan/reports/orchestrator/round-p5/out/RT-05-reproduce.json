@@ -1,0 +1,46 @@
+{
+ "lens": "RT-05",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P5-RT-05-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 6.1 'Size on screen' ('On a viewport narrower than 400 pixels the box runs from edge to edge of the viewport, so W is the viewport width'); 7.5 A-7; 8.1 P11; CONTRACTS 5.1 'Hit area min(44, u) per 6.1'",
+   "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-aecc0736133b81b8d, which started on branch worktree-agent-aecc0736133b81b8d at aea1802. Ran git checkout --detach 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39, so HEAD = 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39, and the tree was clean. Node v22.22.0. The branch worktree-agent-ac896d508eea097ff (bc20975) only adds 4 files: git diff --stat shows 4 files changed, 163 insertions, and no existing file is modified. Applied site/tests/e2e/redteam-RT-05-p5-t12-hit-side.spec.ts, which does not exist at the gate. git status --porcelain: 'A  site/tests/e2e/redteam-RT-05-p5-t12-hit-side.spec.ts'. npm ci --prefer-offline: exit 0. npm run build: exit 0 ('35 page(s) built', 'links: ... 0 problems'). Ran PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/verify-p5-rt05-reproduce/playwright.config.ts redteam-RT-05-p5-t12-hit-side: exit 1, '6 failed'. The scratch config is a copy of the root config with port 6740, an absolute testDir, webServer cwd set to the worktree, and defineConfig replaced by an identity function because '@playwright/test' does not resolve from the scratch directory. Assertion lines: '/tools/rep/?g=E8&k=8 at 320 x 800: node 1 hit area 39 x 39, expected 43 x 43'; '?g=D8&k=1 at 320 ... 39 x 39, expected 43 x 43'; '?g=A7&k=1 at 320 ... 39 x 39, expected 43 x 43'; '?g=A8&k=1 at 320 ... 34 x 34, expected 38 x 38'; '?g=B8&k=1 at 320 ... 34 x 34, expected 38 x 38'; '?g=A8&k=1 at 360 x 800: node 1 hit area 39 x 39, expected 43 x 43'. Observed matches: 39 on E8, D8 and A7 at 320, 34 on A8 and B8 at 320, 39 on A8 at 360. This is a layout measurement, not a timing result, so one run. The file was removed (git restore --staged --worktree) before the next finding.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: hit sides of 39 (expected 43) on E8, D8 and A7 at 320, 34 (expected 38) on A8 and B8 at 320, and 39 (expected 43) on A8 at 360; a stated size rule that is wrong is major under RED-TEAM-COMMON 4"
+  },
+  {
+   "findingId": "P5-RT-05-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.5 A-1 and A-2 (target WCAG 2.2 AA, 2.4.3 Focus Order); 4.0 'Keyboard and screen reader'; the precedents P3-RT-05-09 and P4-RT-05-01",
+   "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39, detached. Applied only site/tests/e2e/redteam-RT-05-p5-t12-focus-at-hydration.spec.ts from worktree-agent-ac896d508eea097ff. git status --porcelain: 'A  site/tests/e2e/redteam-RT-05-p5-t12-focus-at-hydration.spec.ts'. Same npm ci and build as P5-RT-05-01; the test files are not part of the build. Ran PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/verify-p5-rt05-reproduce/playwright.config.ts redteam-RT-05-p5-t12-focus-at-hydration three times, because the result depends on hydration timing. Run 1 (load 9.47): exit 1, '2 failed'; 'Expected: \"div in b4 (relation-left)\" Received: \"BODY\"' and 'Expected: \"div in b3 (matrix-e)\" Received: \"BODY\"'. Run 2 (load 6.69): exit 1, 2 failed, both Received \"BODY\". Run 3 (load 7.49): exit 1, 2 failed, both Received \"BODY\". In every run the earlier assertion 'the server box has the focus before hydration' passed, and the test failed only on document.activeElement after data-hydrated=true and data-drawn=true. Observed matches the finding's 'document.activeElement becomes BODY' on b4 relation-left and b3 matrix-e, 3 of 3 runs. The file was removed before the next finding.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches in 3 of 3 runs: focus on the server box of M8 b4 (relation-left) and b3 (matrix-e) ends on BODY after the island hydrates"
+  },
+  {
+   "findingId": "P5-RT-05-03",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 4.0 'Keyboard and screen reader'; 7.5 A-4 (criterion 4.1.3) and the WCAG 2.2 AA target",
+   "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39, detached. Applied only site/tests/e2e/redteam-RT-05-p5-t12-verdict-unannounced.spec.ts. git status --porcelain: 'A  site/tests/e2e/redteam-RT-05-p5-t12-verdict-unannounced.spec.ts'. Same npm ci and build. Ran PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/verify-p5-rt05-reproduce/playwright.config.ts redteam-RT-05-p5-t12-verdict-unannounced twice, because the worker's arrival and the 1200 ms wait are timing-dependent. Run 1 (load 8.60): exit 1, '2 failed'; 'b6: the screen shows the verdict \"equal\", the live region said only [\"[H1, F1] = −2F1: checked in the background.\"]' and 'b7: the screen shows the verdict \"equal\", the live region said only [\"[H7, F7] = −2F7: checked in the background.\"]'. Run 2 (load 8.91): exit 1, 2 failed with the same two messages. Observed matches the finding's observed exactly, in both runs. The file was removed before the next finding.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches in both runs: M8 b6 and b7 show the verdict 'equal', while the live region says only '[H1, F1] = −2F1: checked in the background.' and '[H7, F7] = −2F7: checked in the background.'"
+  },
+  {
+   "findingId": "P5-RT-05-04",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.5 A-4 and A-12; CONTRACTS 4 speak. The sentences are plan readings (decisions/P5-A2.md), so this is minor.",
+   "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39, detached. Applied only site/tests/e2e/redteam-RT-05-p5-t12-relation-announcement.spec.ts. git status --porcelain: 'A  site/tests/e2e/redteam-RT-05-p5-t12-relation-announcement.spec.ts'. Same npm ci and build. Ran PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/verify-p5-rt05-reproduce/playwright.config.ts redteam-RT-05-p5-t12-relation-announcement: exit 1, '3 failed'. (1) 'the live region says \"[H1, F1] = −2F1: the two sides are equal.\" while the formula is named \"H 1 F 1 commutator equals minus 2 F 1\"', with minusSign true. (2) 'the live region says \"ad(E1)^2 E2 = 0: the two sides are equal.\" while the formula is named \"ad E 1 to the power 2 applied to E 2 equals 0\"', with caret true. (3) 'the live region says \"A2, node 2: the orbit of ω2 has 3 positions. Node 2 is minuscule: every number in the orbit of ω2 is −1, 0 or 1, and all the relations hold.\"', Expected false, Received true. All three strings equal the finding's observed. The text is deterministic, so one run. After the run, the reproducer stayed applied; node_modules, site/node_modules, packages/engine/node_modules and site/dist were deleted; no listener is on ports 6740 to 6743. Final git status --porcelain: 'A  site/tests/e2e/redteam-RT-05-p5-t12-relation-announcement.spec.ts' (only a reproducer file).",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the live region announces '[H1, F1] = −2F1: ...' with U+2212, 'ad(E1)^2 E2 = 0: ...' with a caret, and '... is −1, 0 or 1 ...' with U+2212, against the spoken forms that relationSpoken gives on the page"
+  }
+ ]
+}
