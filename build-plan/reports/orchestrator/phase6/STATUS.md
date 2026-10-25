@@ -16,3 +16,7 @@
 - P6-A5 repair running on 96bfbb6 (ports 7190-7193).
 - Stage 6.2 started on 89e37ec: P6-A3 T13 (ports 7200-7203), P6-A4 T14 (ports 7210-7213), and a P6-A1 follow-up adding restrictedCoordinates(d, rb, shadow2) to satake.ts for T13's shadow picture (no browser). T13 merges the integration branch once the helper lands.
 - Still to assign: T2 and T10 latexForExport (tikz-graph, tikz-points) for the owner's G6 compile, after the P6-A5 repair merges.
+- Merge checks on 89e37ec: tests, typecheck, build green; size 51 routes, 0 over; e2e 1340 passed, 2 failed under load (T08 F4 long task 53 ms; T15 capped-play announcement race), both 3 of 3 alone.
+- P6-A1 follow-up merged (c029e25): restrictedCoordinates; T13 told to merge the integration branch.
+- P6-A5 repair merged (c027f67). Targeted merge checks running on c027f67 (reports/merge-p6-a5r-c027f67/).
+- Running: P6-A3 T13, P6-A4 T14 (base 89e37ec); a review of P6-size (on c027f67, ports 7160-7163); P6-tikz (T2 tikz-graph and T10 tikz-points via latexForExport, LaTeX samples for G6 under LATEX_SAMPLES_DIR, 'citeText' in every registry's outs; base c027f67, ports 7220-7223).
