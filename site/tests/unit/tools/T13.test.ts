@@ -72,6 +72,8 @@ import { admitLink, toolStateOf } from '../../../src/components/tools/t13/link';
 import { BOARDS_OFFERED } from '../../../src/tools/offered';
 import { LINK_NOTICE, decodeState, encodeState } from '../../../src/lib/urlCodec';
 import { whereToRun } from '../../../src/lib/worker';
+import T13 from '../../../src/tools/registry/T13';
+import { ssrLoader, type SsrLoader } from '../_svelteSsr';
 
 interface GoldenSatakeRecord {
   dynkin_type: string;
@@ -851,6 +853,132 @@ describe('announcements (A-4, plan wording) and stated limits (4.0)', () => {
   });
 });
 
-afterAll(() => {
+// ---------------------------------------------------------------------------------------------
+// The registry entry and the server render (7.4, 4.0 "Works before and without JavaScript", CONTRACTS 6)
+// ---------------------------------------------------------------------------------------------
+
+type T13Module = { default: unknown };
+let loader: SsrLoader;
+let T13C: T13Module;
+
+beforeAll(async () => {
+  loader = await ssrLoader();
+  T13C = await loader.load<T13Module>('/src/components/tools/T13SatakeStudio.svelte');
+}, 120000);
+
+/** The text of each element carrying data-out="name" whose content has no nested element of the same tag. */
+const outText = (body: string, name: string): string[] =>
+  [...body.matchAll(new RegExp(`data-out="${name}"[^>]*>([^]*?)</(?:p|span|div|li|ul|strong|dd|figcaption)>`, 'g'))].map((m) =>
+    m[1]!.replace(/<!--[^]*?-->/g, '').replace(/<[^>]+>/g, '').trim(),
+  );
+/** The data-value of each node button inside the element data-out="name", in document order. */
+const valuesIn = (body: string, name: string): string[] => {
+  const at = body.indexOf(`data-out="${name}"`);
+  if (at < 0) return [];
+  const rest = body.slice(at);
+  const end = rest.indexOf('</div></div>');
+  return [...rest.slice(0, end < 0 ? undefined : end).matchAll(/data-node="(\d+)"[^>]*?data-value="([^"]*)"/g)].map((m) => m[2]!);
+};
+
+describe('T13 registry entry and server render', () => {
+  it('the registry entry: number 13, id satake, phase 6, the 32 boards, the eight presets of CONTRACTS 6 as state objects, the outs', () => {
+    expect([T13.number, T13.id, T13.title, T13.phase]).toEqual([13, 'satake', 'Satake Studio', 6]);
+    expect(T13.boards).toEqual([...T13_BOARDS]);
+    expect(Object.keys(T13.presets).sort()).toEqual([...T13_PRESET_IDS].sort());
+    for (const id of T13_PRESET_IDS) {
+      const p = T13_PRESETS[id];
+      expect(T13.presets[id], id).toEqual({ board: p.board, black: p.black, tau: p.tau, caption: captionFor(p) });
+    }
+    expect(T13.presets.default).toEqual({ board: 'A3', black: [2], tau: [3, 2, 1], caption: captionFor(T13_PRESETS.default) });
+    expect(T13.outs).toEqual([...T13_OUTS]);
+  });
+
+  it('each preset renders its state and its panel open at build time', () => {
+    for (const id of T13_PRESET_IDS) {
+      const p = T13_PRESETS[id];
+      const body = loader.render(T13C.default, { id: 'b1', preset: id });
+      expect(body, id).toContain(`data-panel="${p.panel}"`);
+      expect(outText(body, 'black-nodes'), id).toEqual([p.black.join('.')]);
+      expect(outText(body, 'tau'), id).toEqual([p.tau.join('.')]);
+      expect(outText(body, 'caption'), id).toEqual([captionFor(p)]);
+    }
+    const lightsBody = loader.render(T13C.default, { id: 'b1', preset: 'lights' });
+    expect((lightsBody.match(/data-control="example"/g) ?? []).length).toBe(T13_EXAMPLES.length);
+    expect(outText(lightsBody, 'light-3')).toEqual(['holds']);
+    const theta1 = loader.render(T13C.default, { id: 'b1', preset: 'play-theta' });
+    expect(outText(theta1, 'theta-word')).toEqual(['1 3']);
+    expect(outText(theta1, 'theta-stage')).toEqual(['0']);
+    expect(valuesIn(theta1, 'game-board')).toEqual(['0', '1', '0']);
+    const shadows = loader.render(T13C.default, { id: 'b1', preset: 'shadows' });
+    expect(shadows).toContain('data-out="shadow-picture"');
+    expect(shadows).toContain('data-out="shadow-table"');
+    expect((shadows.match(/data-point="/g) ?? []).length).toBe(4);
+    const restricted = loader.render(T13C.default, { id: 'b1', preset: 'restricted' });
+    expect(outText(restricted, 'restricted-name')).toEqual(['A2']);
+    expect(valuesIn(restricted, 'restricted-board')).toEqual(['0', '1']);
+    expect(outText(restricted, 'real-form')).toHaveLength(0); // the restricted panel is open, not the data
+    const catalogue = loader.render(T13C.default, { id: 'b1', preset: 'catalogue' });
+    expect((catalogue.match(/data-out="catalogue-row"/g) ?? []).length).toBe(RECORDS.filter((r) => r.dynkin_type === 'D4').length);
+    expect((catalogue.match(/data-out="same-form"/g) ?? []).length).toBe(2);
+    const tob = loader.render(T13C.default, { id: 'b1', preset: 'tau-on-black' });
+    expect(tob).toContain('data-black-arrow="2-4"');
+    expect(tob).toContain('data-arrow="1-5"');
+    expect(tob).toMatch(/data-control="toggle"[^>]*checked|checked[^>]*data-control="toggle"/);
+    const def = loader.render(T13C.default, { id: '', preset: 'default', caption: captionFor(T13_PRESETS.default) });
+    expect(def).toContain('data-name="su(1,3)"');
+    expect(outText(def, 'real-rank')).toEqual(['1']);
+  });
+
+  it('a board property without black and tau gives the split form on that board; properties override the preset', () => {
+    const a1 = loader.render(T13C.default, { id: 'b1', board: 'A1', preset: 'default' });
+    expect(outText(a1, 'black-nodes')).toEqual(['']);
+    expect(outText(a1, 'tau')).toEqual(['1']);
+    expect(a1).toContain(`data-name="${matchRecord(RECORDS, { dynkin_type: 'A1', black_nodes: [] }).real_form}"`);
+    const over = loader.render(T13C.default, { id: 'b2', preset: 'play-theta', black: [2], tau: [3, 2, 1] });
+    expect(outText(over, 'black-nodes')).toEqual(['2']);
+    expect(over).toContain('data-panel="theta"');
+    const root = loader.render(T13C.default, { id: 'b3', preset: 'play-theta', root: [1, 1, 0] });
+    expect(valuesIn(root, 'game-board')).toEqual(['1', '1', '0']);
+    expect(() => loader.render(T13C.default, { id: 'b4', board: 'A3~' })).toThrow(/b4/);
+    expect(() => loader.render(T13C.default, { id: 'b5', board: 'A3', black: [], tau: [2, 1, 3] })).toThrow(/b5/);
+    expect(() => loader.render(T13C.default, { id: 'b6', board: 'A3', root: [1, 0, 1] })).toThrow(/b6/);
+  });
+
+  it('an author caption stays; the preset caption follows the state', () => {
+    expect(outText(loader.render(T13C.default, { id: 'c1', caption: 'An author caption.' }), 'caption')).toEqual(['An author caption.']);
+    expect(outText(loader.render(T13C.default, { id: 'c2', board: 'E6', black: [2, 3, 4, 5], tau: [1, 2, 3, 4, 5, 6] }), 'caption')[0]).toContain('e6(-26)');
+  });
+
+  it('every data-out name the server renders is in the outs; every control is disabled; no em-dash', () => {
+    const bodies = [
+      ...T13_PRESET_IDS.map((p) => loader.render(T13C.default, { id: 'b1', preset: p })),
+      loader.render(T13C.default, { id: 'b2', board: 'A2', black: [1], tau: [1, 2] }),
+      loader.render(T13C.default, { id: 'b3', board: 'G2', black: [1, 2], tau: [1, 2], preset: 'restricted' }),
+      loader.render(T13C.default, { id: 'b4', board: 'E8' }),
+      loader.render(T13C.default, { id: 'b5', board: 'A3', black: [1], tau: [3, 2, 1], preset: 'play-theta' }),
+      loader.render(T13C.default, { id: 'b6', prediction: { question: 'Which?', answer: { type: 'number', value: 1 }, reveal: 'One.' } }),
+    ];
+    const seen = new Set<string>();
+    for (const body of bodies) {
+      for (const m of body.matchAll(/data-out="([^"]+)"/g)) seen.add(m[1]!);
+      // every control is rendered disabled until hydration (7.4)
+      for (const m of body.matchAll(/<(button|select|input)\b[^>]*>/g)) expect(m[0], m[0]).toMatch(/\sdisabled(\s|=|>|\/)/);
+      expect(body).not.toContain('—');
+    }
+    for (const name of seen) expect(T13_OUTS as readonly string[], name).toContain(name);
+    // the not-admissible case renders the failure note and no data
+    expect(bodies[T13_PRESET_IDS.length]).toContain('data-out="failure-note"');
+    expect(bodies[T13_PRESET_IDS.length]).not.toContain('data-out="real-rank"');
+    // the compact form: no restricted board
+    expect(bodies[T13_PRESET_IDS.length + 1]).toContain('data-out="no-restricted-roots"');
+    // E8 at build time: the data computed in Node (E-9 does not apply there)
+    expect(outText(bodies[T13_PRESET_IDS.length + 2]!, 'real-rank')).toEqual(['8']);
+    // conditions 1 and 2 failing: theta is not offered
+    expect(bodies[T13_PRESET_IDS.length + 3]).toContain('data-out="theta-note"');
+  });
+});
+
+afterAll(async () => {
   all = [];
+  await loader?.close();
 });

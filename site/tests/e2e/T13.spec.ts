@@ -1,0 +1,625 @@
+// P6-A3: tool T13, the Satake Studio, against the built site (SPEC.md 4 T13, 2.15, 4.0, 6.4, 6.6, 6.7, 7.4,
+// 7.5, A.5). Cases are opened by bare query parameters on /tools/satake/ (6.6: every state is a link) or through
+// the tool's controls. Tests read only the hooks of 4.0, the live region and, where a criterion is about the
+// address bar, the clipboard or a download, those. Expected values are computed here in Node from the engine or
+// read from reference/golden_data.json; the only values typed are the worked values of Appendix A.5, of SPEC
+// 6.7 (the three LaTeX strings) and of the instruction (sections 5.7 to 5.9).
+//
+// Properties of T13 (CONTRACTS 5.2; 4.0 Configuration): id, board, black (labels of the black nodes), tau
+// (images of all nodes in label order), root (a population in label order), caption, preset ('default',
+// 'play-theta', 'shadows', 'lights', 'data', 'restricted', 'catalogue', 'tau-on-black'), prediction. coords,
+// start, moves, linkTo and layers are accepted and ignored. A board given without black and tau is the split
+// form on that board; properties override the preset's fields.
+//
+// Hooks read:
+//   root:        data-tool="satake", data-moves, data-hydrated="true"
+//   decoration:  button[data-node] with data-colour and data-value ("black" | "white"), data-board="decoration",
+//                data-can-act (inside data-out="decoration"); the drawing's data-arrow and data-black-arrow
+//   game board:  button[data-node] with data-board="populations", data-value, data-can-act (inside data-out="game-board")
+//   restricted:  button[data-node] with data-board="restricted", data-value (the shadow coordinate), data-can-act
+//                (inside data-out="restricted-board")
+//   picture:     data-point (coordinates joined by commas), data-mult, data-double, data-chosen (inside data-out="shadow-picture")
+//   panels:      data-panel-tab ("lights" | "data" | "theta" | "shadows" | "restricted" | "catalogue"), aria-selected
+//   real forms:  data-name on data-out="real-form", "restricted-type", "restricted-name" and "catalogue-row"
+//   controls:    data-control="picker", "tau" (data-tau: the images joined by dots), "toggle", "root", "theta-next",
+//                "theta-play", "example" (data-example), "catalogue-load" (data-name); undo, redo, reset
+//                (History.svelte); copyLink, downloadData, latex, cite (ToolFrame); data-export="svg" | "png"
+//   table view:  data-table-node (the paint buttons), data-table-restricted
+//   live:        [data-live] (ToolFrame's polite live region)
+// data-out names (every one T13 renders; the registry's `outs`):
+//   caption, notice, noscript, exportNotice, citeText (ToolFrame); moveCounter, historyStrip, historyCounter
+//   (History.svelte); predictResult, predictReveal (Predict.svelte);
+//   decoration, black-nodes, tau, arrows, game-board (the decoration and the game board);
+//   symmetry-reason, light-1, light-2, light-3, reason-1, reason-2, reason-3, verdict, failure-note, examples;
+//   data-pending, real-form, cartan-label, restricted-type, real-rank, multiplicities, multiplicity-classes,
+//   dim-k, dim-p, character, shape (the data);
+//   theta-word, theta-stage, theta-stages, theta-note (theta);
+//   shadow, shadow-coordinates, shadow-picture, shadow-table, no-restricted-roots (the shadows);
+//   restricted-board, restricted-name, restricted-name-note, composite-word, composite-length (the restricted board);
+//   catalogue, catalogue-row, same-form (the catalogue)
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { admissibility, boardFromName, positiveRoots, satake, theta, toPositions } from '../../../packages/engine/src/index';
+import type { Board, SatakeDiagram } from '../../../packages/engine/src/index';
+
+interface GoldenRecord {
+  dynkin_type: string;
+  real_form: string;
+  black_nodes: number[];
+  tau: number[];
+  real_rank: number;
+  restricted_type_display: string | null;
+  restricted_board: string | null;
+  restricted_simple_orbits: number[][];
+  restricted_simple_multiplicities: [number, number][];
+  restricted_orbits_in_bourbaki_order: number[][] | null;
+  restricted_reflection_word_lengths: number[];
+  w_X_word: number[];
+  dim_k: number;
+  dim_p: number;
+  character: number;
+  cartan_label: string;
+}
+interface GoldenExample {
+  type: string;
+  black_nodes: number[];
+  tau: number[];
+  condition_1: boolean;
+  condition_2: boolean;
+  condition_3: boolean;
+  admissible: boolean;
+  real_forms: string[];
+}
+const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../../reference/golden_data.json', import.meta.url)), 'utf8')) as {
+  satake: GoldenRecord[];
+  satake_examples: GoldenExample[];
+  types: Record<string, unknown>;
+};
+const record = (type: string, form: string): GoldenRecord => {
+  const hits = golden.satake.filter((r) => r.dynkin_type === type && r.real_form === form);
+  if (hits.length !== 1) throw new Error(`${hits.length} records for ${type} ${form}`);
+  return hits[0]!;
+};
+const example = (type: string, black: number[], tau: number[]): GoldenExample => {
+  const hits = golden.satake_examples.filter((e) => e.type === type && e.black_nodes.join() === black.join() && e.tau.join() === tau.join());
+  if (hits.length !== 1) throw new Error(`${hits.length} examples for ${type} ${black.join()}`);
+  return hits[0]!;
+};
+const TYPES = Object.keys(golden.types);
+
+const ROUTE = 'tools/satake/';
+const NOTICE = 'The link could not be read, so the tool shows its default state.';
+const MINUS = '−';
+const word = (b: boolean): string => (b ? 'holds' : 'fails');
+const minus = (x: number): string => (x < 0 ? `${MINUS}${-x}` : String(x));
+const vec = (v: readonly number[]): string => `(${v.map(minus).join(', ')})`;
+/** The multiplicities text of the tool: each Bourbaki node with its pair, the pair found by orbit. */
+const multText = (r: GoldenRecord): string =>
+  r.restricted_orbits_in_bourbaki_order!.map((o, k) => {
+    const s = r.restricted_simple_orbits.findIndex((x) => x.join() === o.join());
+    const [a, b] = r.restricted_simple_multiplicities[s]!;
+    return `${k + 1}: (${a}, ${b})`;
+  }).join('; ');
+
+const root = (page: Page): Locator => page.locator('[data-tool="satake"]');
+const out = (page: Page, name: string): Locator => root(page).locator(`[data-out="${name}"]`);
+const control = (page: Page, name: string): Locator => root(page).locator(`[data-control="${name}"]`);
+const live = (page: Page): Locator => root(page).locator('[data-live]');
+const deco = (page: Page, label: number): Locator => out(page, 'decoration').locator(`button[data-node="${label}"]`);
+const gameNodes = (page: Page): Locator => out(page, 'game-board').locator('button[data-node]');
+const restrictedNode = (page: Page, label: number): Locator => out(page, 'restricted-board').locator(`button[data-node="${label}"]`);
+const tab = (page: Page, id: string): Locator => root(page).locator(`[data-panel-tab="${id}"]`);
+
+async function open(page: Page, query = ''): Promise<void> {
+  await page.goto(`${ROUTE}${query ? `?${query}` : ''}`);
+  await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+}
+
+async function openPanel(page: Page, id: string): Promise<void> {
+  await tab(page, id).click();
+  await expect(tab(page, id)).toHaveAttribute('aria-selected', 'true');
+}
+
+/** The values of a board's buttons in label order. */
+async function valuesOf(nodes: Locator): Promise<string[]> {
+  const pairs: [number, string][] = [];
+  for (const b of await nodes.all()) pairs.push([Number(await b.getAttribute('data-node')), (await b.getAttribute('data-value')) ?? '']);
+  return pairs.sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+}
+
+const B = (name: string): Board<number> => boardFromName(name) as Board<number>;
+/** The engine's diagram of a pair given in labels (toPositions only, E-7). */
+function diagram(type: string, black: number[], tau: number[]): SatakeDiagram {
+  const board = B(type);
+  const t: number[] = new Array(board.n);
+  [...board.labels].sort((a, b) => a - b).forEach((l, k) => {
+    t[toPositions(board, [l])[0]!] = toPositions(board, [tau[k]!])[0]!;
+  });
+  return { board, black: toPositions(board, black), tau: t };
+}
+
+test.use({ reducedMotion: 'reduce' });
+
+test('data on su(1,3): real rank 1, BC1, (4, 1), dim k 9, dim p 6, character −3', async ({ page }) => {
+  await open(page);
+  const r = record('A3', 'su(1,3)');
+  await expect(out(page, 'caption')).not.toHaveText('');
+  await expect(out(page, 'black-nodes')).toHaveText(r.black_nodes.join('.'));
+  await expect(out(page, 'tau')).toHaveText(r.tau.join('.'));
+  await expect(tab(page, 'data')).toHaveAttribute('aria-selected', 'true');
+  await expect(out(page, 'real-form')).toHaveCount(1);
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'su(1,3)');
+  await expect(out(page, 'cartan-label')).toHaveText(r.cartan_label);
+  await expect(out(page, 'restricted-type')).toHaveText(r.restricted_type_display!);
+  await expect(out(page, 'real-rank')).toHaveText(String(r.real_rank));
+  await expect(out(page, 'multiplicities')).toHaveText(multText(r));
+  await expect(out(page, 'multiplicities')).toHaveText('1: (4, 1)');
+  await expect(out(page, 'dim-k')).toHaveText(String(r.dim_k));
+  await expect(out(page, 'dim-p')).toHaveText(String(r.dim_p));
+  await expect(out(page, 'character')).toHaveText(minus(r.character));
+  await expect(out(page, 'character')).toHaveText(`${MINUS}3`);
+  for (const k of [1, 2, 3]) await expect(out(page, `light-${k}`)).toHaveText('holds');
+  await expect(out(page, 'verdict')).toHaveText('admissible');
+  await expect(out(page, 'failure-note')).toHaveCount(0);
+  // the default root (0, 0, 1) on the game board, its shadow and its coordinate
+  expect(await valuesOf(gameNodes(page))).toEqual(['0', '0', '1']);
+  await expect(out(page, 'shadow')).toHaveText('(1/2, 1/2, 1/2)');
+  await expect(out(page, 'shadow-coordinates')).toHaveText('(1)');
+});
+
+test('the lights preset opens on A2 with free decoration and its buttons load the five A3 examples of 2.15 with their verdicts', async ({ page }) => {
+  // the state of the lights preset (g=A2&x=&t=1.2, the split form) with its panel; the server render of the
+  // preset itself is checked in site/tests/unit/tools/T13.test.ts
+  await open(page, 'g=A2&x=&t=1.2');
+  await openPanel(page, 'lights');
+  await expect(out(page, 'black-nodes')).toHaveText('');
+  await expect(out(page, 'tau')).toHaveText('1.2');
+  for (const k of [1, 2, 3]) await expect(out(page, `light-${k}`)).toHaveText('holds');
+  const buttons = out(page, 'examples').locator('[data-control="example"]');
+  await expect(buttons).toHaveCount(6);
+  // the rows of the table of SPEC 2.15 on A3 and A2, in its order; verdicts read from satake_examples
+  const rows: [string, number[], number[]][] = [
+    ['A3', [1, 3], [1, 2, 3]],
+    ['A3', [1], [1, 2, 3]],
+    ['A3', [1, 2], [1, 2, 3]],
+    ['A3', [2], [3, 2, 1]],
+    ['A3', [1], [3, 2, 1]],
+    ['A2', [1], [1, 2]],
+  ];
+  for (const [k, [type, black, tau]] of rows.entries()) {
+    const e = example(type, black, tau);
+    await buttons.nth(k).click();
+    await expect(out(page, 'black-nodes')).toHaveText(black.join('.'));
+    await expect(out(page, 'tau')).toHaveText(tau.join('.'));
+    await expect(out(page, 'light-1')).toHaveText(word(e.condition_1));
+    await expect(out(page, 'light-2')).toHaveText(word(e.condition_2));
+    await expect(out(page, 'light-3')).toHaveText(word(e.condition_3));
+    await expect(out(page, 'verdict')).toHaveText(e.admissible ? 'admissible' : 'not admissible');
+    // pushState on an example (7.4): the address bar holds the example's link, bare for the route's default state
+    const isDefault = type === 'A3' && black.join() === '2' && tau.join() === '3,2,1';
+    expect(new URL(page.url()).searchParams.get('x')).toBe(isDefault ? null : black.join('.'));
+    expect(new URL(page.url()).searchParams.get('g')).toBe(isDefault ? null : type);
+  }
+  await expect(out(page, 'light-3')).toHaveText('fails');
+  await page.goBack();
+  await expect(out(page, 'black-nodes')).toHaveText('1');
+  await expect(out(page, 'tau')).toHaveText('3.2.1');
+});
+
+test('D4 with black nodes 3 and 4 shows both names, each with its restricted type', async ({ page }) => {
+  await open(page, 'g=D4&x=3.4&t=1.2.3.4');
+  const e = example('D4', [3, 4], [1, 2, 3, 4]);
+  const names = out(page, 'real-form');
+  await expect(names).toHaveCount(e.real_forms.length);
+  for (const [k, form] of e.real_forms.entries()) {
+    await expect(names.nth(k)).toHaveAttribute('data-name', form);
+    await expect(names.nth(k).locator('[data-out="restricted-type"]')).toHaveText(record('D4', form).restricted_type_display!);
+  }
+  await expect(names.nth(0).locator('[data-out="restricted-type"]')).toHaveText('B2');
+  await expect(names.nth(1).locator('[data-out="restricted-type"]')).toHaveText('C2');
+});
+
+test('A2 with node 1 black: light 3 fails with minus 1/2 at node 2 and the careful sentence, and no data', async ({ page }) => {
+  await open(page, 'g=A2&x=1&t=1.2');
+  await expect(out(page, 'light-1')).toHaveText('holds');
+  await expect(out(page, 'light-2')).toHaveText('holds');
+  await expect(out(page, 'light-3')).toHaveText('fails');
+  await expect(out(page, 'reason-3')).toContainText(`${MINUS}1/2`);
+  await expect(out(page, 'reason-3')).toContainText('node 2');
+  await expect(out(page, 'reason-1')).toHaveCount(0);
+  await expect(out(page, 'verdict')).toHaveText('not admissible');
+  await expect(out(page, 'failure-note')).toContainText('not the Satake diagram of any real form');
+  await expect(out(page, 'failure-note')).toContainText('no involution of the Lie algebra acts as this θ');
+  for (const panel of ['data', 'shadows', 'restricted']) {
+    await openPanel(page, panel);
+    for (const name of ['real-form', 'real-rank', 'dim-k', 'dim-p', 'character', 'multiplicities', 'shadow', 'shadow-coordinates', 'shadow-table', 'shadow-picture', 'restricted-board', 'composite-word']) {
+      await expect(out(page, name), `${panel}: ${name}`).toHaveCount(0);
+    }
+  }
+  // theta is defined for the pair and can still be played (2.15): on A2 with node 1 black it is -s_1
+  await openPanel(page, 'theta');
+  await expect(out(page, 'theta-word')).toHaveText('1');
+  // the built page never says that theta is not an involution (M9 beat 4)
+  const text = (await root(page).innerText()).toLowerCase();
+  expect(text).not.toMatch(/(theta|θ) is not an involution/);
+  expect(text).not.toContain('not an involution');
+});
+
+test('play-theta on A3 with black nodes 1 and 3 takes (0,1,0) to (−1,−1,−1) in three stages', async ({ page }) => {
+  await open(page, 'g=A3&x=1.3&t=1.2.3');
+  await openPanel(page, 'theta');
+  expect(await valuesOf(gameNodes(page))).toEqual(['0', '1', '0']);
+  await expect(out(page, 'theta-word')).toHaveText('1 3');
+  await expect(out(page, 'theta-stage')).toHaveText('0');
+  const d = diagram('A3', [1, 3], [1, 2, 3]);
+  const end = theta(d, [0, 1, 0]).map(String);
+  // A.5: after stage 1 (0, 1, 0); during stage 2 (1, 1, 0) then (1, 1, 1); after stage 3 (-1, -1, -1)
+  await expect(out(page, 'theta-stages')).toContainText('(1, 1, 0), (1, 1, 1)');
+  await control(page, 'theta-next').click();
+  await expect(out(page, 'theta-stage')).toHaveText('1');
+  expect(await valuesOf(gameNodes(page))).toEqual(['0', '1', '0']);
+  await expect(live(page)).toHaveText('Stage 1 of θ. Populations now 0, 1, 0.');
+  await control(page, 'theta-next').click();
+  await expect(out(page, 'theta-stage')).toHaveText('2');
+  expect(await valuesOf(gameNodes(page))).toEqual(['1', '1', '1']);
+  await control(page, 'theta-next').click();
+  await expect(out(page, 'theta-stage')).toHaveText('3');
+  expect(await valuesOf(gameNodes(page))).toEqual(end);
+  expect(end).toEqual(['-1', '-1', '-1']);
+  await expect(live(page)).toHaveText('Stage 3 of θ. Populations now minus 1, minus 1, minus 1.');
+  await expect(out(page, 'moveCounter')).toHaveText('3');
+  // "Play θ" runs all three stages again: theta is an involution of the roots
+  await control(page, 'theta-play').click();
+  expect(await valuesOf(gameNodes(page))).toEqual(['0', '1', '0']);
+  await expect(out(page, 'moveCounter')).toHaveText('6');
+});
+
+test('E6 with black nodes 2, 3, 4, 5 shows restricted board A2 with multiplicity 8 and a composite move reflects the shadow', async ({ page }) => {
+  await open(page, 'g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+  const r = record('E6', 'e6(-26)');
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'e6(-26)');
+  await expect(out(page, 'multiplicities')).toHaveText(multText(r));
+  await expect(out(page, 'multiplicities')).toHaveText('1: (8, 0); 2: (8, 0)');
+  await expect(out(page, 'dim-k')).toHaveText(String(r.dim_k));
+  await expect(out(page, 'character')).toHaveText(minus(r.character));
+  await openPanel(page, 'restricted');
+  await expect(out(page, 'restricted-name')).toHaveText(r.restricted_board!);
+  await expect(out(page, 'restricted-name')).toHaveText('A2');
+  await expect(restrictedNode(page, 1)).toHaveAttribute('aria-label', /^Restricted node 1, orbit 1, multiplicity 8 and 0/);
+  await expect(out(page, 'shadow-coordinates')).toHaveText('(0, 1)');
+  expect(await valuesOf(out(page, 'restricted-board').locator('button[data-node]'))).toEqual(['0', '1']);
+  const before = await valuesOf(gameNodes(page));
+  await restrictedNode(page, 2).click();
+  const k = r.restricted_orbits_in_bourbaki_order![1]!;
+  const s = r.restricted_simple_orbits.findIndex((o) => o.join() === k.join());
+  await expect(out(page, 'composite-length')).toHaveText(String(r.restricted_reflection_word_lengths[s]));
+  await expect(out(page, 'composite-length')).toHaveText('8');
+  const letters = (await out(page, 'composite-word').innerText()).trim().split(/\s+/);
+  expect(letters.length).toBe(r.w_X_word.length + r.w_X_word.length + r.restricted_reflection_word_lengths[s]!);
+  expect(letters.length).toBe(32);
+  expect(letters.slice(0, r.w_X_word.length).map(Number)).toEqual(r.w_X_word);
+  await expect(out(page, 'shadow-coordinates')).toHaveText(`(0, ${MINUS}1)`);
+  expect(await valuesOf(out(page, 'restricted-board').locator('button[data-node]'))).toEqual(['0', '-1']);
+  expect(await valuesOf(gameNodes(page))).not.toEqual(before);
+  await expect(live(page)).toHaveText('Played the composite move of restricted node 2, 32 mutations. Shadow coordinates now 0, minus 1.');
+  // the population reached is a root of E6
+  const roots = new Set([...positiveRoots(B('E6')), ...positiveRoots(B('E6')).map((v) => v.map((x) => (x === 0 ? 0 : -x)))].map((v) => v.join(',')));
+  expect(roots.has((await valuesOf(gameNodes(page))).join(','))).toBe(true);
+});
+
+test('A5 su(1,5): only the arrow 1 to 5 is drawn until the toggle shows tau on black nodes 2 and 4', async ({ page }) => {
+  await open(page, 'g=A5&x=2.3.4&t=5.4.3.2.1');
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'su(1,5)');
+  const drawing = out(page, 'decoration');
+  await expect(drawing.locator('[data-arrow]')).toHaveCount(1);
+  await expect(drawing.locator('[data-arrow="1-5"]')).toHaveCount(1);
+  await expect(drawing.locator('[data-black-arrow]')).toHaveCount(0);
+  await expect(out(page, 'arrows')).toHaveText('arrows 1 ↔ 5');
+  await control(page, 'toggle').check();
+  await expect(drawing.locator('[data-black-arrow="2-4"]')).toHaveCount(1);
+  await expect(drawing.locator('[data-black-arrow]')).toHaveCount(1);
+  await expect(out(page, 'arrows')).toHaveText('arrows 1 ↔ 5; τ on black nodes 2 ↔ 4');
+  // the toggle is not part of the link (6.6)
+  await page.waitForTimeout(700);
+  expect(new URL(page.url()).search).toBe('?g=A5&x=2.3.4&t=5.4.3.2.1');
+});
+
+test('the D4 catalogue lists six records and marks so(2,6) and so*(8) as one real form', async ({ page }) => {
+  await open(page, 'g=D4');
+  await openPanel(page, 'catalogue');
+  const expected = golden.satake.filter((r) => r.dynkin_type === 'D4').map((r) => r.real_form);
+  const rows = out(page, 'catalogue-row');
+  await expect(rows).toHaveCount(expected.length);
+  expect(expected.length).toBe(6);
+  for (const [k, form] of expected.entries()) await expect(rows.nth(k)).toHaveAttribute('data-name', form);
+  await expect(out(page, 'same-form')).toHaveCount(2);
+  await expect(root(page).locator('[data-out="catalogue-row"][data-name="so(2,6)"] [data-out="same-form"]')).toHaveText('same real form as so*(8)');
+  await expect(root(page).locator('[data-out="catalogue-row"][data-name="so*(8)"] [data-out="same-form"]')).toHaveText('same real form as so(2,6)');
+  await root(page).locator('[data-control="catalogue-load"][data-name="so*(8)"]').click();
+  await expect(out(page, 'black-nodes')).toHaveText(record('D4', 'so*(8)').black_nodes.join('.'));
+  await expect(out(page, 'black-nodes')).toHaveText('1.3');
+  expect(new URL(page.url()).searchParams.get('x')).toBe('1.3');
+  await openPanel(page, 'data');
+  await expect(root(page).locator('[data-out="real-form"][data-name="so*(8)"] [data-out="restricted-type"]')).toHaveText('C2');
+  await openPanel(page, 'restricted');
+  await expect(out(page, 'restricted-name')).toHaveText('C2');
+  await expect(out(page, 'restricted-name-note')).toHaveText('B2 = C2');
+  // drawn by the record whose pair is the reader's: Bourbaki node 1 is the orbit listed first in the record
+  const order = record('D4', 'so*(8)').restricted_orbits_in_bourbaki_order!;
+  await expect(restrictedNode(page, 1)).toHaveAttribute('aria-label', new RegExp(`^Restricted node 1, orbit ${order[0]!.join(' and ')},`));
+});
+
+test('shadows on su(1,2): the picture shows lambda with multiplicity 2 and 2 lambda with multiplicity 1, and the table matches A.5', async ({ page }) => {
+  await open(page, 'g=A2&x=&t=2.1');
+  await openPanel(page, 'shadows');
+  const pic = out(page, 'shadow-picture');
+  await expect(pic.locator('[data-point]')).toHaveCount(4);
+  for (const [c, m, dbl] of [['1', '2', 'false'], ['2', '1', 'true'], ['-1', '2', 'false'], ['-2', '1', 'true']] as const) {
+    await expect(pic.locator(`[data-point="${c}"]`)).toHaveAttribute('data-mult', m);
+    await expect(pic.locator(`[data-point="${c}"]`)).toHaveAttribute('data-double', dbl);
+  }
+  // the chosen root (0, 1) has the shadow (1/2, 1/2), coordinate 1: that point is framed
+  await expect(pic.locator('[data-chosen="true"]')).toHaveAttribute('data-point', '1');
+  await expect(out(page, 'shadow')).toHaveText('(1/2, 1/2)');
+  // A.5
+  const rows = out(page, 'shadow-table').locator('tbody tr');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0).locator('th')).toHaveText('(1/2, 1/2)');
+  await expect(rows.nth(0).locator('td').nth(0)).toHaveText('2');
+  await expect(rows.nth(0).locator('td').nth(1)).toHaveText(`(0, 1) ↦ (${MINUS}1, 0); (1, 0) ↦ (0, ${MINUS}1)`);
+  await expect(rows.nth(1).locator('th')).toHaveText('(1, 1)');
+  await expect(rows.nth(1).locator('td').nth(0)).toHaveText('1');
+  await expect(rows.nth(1).locator('td').nth(1)).toHaveText(`(1, 1) ↦ (${MINUS}1, ${MINUS}1)`);
+  await expect(out(page, 'real-rank')).toHaveCount(0);
+});
+
+test('a t that is not an involutive symmetry loads the default state with the notice', async ({ page }) => {
+  for (const query of ['g=A3&t=2.1.3', 'g=D4&t=3.2.4.1', 'g=pentagon', 'g=A3&x=7']) {
+    await open(page, query);
+    await expect(out(page, 'notice')).toHaveText(NOTICE);
+    await expect(out(page, 'black-nodes')).toHaveText('2');
+    await expect(out(page, 'tau')).toHaveText('3.2.1');
+    await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'su(1,3)');
+  }
+});
+
+test('B3 so(2,5) and C3 sp(1,2) show their data', async ({ page }) => {
+  for (const [type, form, query] of [['B3', 'so(2,5)', 'g=B3&x=3&t=1.2.3'], ['C3', 'sp(1,2)', 'g=C3&x=1.3&t=1.2.3']] as const) {
+    const r = record(type, form);
+    await open(page, query);
+    await expect(out(page, 'real-form')).toHaveAttribute('data-name', form);
+    await expect(out(page, 'restricted-type')).toHaveText(r.restricted_type_display!);
+    await expect(out(page, 'multiplicities')).toHaveText(multText(r));
+    await expect(out(page, 'dim-k')).toHaveText(String(r.dim_k));
+  }
+  // the instruction's values: B2 with (1, 0) and (3, 0), dim k 11; BC1 with (4, 3), dim k 13
+  expect(multText(record('B3', 'so(2,5)'))).toBe('1: (1, 0); 2: (3, 0)');
+  expect(record('B3', 'so(2,5)').dim_k).toBe(11);
+  expect(multText(record('C3', 'sp(1,2)'))).toBe('1: (4, 3)');
+  expect(record('C3', 'sp(1,2)').dim_k).toBe(13);
+});
+
+test('the compact form of G2 shows real rank 0 and no restricted board', async ({ page }) => {
+  await open(page, 'g=G2&x=1.2&t=1.2');
+  const r = record('G2', 'g2(-14)');
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', r.real_form);
+  await expect(out(page, 'real-rank')).toHaveText('0');
+  await expect(out(page, 'multiplicities')).toHaveText('none');
+  await expect(out(page, 'shape')).toContainText('compact form');
+  await expect(out(page, 'shadow-coordinates')).toHaveCount(0);
+  await openPanel(page, 'restricted');
+  await expect(out(page, 'restricted-board')).toHaveCount(0);
+  await expect(out(page, 'no-restricted-roots')).toHaveCount(1);
+  await openPanel(page, 'shadows');
+  await expect(out(page, 'shadow-table')).toHaveCount(0);
+  await expect(out(page, 'no-restricted-roots')).toHaveCount(1);
+});
+
+test('every node button carries data-node, data-board, data-value and data-can-act, and the root carries data-tool and data-moves', async ({ page }) => {
+  await open(page, 'g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+  await expect(root(page)).toHaveAttribute('data-tool', 'satake');
+  await expect(root(page)).toHaveAttribute('data-moves', /^\d+$/);
+  await openPanel(page, 'restricted');
+  const buttons = root(page).locator('button[data-node]');
+  expect(await buttons.count()).toBe(6 + 6 + 2);
+  for (const b of await buttons.all()) {
+    for (const a of ['data-node', 'data-board', 'data-value']) expect((await b.getAttribute(a)) ?? '', a).not.toBe('');
+    expect(['true', 'false']).toContain(await b.getAttribute('data-can-act'));
+  }
+  for (const b of await gameNodes(page).all()) {
+    await expect(b).toHaveAttribute('data-board', 'populations');
+    await expect(b).toHaveAttribute('data-can-act', 'false');
+  }
+  for (const b of await out(page, 'decoration').locator('button[data-node]').all()) {
+    await expect(b).toHaveAttribute('data-colour', /^(black|white)$/);
+    await expect(b).toHaveAttribute('data-board', 'decoration');
+  }
+  await expect(deco(page, 2)).toHaveAttribute('data-colour', 'black');
+  await expect(deco(page, 1)).toHaveAttribute('data-colour', 'white');
+  for (const b of await out(page, 'restricted-board').locator('button[data-node]').all()) {
+    await expect(b).toHaveAttribute('data-board', 'restricted');
+    await expect(b).toHaveAttribute('data-can-act', 'true');
+  }
+  // painting a node: its colour, the lights and the announcement
+  await deco(page, 1).click();
+  await expect(deco(page, 1)).toHaveAttribute('data-colour', 'black');
+  await expect(out(page, 'black-nodes')).toHaveText('1.2.3.4.5');
+  await expect(live(page)).toHaveText(/^Node 1 painted black\. Condition 1 (holds|fails), condition 2 (holds|fails), condition 3 (holds|fails)\. (Admissible|Not admissible)\.$/);
+});
+
+test('picking E8 fetches the worker and shows the data, and the default route never fetches it', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (r) => {
+    if (/engine\.worker/.test(r.url())) requests.push(r.url());
+  });
+  await open(page);
+  await page.waitForLoadState('networkidle');
+  expect(requests).toEqual([]);
+  await openPanel(page, 'restricted');
+  await expect(out(page, 'restricted-board')).toHaveCount(1);
+  expect(requests).toEqual([]);
+  await control(page, 'picker').selectOption('E8');
+  // the lights at once, the data from the worker
+  await expect(out(page, 'verdict')).toHaveText('admissible');
+  await openPanel(page, 'data');
+  const r = record('E8', 'e8(8)');
+  await expect(out(page, 'real-rank')).toHaveText(String(r.real_rank));
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'e8(8)');
+  expect(requests.length).toBeGreaterThan(0);
+  // E7 too, through a link
+  await open(page, 'g=E7&x=2.5.7&t=1.2.3.4.5.6.7');
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'e7(-5)');
+  await expect(out(page, 'dim-k')).toHaveText(String(record('E7', 'e7(-5)').dim_k));
+});
+
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+  test('without JavaScript the default figure, lights, data, caption and table are present and the controls are disabled', async ({ page }) => {
+    await page.goto(ROUTE);
+    await expect(root(page)).not.toHaveAttribute('data-hydrated', 'true');
+    await expect(out(page, 'caption')).not.toHaveText('');
+    await expect(out(page, 'noscript')).toHaveCount(1);
+    await expect(out(page, 'decoration').locator('button[data-node]')).toHaveCount(3);
+    await expect(gameNodes(page)).toHaveCount(3);
+    for (const k of [1, 2, 3]) await expect(out(page, `light-${k}`)).toHaveText('holds');
+    await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'su(1,3)');
+    await expect(out(page, 'real-rank')).toHaveText(String(record('A3', 'su(1,3)').real_rank));
+    await expect(out(page, 'dim-k')).toHaveText(String(record('A3', 'su(1,3)').dim_k));
+    await expect(root(page).locator('details table').first()).toHaveCount(1);
+    expect(await root(page).locator('details table button').count()).toBeGreaterThanOrEqual(3);
+    const controls = root(page).locator('button, input, select');
+    for (const c of await controls.all()) await expect(c).toBeDisabled();
+    await expect(live(page)).toHaveText('');
+  });
+});
+
+test('no serious or critical axe violations on /tools/satake in both themes', async ({ page }) => {
+  const serious = async (): Promise<string[]> => {
+    const axe = await new AxeBuilder({ page }).include('[data-tool="satake"]').analyze();
+    return axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+  };
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    await open(page);
+    expect(await serious(), scheme).toEqual([]);
+    for (const p of ['lights', 'theta', 'shadows', 'restricted', 'catalogue']) {
+      await openPanel(page, p);
+      expect(await serious(), `${scheme} ${p}`).toEqual([]);
+    }
+    await open(page, 'g=A2&x=1&t=1.2');
+    expect(await serious(), `${scheme} A2 not admissible`).toEqual([]);
+    await open(page, 'g=A2&x=&t=2.1');
+    await openPanel(page, 'shadows');
+    expect(await serious(), `${scheme} shadow picture`).toEqual([]);
+  }
+});
+
+test('at 320 pixels the panels stack and the page has no horizontal scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  for (const query of ['', 'g=E8', 'g=D8&x=1.3.5.7&t=1.2.3.4.5.6.7.8', 'g=A8&x=&t=8.7.6.5.4.3.2.1']) {
+    await open(page, query);
+    for (const p of ['lights', 'data', 'theta', 'shadows', 'restricted', 'catalogue']) {
+      await openPanel(page, p);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${query} ${p}`).toBeLessThanOrEqual(0);
+    }
+    for (const b of await root(page).locator('button[data-node]').all()) {
+      const r = (await b.boundingBox())!;
+      expect(r.width).toBeGreaterThanOrEqual(24);
+      expect(r.height).toBeGreaterThanOrEqual(24);
+    }
+    // the decoration copy sits directly above the game board, node over node (6.3)
+    const top = (await deco(page, 1).boundingBox())!;
+    const below = (await gameNodes(page).first().boundingBox())!;
+    expect(Math.abs(top.x - below.x)).toBeLessThan(1.5);
+    expect(below.y).toBeGreaterThan(top.y);
+  }
+});
+
+test('the embed route accepts the same keys', async ({ page }) => {
+  await page.goto('embed/satake/?g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+  await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'e6(-26)');
+  await expect(out(page, 'notice')).toHaveCount(0);
+  await expect(out(page, 'black-nodes')).toHaveText('2.3.4.5');
+});
+
+test('on each of the 32 boards the split form shows complete data and no text says not of finite type or stopped after', async ({ page }) => {
+  for (const type of TYPES) {
+    // a link with x empty and t the identity: the split form, on the default board A3 too (6.6: a key that is
+    // absent keeps the configured value)
+    const n = B(type).n;
+    await open(page, `g=${type}&x=&t=${Array.from({ length: n }, (_, k) => k + 1).join('.')}`);
+    await expect(out(page, 'real-rank'), type).toHaveText(String(n));
+    await expect(out(page, 'data-pending'), type).toHaveCount(0);
+    const text = await root(page).innerText();
+    expect(text, type).not.toMatch(/not of finite type|stopped after|still running after/i);
+  }
+});
+
+test('Copy link, Download data, Export SVG and Export PNG export the current diagram', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, permissions: ['clipboard-read', 'clipboard-write'], reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  try {
+    await open(page, 'g=D4&x=3.4&t=1.2.3.4');
+    await control(page, 'copyLink').click();
+    await expect(live(page)).toHaveText('Link copied.');
+    const link = new URL(await page.evaluate(() => navigator.clipboard.readText()));
+    expect([...link.searchParams.keys()].sort()).toEqual(['g', 't', 'x', 'z']);
+    expect(link.searchParams.get('g')).toBe('D4');
+    expect(link.searchParams.get('x')).toBe('3.4');
+    expect(link.searchParams.get('t')).toBe('1.2.3.4');
+    const [dl] = await Promise.all([page.waitForEvent('download'), control(page, 'downloadData').click()]);
+    const doc = JSON.parse(readFileSync((await dl.path())!, 'utf8'));
+    expect(doc.state).toEqual({ schema: 1, tool: 'satake', board: 'D4', black: [3, 4], tau: [1, 2, 3, 4] });
+    expect(doc.derived.admissibility.admissible).toBe(true);
+    expect(doc.derived.records.map((x: { real_form: string }) => x.real_form)).toEqual(example('D4', [3, 4], [1, 2, 3, 4]).real_forms);
+    expect(doc.derived.records[0].black_nodes).toEqual([3, 4]);
+    expect(doc.derived.records[0].dim_k).toBe(record('D4', 'so(2,6)').dim_k);
+    expect(doc.derived.shadows.length).toBeGreaterThan(0);
+    for (const kind of ['svg', 'png'] as const) {
+      const [d] = await Promise.all([page.waitForEvent('download'), page.locator(`[data-tool="satake"] [data-export="${kind}"]`).click()]);
+      expect(readFileSync((await d.path())!).length, kind).toBeGreaterThan(200);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
+test('catalogue export gives the three LaTeX forms of 6.7', async ({ page }) => {
+  for (const [type, form, latex] of [
+    ['E6', 'e6(-14)', '\\dynkin[involutions={16}] E{oo***o}'],
+    ['E7', 'e7(-5)', '\\dynkin E{o*oo*o*}'],
+    ['A5', 'su(2,4)', '\\dynkin[involutions={15;24}] A{oo*oo}'],
+  ] as const) {
+    await open(page, `g=${type}`);
+    await openPanel(page, 'catalogue');
+    await root(page).locator(`[data-control="catalogue-load"][data-name="${form}"]`).click();
+    await expect(out(page, 'black-nodes')).toHaveText(record(type, form).black_nodes.join('.'));
+    const [dl] = await Promise.all([page.waitForEvent('download'), control(page, 'latex').click()]);
+    const text = readFileSync((await dl.path())!, 'utf8');
+    expect(text.split('\n')[2], form).toBe(latex);
+  }
+});
+
+test('theta, undo and the root picker: the link holds g, x and t only, never the session history', async ({ page }) => {
+  await open(page, 'g=A3&x=2&t=3.2.1');
+  await openPanel(page, 'theta');
+  await control(page, 'theta-play').click();
+  await expect(out(page, 'theta-stage')).toHaveText('3');
+  // A.5: su(1,3) takes (0, 0, 1) to (-1, -1, 0)
+  const d = diagram('A3', [2], [3, 2, 1]);
+  expect(await valuesOf(gameNodes(page))).toEqual(theta(d, [0, 0, 1]).map(String));
+  expect(await valuesOf(gameNodes(page))).toEqual(['-1', '-1', '0']);
+  await page.waitForTimeout(700);
+  expect(new URL(page.url()).search).toBe('?g=A3&x=2&t=3.2.1');
+  await control(page, 'undo').click();
+  await expect(out(page, 'theta-stage')).toHaveText('2');
+  await control(page, 'root').selectOption('1,0,0');
+  expect(await valuesOf(gameNodes(page))).toEqual(['1', '0', '0']);
+  await expect(out(page, 'moveCounter')).toHaveText('0');
+  // the data come from satake on the reader's own pair, and the pair is admissible
+  expect(satake(d).dim_k).toBe(record('A3', 'su(1,3)').dim_k);
+  expect(admissibility(d).admissible).toBe(true);
+});
