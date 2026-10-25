@@ -1,7 +1,7 @@
 // canonicalPair and matchCatalogue (SPEC.md 5.4 "Satake functions (phase 6)", 5.5 "The class of a Satake pair",
 // 2.15 "Which pairs are real forms", 4 T13; 5.7 rules 2, 5, 6; Appendix G; P6-A2 instruction 5.5, 5.6, 5.8, 6):
 // the examples of the instruction (checked against the oracle's canonical_pair), invariance under the symmetries
-// of the board, the D4 coincidence of so(2,6) and so*(8), and the names in `real_forms` of the twelve
+// of the board, the D4 coincidence of so(2,6) and so*(8), and the names in `real_forms` of the
 // `satake_examples` (matched by type, black_nodes and tau, rule 5; the oracle sorts the names).
 // No covers() (plan, P6-A2 instruction section 4): `satake_examples` is registered by P6-A1's
 // p6a-satake-examples.test.ts, which compares its verdicts; this file reads its `real_forms` without registering
@@ -176,8 +176,9 @@ describe('matchCatalogue', () => {
     });
   }
 
-  it('real forms of the twelve examples', () => {
-    expect(EXAMPLES.length).toBe(12);
+  it('real forms of the examples of satake_examples', () => {
+    // every example of the golden file (their number is read, not typed; repair after review)
+    expect(EXAMPLES.length).toBeGreaterThan(0);
     for (const rec of EXAMPLES) {
       const board = boardOf(rec.type);
       const d: SatakeDiagram = { board, black: toPositions(board, rec.black_nodes), tau: toPositions(board, rec.tau) };

@@ -1,7 +1,7 @@
 // The golden field `folding[*].quasi_split_real_form` (SPEC.md 2.13 (b): "For a symmetry of order 2, construction
 // (b) is exactly the Satake diagram with no black nodes and arrows given by sigma (section 2.15): the averaged roots
 // are the restricted roots of the quasi-split real form named in the table"; 5.7 phase 6 and rules 2, 5, 6, 7;
-// Appendix G; P6-A2 instruction 5.8). For each of the nine rows, matched by type and symmetry (rule 5), the pair
+// Appendix G; P6-A2 instruction 5.8). For each row, matched by type and symmetry (rule 5), the pair
 // with no black node and tau the row's symmetry is matched against the catalogue (matchCatalogue); the computed
 // value is the one real form found, or null when none is (rule 7: the rotation of order 3 of D4, whose tau fails
 // condition 1). The rest of `folding` is covered by p4-folding.test.ts.
@@ -26,7 +26,6 @@ const ROWS = golden.folding as FoldingRow[];
 
 describe('folding[*].quasi_split_real_form', () => {
   it('quasi-split real form of every folding row', () => {
-    expect(ROWS.length).toBe(9);
     for (const row of ROWS) {
       const where = `${row.type} ${JSON.stringify(row.symmetry)}`;
       expect(matchRecord(ROWS, { type: row.type, symmetry: row.symmetry }), where).toBe(row);
@@ -49,8 +48,9 @@ describe('folding[*].quasi_split_real_form', () => {
         expect(admissibility({ board, black: [], tau }).condition_1, where).toBe(false);
       }
     }
-    // the eight rows of order 2 and the one of order 3
-    expect(ROWS.filter((r) => r.order === 2).length).toBe(8);
-    expect(ROWS.filter((r) => r.quasi_split_real_form === null).map((r) => r.order)).toEqual([3]);
+    // both branches above are taken: rows of order 2 (one record each) and a row of another order (null); the
+    // numbers of rows are read from the golden file, not typed (repair after review)
+    expect(ROWS.some((r) => r.order === 2)).toBe(true);
+    expect(ROWS.some((r) => r.order !== 2)).toBe(true);
   });
 });

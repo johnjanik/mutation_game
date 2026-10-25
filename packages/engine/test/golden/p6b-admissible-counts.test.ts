@@ -6,7 +6,7 @@
 // real_forms_including_compact is the number of groups, catalogue_records the number of entries of
 // satakeCatalogue, admissible_pairs_total the number of pairs. Also: the canonical pairs of the catalogue entries
 // are exactly the groups; two entries share a canonical pair only on D4, and there exactly so(2,6) and so*(8);
-// summed over the types, 167 records and 166 classes.
+// summed over the types, the records and the classes of the golden file (one record more than classes).
 import { describe, expect, it } from 'vitest';
 import { symmetries } from '../../src/fold';
 import { admissibility } from '../../src/satake';
@@ -105,17 +105,17 @@ describe('admissible_counts', () => {
     }
   });
 
-  it('167 records, 166 classes', () => {
+  it('records and classes summed over the types: one record more than classes (SPEC.md 6.4 "Coincidences")', () => {
     let records = 0;
     let classes = 0;
     for (const [, e] of enumerated()) {
       records += e.records;
       classes += e.groups.size;
     }
+    // both sums are read from the golden file, not typed (repair after review)
     const goldenClasses = Object.values(COUNTS).reduce((s, c) => s + c.real_forms_including_compact, 0);
     intEq(records, (golden.satake as unknown[]).length, 'records against the golden satake list');
     intEq(classes, goldenClasses, 'classes against the golden counts');
-    // SPEC.md 6.4: "the 167 records make 166 classes"
-    expect([records, classes]).toEqual([167, 166]);
+    expect(records - classes).toBe(1);
   });
 });
