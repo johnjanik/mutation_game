@@ -1,11 +1,112 @@
 ---
-// The site footer (P1-A4; SPEC.md 7.9, 7.3, 7.2 closing rule). The licence line of 7.9 with SPDX
-// identifiers (content: CC BY-SA 4.0, the D4 default; code: the owner's AGPL-3.0-only), links to the
-// credits, the sources and, in preview builds only, the open-items page, all through
-// linkIfReleased. The element marked data-versions is the empty slot where P6-A6 prints the pinned
-// versions and the git commit ("record the versions in the footer of the built site").
-// No script.
+// The site footer (P1-A4; extended by P6-A6; SPEC.md 7.9, 7.3, 7.2 closing rule). On every page, through
+// Base.astro: the licence line of 7.9 with SPDX identifiers, the site version (the git commit, 7.4
+// "Citing"), the footer links of P1-A4 (credits, sources and, in preview builds only, open items, all
+// through linkIfReleased), and in the slot data-versions the pinned versions of 7.1 ("record the
+// versions in the footer of the built site", 7.2).
+// Everything is read at build time, never typed: the versions from the exact pins of the three
+// package.json files (root, engine, site), KaTeX's from KATEX_VERSION, the engine's from its own
+// package.json; the code licence from the root package.json (else the site's or the engine's); the
+// content licence from the line "SPDX-License-Identifier: <id>" of LICENSE-content. A pin that is not
+// an exact version, two different pins of one package, or a licence file without an identifier fails
+// the build with a message. The credits page (content/pages/credits.mdx) reads the two licences from
+// the same two files in the same way.
+// No script, no island, no client directive: the footer is part of the 15 kB shell of a page with no
+// tool (SPEC.md 7.6). The versions sit in a <details> element, which works without JavaScript.
+// Hooks (P6-A6, plan): data-site-footer; data-licence="content" and data-licence="code" with the SPDX
+// identifier as text; data-commit with the commit the build recorded; data-dep and data-dep-version
+// on each version. (data-footer belongs to the footer group of an exported SVG, P2-A6.)
 import { linkIfReleased, type Target } from '@lib/pages/released';
+import { KATEX_VERSION } from '@lib/katex';
+import rootPackage from '../../../package.json';
+import enginePackage from '../../../packages/engine/package.json';
+import sitePackage from '../../package.json';
+import contentLicenceText from '../../../LICENSE-content?raw';
+
+interface Manifest {
+  name?: string;
+  version?: string;
+  license?: unknown;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}
+
+const manifests: [string, Manifest][] = [
+  ['package.json', rootPackage],
+  ['site/package.json', sitePackage],
+  ['packages/engine/package.json', enginePackage],
+];
+
+/** The packages of the table of SPEC.md 7.1, in its order. Their versions are read, never typed. */
+const PINNED = ['astro', '@astrojs/mdx', 'svelte', '@astrojs/svelte', 'typescript', 'nanostores', 'vitest', 'fast-check', '@playwright/test', '@axe-core/playwright'];
+
+const EXACT = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+
+/** The exact pin of a package in the three package.json files, or null when none names it. */
+function pinOf(name: string): string | null {
+  const pins = new Set<string>();
+  for (const [file, m] of manifests) {
+    const v = m.dependencies?.[name] ?? m.devDependencies?.[name];
+    if (v === undefined) continue;
+    if (!EXACT.test(v)) throw new Error(`Footer.astro: ${file} pins ${name} to "${v}", which is not an exact version (SPEC.md 7.2: pin exact versions)`);
+    pins.add(v);
+  }
+  if (pins.size > 1) throw new Error(`Footer.astro: ${name} is pinned to different versions (${[...pins].join(', ')}) in the package.json files`);
+  return pins.size === 1 ? [...pins][0]! : null;
+}
+
+const versions: { name: string; version: string }[] = [
+  // A package of the list that no package.json names is left out, not shown blank.
+  ...PINNED.flatMap((name) => {
+    const v = pinOf(name);
+    return v === null ? [] : [{ name, version: v }];
+  }),
+  { name: 'katex', version: KATEX_VERSION },
+  { name: enginePackage.name, version: enginePackage.version },
+];
+
+/** An SPDX licence identifier, or an expression of identifiers joined by AND, OR or WITH. */
+const SPDX = /^[A-Za-z0-9][A-Za-z0-9.+-]*(?: (?:AND|OR|WITH) [A-Za-z0-9][A-Za-z0-9.+-]*)*$/;
+
+/** The content licence: the identifier on the line "SPDX-License-Identifier: <id>" of LICENSE-content. */
+function contentLicence(text: string): string {
+  const id = /^SPDX-License-Identifier:[ \t]*(\S+)[ \t]*$/m.exec(text)?.[1];
+  if (id === undefined || !SPDX.test(id)) {
+    throw new Error('Footer.astro: LICENSE-content names no SPDX identifier; it needs a line "SPDX-License-Identifier: <id>" (SPEC.md 7.9)');
+  }
+  return id;
+}
+
+/** The code licence: the license field of the root package.json, else of the site's or the engine's. */
+function codeLicence(): string {
+  for (const [, m] of manifests) {
+    if (typeof m.license === 'string' && m.license.trim() !== '') {
+      const id = m.license.trim();
+      if (!SPDX.test(id)) throw new Error(`Footer.astro: the license field "${id}" is not an SPDX identifier (SPEC.md 7.9)`);
+      return id;
+    }
+  }
+  throw new Error('Footer.astro: no package.json of the repository has a license field (SPEC.md 7.9)');
+}
+
+/** Short names for identifiers the site may carry (decision D4); any other identifier is shown alone. */
+const SHORT_NAMES: Record<string, string> = {
+  'CC-BY-SA-4.0': 'CC BY-SA 4.0',
+  'CC-BY-4.0': 'CC BY 4.0',
+  'AGPL-3.0-only': 'GNU AGPL version 3',
+  'AGPL-3.0-or-later': 'GNU AGPL version 3 or later',
+  MIT: 'MIT',
+  'Apache-2.0': 'Apache 2.0',
+};
+
+const content = contentLicence(contentLicenceText);
+const code = codeLicence();
+const contentName = SHORT_NAMES[content];
+const codeName = SHORT_NAMES[code];
+
+// The commit the build recorded (site/astro.config.mjs, the constant of P1-A2 that exportJSON uses).
+const commit = (import.meta.env.PUBLIC_GIT_COMMIT as string | undefined) || 'unknown';
+const commitShort = commit.slice(0, 12);
 
 const items: { target: Target; text: string }[] = [
   { target: { kind: 'page', slug: 'credits' }, text: 'Credits' },
@@ -17,17 +118,27 @@ const links = items.flatMap(({ target, text }) => {
   return href === null ? [] : [{ href, text }];
 });
 ---
-<footer class="site-footer">
+<footer class="site-footer" data-site-footer>
   <p class="licence">
-    Text and figures: CC BY-SA 4.0 (SPDX: CC-BY-SA-4.0). Code: GNU AGPL version 3 (SPDX: AGPL-3.0-only).
+    Text and figures: {contentName ? `${contentName} ` : ''}(SPDX: <span data-licence="content">{content}</span>).
+    Code: {codeName ? `${codeName} ` : ''}(SPDX: <span data-licence="code">{code}</span>).
     Code samples shown in the text fall under the code licence.
+    Site version (git commit): <code class="commit" data-commit={commit}>{commitShort}</code>.
   </p>
   <nav aria-label="Footer">
     <ul>
       {links.map((l) => <li><a href={l.href}>{l.text}</a></li>)}
     </ul>
   </nav>
-  <div class="versions" data-versions></div>
+  <div class="versions" data-versions>
+    <details>
+      <summary>Versions</summary>
+      <p class="versions-note">The site was built with these versions, read from its package files at build time.</p>
+      <ul>
+        {versions.map((d) => <li data-dep={d.name} data-dep-version={d.version}><code>{d.name}</code> {d.version}</li>)}
+      </ul>
+    </details>
+  </div>
 </footer>
 
 <style>
@@ -37,5 +148,26 @@ const links = items.flatMap(({ target, text }) => {
   }
   .versions:empty {
     display: none;
+  }
+  .versions {
+    font-size: 0.875rem;
+    padding-block-end: 16px;
+  }
+  .versions summary {
+    display: list-item;
+    min-height: 24px;
+    padding: 10px 0;
+    cursor: pointer;
+  }
+  .versions summary:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .versions-note {
+    margin: 0;
+  }
+  code {
+    font-family: var(--font-numerals);
+    overflow-wrap: anywhere;
   }
 </style>

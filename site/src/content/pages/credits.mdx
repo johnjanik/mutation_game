@@ -5,23 +5,191 @@ released: true
 generated: "dependencies"
 description: "Who made the games and the story this site retells, the licences of the site, and every package it uses."
 ---
-import { Cite } from '@components/content';
+import { Cite, G, Unverified } from '@components/content';
+import { linkIfReleased } from '@lib/pages/released';
+import { bundledPackages, dependencyRows, findRoot, katexFontNotice } from '@lib/pages/dependencies';
+import rootPackage from '../../../../package.json';
+import sitePackage from '../../../package.json';
+import enginePackage from '../../../../packages/engine/package.json';
+import contentLicenceText from '../../../../LICENSE-content?raw';
+
+export const history = linkIfReleased({ kind: 'page', slug: 'history' });
+export const m4 = linkIfReleased({ kind: 'module', number: 4 });
+export const m7 = linkIfReleased({ kind: 'module', number: 7 });
+export const sandbox = linkIfReleased({ kind: 'tool', id: 'sandbox' });
+export const repository = String(import.meta.env.PUBLIC_REPO_URL || 'https://github.com/johnjanik/mutation_game').replace(/\/+$/, '');
+export const SPDX = /^[A-Za-z0-9][A-Za-z0-9.+-]*(?: (?:AND|OR|WITH) [A-Za-z0-9][A-Za-z0-9.+-]*)*$/;
+export const contentId = (() => {
+  const id = /^SPDX-License-Identifier:[ \t]*(\S+)[ \t]*$/m.exec(contentLicenceText)?.[1];
+  if (id === undefined || !SPDX.test(id)) throw new Error('credits.mdx: LICENSE-content names no SPDX identifier; it needs a line "SPDX-License-Identifier: <id>" (SPEC.md 7.9)');
+  return id;
+})();
+export const codeId = (() => {
+  for (const m of [rootPackage, sitePackage, enginePackage]) {
+    if (typeof m.license === 'string' && m.license.trim() !== '') {
+      const id = m.license.trim();
+      if (!SPDX.test(id)) throw new Error(`credits.mdx: the license field "${id}" is not an SPDX identifier (SPEC.md 7.9)`);
+      return id;
+    }
+  }
+  throw new Error('credits.mdx: no package.json of the repository has a license field (SPEC.md 7.9)');
+})();
+export const LICENCE_NAMES = {
+  'CC-BY-SA-4.0': ['the Creative Commons Attribution-ShareAlike 4.0 International licence', 'CC BY-SA 4.0'],
+  'CC-BY-4.0': ['the Creative Commons Attribution 4.0 International licence', 'CC BY 4.0'],
+  'AGPL-3.0-only': ['the GNU Affero General Public License version 3', 'GNU AGPL version 3'],
+  'AGPL-3.0-or-later': ['the GNU Affero General Public License version 3 or later', 'GNU AGPL version 3 or later'],
+  MIT: ['the MIT License', 'MIT'],
+  'Apache-2.0': ['the Apache License, version 2.0', 'Apache 2.0'],
+};
+export const licenceName = (id) => LICENCE_NAMES[id]?.[0] ?? `the licence with SPDX identifier ${id}`;
+export const licenceShort = (id) => LICENCE_NAMES[id]?.[1] ?? id;
+export const NOT_STATED = 'not stated in the package';
+export const plain = (s) => (s === null || s === undefined ? NOT_STATED : s.replace(/\s*\u2014\s*/g, ', '));
+export const allRows = () => dependencyRows(findRoot(process.cwd()), bundledPackages(import.meta.env.PROD));
+export const Package = ({ row, hook }) => (
+  <li {...{ [`data-${hook}`]: row.name }}><strong data-field="title">{row.name}</strong> <span data-field="version">{row.version}</span>. Author: <span data-field="author">{plain(row.author)}</span>. Source: <span data-field="source">{plain(row.source)}</span>. Licence: <span data-field="licence">{plain(row.licence)}</span>.</li>
+);
+export const PackageList = ({ shipped }) => (
+  <ul data-list={shipped ? 'bundled' : 'build'} style={{ overflowWrap: 'anywhere' }}>
+    {allRows().filter((r) => (r.shipped !== null) === shipped).map((r) => <Package row={r} hook={shipped ? 'bundled' : 'build'} />)}
+  </ul>
+);
+// The videos that the site links (the history page, and the sources page generated from SOURCES.md
+// 11.1). Titles, channels and addresses are [U] (Appendix E item 5): each sits in an E5 wrapper whose
+// fallback stays true; the address is kept in the hook data-asset only.
+export const VIDEOS = [
+  { url: 'https://www.youtube.com/watch?v=peLRDMhWai8', title: 'Exceptional structures in mathematics and physics from dynamics on graphs', channel: 'Insights into Mathematics' },
+  { url: 'https://www.youtube.com/watch?v=u7cUXZHZHEE', title: 'DoG 1: The Mutation Game and a foundational exercise / challenge', channel: 'Wild Egg Maths' },
+  { url: 'https://www.youtube.com/watch?v=zPtnEZeuzH0', title: null, channel: null },
+  { url: 'https://www.youtube.com/watch?v=FgOGTGhhe48', title: null, channel: null },
+];
+export const Video = ({ url, title, channel }) => (
+  <li data-asset={url}>Title: <span data-field="title"><Unverified item="E5" fallback="a video lecture whose title is still being checked">{title ?? 'a recording whose title matches one of the first two UNSW seminars of 2018'}</Unverified></span>. Author: <span data-field="author"><Unverified item="E5" fallback="still being checked">N. J. Wildberger</Unverified></span>. Source: <span data-field="source"><Unverified item="E5" fallback="still being checked">{channel ? `the channel ${channel}, ` : ''}<a href={url}>on YouTube</a></Unverified></span>. Licence: <span data-field="licence">as its publisher set it on the platform; the video is linked, not copied</span>.</li>
+);
+export const Fonts = () => {
+  const font = katexFontNotice(findRoot(process.cwd()));
+  const licence = allRows().find((r) => r.name === 'katex')?.licence ?? null;
+  return <p data-fonts>The only font files the site ships are KaTeX's own. They come with the katex package, version {font.version}, under its licence, <span data-field="licence">{plain(licence)}</span> ({font.copyright}); the section Fonts below gives the notice the package carries. Prose and numerals use the fonts of the reader's device.</p>;
+};
 
 {/* P1-A4: converted from P0-A5's credits.astro. The fonts notice and the table of dependencies are
-    generated at build time by Page.astro (frontmatter `generated: "dependencies"`), after this text. */}
+    generated at build time by Page.astro (frontmatter `generated: "dependencies"`), after this text.
+    P6-A6 (phase 6, SPEC.md 7.9, 8.4, Appendix F): every sentence of P1-A4 kept, in sections with the
+    hooks data-credit (Wildberger first); the licences read from LICENSE-content and the root
+    package.json as Footer.astro reads them, never typed; the bundled packages and the build packages
+    listed from the installed packages through lib/pages/dependencies.ts of P1-A4 (an author string with
+    an em-dash gets a comma); the prior art of Appendix F that the site borrows from, row by row as
+    recorded in decisions/P6-A6.md; the linked videos inside the wrapper of open item E5. The page title
+    stays Credits, which the tests of P1-A4 read. */}
+
+<section data-credit="wildberger">
 
 ## The games and the story
 
 The mutation game is N. J. Wildberger's (<Cite k="W20"/>, <Cite k="W-MS"/>). So are the words city and population for its board and positions, and the story told with them: Martians and anti-Martians living in the cities of Mars, and Venus for the dual game. This site retells that story with his credit, from <Cite k="W20"/> section 2 and <Cite k="W-MS"/> pp. 1 and 30, and uses his terminology throughout.
 
+In his story every node of a board is a city on Mars, holding a population of Martians, or of anti-Martians when its count is negative. When a city mutates, its Martians become anti-Martians and its anti-Martians become Martians, and it then receives one copy of the population of every other city for each road from that city into it (<Cite k="W20"/>, section 2; <Cite k="W-MS"/>, p. 1; for simple graphs also <Cite k="W03a"/>, section 3). The dual game is told on Venus (<Cite k="W-MS"/>, p. 30). From Wildberger the site takes the game itself, its name, the words city and population, the Martians and anti-Martians, and the dual game. The names Populations and Numbers for the two views of a board are this site's own.
+
+</section>
+
+<section data-credit="games">
+
+## The numbers game and Kostant's game
+
 The numbers game is Mozes' (<Cite k="Moz90"/>), with Proctor's earlier use of the same process (<Cite k="Pro84"/>) and Eriksson's development of it (<Cite k="Eri92"/>) acknowledged.
 
+Kostant's game, the mutation game started from one Martian in which a city may mutate only when the mutation raises its population, is attributed to Kostant; the notes <Cite k="Ele16"/> and <Cite k="Che17"/> describe it. {history ? <>The <a href={history}>history page</a> gives the timeline of this work in order of date.</> : null}
+
+</section>
+
+<section data-credit="own-words">
+
+## How the literature is used
+
 Ideas, rules, theorems and data from the literature are restated on this site in its own words, with citations by key to the sources page. No sentence, figure or table layout is copied from a paper, preprint or lecture. Videos are linked, or embedded with the platform's own player, and never hosted here.
+
+On this site videos are only linked, never embedded, so that no page loads a script from another site. A short quotation is marked as a quotation and attributed to its author.
+
+</section>
+
+<section data-credit="assets">
+
+## Linked videos
+
+The site shows no image, figure or video made by anyone else. It links the videos below, from the history page and the sources page, and hosts no copy of them. Their titles, channels and addresses come from search listings and are still being checked.
+
+<ul data-list="assets" style={{ overflowWrap: 'anywhere' }}>
+{VIDEOS.map((v) => <Video {...v} />)}
+</ul>
+
+</section>
+
+<section data-credit="licences">
+
+## Licences of this site
+
+The text and figures of this site are licensed under {licenceName(contentId)} ({licenceShort(contentId)}; SPDX: <span data-licence="content">{contentId}</span>), in the file <a href={`${repository}/blob/HEAD/LICENSE-content`}>LICENSE-content</a> of the repository. The code is licensed under {licenceName(codeId)} (SPDX: <span data-licence="code">{codeId}</span>), in the file <a href={`${repository}/blob/HEAD/LICENSE`}>LICENSE</a>. Code samples shown in the text fall under the code licence. These are the current licences; the choice for the text and figures is still open and may change before the first release.
+
+The two identifiers are read when the site is built, from the file LICENSE-content and from the package.json file at the root of the repository, and the footer of every page states them in the same way.
+
+</section>
+
+<section data-credit="bundled">
+
+## Libraries and fonts that reach the reader
+
+The pages with a tool load scripts that contain code from the packages below, and every page uses KaTeX's stylesheet. Each entry gives the package's name and version, its author, its source and its licence, as the installed package states them when the site is built. Which packages reach the reader is read from the scripts the build writes.
+
+<PackageList shipped={true} />
+
+<Fonts />
+
+</section>
+
+<section data-credit="build">
+
+## Tools that build and test the site
+
+The packages below are used only to build and test the site, and none of their code reaches the reader. Their licences are those their installed packages state; not all of them are MIT. Astro and KaTeX, listed above, also build the pages.
+
+<PackageList shipped={false} />
+
+</section>
+
+<section data-credit="prior-art">
+
+## Earlier work this site learned from
+
+The site takes ideas from these works and none of their code. Each entry says what it took.
+
+<ul data-list="prior-art" style={{ overflowWrap: 'anywhere' }}>
+<li data-prior-art="ade-concurrent-game">The "ADE Concurrent Game", a Java applet on Wildberger's UNSW pages under the name of T. S. Hoang (<a href="https://web.maths.unsw.edu.au/~norman/ThaiSonHoang/numbers/ADEConcurrentGame.pdf">its documentation</a>), plays a variant of the numbers game on graphs of types A, D and E in which every node with a positive number fires at once. The site takes from it the separation of editing a board from playing on it, as in {sandbox ? <a href={sandbox}>the sandbox</a> : 'the sandbox'}, and undo, a visible history of positions, and "play to the end" on its game boards.</li>
+<li data-prior-art="mutation-explorer">GEOMETOR "Mutation Explorer" (2021), MIT licence (<a href="https://geometor.github.io/graphs/">geometor.github.io/graphs</a>), plays random or round-robin mutations on a simple graph and plots the total population. It is earlier work on the mutation game in a browser, and it showed that the game works there.</li>
+<li data-prior-art="cut-the-knot">The cut-the-knot page for the pentagon problem (<a href="https://www.cut-the-knot.org/Curriculum/Algebra/IMO1986_3.shtml">cut-the-knot.org</a>) uses the Olympiad puzzle of 1986 as a way into the game; {m4 ? <a href={m4}>module four</a> : 'module four'} and {history ? <a href={history}>the history page</a> : 'the history page'} use it in the same way.</li>
+<li data-prior-art="keller">B. Keller, quiver mutation applet (<a href="https://webusers.imj-prg.fr/~bernhard.keller/quivermutation/">its page</a>): click a node to act on it, and see the history of moves. Every game board of this site works that way. The applet itself is about quiver mutation, a different operation.</li>
+<li data-prior-art="langlands">Langlands Programs preview, Coxeter apps (<a href="https://preview.langlandsprograms.com/apps/coxeter">preview.langlandsprograms.com</a>) run serious computations with Coxeter groups in the browser, on an engine written in TypeScript. The site took them as evidence that an engine written in TypeScript can carry its own computations.</li>
+<li data-prior-art="group-explorer">Group Explorer 3, LGPL licence (<a href="https://nathancarter.github.io/group-explorer/index.html">its page</a>), shows one group in several linked views. The site shows one board in several linked views in the same way, populations beside numbers among them.</li>
+<li data-prior-art="simplie">SimpLie (T. Nutma), GPL licence (<a href="https://github.com/teake/simplie">its repository</a>): draw a Dynkin diagram and read off its type and its roots, "diagram in, structure out". The sandbox and the classification lab of this site work that way.</li>
+<li data-prior-art="stembridge-vogan">Stembridge's Coxeter plane pictures; Vogan's explanation of the $E_8$ picture (<a href="https://websites.umich.edu/~jrs/coxplane.html">Stembridge's pictures</a>, <a href="https://math.mit.edu/~dav/e8plane.html">Vogan's explanation</a>): the standard picture of the roots of $E_8$ in its Coxeter plane, and a rule in plain words for its edges, that each root is joined to its <G k="e8.neighbours_at_inner_product_1"/> nearest neighbours. {m7 ? <a href={m7}>Module seven</a> : 'Module seven'} draws the picture with the site's own code; no image is copied.</li>
+</ul>
+
+</section>
+
+<section data-credit="oracle">
 
 ## Reference software
 
 Reference software under the GPL or LGPL (SageMath, CoReLG, the Atlas of Lie Groups and Representations, Group Explorer) is used only as a black-box source of test data; its source code is not translated. The MIT-licensed `mutation-game` Python package by Andrea Cortis may be read.
 
-## Licences of this site
+The data against which the site's engine is tested come from a reference implementation written for this site, reference/lie_games.py, and its checks, reference/verify.py, both in the repository; no third-party code produced them. Two outside works served as checks on those data: <span data-oracle="sagemath">SageMath was run to confirm the Cartan matrices of the boards of finite type</span>, and <span data-oracle="dynkin-diagrams">the black nodes and arrows of the Satake catalogue were compared with the codes in the source of the LaTeX package `dynkin-diagrams` by B. McKay (LPPL), whose manual says that its table follows Helgason's</span>.
 
-The text and figures of this site are licensed under the Creative Commons Attribution-ShareAlike 4.0 International licence (CC BY-SA 4.0; SPDX: CC-BY-SA-4.0), in the file LICENSE-content of the repository. The code is licensed under the GNU Affero General Public License version 3 (SPDX: AGPL-3.0-only), in the file LICENSE. Code samples shown in the text fall under the code licence. These are the current licences; the choice for the text and figures is still open and may change before the first release.
+</section>
+
+<section data-credit="statistics">
+
+## Visit statistics
+
+This site keeps no visit statistics, and it loads no script, font or image from another site.
+
+</section>
