@@ -102,3 +102,7 @@ export type { SparseMatrix, RelationCheck } from './rep';
 // phase 6 (P6-A1): satake.ts
 export { theta, shadow2, admissibility, satake, restrictedBoard } from './satake';
 export type { SatakeDiagram, SatakeComputed, RestrictedBoard } from './satake';
+
+// phase 6 (P6-A2): satakeCatalogue.ts
+export { satakeCatalogue, satakeRecord, canonicalPair, matchCatalogue } from './satakeCatalogue';
+export type { SatakeCatalogueEntry, SatakeRecord } from './satakeCatalogue';
