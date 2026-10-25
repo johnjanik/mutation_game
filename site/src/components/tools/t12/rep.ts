@@ -411,6 +411,22 @@ export function largestAt(rep: Representation, k: number): number {
 }
 
 /**
+ * The sentences of the panel of the move of node k (a label) beside its signed version, as markup with
+ * subscripts (numbers and fixed words only): the two identities of SPEC 2.18 when m, the largest number at
+ * node k in the orbit (largestAt), is at most 1; otherwise why both fail (RT-FIX P5-RT-09-01).
+ */
+export function signedNote(k: number, m: number): string {
+  const x = (letter: string): string => `${letter}<sub>${k}</sub>`;
+  const efp = `${x('E')} + ${x('F')} + ${x('P')}`;
+  const signedMatrix = `${x('E')} ${MINUS} ${x('F')} + ${x('P')}`;
+  const exp = `exp(${x('E')}) exp(${MINUS}${x('F')}) exp(${x('E')})`;
+  const keeps = `where ${x('P')} keeps the positions whose number at node ${k} is 0`;
+  return m <= 1
+    ? `Firing node ${k} permutes the positions: its matrix is ${efp}, ${keeps}. The group element ${exp} is ${signedMatrix}: the same matrix with one sign changed in each pair. Its square multiplies each position by ${MINUS}1 to the power of its number at node ${k}.`
+    : `Some position has the number ${m} at node ${k}, and firing node ${k} moves it ${m} steps at once, which the single steps ${x('E')} and ${x('F')} miss. So the matrix of the move is not ${efp}, ${keeps}, and the signed matrix ${signedMatrix} is not ${exp}.`;
+}
+
+/**
  * The size of the matrices: the size of the basis, which equals the orbit's size (data-out="orbit-size").
  * It is the representation's dimension on a minuscule node only (representationDimension).
  */

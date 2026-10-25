@@ -98,6 +98,7 @@
     representationSteps,
     shownCheck,
     signed,
+    signedNote,
     startSentence,
     stringNote,
     undoSentence,
@@ -922,22 +923,10 @@
 {/snippet}
 
 {#snippet signedPanel()}
-  {@const m = largestAt(rep, kAt)}
   <section class="panel" data-panel="signed" aria-labelledby="{uid}-signed-title">
     <p class="panel-title" id="{uid}-signed-title">The move of node {matrixNode} beside its signed version</p>
-    <p class="line">
-      {#if m <= 1}
-        Firing node {matrixNode} permutes the positions: its matrix is E<sub>{matrixNode}</sub> + F<sub>{matrixNode}</sub> + P<sub>{matrixNode}</sub>, where P<sub>{matrixNode}</sub> keeps
-        the positions whose number at node {matrixNode} is 0. The group element exp(E<sub>{matrixNode}</sub>) exp({MINUS}F<sub>{matrixNode}</sub>) exp(E<sub>{matrixNode}</sub>) is
-        E<sub>{matrixNode}</sub> {MINUS} F<sub>{matrixNode}</sub> + P<sub>{matrixNode}</sub>: the same matrix with one sign changed in each pair. Its square multiplies each position by
-        {MINUS}1 to the power of its number at node {matrixNode}.
-      {:else}
-        Some position has the number {m} at node {matrixNode}, and firing node {matrixNode} moves it {m} steps at once, which the single steps E<sub>{matrixNode}</sub> and
-        F<sub>{matrixNode}</sub> miss. So the matrix of the move is not E<sub>{matrixNode}</sub> + F<sub>{matrixNode}</sub> + P<sub>{matrixNode}</sub>, where P<sub>{matrixNode}</sub>
-        keeps the positions whose number at node {matrixNode} is 0, and the signed matrix E<sub>{matrixNode}</sub> {MINUS} F<sub>{matrixNode}</sub> + P<sub>{matrixNode}</sub> is not
-        exp(E<sub>{matrixNode}</sub>) exp({MINUS}F<sub>{matrixNode}</sub>) exp(E<sub>{matrixNode}</sub>).
-      {/if}
-    </p>
+    <!-- The sentences hold only numbers and fixed words (signedNote): markup with subscripts, nothing typed by a reader. -->
+    <p class="line">{@html signedNote(matrixNode, largestAt(rep, kAt))}</p>
     <div class="matrices two">
       {@render matrix('move-matrix', `Firing node ${matrixNode}`, rep.moves![kAt]!)}
       {@render matrix('signed-move', `Signed: E${matrixNode} ${MINUS} F${matrixNode} + P${matrixNode}`, rep.signed![kAt]!)}
