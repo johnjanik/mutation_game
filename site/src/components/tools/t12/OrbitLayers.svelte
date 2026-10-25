@@ -57,6 +57,27 @@
     title: string,
     titleId: string,
   ): { width: number; height: number; edgeLayers: string[]; vertexLayers: string[] } {
+    const s = orbitSvgLayers(layers, drawing, texts, title, titleId);
+    return {
+      width: s.width,
+      height: s.height,
+      edgeLayers: Array.from({ length: s.edgeCount }, (_, k) => s.edgeLayer(k)),
+      vertexLayers: Array.from({ length: s.vertexCount }, (_, k) => s.vertexLayer(k)),
+    };
+  }
+
+  /**
+   * The layers of orbitSvg, each written when it is first asked for (and kept): a tool that shows one more
+   * layer per task writes each layer's markup in the task that shows it, not every layer in the task that
+   * draws the panel (SPEC 7.6; G5 repair).
+   */
+  export function orbitSvgLayers(
+    layers: OrbitLayers,
+    drawing: OrbitDrawing,
+    texts: readonly string[],
+    title: string,
+    titleId: string,
+  ): { width: number; height: number; edgeCount: number; vertexCount: number; edgeLayer: (k: number) => string; vertexLayer: (k: number) => string } {
     const boxW = Math.max(56, Math.ceil(Math.max(...texts.map((t, k) => [...vertexText(t, layers.vertices[k]!.basisIndex)].length), 4) * CHAR + 2 * PAD));
     const colW = boxW + GAP;
     const width = drawing.widest * colW - GAP + 2 * MARGIN;
@@ -65,7 +86,8 @@
     const top = (v: number): number => MARGIN + drawing.y[v]! * ROW;
     const size = `width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"`;
     const edgeLayers: string[] = [];
-    for (let at = 0; at < layers.edges.length; at += EDGE_CHUNK) {
+    const edgeLayer = (k: number): string => (edgeLayers[k] ??= edgeMarkup(k * EDGE_CHUNK));
+    const edgeMarkup = (at: number): string => {
       const out: string[] = [`<svg class="drawing edges-layer" aria-hidden="true" ${size}><g class="edges">`];
       for (const e of layers.edges.slice(at, at + EDGE_CHUNK)) {
         const x1 = cx(e.from);
@@ -82,10 +104,11 @@
         );
       }
       out.push('</g></svg>');
-      edgeLayers.push(out.join(''));
-    }
+      return out.join('');
+    };
     const vertexLayers: string[] = [];
-    for (let at = 0; at < layers.vertices.length; at += VERTEX_CHUNK) {
+    const vertexLayer = (k: number): string => (vertexLayers[k] ??= vertexMarkup(k * VERTEX_CHUNK));
+    const vertexMarkup = (at: number): string => {
       const vs: string[] = [
         at === 0
           ? `<svg class="drawing vertices-layer" role="img" aria-labelledby="${esc(titleId)}" ${size}><title id="${esc(titleId)}">${esc(title)}</title><g class="vertices">`
@@ -100,9 +123,16 @@
         );
       });
       vs.push('</g></svg>');
-      vertexLayers.push(vs.join(''));
-    }
-    return { width, height, edgeLayers, vertexLayers };
+      return vs.join('');
+    };
+    return {
+      width,
+      height,
+      edgeCount: Math.ceil(layers.edges.length / EDGE_CHUNK),
+      vertexCount: Math.ceil(layers.vertices.length / VERTEX_CHUNK),
+      edgeLayer,
+      vertexLayer,
+    };
   }
 </script>
 
@@ -130,9 +160,10 @@
   const uid = $props.id();
   const dashed = $derived(layers.edges.some((e) => !e.step));
   const total = $derived(layers.layerSizes.reduce((a, b) => a + b, 0));
-  const svg = $derived(layers.drawn && drawing !== null ? orbitSvg(layers, drawing, texts, title, `${uid}-title`) : null);
-  const edgeLayers = $derived(svg === null ? [] : shown === undefined ? svg.edgeLayers : svg.edgeLayers.slice(0, shown.edges));
-  const vertexLayers = $derived(svg === null ? [] : shown === undefined ? svg.vertexLayers : svg.vertexLayers.slice(0, shown.vertices));
+  const svg = $derived(layers.drawn && drawing !== null ? orbitSvgLayers(layers, drawing, texts, title, `${uid}-title`) : null);
+  // Each layer's markup is written when it is first shown (orbitSvgLayers keeps it).
+  const edgeLayers = $derived(svg === null ? [] : Array.from({ length: Math.min(shown?.edges ?? svg.edgeCount, svg.edgeCount) }, (_, k) => svg.edgeLayer(k)));
+  const vertexLayers = $derived(svg === null ? [] : Array.from({ length: Math.min(shown?.vertices ?? svg.vertexCount, svg.vertexCount) }, (_, k) => svg.vertexLayer(k)));
 </script>
 
 <div class="orbit" data-out="orbit-graph" data-drawn={layers.drawn ? 'true' : 'false'} data-positions={total}>

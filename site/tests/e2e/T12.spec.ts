@@ -1292,6 +1292,39 @@ test.describe('regressions', () => {
   }
   const classified = (page: Page): Promise<number> => page.evaluate(() => (globalThis as { __classified?: number }).__classified ?? 0);
 
+  // G5 repair (decisions/P5-A2.md): after a pick each grid is built outside the page, its rows parsed a few
+  // tasks at a time, and taken over by its MatrixView. Every row must arrive once, in order, with the
+  // engine's entries: the seven grids of E6, node 1 (27 by 27), read cell by cell after the pick.
+  test('a pick of E6, node 1, draws its seven grids in parts, each the engine matrix row by row', async ({ page }) => {
+    test.setTimeout(120000);
+    const E6 = boardFromName('E6');
+    const [p1] = toPositions(E6, [1]) as [number];
+    const m = minusculeMatrices(E6, p1)!;
+    const signed = signedMoves(m.basis, m.E, m.F);
+    const rec = chevalleySerre(E6, m.E, m.F, m.H).find((c) => c.relation === 'ef' && c.i === p1 && c.j === p1)!;
+    const size = goldenDim('E6', 1);
+    await open(page);
+    await control(page, 'picker').selectOption('E6');
+    await expect(out(page, 'state-board')).toHaveText('E6');
+    await expect(out(page, 'all-relations')).toHaveText(/relations hold\./, { timeout: 30000 });
+    await settled(page);
+    const expected: [string, SparseMatrix][] = [
+      ['matrix-e', m.E[p1]!],
+      ['matrix-f', m.F[p1]!],
+      ['matrix-h', m.H[p1]!],
+      ['move-matrix', m.moves[p1]!],
+      ['signed-move', signed[p1]!],
+      ['relation-left', rec.left],
+      ['relation-right', rec.right],
+    ];
+    for (const [name, matrix] of expected) {
+      await expect(out(page, name)).toHaveAttribute('data-format', 'grid');
+      const rows = await out(page, name).locator('tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll('td[data-row]')].map((td) => td.getAttribute('data-row')).join(',')));
+      expect(rows, `${name}: ${size} rows, row r holding ${size} cells of row r`).toEqual(Array.from({ length: size }, (_, r) => Array.from({ length: size }, () => String(r + 1)).join(',')));
+      expect(await cellsOf(out(page, name)), `${name} is the engine's matrix`).toEqual(engineCells(matrix).filter((c) => !c.endsWith('=0')));
+    }
+  });
+
   // Adopted from redteam/redteam-RT-07-classify-count-p5.mjs (RT-07, phase 5 round, attack 24). SPEC 5.6, last
   // sentence: "A tool decides whether a board is of finite type by calling classify once when the board is
   // loaded"; E-11 caches the verdict per board object. A pick spreads its work over tasks (SPEC 7.6), and T12

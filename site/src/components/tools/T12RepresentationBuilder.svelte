@@ -31,7 +31,7 @@
   import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
-  import MatrixView from '../math/MatrixView.svelte';
+  import MatrixView, { adoptableTable } from '../math/MatrixView.svelte';
   import OrbitLayersView, { layerCounts } from './t12/OrbitLayers.svelte';
   import RelationFormula from './t12/RelationFormula.svelte';
   import { digestMarkup, readDigest, staticMarkup } from './t12/static';
@@ -270,8 +270,9 @@
     signed: ['shell-signed', 'move-matrix', 'signed-move'],
     string: ['shell-string', 'string-board', 'string-history', 'string-line', 'string-entry'],
   } as const satisfies Record<T12Panel, readonly string[]>;
-  type Piece = (typeof PIECES)[keyof typeof PIECES][number] | 'table';
-  const ALL_PIECES = [...Object.values(PIECES).flat(), 'table'] as Piece[];
+  /** 'table': the table view (the orbit's table); 'board-table': the board's table, drawn a task later. */
+  type Piece = (typeof PIECES)[keyof typeof PIECES][number] | 'table' | 'board-table';
+  const ALL_PIECES = [...Object.values(PIECES).flat(), 'table', 'board-table'] as Piece[];
   const ready = $state<Record<Piece, boolean>>(Object.fromEntries(ALL_PIECES.map((p) => [p, true])) as Record<Piece, boolean>);
   /** The parts that are drawn from the state; the others show the server's markup (static.ts). */
   type Part = T12Panel | 'table-orbit' | 'table-board';
@@ -295,6 +296,53 @@
     const a = adoptables[p];
     return a !== undefined && a.key === pieceKey(p) ? a.el : null;
   }
+  type MatrixPiece = 'matrix-e' | 'matrix-f' | 'matrix-h' | 'relation-left' | 'relation-right' | 'move-matrix' | 'signed-move';
+  const MATRIX_PIECES: ReadonlySet<Piece> = new Set<Piece>(['matrix-e', 'matrix-f', 'matrix-h', 'relation-left', 'relation-right', 'move-matrix', 'signed-move']);
+  /**
+   * The caption and entries of a matrix piece, as its MatrixView shows them (the snippet `matrix` reads them
+   * here, where each call stands where its matrix exists); null when the piece has no matrix (the orbit is not
+   * built, or a relation is not checked yet).
+   */
+  function matrixOf(p: MatrixPiece): { caption: string; sparse: ReadonlyMap<string, bigint> } | null {
+    const r = rep;
+    const at = (ms: readonly ReadonlyMap<string, bigint>[] | null): ReadonlyMap<string, bigint> | null => (r.built ? (ms?.[kAt] ?? null) : null);
+    const m = (caption: string, sparse: ReadonlyMap<string, bigint> | null | undefined) => (sparse ? { caption, sparse } : null);
+    if (p === 'matrix-e') return m(`E${matrixNode}`, at(r.E));
+    if (p === 'matrix-f') return m(`F${matrixNode}`, at(r.F));
+    if (p === 'matrix-h') return m(`H${matrixNode}`, at(r.H));
+    if (p === 'move-matrix') return m(`Firing node ${matrixNode}`, at(r.moves));
+    if (p === 'signed-move') return m(`Signed: E${matrixNode} ${MINUS} F${matrixNode} + P${matrixNode}`, at(r.signed));
+    return m(p === 'relation-left' ? 'Left side' : 'Right side', p === 'relation-left' ? check?.left : check?.right);
+  }
+
+  /**
+   * The steps that draw a matrix piece: its table is built outside the page first, its rows parsed a few at
+   * a time in tasks that follow one another (adoptableTable), and then its MatrixView is drawn and takes the
+   * table over, so that no task parses a whole grid of up to 27 by 27 (SPEC 7.6; decisions/P5-A2.md, the G5
+   * repair: a whole grid, parsed and drawn in one task, took 20 to 61 ms with the processor slowed four
+   * times). The table is taken over only when the view's props are the ones it was built from.
+   */
+  function matrixSteps(p: MatrixPiece): Step[] {
+    let made: { el: Element; caption: string; sparse: ReadonlyMap<string, bigint>; headers: readonly string[]; format: 'grid' | 'list'; dots: boolean } | null = null;
+    const build: Step = () => {
+      const m = matrixOf(p);
+      if (m === null) return;
+      const h = headers;
+      const t = adoptableTable({ caption: m.caption, rowHeaders: h, colHeaders: h, sparse: m.sparse, format, sparseDisplay: sparseDots, indexHeaders: true, listMax: DRAW_MAX });
+      made = { el: t.element, caption: m.caption, sparse: m.sparse, headers: h, format, dots: sparseDots };
+      return t.steps.map((s) => soon(s));
+    };
+    const draw: Step = () => {
+      const m = matrixOf(p);
+      const t = made;
+      if (t !== null && m !== null && m.caption === t.caption && m.sparse === t.sparse && headers === t.headers && format === t.format && sparseDots === t.dots) {
+        adoptables = { ...adoptables, [p]: { el: t.el, key: pieceKey(p) } };
+      }
+      ready[p] = true;
+    };
+    return [build, draw];
+  }
+
   /** How many layers of the orbit drawing are shown while it is drawn layer by layer (undefined: all). */
   let orbitShown = $state<{ vertices: number; edges: number } | undefined>(undefined);
   let figureEl = $state<HTMLElement | undefined>(undefined);
@@ -376,11 +424,18 @@
     next();
   }
 
-  /** The steps that draw the orbit: its layers (orbitGraph), its layout, then each SVG layer in a task of its own. */
+  /**
+   * The steps that draw the orbit: its layers (orbitGraph), its layout (orbitView), the panel, then each SVG
+   * layer in a task of its own. The layout has a task of its own (G5 repair: with the panel's drawing it took
+   * 24 to 56 ms with the processor slowed four times on E7, node 7).
+   */
   function orbitSteps(): Step[] {
     return [
       () => {
         if (tool.rep.built) orbitBase(tool.rep);
+      },
+      () => {
+        if (tool.rep.built) orbitView(tool.rep);
       },
       () => {
         const r = tool.rep;
@@ -427,16 +482,38 @@
             }
           });
         }
+        if (MATRIX_PIECES.has(p)) {
+          steps.push(...matrixSteps(p as MatrixPiece));
+          continue;
+        }
         steps.push(() => {
           ready[p] = true;
         });
       }
     }
-    steps.push(() => {
-      ready.table = true;
-    });
+    // The table view: the orbit's table, TABLE_ROWS rows a task, then the board's table (G5 repair: the two
+    // tables drawn in one task took 22 to 37 ms with the processor slowed four times on E7, node 7).
+    steps.push(
+      () => {
+        const rows = tool.rep.built ? Math.min(DRAW_MAX, tool.rep.orbitSize) : 0;
+        orbitRows = TABLE_ROWS;
+        ready.table = true;
+        return Array.from({ length: Math.max(0, Math.ceil(rows / TABLE_ROWS) - 1) }, (_, k): Step => () => {
+          orbitRows = k + 2 < Math.ceil(rows / TABLE_ROWS) ? (k + 2) * TABLE_ROWS : DRAW_MAX;
+        });
+      },
+      () => {
+        orbitRows = DRAW_MAX;
+        ready['board-table'] = true;
+      },
+    );
     runSteps(g, steps);
   }
+
+  /** The rows of the orbit's table drawn in one task (G5 repair). */
+  const TABLE_ROWS = 20;
+  /** How many rows of the orbit's table are drawn while it is drawn TABLE_ROWS a task; DRAW_MAX (all) otherwise. */
+  let orbitRows = $state<number>(DRAW_MAX);
 
   /** The element of a part in the page (the server's markup of a panel, or a table of the table view). */
   function partElement(part: Part): Element | null {
@@ -547,25 +624,50 @@
     const g = ++generation;
     building = `Building ${spec}${node === null ? '' : `, node ${node}`}.`;
     let label = node ?? 0;
-    // The previous state's panels are taken down in a frame of their own, before the new state is drawn.
-    const steps: Step[] = [
-      () => {
-        adoptables = {};
-        for (const p of PARTS) live[p] = true;
-        for (const p of ALL_PIECES) ready[p] = false;
-      },
-    ];
+    // The previous state's panels are taken down before the new state is drawn, in two frames of their own
+    // (G5 repair: taken down in one task they took 22 to 40 ms with the processor slowed four times). A piece
+    // leaves `adoptables` in the step that takes it down, so that no piece shows an element of the server's
+    // markup that a drawn view has emptied.
+    const takeDown = (parts: Part[]): Step => () => {
+      const pieces = parts.flatMap((p): Piece[] => (p === 'table-orbit' ? ['table'] : p === 'table-board' ? ['board-table'] : [...PIECES[p]]));
+      adoptables = Object.fromEntries(Object.entries(adoptables).filter(([p]) => !pieces.includes(p as Piece))) as typeof adoptables;
+      for (const p of parts) live[p] = true;
+      for (const p of pieces) ready[p] = false;
+    };
+    const steps: Step[] = [takeDown(['orbit', 'matrices', 'relations']), takeDown(['signed', 'string', 'table-orbit', 'table-board'])];
     if (node === null) {
-      steps.push(() => {
-        label = defaultNode(boardOf(spec));
-        return representationSteps(spec, label);
-      });
+      // The board is resolved (and classified, E-11) in a task of its own before its default node is found
+      // (G5 repair: the two took 22 to 36 ms in one task with the processor slowed four times).
+      steps.push(
+        () => void boardOf(spec),
+        () => {
+          label = defaultNode(boardOf(spec));
+          return representationSteps(spec, label);
+        },
+      );
     } else steps.push(...representationSteps(spec, node));
+    // The state and the tool that load() shows are made in a task of their own, with the string viewer's
+    // line, so that the task that shows them only draws (G5 repair).
+    let made: { state: ToolState; tool: T12Tool } | null = null;
+    steps.push(
+      () => {
+        const state = defaultsFor(spec, label);
+        const t = new T12Tool(configOf(state), { defer: true });
+        t.string();
+        representationDimension(t.rep, mainRoute);
+        made = { state, tool: t };
+      },
+      // The pickers show the board and node being built (their options written here, not when the state loads).
+      () => {
+        picked = { spec, node: label };
+      },
+    );
     runSteps(g, steps, () => {
       building = null;
       relationFixed = false;
       needList = false;
-      load(defaultsFor(spec, label));
+      if (made !== null) load(made.state, made.tool);
+      else load(defaultsFor(spec, label));
       announce(pickSentence(tool));
     });
   }
@@ -576,11 +678,13 @@
    * call per task as after a pick (representationSteps; SPEC 7.6; RT-FIX P5-RT-07-01: a link, on hydration
    * in the island's task, built all of it in one task).
    */
-  function load(s: ToolState): void {
+  function load(s: ToolState, made?: T12Tool): void {
     const g = ++generation;
-    const t = new T12Tool(configOf(s), { defer: true });
+    // `made`: the tool of this state, made beforehand in a task of its own (build).
+    const t = made ?? new T12Tool(configOf(s), { defer: true });
     const nodeChanged = t.spec !== tool.spec || t.node !== tool.node;
     tool = t;
+    picked = null;
     if (nodeChanged) matrixNode = t.node;
     // A relation that the server's digest does not hold needs the list (in the worker above the bound).
     if (t.rep.checks === null && !(digestHolds(t.rep) && digest!.code === t.relation)) needList = true;
@@ -664,9 +768,7 @@
     if (owed === r) say(relationSentence(tool, shownCheck(r, tool.relation, digest)));
     runSteps(
       generation,
-      again.map((p): Step => () => {
-        ready[p] = true;
-      }),
+      again.flatMap((p) => matrixSteps(p as MatrixPiece)),
     );
   }
 
@@ -829,15 +931,25 @@
   const ui = $derived(interaction(anyBoard.n, { hydrated: true, frozen, pending: cur().pending }));
   const uid = UID;
   /**
+   * The board and node a pick is building, which the two pickers show from the step before the state loads,
+   * so that the task that loads the state does not write the pickers' options too (G5 repair); null otherwise,
+   * and the pickers show the state (the same options, so nothing is written again when it loads).
+   */
+  let picked = $state.raw<{ spec: string; node: number } | null>(null);
+  const pickerSpec = $derived(picked?.spec ?? spec);
+  const pickerNode = $derived(picked?.node ?? nodeLabel);
+  const pickerLabels = $derived(picked === null ? labels : labelOrder(boardOf(picked.spec)));
+  const pickerMinuscule = $derived(picked === null ? minusculeSet : new Set(minusculeLabels(boardOf(picked.spec))));
+  /**
    * The options of the board picker and of the node picker, written as markup (the names and labels need no
    * escaping): one {@html} block hydrates where a component per option would (SPEC 7.6, measured on the
    * hydration of /tools/rep). Each select carries its value as text, and the option of that value carries
    * `selected`, for the page without JavaScript and whenever the options are written again.
    */
   const pickerOptions = $derived(
-    T12_GROUPS.map((g) => `<optgroup label="Type ${g.letter}" data-letter="${g.letter}">${g.names.map((n) => `<option value="${n}"${n === spec ? ' selected' : ''}>${n}</option>`).join('')}</optgroup>`).join(''),
+    T12_GROUPS.map((g) => `<optgroup label="Type ${g.letter}" data-letter="${g.letter}">${g.names.map((n) => `<option value="${n}"${n === pickerSpec ? ' selected' : ''}>${n}</option>`).join('')}</optgroup>`).join(''),
   );
-  const nodePickerOptions = $derived(labels.map((l) => `<option value="${l}"${l === nodeLabel ? ' selected' : ''}>${l}${minusculeSet.has(l) ? ' (minuscule)' : ''}</option>`).join(''));
+  const nodePickerOptions = $derived(pickerLabels.map((l) => `<option value="${l}"${l === pickerNode ? ' selected' : ''}>${l}${pickerMinuscule.has(l) ? ' (minuscule)' : ''}</option>`).join(''));
   /** The waiting line of a piece not drawn yet. */
   const WAITING: Partial<Record<Piece, string>> = {
     'string-board': 'Drawing the board.',
@@ -847,13 +959,14 @@
   };
 </script>
 
-{#snippet matrix(out: Piece, caption: string, sparse: ReadonlyMap<string, bigint>)}
+{#snippet matrix(out: MatrixPiece)}
+  {@const m = matrixOf(out)!}
   {#if ready[out]}
-    <MatrixView {out} {caption} rowHeaders={headers} colHeaders={headers} {sparse} {format} sparseDisplay={sparseDots} indexHeaders listMax={DRAW_MAX} adopt={kept(out)} />
+    <MatrixView {out} caption={m.caption} rowHeaders={headers} colHeaders={headers} sparse={m.sparse} {format} sparseDisplay={sparseDots} indexHeaders listMax={DRAW_MAX} adopt={kept(out)} />
   {:else if kept(out) !== null}
     <div class="piece kept" use:adoptInto={kept(out)!}></div>
   {:else}
-    <p class="line waiting">Drawing {caption}.</p>
+    <p class="line waiting">Drawing {m.caption}.</p>
   {/if}
 {/snippet}
 
@@ -905,9 +1018,9 @@
       k is 1 to the position firing reaches, E<sub>k</sub> does the same where the number is {MINUS}1, and H<sub>k</sub> multiplies by the number at node k.
     </p>
     <div class="matrices">
-      {@render matrix('matrix-e', `E${matrixNode}`, rep.E![kAt]!)}
-      {@render matrix('matrix-f', `F${matrixNode}`, rep.F![kAt]!)}
-      {@render matrix('matrix-h', `H${matrixNode}`, rep.H![kAt]!)}
+      {@render matrix('matrix-e')}
+      {@render matrix('matrix-f')}
+      {@render matrix('matrix-h')}
     </div>
   </section>
 {/snippet}
@@ -954,8 +1067,8 @@
     </p>
     {#if check !== null && tally !== null}
       <div class="matrices two">
-        {@render matrix('relation-left', 'Left side', check.left)}
-        {@render matrix('relation-right', 'Right side', check.right)}
+        {@render matrix('relation-left')}
+        {@render matrix('relation-right')}
       </div>
       <p class="line" data-out="all-relations" data-total={tally.total} data-failing={tally.failing}>{relationSummary(tally)}</p>
     {:else if relationsLost === rep}
@@ -972,8 +1085,8 @@
     <!-- The sentences hold only numbers and fixed words (signedNote): markup with subscripts, nothing typed by a reader. -->
     <p class="line">{@html signedNote(matrixNode, largestAt(rep, kAt))}</p>
     <div class="matrices two">
-      {@render matrix('move-matrix', `Firing node ${matrixNode}`, rep.moves![kAt]!)}
-      {@render matrix('signed-move', `Signed: E${matrixNode} ${MINUS} F${matrixNode} + P${matrixNode}`, rep.signed![kAt]!)}
+      {@render matrix('move-matrix')}
+      {@render matrix('signed-move')}
     </div>
   </section>
 {/snippet}
@@ -1107,13 +1220,13 @@
     <div class="settings">
       <label class="setting">
         <span>Board</span>
-        <select data-control="picker" value={spec} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickBoard((e.currentTarget as HTMLSelectElement).value, api.announce)}
+        <select data-control="picker" value={pickerSpec} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickBoard((e.currentTarget as HTMLSelectElement).value, api.announce)}
           >{@html pickerOptions}</select
         >
       </label>
       <label class="setting">
         <span>Node i</span>
-        <select data-control="node" value={String(nodeLabel)} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickNode(Number((e.currentTarget as HTMLSelectElement).value), api.announce)}
+        <select data-control="node" value={String(pickerNode)} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickNode(Number((e.currentTarget as HTMLSelectElement).value), api.announce)}
           >{@html nodePickerOptions}</select
         >
       </label>
@@ -1153,7 +1266,7 @@
         <tr><th scope="col">Row of the matrices</th><th scope="col">Position</th><th scope="col">Layer</th></tr>
       </thead>
       <tbody>
-        {#each orbit.byBasis.slice(0, DRAW_MAX) as v (v.key)}
+        {#each orbit.byBasis.slice(0, Math.min(DRAW_MAX, orbitRows)) as v (v.key)}
           <tr data-table-row={v.basisIndex + 1}><th scope="row">{v.basisIndex + 1}</th><td class="numeral">{positionText(inLabelOrder(anyBoard, v.values))}</td><td class="numeral">{v.depth}</td></tr>
         {/each}
       </tbody>
@@ -1165,7 +1278,7 @@
 {/snippet}
 
 {#snippet boardTable(api: FrameApi)}
-  {#if ready.table}
+  {#if ready['board-table']}
     <table class="values" data-table="board">
       <caption>The string viewer's board {spec}, after {cur().cursor} {cur().cursor === 1 ? 'move' : 'moves'}</caption>
       <thead>

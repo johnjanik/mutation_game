@@ -157,13 +157,20 @@
     return { widths: [longest(rowsText, 3), longest(colsText, 6), longest(listed.map((x) => formatEntry(x.value)), 5)], rows: listed.length };
   }
 
-  export function matrixTable(t: MatrixTableInput): string {
+  /**
+   * The markup of matrixTable in three parts: the table up to and including its <tbody>, one string per body
+   * row, and the closing tags, so that a caller can build a large table over several tasks (adoptableTable;
+   * SPEC 7.6). matrixTable(t) is head + rows.join('') + tail.
+   */
+  export function matrixTableParts(t: MatrixTableInput): { head: string; rows: string[]; tail: string } {
     const rows = t.rowHeaders.length;
     const cols = t.colHeaders.length;
     const e = escapeHtml;
     const rowText = (r: number): string => e(t.indexHeaders ? `${r + 1}: ${t.rowHeaders[r]}` : t.rowHeaders[r]!);
     const colText = (c: number): string => e(t.indexHeaders ? `${c + 1}: ${t.colHeaders[c]}` : t.colHeaders[c]!);
-    const out: string[] = [];
+    const head: string[] = [];
+    const body: string[] = [];
+    const tail = '</tbody></table>';
     const colgroup = `<colgroup>${tableColumns(t)
       .widths.map((w) => `<col style="width: calc(${w}ch + ${CELL_PAD}px)">`)
       .join('')}</colgroup>`;
@@ -173,36 +180,103 @@
         if (x.row >= rows || x.col >= cols) throw new RangeError(`the entry ${x.row},${x.col} is outside a ${rows} by ${cols} matrix`);
         grid[x.row]![x.col] = x.value;
       }
-      out.push(`<table class="matrix grid"><caption id="${e(t.captionId)}">${e(`${t.caption}, ${rows} by ${cols}`)}</caption>${colgroup}`);
-      out.push('<thead><tr><th scope="col" class="corner"><span class="visually-hidden">Row</span></th>');
+      head.push(`<table class="matrix grid"><caption id="${e(t.captionId)}">${e(`${t.caption}, ${rows} by ${cols}`)}</caption>${colgroup}`);
+      head.push('<thead><tr><th scope="col" class="corner"><span class="visually-hidden">Row</span></th>');
       for (let c = 0; c < cols; c++) {
-        if (t.indexHeaders) out.push(`<th scope="col" class="col" title="${e(t.colHeaders[c]!)}">${c + 1}<span class="visually-hidden">: ${e(t.colHeaders[c]!)}</span></th>`);
-        else out.push(`<th scope="col" class="col">${colText(c)}</th>`);
+        if (t.indexHeaders) head.push(`<th scope="col" class="col" title="${e(t.colHeaders[c]!)}">${c + 1}<span class="visually-hidden">: ${e(t.colHeaders[c]!)}</span></th>`);
+        else head.push(`<th scope="col" class="col">${colText(c)}</th>`);
       }
-      out.push('</tr></thead><tbody>');
+      head.push('</tr></thead><tbody>');
       grid.forEach((row, r) => {
-        out.push(`<tr><th scope="row">${rowText(r)}</th>`);
+        const out: string[] = [`<tr><th scope="row">${rowText(r)}</th>`];
         row.forEach((v, c) => {
           const zero = isZero(v);
           if (zero && t.sparseDisplay) out.push(`<td class="zero" data-row="${r + 1}" data-col="${c + 1}" data-value="0" aria-label="0">·</td>`);
           else out.push(`<td${zero ? ' class="zero"' : ''} data-row="${r + 1}" data-col="${c + 1}" data-value="${e(valueText(v))}">${e(formatEntry(v))}</td>`);
         });
         out.push('</tr>');
+        body.push(out.join(''));
       });
-      out.push('</tbody></table>');
-      return out.join('');
+      return { head: head.join(''), rows: body, tail };
     }
     const listed = t.entries.slice(0, Math.max(0, t.listMax));
-    out.push(`<table class="matrix list"><caption id="${e(t.captionId)}">${e(listCaption(t.caption, t.entries.length, rows, cols))}</caption>${colgroup}`);
-    out.push('<thead><tr><th scope="col">Row</th><th scope="col">Column</th><th scope="col">Value</th></tr></thead><tbody>');
+    head.push(`<table class="matrix list"><caption id="${e(t.captionId)}">${e(listCaption(t.caption, t.entries.length, rows, cols))}</caption>${colgroup}`);
+    head.push('<thead><tr><th scope="col">Row</th><th scope="col">Column</th><th scope="col">Value</th></tr></thead><tbody>');
     for (const x of listed) {
-      out.push(
+      body.push(
         `<tr><th scope="row">${rowText(x.row)}</th><td>${colText(x.col)}</td><td class="value" data-row="${x.row + 1}" data-col="${x.col + 1}" data-value="${e(valueText(x.value))}">${e(formatEntry(x.value))}</td></tr>`,
       );
     }
-    if (listed.length === 0) out.push('<tr><td colspan="3">no nonzero entries</td></tr>');
-    out.push('</tbody></table>');
-    return out.join('');
+    if (listed.length === 0) body.push('<tr><td colspan="3">no nonzero entries</td></tr>');
+    return { head: head.join(''), rows: body, tail };
+  }
+
+  export function matrixTable(t: MatrixTableInput): string {
+    const p = matrixTableParts(t);
+    return p.head + p.rows.join('') + p.tail;
+  }
+
+  /** The props of a MatrixView that decide its table (the component's Props, without `out` and `adopt`). */
+  export interface MatrixTableProps {
+    caption: string;
+    rowHeaders: readonly string[];
+    colHeaders: readonly string[];
+    sparse?: ReadonlyMap<string, Entry>;
+    dense?: readonly (readonly (Entry | string)[])[];
+    format?: 'grid' | 'list' | 'auto';
+    sparseDisplay?: boolean;
+    indexHeaders?: boolean;
+    listMax?: number;
+  }
+
+  /**
+   * The input of matrixTable for a MatrixView's props, with the defaults of its Props: the one function the
+   * component and adoptableTable both use, so that a table built ahead for a view is the view's own table.
+   */
+  export function matrixInput(p: MatrixTableProps, captionId: string): MatrixTableInput {
+    const format = p.format ?? 'auto';
+    return {
+      caption: p.caption,
+      captionId,
+      rowHeaders: p.rowHeaders,
+      colHeaders: p.colHeaders,
+      entries: p.sparse !== undefined ? entriesInOrder(p.sparse) : denseEntries(p.dense ?? []),
+      shape: format === 'auto' ? autoFormat(p.rowHeaders.length, p.colHeaders.length) : format,
+      sparseDisplay: p.sparseDisplay ?? false,
+      indexHeaders: p.indexHeaders ?? false,
+      listMax: p.listMax ?? Infinity,
+    };
+  }
+
+  /**
+   * At most about this many cells are parsed in one step of adoptableTable: a grid of 27 by 27 (the largest,
+   * SPEC 5.6) then takes four steps, where parsing the whole table took 10 to 22 ms of a task of 20 to 61 ms
+   * with the processor slowed four times (decisions/P5-A2.md).
+   */
+  export const ADOPT_CELLS = 250;
+
+  /**
+   * The table of a MatrixView with these props, built outside the page in steps for the view to take over
+   * (its `adopt` prop): an element holding `.box > table`, whose body rows are parsed a few at a time, about
+   * `cells` cells a step, so that a large table is not parsed in one task (SPEC 7.6). The markup is
+   * matrixTable's; the view that takes the table over gives its caption the view's own id. Browser only.
+   */
+  export function adoptableTable(p: MatrixTableProps, cells: number = ADOPT_CELLS): { element: HTMLElement; steps: (() => void)[] } {
+    const t = matrixInput(p, 'adopted-caption');
+    const { head, rows, tail } = matrixTableParts(t);
+    const take = Math.max(1, Math.floor(cells / (t.shape === 'grid' ? t.colHeaders.length + 1 : 3)));
+    const element = document.createElement('div');
+    const box = element.appendChild(document.createElement('div'));
+    box.className = 'box';
+    const steps: (() => void)[] = [
+      () => {
+        box.innerHTML = head + rows.slice(0, take).join('') + tail;
+      },
+    ];
+    for (let at = take; at < rows.length; at += take) {
+      steps.push(() => box.querySelector('tbody')!.insertAdjacentHTML('beforeend', rows.slice(at, at + take).join('')));
+    }
+    return { element, steps };
   }
 
   /**
@@ -251,10 +325,10 @@
   const uid = $props.id();
   const rows = $derived(rowHeaders.length);
   const cols = $derived(colHeaders.length);
-  const shape = $derived(format === 'auto' ? autoFormat(rows, cols) : format);
-  const entries = $derived(sparse !== undefined ? entriesInOrder(sparse) : denseEntries(dense ?? []));
+  const input = $derived(matrixInput({ caption, rowHeaders, colHeaders, sparse, dense, format, sparseDisplay, indexHeaders, listMax }, `${uid}-caption`));
+  const shape = $derived(input.shape);
+  const entries = $derived(input.entries);
   const notListed = $derived(shape === 'list' ? Math.max(0, entries.length - Math.max(0, listMax)) : 0);
-  const input = $derived({ caption, captionId: `${uid}-caption`, rowHeaders, colHeaders, entries, shape, sparseDisplay, indexHeaders, listMax });
   const html = $derived(matrixTable(input));
   const box = $derived(matrixBoxSize(input));
 
