@@ -1,0 +1,187 @@
+[
+ {
+  "id": "P5-RT-08-02",
+  "severity": "major",
+  "title": "Attack 12: M8 types the dimension of the 26 of F4, which has a golden value, and its decisions fragment lists it as a number with none",
+  "location": "site/src/content/modules/m8-lie-algebras.mdx:113 (beat 6, {'26'}); decisions/P5-A3.md line 43 ('the 26 of F4'); site/tests/e2e/M8.spec.ts:764 (allowlist)",
+  "claim": "Beat 6 types the number in a brace string, so the numbers-in-prose scanner cannot see it: 'Out of their reach are the 26-dimensional representation of F4, studied in [vE]'. The golden file holds that number as the Weyl dimension of the F4 representation with highest weight ω4.",
+  "expected": "SPEC 7.3: 'Every number in a lesson that has a golden value is written this way, so prose cannot drift from the data'. SPEC 8.4: 'Numbers that have a golden value are written with <G>, never typed.' Expected: <G k=\"weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension\"/>-dimensional representation.",
+  "observed": "resolveGoldenPath('weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension') = 26. Line 113 contains \"the {'26'}-dimensional representation of <Tex src=\\\"F_4\\\"/>\". The decisions fragment and the M8.spec.ts allowlist give the reason 'the 26 of F4, the subject of [vE]', not the absence of a golden value.",
+  "reproduction": "Clean checkout of 006f50d plus site/tests/unit/redteam-RT-08-p5-typed-26.test.ts, then npm ci --prefer-offline && npx vitest run site/tests/unit/redteam-RT-08-p5-typed-26.test.ts. Result: 1 failed ('does not type it'), 1 passed (the path resolves to 26).",
+  "specRef": "SPEC.md 7.3 (<G>), 8.4 bullet 5, 9.2; CONTRACTS 7 'Numbers'; golden weyl_dimension[type=F4;highest_weight=0,0,0,1]",
+  "proposedFix": "Print it with that <G> path and remove the entry from the M8.spec.ts allowlist.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p5-typed-26.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-abcb3b9fe3eb2308b",
+  "verification": {
+   "reproduce": {
+    "findingId": "P5-RT-08-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.3 (<G>), 8.4 bullet 5, 9.2; CONTRACTS 7 'Numbers'; golden weyl_dimension[type=F4;highest_weight=0,0,0,1]",
+    "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39. Applied: git checkout worktree-agent-abcb3b9fe3eb2308b -- site/tests/unit/redteam-RT-08-p5-typed-26.test.ts; status lists it as 'A'. It imports only site/src/lib/golden and reads m8-lie-algebras.mdx. Ran: npx vitest run site/tests/unit/redteam-RT-08-p5-typed-26.test.ts; exit 1. Output: 'Tests  1 failed | 1 passed (2)'; 'x m8-lie-algebras.mdx does not type it'; 'AssertionError: M8 types a golden value; expected <G k=\"weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension\"/>'; Received [\"m8-lie-algebras.mdx:113: ...Out of their reach are the {'26'}-dimensional representation of <Tex src=\\\"F_4\\\"/>, studied in <Cite k=\\\"vE\\\"/>, ...\"]. The passing test confirms resolveGoldenPath(...) = 26 and formatGoldenValue = '26'. Cross-checked with python3 -I on <wt>/reference/golden_data.json: weyl_dimension F4 [0,0,0,1] -> 26. At the gate, M8.spec.ts:763-764 lists it under 'Numbers with no golden value (instruction 5.8).' with reason 'the 26 of F4, the subject of [vE]', and decisions/P5-A3.md line 43 lists 'the 26 of F4' among the typed numbers. Observed matches.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: line 113 types {'26'} while weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension = 26, and the allowlist calls it a number with no golden value; a broken 8.4 numbers rule is major"
+   },
+   "refute": {
+    "findingId": "P5-RT-08-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 8.4 bullet 5 'Numbers that have a golden value are written with <G>, never typed.'; 7.3 'Every number in a lesson that has a golden value is written this way'; golden weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension = 26 (a phase 3 key, SPEC 5.7 row 'weyl_dimension ... 3'). The passages support the finding's expected.",
+    "evidence": "Golden at 006f50d: the weyl_dimension records include {type F4, highest_weight [0,0,0,1], dimension 26} and {F4, [1,0,0,0], 52}. Oracle: lie_games.weyl_dimension(cartan('F', 4), [0, 0, 0, 1]) = 26. m8-lie-algebras.mdx:113 reads \"Out of their reach are the {'26'}-dimensional representation of <Tex src=\\\"F_4\\\"/>, studied in <Cite k=\\\"vE\\\"/>\". The same lesson prints the 7 of G2 (line 134) and the 248 of E8 (line 113) through <G>. DECISIONS.md '2026-10-24 P5-A3: numbers typed without a golden value (instruction 5.8)' lists 'the 26 of F4' under that heading, so it misclassifies a number the golden file holds. The owner-held item (P5 lens instructions, known and decided; gate-G5.md section 11) is 'the practice of keeping typed numbers in brace strings so that the numbers-in-prose report lists none'. That concerns where typed numbers without a golden value sit. It does not make a golden-valued number typable. The RT-08 lens's own exemption (section 6) covers numbers with no golden value only.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 fails because 8.4 says 'never typed', with no exception; R2 fails because the sentence states the dimension of the F4 representation of highest weight (0,0,0,1), which is the golden value; R3 fails because weyl_dimension is a phase 3 key at gate G5; R4 fails because the oracle gives 26, which confirms that a golden value exists; R5 fails because the P5-A3 fragment wrongly calls the number non-golden and the owner-held brace-string practice does not cover golden values; R6 fails because there is no record of this number."
+   }
+  }
+ },
+ {
+  "id": "P5-RT-08-03",
+  "severity": "major",
+  "title": "Attack 13: two M8 <G> paths print the right digits from the wrong record (the string through (2, 0) from the node-2 representation, and the determinant of three boards from E8 alone)",
+  "location": "site/src/content/modules/m8-lie-algebras.mdx:61 (beat 1) and :65 (caption of b1), path minuscule_representations[type=A2;node=2].weights_dynkin_labels[1]; :113 (beat 6), types.E8.det_cartan",
+  "claim": "Beat 1 and b1's caption print the middle position (0, 1) of the string through (2, 0) at node 1 of A2 with the path of a weight of another representation, the orbit of the fundamental position of node 2, whose positions do not include (2, 0). Beat 6 says 'E8, F4 and G2 have no minuscule node: their Cartan matrices have determinant <G k=\"types.E8.det_cartan\"/>', so the path names one of the three boards the sentence names. Both print the right digits only by coincidence. The lesson already computes the string with the engine (export const STRING_TWO = stringThrough(A2, [2, 0], 0), never used).",
+  "expected": "SPEC 7.3: <G> exists 'so prose cannot drift from the data'. The lens rule: a path whose board or field differs from the sentence is a finding even when the digits agree. Expected: (0, 1) from STRING_TWO, or typed (the string has no golden record); the beat 6 determinant from types.E8, types.F4 and types.G2 together, or the sentence limited to E8.",
+  "observed": "stringThrough(A2, [2, 0], node 1) = [[2,0],[0,1],[-2,2]]. The golden weights of the A2 node-2 representation are [[1,-1],[0,1],[-1,0]]: entry [1] equals (0, 1), but (2, 0) is not in that representation. M8 lines 61 and 65 use that path or fmt(wt('A2', 2, 1)). Line 113 prints the determinant of three boards from types.E8.det_cartan.",
+  "reproduction": "Clean checkout of 006f50d plus site/tests/unit/redteam-RT-08-p5-wrong-path.test.ts, then npm ci --prefer-offline && npx vitest run site/tests/unit/redteam-RT-08-p5-wrong-path.test.ts. Result: 2 failed (lines 61 and 65; line 113), 1 passed (the coincidence check).",
+  "specRef": "SPEC.md 7.3 (<G>); CONTRACTS 7 'Numbers'; lens attack 13 (major)",
+  "proposedFix": "Print the string's positions with show(STRING_TWO) (or type them, as (2,0) and (−2,2) already are). Write the determinant for the three boards from their own types.*.det_cartan.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p5-wrong-path.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-abcb3b9fe3eb2308b",
+  "verification": {
+   "reproduce": {
+    "findingId": "P5-RT-08-03",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.3 (<G>); CONTRACTS 7 'Numbers'; lens attack 13 (major)",
+    "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39. Applied: git checkout worktree-agent-abcb3b9fe3eb2308b -- site/tests/unit/redteam-RT-08-p5-wrong-path.test.ts; status lists it as 'A'. It imports @two-games/engine and site/src/lib/golden. Ran: npx vitest run site/tests/unit/redteam-RT-08-p5-wrong-path.test.ts; exit 1. Output: 'Tests  2 failed | 1 passed (3)'. 'AssertionError: the string through (2, 0) printed through a path to another representation' with Received [\"m8-lie-algebras.mdx:61\", \"m8-lie-algebras.mdx:65\"]. 'AssertionError: three boards named, one board in the path' with Received [\"m8-lie-algebras.mdx:113\"]. The passing coincidence test confirms stringThrough(A2,[2,0],0) = [[2,0],[0,1],[-2,2]] and that the node-2 weights do not contain [2,0]. Cross-checked with python3 -I on the golden file: minuscule_representations A2 node 2 weights [[1,-1],[0,1],[-1,0]]; det_cartan E8 1, F4 1, G2 1. grep at the gate: line 61 'minuscule_representations[type=A2;node=2].weights_dynkin_labels[1]', line 65 \"wt('A2', 2, 1))\", line 30 'export const STRING_TWO = stringThrough(A2, [2, 0], 0);'. Observed matches.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: lines 61 and 65 print the string's middle position through the A2 node-2 weight path, and line 113 prints the determinant of E8, F4 and G2 from types.E8.det_cartan alone; the rubric does not name a <G> path to the wrong record, so the claimed major stands"
+   },
+   "refute": {
+    "findingId": "P5-RT-08-03",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.3: <G> 'prints a value of golden_data.json ... Every number in a lesson that has a golden value is written this way, so prose cannot drift from the data.' No sentence permits a path from another record or another board. The passage supports the finding.",
+    "evidence": "Oracle: lie_games.string_through(cartan('A', 2), (2, 0), 0) = [(2,0),(0,1),(-2,2)]. verify.py section 14 checks this string but stores no golden key for it. Golden minuscule_representations[type=A2;node=2].weights_dynkin_labels = [[1,-1],[0,1],[-1,0]], so entry [1] = (0,1) is a weight of the node-2 representation, which does not hold (2,0). m8-lie-algebras.mdx:61 and the b1 caption (line 65, fmt(wt('A2', 2, 1))) print the middle of the node-1 string from that record, while STRING_TWO (line 30) is computed and unused. Line 113 says 'E8, F4 and G2 have no minuscule node: their Cartan matrices have determinant <G k=\"types.E8.det_cartan\"/>'. Golden types.F4.det_cartan = 1 and types.G2.det_cartan = 1 are separate phase 2 golden values, and they are not tied to their own records. No DECISIONS.md entry names either path. The P5-A3 report lists them under goldenKeysUsed with no reason. Partial point: for part (a), 7.3's literal rule needs <G> only for numbers that have a golden value, and the string's middle has none. That part therefore rests on 7.3's purpose clause and on lens attack 13. Part (b) is a sentence about three golden values printed from one board's record, so the cause stands.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 fails because 7.3 has no clause allowing another record's path; R2 holds only in part (part (a) has no golden value of its own), while part (b) states the golden determinants of F4 and G2 through E8's path, so the cause stands; R3 fails because all keys are phase 1 to 5 at G5; R4 does not apply, since the oracle agrees with the digits, which the finding does not dispute; R5 and R6 fail because there is no record. On severity the rubric is silent: the digits are right, so this is not a golden mismatch, and 8.4's literal 'written with <G>' is met. The lens's attack 13 rates it major."
+   }
+  }
+ },
+ {
+  "id": "P5-RT-08-04",
+  "severity": "major",
+  "title": "Attack 30 (b): M8 uses the Appendix C terms fire, population and mutate without defining or linking them (siblings: M5, M6 and M7 never link fire)",
+  "location": "site/src/content/modules/m8-lie-algebras.mdx:61 ('Firing node i sends μ to the last of them'), :106, :143, :155-156; siblings m5-weyl.mdx, m6-multiple-edges.mdx, m7-geometry.mdx",
+  "claim": "M8 is the Numbers-view lesson whose working verb is 'fire'. Its prose uses fire, fires, fired or firing 8 times outside the tools, defines it nowhere (M0 and M4 do) and never links glossary#fire. Its sidebars use 'population' 4 times and 'mutates' once with no link either. M8 does link the other site terms it uses (numbers, node, position, fundamental position, minuscule node, board, city, root populations, roads, heap). M5, M6 and M7 use 'fire' 26, 7 and 6 times in their prose with no link either.",
+  "expected": "SPEC 8.4: 'Define every term on first use and link later uses to a glossary entry (Appendix C is its seed)'. The glossary has #fire, #population and #mutate. Decision P1-A8 lists fire among the anchors later uses link to. Expected: at least the uses of fire, population and mutate in M8 link to their entries, and the same for fire in M5 to M7.",
+  "observed": "0 occurrences of Term a=\"fire\", a=\"population\" or a=\"mutate\" in m8-lie-algebras.mdx. Prose uses in the source: fire 7 (8 in the built text), population 4, mutates 1. Siblings: m5 26 uses, 0 links; m6 7, 0; m7 6, 0.",
+  "reproduction": "Clean checkout of 006f50d plus site/tests/unit/redteam-RT-08-p5-glossary-fire.test.ts, then npm ci --prefer-offline && npx vitest run site/tests/unit/redteam-RT-08-p5-glossary-fire.test.ts. Result: 4 failed (M8 fire, population, mutate; siblings), 1 passed (glossary anchors exist).",
+  "specRef": "SPEC.md 8.4 bullet 1; Appendix C rows 'population', 'mutate', 'fire'; decision P1-A8 'glossary links'; lens attack 30 (b) (major)",
+  "proposedFix": "Wrap the first use of fire, population and mutate on each lesson page in the Term helper (glossary#fire, #population, #mutate), as M0 and M4 do. Add the check to each lesson's spec.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p5-glossary-fire.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-abcb3b9fe3eb2308b",
+  "verification": {
+   "reproduce": {
+    "findingId": "P5-RT-08-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 8.4 bullet 1; Appendix C rows 'population', 'mutate', 'fire'; decision P1-A8 'glossary links'; lens attack 30 (b) (major)",
+    "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39. Applied: git checkout worktree-agent-abcb3b9fe3eb2308b -- site/tests/unit/redteam-RT-08-p5-glossary-fire.test.ts; status lists it as 'A'. It reads only site/src/content files. Ran: npx vitest run site/tests/unit/redteam-RT-08-p5-glossary-fire.test.ts; exit 1. Output: 'Tests  4 failed | 1 passed (5)'. Messages: 'M8 uses \"fire\" 7 times and never links glossary#fire: expected 0 to be greater than 0'; 'M8 uses \"population\" 4 times and never links glossary#population'; 'M8 uses \"mutate\" 1 times and never links glossary#mutate'; siblings '[{\"m\":\"m5-weyl\",\"uses\":26,\"links\":0},{\"m\":\"m6-multiple-edges\",\"uses\":7,\"links\":0},{\"m\":\"m7-geometry\",\"uses\":6,\"links\":0}]'. The test checking that the glossary anchors exist passed. A grep of M8, M5, M6 and M7 for '#fire', '#population', '#mutate' and single-quoted Term forms found nothing (exit 1). The built site/dist/modules/m8-lie-algebras/index.html has no glossary/#fire, #population or #mutate link. Observed matches. Final tree: git status --porcelain lists only the five applied files, each 'A'. node_modules, site/node_modules, site/dist and test-results were deleted (packages/engine/node_modules did not exist). Ports 6420 to 6423 are free.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: M8 uses fire 7, population 4 and mutate 1 times with 0 glossary links, and M5, M6 and M7 use fire 26, 7 and 6 times with 0 links; a broken 8.4 prose rule is major"
+   },
+   "refute": {
+    "findingId": "P5-RT-08-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 8.4 bullet 1: 'Define every term on first use and link later uses to a glossary entry (Appendix C is its seed)'; Appendix C rows 'population', 'mutate', 'fire'. The passage supports the finding's expected.",
+    "evidence": "Glossary at the gate has dfn anchors population (glossary.mdx:43), mutate (:55) and fire (:61). M8 at the gate links numbers, node, position, fundamental-position, minuscule-node, board, city, root-population, roads and heap. It has no Term for fire, population or mutate. Its uses are 'Firing node i sends' (61), 'Firing node 1 exchanges them' (73), 'the firing move' (80), 'firing node k permutes' (106), and in the sidebar 'the population of a city changes when that city mutates' (143). None of these defines the term. SPEC 3: 'M6 to M9 can be read in any order after M5', so these are later uses of terms that M0 and M4 define, and 8.4 asks for links whether 'first use' is read per lesson or for the whole site. Records: DECISIONS.md 'P5-A3: words, terms and glossary links' sets its own rule ('a later use of each glossary term that a page uses twice or more', whole-word test). That is a builder's reading, not [D], section 10 or an owner's answer. Even under that rule the 4 or more inflected uses of fire go unlinked. 'P1-A8: glossary links' lists fire among the anchors later uses link to. No M5, M6 or M7 entry exempts fire. M5 is phase 3 and M6 and M7 are phase 4, so all are in scope at G5. A round 1 confirmed finding (round1-confirmed-B.json) on M0 and M1 terms (finite type, highest root, affine) has a different cause, and nothing records fire in M5 to M8.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 fails because 8.4 has no 'may' and no threshold; R2 fails because either reading of 'first use' requires a definition or a link that M8 does not give; R3 fails because M5 to M8 are phases 3 to 5 at gate G5; R4 does not apply; R5 fails because the P5-A3 'twice or more' rule is a builder record, not a permitted default, and fire breaks it as well; R6 fails because the round 1 glossary finding concerns other terms in M0 and M1."
+   }
+  }
+ },
+ {
+  "id": "P5-RT-09-04",
+  "severity": "minor",
+  "title": "M8's Lie theory paragraph credits [W03a] with building every minuscule representation; [W03a] and SPEC 2.18 cover simply laced algebras only",
+  "location": "site/src/content/modules/m8-lie-algebras.mdx:182 (LieTheory), route /modules/m8-lie-algebras/",
+  "claim": "'A minuscule node gives a minuscule weight: its Weyl group orbit carries a representation in which each weight occurs once. ... Wildberger builds these representations on the ideals of a minuscule heap [W03a], with proofs in [Gre13]' has no hypothesis. It therefore covers the spin representations of B_n and the vector representations of C_n among the 18 of beat 4, which [W03a] does not build.",
+  "expected": "SPEC 2.18: 'This is the content of Wildberger's construction for simply laced algebras'. SOURCES.md titles [W03a] 'A combinatorial construction for simply-laced Lie algebras'. M8's own Seen statement 1 has the limit ('At every minuscule node of a simply laced board this is Wildberger's construction'), added after the stage 5.3 review (finding 12 (2)). The Lie theory paragraph was not changed with it.",
+  "observed": "The sentence as quoted, with no 'simply laced' within 120 characters. minusculeNodes(B3) = [label 3], and C of B3 is not symmetric.",
+  "reproduction": "From a clean checkout of 006f50d plus the reproducer: npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p5-m8-wildberger-scope.test.ts (1 test fails).",
+  "specRef": "SPEC.md 2.18 (paragraph after the recipe); SOURCES.md [W03a]; 8.4 ('Every theorem-like statement carries its provenance'); RT-09 attack 21 (a theorem named for the wrong statement) and attack 1.",
+  "proposedFix": "'On a simply laced board, Wildberger builds these representations on the ideals of a minuscule heap [W03a], with proofs in [Gre13].'",
+  "reproducer": "site/tests/unit/redteam-RT-09-p5-m8-wildberger-scope.test.ts",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a8fcc3415fe5f73fd",
+  "verification": {
+   "reproduce": {
+    "findingId": "P5-RT-09-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 2.18 (paragraph after the recipe); SOURCES.md [W03a]; 8.4 ('Every theorem-like statement carries its provenance'); RT-09 attack 21 (a theorem named for the wrong statement) and attack 1.",
+    "evidence": "HEAD 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39 (detached). Applied site/tests/unit/redteam-RT-09-p5-m8-wildberger-scope.test.ts (not at the gate commit; it imports only @engine and node built-ins). git status --porcelain after applying lists it as 'A' beside the earlier applied files, which this test does not read. Ran exactly as written: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p5-m8-wildberger-scope.test.ts; exit 1; 'Tests 1 failed (1)'. Assertion: 'M8 Lie theory: \"Wildberger builds these representations on the ideals of a minuscule <Term a=\"heap\">heap</Term> <Cite k=\"W03a\"/>\" is stated for every minuscule weight (B3 node 3, a board that is not simply laced, is one), while SPEC 2.18 and SOURCES.md give [W03a] for simply laced algebras only: expected false to be true'. The earlier assertions passed: the paragraph text, SPEC's 'construction for simply laced algebras', SOURCES W03a 'simply-laced', M8 Seen 1's 'simply laced' limit, minusculeNodes(B3) = [3], and C(B3) not symmetric. My own check: m8-lie-algebras.mdx line 182 (<LieTheory>) has no 'simply laced' anywhere in the paragraph. SOURCES.md:42 has '[W03a] ... \"A combinatorial construction for simply-laced Lie algebras\"' and SPEC.md:739 has 'This is the content of Wildberger's construction for simply laced algebras'. lie_games: minuscule_nodes(cartan('B',3)) gives label [3], C = [[2,-1,0],[-1,2,-1],[0,-2,2]], not symmetric. Observed matches the finding.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches (the M8 Lie theory sentence crediting [W03a] has no 'simply laced' hypothesis, yet it covers B3 node 3 (minuscule, non-symmetric C), and SPEC 2.18 and SOURCES.md limit [W03a] to simply laced algebras). Severity left at minor: the sentence carries a provenance, only scoped too widely, and the rubric does not clearly place an over-scoped citation between wording and an 8.4 break."
+   },
+   "refute": {
+    "findingId": "P5-RT-09-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 2.18, the paragraph after the recipe: 'This is the content of Wildberger's construction for simply laced algebras, in which the Lie algebra is built on the ideals of a minuscule heap ([W03a] ...)'. SOURCES.md [W03a] is titled 'A combinatorial construction for simply-laced Lie algebras'. Both passages support the finding.",
+    "evidence": "Read at 006f50d: site/src/content/modules/m8-lie-algebras.mdx line 182 (LieTheory): 'A minuscule node gives a minuscule weight: its Weyl group orbit carries a representation in which each weight occurs once. ... Wildberger builds these representations on the ideals of a minuscule heap [W03a], with proofs in [Gre13], and [W03c] builds G2 ...'. It states no hypothesis. Seen statement 1 (line 173) has 'At every minuscule node of a simply laced board this is Wildberger's construction [W03a]'. The representations the paragraph covers include non-simply-laced minuscule nodes. The SPEC 2.8 table [V] gives minuscule node 3 on B3 and node 1 on C2 and C3. The verify.py MINU list and golden minuscule_representations include B2 2, B3 3, B4 4, C2 1 and C3 1, which beat 4 lists. decisions/P5-A3.md 'repair, finding 12' scoped Seen statement 1 ('B_n with n at least 5 and C_n with n at least 4 are claimed by neither sentence'). In the Lie theory paragraph it changed only the place of 'with proofs in [Gre13]'. No decision scopes or excuses the paragraph. SPEC 3 M8 prescribes no Lie theory text, and no [D] applies. gate-G5.md holds no record.",
+    "severityAdjustment": "raise to major",
+    "reason": "not refuted: R1 no qualifying clause, and the paragraph's 'these representations' include the B and C records of beat 4; R2 the finding reads 2.18 and SOURCES.md correctly; R3 M8 is phase 5 at G5; R4 not an oracle question, the claim is bibliographic; R5 no [D] and no recorded decision, since the P5-A3 repair scoped Seen statement 1 only; R6 no record. On severity: crediting [W03a] with constructions outside its simply laced scope breaks the SPEC 8.4 rule 'Credit accurately', and RED-TEAM-COMMON 4 lists a broken 8.4 prose rule as major."
+   }
+  }
+ },
+ {
+  "id": "P5-RT-13-01",
+  "severity": "major",
+  "title": "Attack 8 (P2): the answers of M8's two predictions (b1 and b5) are stated only in their reveals",
+  "location": "site/src/content/modules/m8-lie-algebras.mdx:65 (b1 prediction) and :99 (b5 prediction). No later sentence of beats 1 to 5, no caption and nothing in the Seen box states either answer.",
+  "claim": "M8's two predictions are answered only by the reveal, and without JavaScript only inside the closed <details>. b1: after firing node 1 then node 2 from (2,0) the position is (0,-2), whose string at node 1 is that position alone. b5: the orbit of node 3 of D4 has 8 positions, as many as node 1. The prose never states either result, before or after the question.",
+  "expected": "SPEC 8.1 P2: 'Results are stated in the prose. Tooltips repeat information; they never hold it alone.' SPEC 4.0 Starts meaningful: 'Nothing the argument needs is available only after a click.' RT-13 attack 8: 'The answer to a prediction must also appear in the prose after the prediction block (P2: the reveal repeats, it never holds the result alone)'. Oracle (redteam/rt13-p5-oracle-m8.py): b1 gives (0,-2) and 1 position; b5 gives orbit size 8 (D4 orbit sizes 8, 24, 8, 8).",
+  "observed": "redteam/rt13-p5-reveal-only.mjs on the release reading log, with and without JavaScript: b1 'stated outside the reveal in: nowhere'; b5 'nowhere'. Without JavaScript both answers sit in a closed <details> ('1' and '8'). The modules before M8 state their answers in prose or captions; M8's author avoided printing them because of P3-RT-13-01.",
+  "reproduction": "Clean checkout of 006f50d plus the files of 11a375a. Run npm ci --prefer-offline, then OUT_DIR=<scratch>/dist-release npm run build:release. Start node redteam/rt13-serve.mjs <scratch>/dist-release 5431 / in the background. Then run PLAYWRIGHT_BROWSERS_PATH=<browsers> node redteam/rt13-read.mjs http://localhost:5431/ release-nojs <scratch>/m8.json nojs 360 800 /modules/m8-lie-algebras/ && node redteam/rt13-p5-reveal-only.mjs <scratch>/m8.json. It prints FAIL, 2 of 2, and exits 1.",
+  "specRef": "SPEC.md 8.1 P2; 4.0 'Starts meaningful'; 3 M8 beats 1 and 4; RT-13 attack 8",
+  "proposedFix": "Add one sentence after each prediction block. After b1: 'At (0, −2) the number on node 1 is 0, so its string there is that position alone.' After b5: 'Nodes 3 and 4 give orbits of 8 positions too.' Stating the answer after the question also respects the concern of P3-RT-13-01.",
+  "reproducer": "redteam/rt13-p5-reveal-only.mjs (with redteam/rt13-read.mjs, redteam/rt13-serve.mjs)",
+  "lens": "RT-13",
+  "branch": "worktree-agent-a379a8135188531b0",
+  "verification": {
+   "reproduce": {
+    "findingId": "P5-RT-13-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 8.1 P2; 4.0 'Starts meaningful'; 3 M8 beats 1 and 4; RT-13 attack 8",
+    "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-ab92779e53d8b86ba (it started on branch worktree-agent-ab92779e53d8b86ba at aea1802). Ran 'git checkout --detach 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39'; HEAD is now 006f50d9f9b4843d37b4bfd3e75b0c051cc0ff39. Node v22.22.0. From worktree-agent-a379a8135188531b0 (11a375a) I applied redteam/rt13-p5-reveal-only.mjs, redteam/rt13-read.mjs and redteam/rt13-serve.mjs. None of them exists at the gate commit, which has no redteam/ files at all. rt13-read.mjs imports ../node_modules/playwright/index.mjs, and none of the three reads another redteam file. git status --porcelain after applying: 'A  redteam/rt13-p5-reveal-only.mjs' / 'A  redteam/rt13-read.mjs' / 'A  redteam/rt13-serve.mjs'. npm --prefix <wt> ci --prefer-offline: exit 0. OUT_DIR=<scratch>/verify-p5-rt13-reproduce/dist-release npm run build:release: exit 0, '34 page(s) built', links postbuild '0 problems'. node redteam/rt13-serve.mjs <scratch>/verify-p5-rt13-reproduce/dist-release 6720 / ran in the background; the finding names port 5431, and my prompt assigns 6720 instead. Then: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers node redteam/rt13-read.mjs http://localhost:6720/ release-nojs <scratch>/verify-p5-rt13-reproduce/m8.json nojs 360 800 /modules/m8-lie-algebras/ && node redteam/rt13-p5-reveal-only.mjs <scratch>/verify-p5-rt13-reproduce/m8.json; exit 1. Output: '/modules/m8-lie-algebras/ 44 blocks' / 'b1: Fire node 1 and then node 2. How many positions will the string at node 1 have then? (answer 1)  stated outside the reveal in: nowhere' / 'b5: Choose node 3 in the Node i list. How many positions will its orbit have? (answer 8)  stated outside the reveal in: nowhere' / 'without JavaScript the answer sits in a closed <details>: \"1\"' and '\"8\"' / 'FAIL: 2 of 2 prediction answers of M8 are held only by the reveal'. Observed matches the finding: b1 nowhere, b5 nowhere, and with JavaScript off both answers sit in a closed <details> ('1' and '8'). As a check that the script's patterns are not too narrow, I searched the whole log. '(0, −2)' appears only in blocks[6].tex, inside the reveal ('Answer 1 Firing node 1 turns (2, 0) into (−2, 2), and firing node 2 then gives (0, −2) ... Its string at node 1 is that position alone'). 'Answer 8' appears only in blocks[18].tex, inside the reveal. Beat 4's list ('nodes 1, 3 and 4 of D4') names node 3 as minuscule but gives no orbit size. The reproduction as stated runs only without JavaScript, so the 'with JavaScript' half of the observed was not rerun. After the run: server stopped, port 6720 not answering. node_modules and site/node_modules deleted; packages/engine/node_modules, site/dist and test-results never existed. git status --porcelain lists only the three applied files. The branch also adds 33 other files that I did not apply, under redteam/, site/tests/e2e/redteam-RT-13-* and site/tests/unit/redteam-RT-13-*. It changes no existing file.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: b1 and b5 'stated outside the reveal in: nowhere', with JavaScript off both answers ('1' and '8') sit only in a closed <details>, FAIL 2 of 2, exit 1; this is a stated behaviour missing (SPEC 4.0 Starts meaningful, 8.1 P2), so the rubric's level is major and the lens's attack 8 says the same"
+   },
+   "refute": {
+    "findingId": "P5-RT-13-01",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 8.1 P2: 'Nothing the argument needs sits behind a click, a hover or a tab.' with the consequence 'Results are stated in the prose. Tooltips repeat information; they never hold it alone.' 8.1 is not marked [D] and calls the principles 'requirements'. SPEC.md 4.0 'Starts meaningful' [D]: 'Nothing the argument needs is available only after a click'. The held class P3-RT-13-01 (DECISIONS.md '2026-10-17 RT-FIX-P3-pages: predictions whose answer is readable before the reader commits') covers answers shown before the reader commits. This finding is about an answer the prose never states, which is a different rule (P2).",
+    "evidence": "I read everything at gate commit 006f50d (HEAD detached there; git status --porcelain is empty; nothing was added). site/src/content/modules/m8-lie-algebras.mdx:65 (b1): the answer AFTER_TWO_LENGTH and the position (0, −2) appear only in the prediction's reveal. Beat 1 prose (line 61) says 'That orbit holds (2,0), (−2,2) and (0,−2) only' and defines the string, but it never says which position two firings reach, or that its string at node 1 has one position. Line 99 (b5): the answer dim('D4',3) appears only in the reveal. Beat 4 prose lists 'nodes 1, 3 and 4 of D4' among the checked representations (generated from minuscule_representations) without their sizes. The caption of b10 (ownCaption('D4',4), rep.ts:937/940) gives 8 positions for node 4, not node 3. The Seen box and the Lie theory paragraph state neither answer. So the claim holds as stated. Oracle (python3 -I on copies of reference/ taken from 006f50d): L.fire(cartan('A',2),[2,0],0) gives (-2,2), then fire at position 1 gives (0,-2); L.string_through(C,(0,-2),0) gives [(0,-2)], length 1. L.orbit_size(cartan('D',4), e) at positions 0, 1, 2, 3 gives 8, 24, 8, 8. Golden minuscule_representations[type=D4;node=3].dimension = 8. These match the finding's values and the build's reveals, so this is not a math disagreement. The held class: P3-RT-13-01's own 'expected' reads 'The answer must appear only after commitment (P2: the prose repeats it after the prediction block)' (round1-confirmed-B.json). The owner's options (a) and (b) in the RT-FIX-P3-pages entry both move the revealing sentence below the prediction. Neither drops it. The P5-A3 entry ('2026-10-24 P5-A3: predictions (SPEC 8.5 patterns) and P3-RT-13-01') is a builder's choice to keep answers out of the prose above the question. It is not a [D] text, a section 10 default or an owner's answer, and it says nothing about prose after the question. The same entry says 'the prose must state the results (P1, P2)'. The P5-A3 review (phase5/P5-A3-review.json:112) records only the b5 leak, which is the held class. reports/gate-G5.md (report commit; it names gate commit 006f50d) has no open item on predictions. There was no earlier phase 5 round. Phase: M8 frontmatter is phase 5, and SPEC 9.2 asks for two predictions on M0 to M9, so the gate is G5.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed: no sentence permits a prediction's answer to sit only in its reveal, and 4.0 Predict's '<details> element holding the answer and the reveal' describes the fallback without JavaScript but does not exempt the prose. R2 failed: P2 'Results are stated in the prose' has no qualifier. There is an ambiguity for the owner: neither answer is a result in SPEC 3 M8's figure table, and both can be worked out from the prose. But ambiguity without a permitting sentence is not a refutation. R3 failed: M8 is phase 5 at gate G5. R4 failed: the oracle agrees with the finding's values ((0,-2) with a string of 1, and D4 node 3 orbit 8), so there is no math disagreement. R5 failed: 4.0 is [D] but its own text requires 'Nothing the argument needs is available only after a click', 8.1 is not [D], and the P5-A3 entry is a builder's choice, not an owner decision. R6 failed: the held class P3-RT-13-01 concerns answers visible before commitment, and its own expected and the owner's options keep the answer in prose after the prediction, so this absence is a different rule (P2) with no record. Severity stays major: under RED-TEAM-COMMON 4 this is 'a behaviour the specification states is missing'. It is not a blocker, because the answers sit in a <details> element that opens without JavaScript."
+   }
+  }
+ }
+]

@@ -60,3 +60,4 @@
 - P5-RT-06-01 minor: no run without JavaScript reads T12's orbit drawing or matrix cells on M8 (nojs.spec.ts accepts T12 roots through the string viewer's board; sibling of P4-RT-06-02).
 - Notes: T12 posts chevalleySerre to the worker on 103 of 163 links by the logged ruling (RELATIONS_MAIN_WORK; worker.ts header says E-9 three cases only; owner); default start omega_i against 6.6 (see P5-RT-10-03); Download data writes relations: null above the bound on configured states; stale wording in M8 MDX header, DECISIONS P5-A3 and an M8.spec comment (main-thread relation list).
 - RT-04 verdicts: 01 CONFIRMED major (unit 4 failed; browser 5 + 5 failed in two runs; not refuted).
+- RT-06 refute: 01 not refuted (7.4 every default figure of every lesson; M8's figure table makes the matrices the figure of beats 3 to 5); the server-against-hydrated comparison may catch lost matrix cells, not a lost orbit drawing. Reproduce pending.
