@@ -1434,9 +1434,19 @@ test('writing rules of 8.4', async ({ page }) => {
  * Glossary terms whose words these pages use in another sense, with the reason; their uses are not counted.
  *   arrows: the glossary's arrows are those of a Satake diagram (the involution); here they are quiver
  *     arrows or arrowheads of double roads.
+ *   length, round, representation, dimension (P6-terms, on MERGE's request after the glossary grew): the
+ *     table is keyed by term for both pages. The two pages use length only as the length of a root ("differ
+ *     in length") and in "at length", and round only in "turn round". The not-quiver page uses
+ *     representation and dimension only for representations of a quiver; M8 uses them in that sense in its
+ *     quiver sidebar and in the glossary's sense elsewhere, and those uses of M8 are checked phrase by phrase
+ *     by glossary-later-uses.spec.ts, which requires the link M8 carries on a later use of representation.
  */
 const OTHER_SENSE: Record<string, string> = {
   arrows: 'quiver arrows and arrowheads on roads, not the arrows of a Satake diagram',
+  length: 'the length of a root ("differ in length") and the idiom "at length", not the number of moves of a shortest play',
+  round: '"turn round", reversed in direction, not a round of the wave',
+  representation: 'a representation of a quiver on the not-quiver page and in the quiver sidebar of M8, not of the Lie algebra of a board',
+  dimension: 'the dimension at a vertex of a representation of a quiver',
 };
 
 test('later uses of a term link to the glossary', async ({ page }) => {

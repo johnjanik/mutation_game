@@ -10,6 +10,7 @@ import { linkIfReleased } from '@lib/pages/released';
 export const home = linkIfReleased({ kind: 'static', name: 'index' });
 export const credits = linkIfReleased({ kind: 'page', slug: 'credits' });
 export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
 export const m = (n) => linkIfReleased({ kind: 'module', number: n });
 
 {/* P1-A4: converted from P0-A5's about.astro (every sentence kept) and extended with the storyline
@@ -19,7 +20,7 @@ export const m = (n) => linkIfReleased({ kind: 'module', number: n });
 
 Two Games on a Dynkin Diagram is the working title of this site. It teaches the mathematical intuition that connects two elementary games to Lie theory. You play N. J. Wildberger's mutation game and Mozes' numbers game on a Dynkin diagram, and watch the root system, the weights, the Weyl group, the root polytopes and the simplest representations grow out of your own moves. Later you decorate the same board with black nodes and arrows and meet the real forms through Satake diagrams. The games need only integer addition, so the entry cost is low; the destination is the structure theory that usually takes a graduate course to reach.
 
-The two views of a board are called Populations, for the mutation game, and Numbers, for the numbers game. The mutation game and its story of cities on Mars are Wildberger's. The numbers game is Mozes', with Proctor's earlier use of the same process and Eriksson's development of it acknowledged. The credits page gives the full credit.
+The two views of a <Term a="board">board</Term> are called Populations, for the <Term a="mutation-game">mutation game</Term>, and Numbers, for the <Term a="numbers-game">numbers game</Term>. The mutation game and its story of cities on Mars are Wildberger's. The numbers game is Mozes', with Proctor's earlier use of the same process and Eriksson's development of it acknowledged. The credits page gives the full credit.
 
 ## The names used here
 
@@ -31,13 +32,13 @@ The story behind the first view is Wildberger's, retold here with his credit (<C
 
 The whole site rests on seven statements. Each module develops one of them.
 
-1. {m(7) ? <a href={m(7)}>A Dynkin diagram describes a set of mirrors through one point.</a> : <>A Dynkin diagram describes a set of mirrors through one point.</>} There is one mirror for each node; the roads record the angles between mirrors, and an arrow records a difference in scale.
+1. {m(7) ? <a href={m(7)}>A Dynkin diagram describes a set of mirrors through one point.</a> : <>A Dynkin diagram describes a set of mirrors through one point.</>} There is one mirror for each <Term a="node">node</Term>; the <Term a="roads">roads</Term> record the angles between mirrors, and an arrow records a difference in scale.
 2. {m(1) ? <a href={m(1)}>A move of either game is a reflection in one of those mirrors.</a> : <>A move of either game is a reflection in one of those mirrors.</>} Recorded by its coordinates along the mirror normals, a point changes in one coordinate: that is a mutation. Recorded by its signed distances to the mirrors, the distance to the chosen mirror changes sign and its neighbours take up the change: that is a firing.
 3. {m(4) ? <a href={m(4)}>The Cartan matrix turns one record into the other.</a> : <>The Cartan matrix turns one record into the other.</>} Its entries are the road counts of the board, and it is the one piece of algebra both games encode.
-4. {m(5) ? <a href={m(5)}>Playing is walking in the Weyl group.</a> : <>Playing is walking in the Weyl group.</>} Populations are roots and numbers are weights; legal play spells reduced words, and the numbers fired along the way lead to the exponents, the order of the group and Weyl's dimension formula.
+4. {m(5) ? <a href={m(5)}>Playing is walking in the Weyl group.</a> : <>Playing is walking in the Weyl group.</>} Populations are roots and <Term a="numbers">numbers</Term> are weights; legal play spells reduced words, and the numbers fired along the way lead to the exponents, the order of the group and Weyl's dimension formula.
 5. {m(3) ? <a href={m(3)}>The board alone decides whether a game closes up.</a> : <>The board alone decides whether a game closes up.</>} It does so exactly when a quadratic form of the board is positive definite, which picks out the Dynkin diagrams. On the boundary sit the affine diagrams, with one frozen population and one conserved weighted sum.
 6. {m(8) ? <a href={m(8)}>A simple Lie algebra appears when each reflection is cut into single steps up and down.</a> : <>A simple Lie algebra appears when each reflection is cut into single steps up and down.</>} In the smallest representations every step is a move of the game, and the graph of the game is the representation.
-7. {m(9) ? <a href={m(9)}>A real form is the same algebra seen through an involution.</a> : <>A real form is the same algebra seen through an involution.</>} On the board it is a choice of black nodes and arrows, a Satake diagram. The involution can itself be played, and the shadows it casts on the roots make a smaller board with a game of its own.
+7. {m(9) ? <a href={m(9)}>A real form is the same algebra seen through an involution.</a> : <>A real form is the same algebra seen through an involution.</>} On the board it is a choice of <Term a="black">black</Term> nodes and <Term a="arrows">arrows</Term>, a Satake diagram. The involution can itself be played, and the shadows it casts on the roots make a smaller board with a game of its own.
 
 ## How the site is built
 
