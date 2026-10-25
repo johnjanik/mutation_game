@@ -23,7 +23,7 @@
   // ('numbers' only), start, moves, prediction, preset ('default' | 'string-viewer' | 'relation-checker' |
   // 'signed-move': the state fields and the panel put first), caption; linkTo and layers are accepted and
   // ignored (no set of positions grows off the finite types).
-  import { tick, untrack, type Snippet } from 'svelte';
+  import { flushSync, tick, untrack, type Snippet } from 'svelte';
   import type { AnyBoard, RelationCheck } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -623,6 +623,14 @@
   function build(spec: string, node: number | null, announce: (t: string) => void): void {
     const g = ++generation;
     building = `Building ${spec}${node === null ? '' : `, node ${node}`}.`;
+    // The pickers show this pick from now on (aim). The node picker keeps the labels of the board being built
+    // when this pick is on that board, and lists the board shown again when it is on another (G5 rerun repair).
+    aim = { spec, node };
+    if (picked !== null) picked = picked.spec !== spec ? null : node === null ? picked : { spec, node };
+    // Written to the page now, in the reader's task, rather than at the end of it: a select is written only
+    // when its value changes, so a value set and set back within one task (a node of the board shown chosen
+    // right after a board) would leave the select on the board picked.
+    flushSync();
     let label = node ?? 0;
     // The previous state's panels are taken down before the new state is drawn, in two frames of their own
     // (G5 repair: taken down in one task they took 21 to 39 ms with the processor slowed four times). A piece
@@ -657,7 +665,8 @@
         representationDimension(t.rep, mainRoute);
         made = { state, tool: t };
       },
-      // The pickers show the board and node being built (their options written here, not when the state loads).
+      // The node picker lists the labels of the board being built, and the board picker's markup marks it (their
+      // options written here, not when the state loads); a node chosen from that list is built on this board.
       () => {
         picked = { spec, node: label };
       },
@@ -684,7 +693,11 @@
     const t = made ?? new T12Tool(configOf(s), { defer: true });
     const nodeChanged = t.spec !== tool.spec || t.node !== tool.node;
     tool = t;
+    // A load ends a pick in progress (its steps stop with the generation): a link, a typed start, the pick's
+    // own end. Its line goes and the pickers show the state loaded (G5 rerun repair).
     picked = null;
+    aim = null;
+    building = null;
     if (nodeChanged) matrixNode = t.node;
     // A relation that the server's digest does not hold needs the list (in the worker above the bound).
     if (t.rep.checks === null && !(digestHolds(t.rep) && digest!.code === t.relation)) needList = true;
@@ -875,10 +888,18 @@
     build(name, null, announce);
   }
 
+  /**
+   * A node of the node picker is built on the board whose labels the picker lists (pickerSpec): the board
+   * being built once its labels are listed, the board shown before. A label the list does not hold is refused
+   * (G5 rerun repair: a node chosen in the frame after the picker listed the picked board's labels was built on
+   * the board shown, and threw on a label that board lacks).
+   */
   function pickNode(label: number, announce: (t: string) => void): void {
     if (frozen) return;
+    const board = pickerSpec;
+    if (!pickerLabels.includes(label)) return;
     notice = null;
-    build(spec, label, announce);
+    build(board, label, announce);
   }
 
   /** The node k of the matrices and of the signed move (not part of the state); the signed move is then drawn from it. */
@@ -931,15 +952,27 @@
   const ui = $derived(interaction(anyBoard.n, { hydrated: true, frozen, pending: cur().pending }));
   const uid = UID;
   /**
-   * The board and node a pick is building, which the two pickers show from the step before the state loads,
-   * so that the task that loads the state does not write the pickers' options too (G5 repair); null otherwise,
-   * and the pickers show the state (the same options, so nothing is written again when it loads).
+   * The board and node a pick is building, whose labels the node picker lists from the step before the state
+   * loads, so that the task that loads the state does not write the pickers' options too (G5 repair); null
+   * otherwise, and the pickers list the state's (the same options, so nothing is written again when it loads).
+   * A node chosen from that list is built on that board (pickNode).
    */
   let picked = $state.raw<{ spec: string; node: number } | null>(null);
+  /** The board whose labels the node picker lists (and whose option the board picker's markup marks selected). */
   const pickerSpec = $derived(picked?.spec ?? spec);
   const pickerNode = $derived(picked?.node ?? nodeLabel);
   const pickerLabels = $derived(picked === null ? labels : labelOrder(boardOf(picked.spec)));
   const pickerMinuscule = $derived(picked === null ? minusculeSet : new Set(minusculeLabels(boardOf(picked.spec))));
+  /**
+   * The board and node of the pick in progress, from the reader's choice until the state loads (null
+   * otherwise; node null while a picked board's default node is not known yet). The two pickers' values follow
+   * it, so that a select always moves back to the state when a load ends a pick (a link, a typed start, or a
+   * node of the board shown chosen while another board was being built): a value that has not changed is never
+   * written to the select again (G5 rerun repair: the board picker kept the board picked over the state loaded).
+   */
+  let aim = $state.raw<{ spec: string; node: number | null } | null>(null);
+  const boardValue = $derived(aim?.spec ?? spec);
+  const nodeValue = $derived(picked?.node ?? aim?.node ?? nodeLabel);
   /**
    * The options of the board picker and of the node picker, written as markup (the names and labels need no
    * escaping): one {@html} block hydrates where a component per option would (SPEC 7.6, measured on the
@@ -1220,13 +1253,13 @@
     <div class="settings">
       <label class="setting">
         <span>Board</span>
-        <select data-control="picker" value={pickerSpec} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickBoard((e.currentTarget as HTMLSelectElement).value, api.announce)}
+        <select data-control="picker" value={boardValue} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickBoard((e.currentTarget as HTMLSelectElement).value, api.announce)}
           >{@html pickerOptions}</select
         >
       </label>
       <label class="setting">
         <span>Node i</span>
-        <select data-control="node" value={String(pickerNode)} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickNode(Number((e.currentTarget as HTMLSelectElement).value), api.announce)}
+        <select data-control="node" value={String(nodeValue)} disabled={!api.hydrated || !ui.controls} onchange={(e) => pickNode(Number((e.currentTarget as HTMLSelectElement).value), api.announce)}
           >{@html nodePickerOptions}</select
         >
       </label>
