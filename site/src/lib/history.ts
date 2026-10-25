@@ -19,6 +19,12 @@
 // so a leader moved from its follower's table and a follower moved by its leader are both written. A
 // page opened without a link has nothing to apply: every change is written, as a move. RT-FIX
 // P4-RT-04-03.
+//
+// On popstate (the back button, a fragment link such as the skip link) every instance's tool re-reads
+// the bar, by the codec or by rules of its own (T10 to T12), and shows what it admits. The recorded
+// state stays the one the tool last reported, so that a tool that finds its state unchanged keeps it;
+// what the tool then shows reaches stateChanged and, until the reader acts, is that instance's load:
+// recorded, not written. RT-FIX P5-RT-04-01.
 import { decodeState, encodeState, normalisePrefix } from './urlCodec';
 import { cloneState, type ToolState } from './state';
 
@@ -36,6 +42,8 @@ interface Instance {
   onPopState?: (state: ToolState, notice: string | null) => void;
   /** The number of the reader's actions on the page when the instance registered. */
   registeredAt: number;
+  /** The number of the reader's actions on the page at the last popstate (-1: none yet). */
+  poppedAt: number;
   /** The reader has changed the instance: only such instances are written (6.6). */
   changed: boolean;
 }
@@ -75,7 +83,7 @@ export function registerInstance(
   if (instances.has(instanceId)) throw new Error(`duplicate instance id ${instanceId}`);
   const b = browser();
   if (b !== null && hasKeysOf(b.location.search, instanceId)) openedFromLink = true;
-  const entry: Instance = { defaults: cloneState(defaults), current: cloneState(initial ?? defaults), registeredAt: actions, changed: false };
+  const entry: Instance = { defaults: cloneState(defaults), current: cloneState(initial ?? defaults), registeredAt: actions, poppedAt: -1, changed: false };
   if (onPopState) entry.onPopState = onPopState;
   instances.set(instanceId, entry);
   if (!listening && b?.addEventListener) {
@@ -92,7 +100,8 @@ export function unregisterInstance(instanceId: string): void {
 
 /**
  * Records the state of an instance after a change and schedules one replaceState for the burst. A
- * change that may be a link being applied (see the head of this file) is recorded and not written.
+ * change that may be a link being applied, or the state a popstate loaded (see the head of this file),
+ * is recorded and not written.
  */
 export function stateChanged(instanceId: string, state: ToolState): void {
   const entry = instances.get(instanceId);
@@ -100,6 +109,7 @@ export function stateChanged(instanceId: string, state: ToolState): void {
   if (encodeState(state) === encodeState(entry.current)) return;
   entry.current = cloneState(state);
   if (openedFromLink && entry.registeredAt === actions) return;
+  if (entry.poppedAt === actions) return;
   entry.changed = true;
   if (timer !== null) clearTimeout(timer);
   timer = setTimeout(() => {
@@ -215,12 +225,17 @@ export async function copyLink(instanceId: string, clipboard: { writeText(text: 
   }
 }
 
+/**
+ * Hands each instance the codec's reading of the bar. The recorded state is not replaced by it: the
+ * tool loads what it admits, and that state reaches stateChanged as the instance's load (see the head
+ * of this file); a tool that finds its state unchanged keeps the recorded one, which it shows.
+ */
 function onPopState_(): void {
   const b = browser();
   if (!b) return;
+  for (const entry of instances.values()) entry.poppedAt = actions;
   for (const [id, entry] of instances) {
     const { state, notice } = decodeState(b.location.search, entry.defaults.tool, entry.defaults, { prefix: id });
-    entry.current = cloneState(state);
     entry.onPopState?.(state, notice);
   }
 }
