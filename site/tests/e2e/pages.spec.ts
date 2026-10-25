@@ -108,6 +108,9 @@ test.describe('pages', () => {
 
   test('no link anywhere targets dev/math-check', async ({ page, baseURL }) => {
     const routes = builtRoutes();
+    // The test visits every built route, so its time limit grows with them (MERGE's ruling after the Atlas
+    // took the routes from 51 to 88; P6-A4's repair): one second per route, never less than the default 30 s.
+    test.setTimeout(Math.max(30_000, routes.length * 1_000));
     expect(routes).toContain('dev/math-check/');
     expect(routes).toContain('dev/lesson-check/');
     for (const route of routes) {
@@ -146,7 +149,9 @@ test.describe('pages', () => {
     await page.setViewportSize({ width: 1024, height: 800 });
     await page.goto('about/');
     const names = await page.locator('nav[aria-label="Site"] a').allTextContents();
-    expect(names).toEqual(['Home', 'Modules', 'Glossary', 'Sources', 'About', 'Credits']);
+    // The Atlas index is in the navigation exactly when the Atlas pages exist (P6-A4's repair, on MERGE's behalf).
+    const atlas = builtRoutes().includes('atlas/');
+    expect(names).toEqual(['Home', 'Modules', ...(atlas ? ['Atlas'] : []), 'Glossary', 'Sources', 'About', 'Credits']);
     await page.keyboard.press('Tab'); // the skip link
     await expect(page.locator('.skip-link')).toBeFocused();
     for (const name of names) {
@@ -159,7 +164,7 @@ test.describe('pages', () => {
     // Back to Glossary and follow it with Enter.
     await page.goto('about/');
     await page.keyboard.press('Tab');
-    for (let k = 0; k < 3; k++) await page.keyboard.press('Tab');
+    for (let k = 0; k <= names.indexOf('Glossary'); k++) await page.keyboard.press('Tab');
     await expect(page.locator('nav[aria-label="Site"] a:focus')).toHaveText('Glossary');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(new URL('glossary/', baseURL!).toString());

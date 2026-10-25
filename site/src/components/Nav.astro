@@ -1,13 +1,14 @@
 ---
 // The site navigation (P1-A4; SPEC.md 7.3, 7.5 A-1 and A-2, 7.6). A <nav> named "Site" with links to
-// the index, the module index, the glossary, the sources page, about and credits, each built from
-// import.meta.env.BASE_URL through linkIfReleased, so a target that is not released has no link.
+// the index, the module index, the Atlas index (once the Atlas exists; P6-A4), the glossary, the sources
+// page, about and credits, each built from import.meta.env.BASE_URL through the released mechanism
+// (linkIfReleased), so a target that is not released has no link.
 // The theme switch (CONTRACTS.md 8; orchestrator decision of stage 1.1): a Svelte island would ship
 // about 17 kB of runtime on a page with no other island, over the 15 kB no-tool budget of SPEC.md
 // 7.6, so the switch is a plain <button>, disabled in the server HTML, wired by the small bundled
 // script below. It keeps P1-A3's contract: localStorage key "theme" ("light" | "dark"), attribute
 // data-theme on <html>, absent for the system default.
-import { linkIfReleased, type Target } from '@lib/pages/released';
+import { isReleased, joinBase, linkIfReleased, siteInventory, type Target } from '@lib/pages/released';
 
 const items: { target: Target; text: string }[] = [
   { target: { kind: 'static', name: 'index' }, text: 'Home' },
@@ -21,6 +22,13 @@ const links = items.flatMap(({ target, text }) => {
   const href = linkIfReleased(target);
   return href === null ? [] : [{ href, text }];
 });
+// The Atlas index, after Modules (P6-A4's repair, on MERGE's behalf): released with the Atlas, which the
+// released mechanism counts as released when its pages exist (an Atlas target, pages/atlas/[board].astro).
+// Target names an Atlas page by its board and has no entry for the index, so the index's route is joined
+// to the base here; the board below only names an Atlas target and decides nothing.
+if (isReleased({ kind: 'atlas', board: 'A1' }, siteInventory())) {
+  links.splice(links.findIndex((l) => l.text === 'Modules') + 1, 0, { href: joinBase(import.meta.env.BASE_URL, 'atlas/'), text: 'Atlas' });
+}
 const here = Astro.url.pathname;
 ---
 <div class="site-bar">
