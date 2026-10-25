@@ -4,25 +4,24 @@
 //
 // Routes are discovered from the build, never typed: the tools are the folders of site/dist/tools, the
 // embed routes those of site/dist/embed, so tools registered later (T13, T14) are covered without an
-// edit. pages/embed/[tool].astro renders the shared table of hydrated tools, src/tools/ToolIsland.astro
-// (request R1 of P6-A5, decisions/P6-A5.md), and builds no route while that file does not exist; the
-// first test pins both states, so the tests generated per embed route run as soon as the routes exist.
-// A route whose page has no tool frame (T14 may be static pages, CONTRACTS 6) is checked for hydration
-// only through its islands.
+// edit. pages/embed/[tool].astro imports the shared table of hydrated tools, src/tools/ToolIsland.astro
+// (request R1 of P6-A5, decisions/P6-A5.md), statically and builds every route; the first test pins
+// that the embed routes are exactly the tool routes, so a build that drops them fails here. A route
+// whose page has no tool frame (T14 may be static pages, CONTRACTS 6) is checked for hydration only
+// through its islands.
 //
 // Hooks read: data-embed (body), data-open-on-site (the link under the tool), data-frame, data-tool,
 // data-hydrated, data-moves (tool root), data-node and data-value (node buttons), data-control="copyLink",
 // "downloadData", "latex", "cite", data-export="png", data-out="citeText", "exportNotice", "notice",
 // "caption", "noscript", and the live region [data-live].
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { distDir } from './routes';
 
 const DIST = distDir();
-const SHARED_TABLE = fileURLToPath(new URL('../../src/tools/ToolIsland.astro', import.meta.url));
 /** The working title of SPEC 1.7 (D1 default), the site name of the citation. */
 const SITE_NAME = 'Two Games on a Dynkin Diagram';
 /** The codec's keys (SPEC 6.6 URL form): a link carries these and nothing else. */
@@ -84,13 +83,57 @@ async function downloadText(page: Page, name: string): Promise<{ text: string; f
   return { text: readFileSync((await dl.path())!, 'utf8'), file: dl.suggestedFilename() };
 }
 
+/** A string only the export module holds (export.ts NOTHING_TO_EXPORT_LATEX): the script holding it is that module. */
+const EXPORT_MARKER = 'nothing to export as LaTeX';
+
+/** Records the URLs of the scripts a page fetches. */
+function recordScripts(page: Page): string[] {
+  const urls: string[] = [];
+  page.on('request', (r) => {
+    if (new URL(r.url()).pathname.endsWith('.js')) urls.push(r.url());
+  });
+  return urls;
+}
+
+/** The fetched scripts that hold the export module, read from the build (as npm run size reads them). */
+function exportScripts(urls: string[], baseURL: string): string[] {
+  const base = new URL(baseURL).pathname;
+  return [...new Set(urls)].filter((u) => {
+    const path = new URL(u).pathname;
+    const file = join(DIST, path.startsWith(base) ? path.slice(base.length) : path);
+    return existsSync(file) && readFileSync(file, 'utf8').includes(EXPORT_MARKER);
+  });
+}
+
+/**
+ * In `frame`: press Cite once (so that the export module is loaded), make one move, press Cite at once
+ * (inside the half second before the address bar is written, 7.4), then Copy link. Returns the text Cite
+ * copied and showed, the link it cites, and the link Copy link gave.
+ */
+async function citeRightAfterAMove(page: Page, frame: Locator): Promise<{ cite: string; shown: string; cited: string; link: string }> {
+  const count = async (): Promise<number> => (await copied(page)).length;
+  const n0 = await count();
+  await frame.locator('[data-control="cite"]').click();
+  await expect.poll(count).toBe(n0 + 1);
+  const moves = Number(await frame.getAttribute('data-moves'));
+  await frame.locator('button[data-node][data-can-act="true"]:not([disabled])').first().click();
+  await frame.locator('[data-control="cite"]').click();
+  await expect(frame).toHaveAttribute('data-moves', String(moves + 1));
+  await expect.poll(count).toBe(n0 + 2);
+  await frame.locator('[data-control="copyLink"]').click();
+  await expect.poll(count).toBe(n0 + 3);
+  const [cite, link] = (await copied(page)).slice(-2) as [string, string];
+  const shown = ((await frame.locator('[data-out="citeText"]').textContent()) ?? '').trim();
+  return { cite, shown, cited: cite.slice(cite.lastIndexOf('. ') + 2), link };
+}
+
 test.describe('the embed routes', () => {
-  test('every registered tool has an embed route once the shared table of hydrated tools exists, and none before', () => {
+  test('every registered tool has an embed route', () => {
     expect(TOOL_IDS.length).toBeGreaterThan(0);
     // The registry gives /tools/<id> to every registered tool (P1-A2), so its routes are the registry's.
     const registered = readdirSync(fileURLToPath(new URL('../../src/tools/registry/', import.meta.url))).filter((f) => /^T\d+\.ts$/.test(f));
     expect(TOOL_IDS).toHaveLength(registered.length);
-    expect(EMBED_IDS).toEqual(existsSync(SHARED_TABLE) ? TOOL_IDS : []);
+    expect(EMBED_IDS).toEqual(TOOL_IDS);
   });
 
   for (const id of EMBED_IDS) {
@@ -136,6 +179,16 @@ test.describe('the embed routes', () => {
       const origin = new URL(baseURL!).origin;
       expect(requests.length).toBeGreaterThan(0);
       for (const u of requests) expect(u.startsWith(`${origin}/`) || u.startsWith('data:') || u.startsWith('blob:'), u).toBe(true);
+    });
+
+    // SPEC 7.6: the export module (Download data, the figure exports, Export LaTeX, Cite) is fetched on
+    // the first click that needs it, never with the route.
+    test(`the export module is not fetched before the first interaction: ${id}`, async ({ page, baseURL }) => {
+      const scripts = recordScripts(page);
+      await ready(page, `embed/${id}/`);
+      await page.waitForLoadState('networkidle');
+      expect(scripts.length).toBeGreaterThan(0);
+      expect(exportScripts(scripts, baseURL!)).toEqual([]);
     });
 
     test(`embed routes pass axe: ${id}`, async ({ page }) => {
@@ -207,6 +260,25 @@ test.describe('the embed routes', () => {
       await expect(page.locator('[data-tool="board"]').first()).toHaveAttribute('data-moves', '0');
     });
 
+    test(`the export module is fetched at the first click of Export LaTeX (${id})`, async ({ page, baseURL }) => {
+      const scripts = recordScripts(page);
+      await ready(page, 'embed/board/');
+      await page.waitForLoadState('networkidle');
+      expect(exportScripts(scripts, baseURL!)).toEqual([]);
+      await downloadText(page, 'latex');
+      expect(exportScripts(scripts, baseURL!)).toHaveLength(1);
+    });
+
+    test(`Cite right after a move cites the new state, as Copy link does (${id})`, async ({ page }) => {
+      await stubClipboard(page);
+      await ready(page, 'embed/board/');
+      const { cite, shown, cited, link } = await citeRightAfterAMove(page, page.locator('[data-frame]').first());
+      expect(cited).toBe(link);
+      expect(shown).toBe(cite);
+      expect(new URL(cited).pathname).toMatch(/\/embed\/board\/$/);
+      expect(new URL(cited).searchParams.get('w')).not.toBeNull();
+    });
+
     test(`Cite on the embed route cites the embed link (${id})`, async ({ page }) => {
       await stubClipboard(page);
       await ready(page, 'embed/board/?z=1&g=A2&v=n&m=l&c=n&s=1,1&w=1.2');
@@ -260,38 +332,55 @@ test.describe('Export LaTeX and Cite', () => {
     expect(file).toBe('board-E6.tex');
     expect(text).toBe(`% ${link}\n% needs \\usepackage{dynkin-diagrams}\n\\dynkin E{oooooo}\n`);
     await expect(page.locator('[data-out="exportNotice"]')).toHaveText('');
+    // The download is announced, as Download data's is (SPEC 7.5, 4.1.3).
+    await expect(page.locator('[data-live]').first()).toHaveText('Downloaded board-E6.tex.');
     // On C2 the letter is the name the reader chose (D19).
     await ready(page, 'tools/board/?z=1&g=C2');
     expect((await downloadText(page, 'latex')).text).toContain('\n\\dynkin C{oo}\n');
   });
 
-  test('Export LaTeX on a board with no form of SPEC 6.7 shows the notice', async ({ page }) => {
+  test('Export LaTeX on a board with no form of SPEC 6.7 shows the notice and announces it', async ({ page }) => {
     let downloads = 0;
     page.on('download', () => downloads++);
-    await ready(page, 'tools/affine/');
-    await control(page, 'latex').click();
-    await expect(page.locator('[data-out="exportNotice"]')).toHaveText('nothing to export as LaTeX');
+    await stubClipboard(page);
+    for (const path of ['tools/affine/', 'embed/sandbox/']) {
+      await ready(page, path);
+      // Cite first, so that the live region holds another message before the click (SPEC 7.5, 4.1.3).
+      await control(page, 'cite').click();
+      await expect(page.locator('[data-live]').first()).toHaveText('Citation copied.');
+      await control(page, 'latex').click();
+      await expect(page.locator('[data-out="exportNotice"]')).toHaveText('nothing to export as LaTeX');
+      await expect(page.locator('[data-live]').first()).toHaveText('nothing to export as LaTeX');
+    }
     expect(downloads).toBe(0);
   });
 
-  test('Cite gives the page title, the commit, the date and the link', async ({ page }) => {
-    await page.clock.setFixedTime(new Date(2026, 10, 2, 10, 30));
-    await stubClipboard(page);
-    await ready(page, 'tools/board/?z=1&g=A2&v=n&m=l&c=n&s=1,1&w=1.2');
-    const { text: json } = await downloadText(page, 'downloadData');
-    const commit = (JSON.parse(json) as { commit: string }).commit;
-    expect(commit.length).toBeGreaterThan(0);
-    await control(page, 'copyLink').click();
-    await control(page, 'cite').click();
-    const cite = page.locator('[data-out="citeText"]');
-    await expect(cite).toBeVisible();
-    const [link, cited] = await copied(page);
-    const title = await page.title();
-    expect(title).toBe('Game Board');
-    expect(await cite.textContent()).toBe(`${title}. ${SITE_NAME}, site version ${commit}, 2026-11-02. ${link}`);
-    // The text shown is the text copied, and the copy is announced.
-    expect(cited).toBe(await cite.textContent());
-    await expect(page.locator('[data-live]').first()).toHaveText('Citation copied.');
+  // The date is the reader's local date (decisions/P6-A5.md), read in a time zone far from UTC: at this
+  // instant the date is 2 November in UTC and already 3 November at UTC+14.
+  test.describe('in a time zone far from UTC', () => {
+    test.use({ timezoneId: 'Pacific/Kiritimati' });
+    test('Cite gives the page title, the commit, the date and the link', async ({ page }) => {
+      const instant = new Date('2026-11-02T12:30:00Z');
+      expect(instant.toISOString().slice(0, 10)).toBe('2026-11-02');
+      await page.clock.setFixedTime(instant);
+      await stubClipboard(page);
+      await ready(page, 'tools/board/?z=1&g=A2&v=n&m=l&c=n&s=1,1&w=1.2');
+      const { text: json } = await downloadText(page, 'downloadData');
+      const commit = (JSON.parse(json) as { commit: string }).commit;
+      expect(commit.length).toBeGreaterThan(0);
+      await control(page, 'copyLink').click();
+      await control(page, 'cite').click();
+      const cite = page.locator('[data-out="citeText"]');
+      await expect(cite).toBeVisible();
+      const [link, cited] = await copied(page);
+      const title = await page.title();
+      expect(title).toBe('Game Board');
+      expect(await page.evaluate(() => new Date().getDate())).toBe(3);
+      expect(await cite.textContent()).toBe(`${title}. ${SITE_NAME}, site version ${commit}, 2026-11-03. ${link}`);
+      // The text shown is the text copied, and the copy is announced.
+      expect(cited).toBe(await cite.textContent());
+      await expect(page.locator('[data-live]').first()).toHaveText('Citation copied.');
+      });
   });
 
   test('the cited link carries no site version', async ({ page }) => {
@@ -323,6 +412,34 @@ test.describe('Export LaTeX and Cite', () => {
     expect(text.startsWith(`${heading}${/[.?!]$/.test(heading) ? '' : '.'} ${SITE_NAME}, site version `)).toBe(true);
     expect(text).not.toContain(`: ${SITE_NAME}`);
     expect(new URL(text.slice(text.lastIndexOf('. ') + 2)).pathname).toMatch(/\/modules\/m0-start\/$/);
+  });
+
+  // SPEC 7.4 "Citing": the link cited is the one Copy link gives, built from the instance's state, not
+  // read from the address bar, which is written half a second after a burst of moves and holds the
+  // keys of other instances. Two instances of one lesson, each cited right after a move.
+  test('Cite right after a move on a lesson instance cites the link Copy link gives', async ({ page }) => {
+    await stubClipboard(page);
+    await page.goto(at('modules/m0-start/'));
+    const frames = page.locator('[data-frame]');
+    const n = await frames.count();
+    let checked = 0;
+    for (let k = 0; k < n && checked < 2; k++) {
+      const frame = frames.nth(k);
+      await frame.scrollIntoViewIfNeeded();
+      await expect(frame).toHaveAttribute('data-hydrated', 'true', { timeout: 15000 });
+      if ((await frame.locator('button[data-node][data-can-act="true"]:not([disabled])').count()) === 0) continue;
+      const inst = (await frame.getAttribute('data-instance')) ?? '';
+      expect(inst.length).toBeGreaterThan(0);
+      const { cite, shown, cited, link } = await citeRightAfterAMove(page, frame);
+      expect(cited).toBe(link);
+      expect(shown).toBe(cite);
+      expect(new URL(cited).pathname).toMatch(/\/modules\/m0-start\/$/);
+      expect(new URL(cited).searchParams.get(`${inst}.w`), cited).not.toBeNull();
+      checked++;
+      // Let the address bar take this instance's keys before the next instance moves.
+      await expect.poll(() => page.evaluate(() => location.search)).toContain(`${inst}.w=`);
+    }
+    expect(checked).toBe(2);
   });
 
   test('Cite without a clipboard shows the text and says so', async ({ page }) => {
