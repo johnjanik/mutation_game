@@ -1016,6 +1016,7 @@ const ALLOWED: Allowed[] = [
   { text: '2r-n-|\\Phi_X|', around: /The character/, reason: 'the derived character formula of 2.15' },
   { text: '\\bar C_{OO\'}=2(\\bar\\alpha_O,\\bar\\alpha_{O\'})/(\\bar\\alpha_O,\\bar\\alpha_O)', around: /Cartan matrix/, reason: 'the Cartan matrix of the restricted board, 2.15' },
   { text: '\\theta=-1', around: /split form/, reason: 'theta = -1 on the split form (2.15 special shapes)' },
+  { text: 'r=1', around: /<Tex src="A_1"\/> when <Tex src="r=1"\/>/, reason: 'the restricted board A1 of BC1, real rank r = 1 (2.15)' },
   { text: 'q-p\\ge3', around: /whenever/, reason: 'the family su(p,q) with q - p >= 3 (2.15)' },
   { text: 'p\\le n-2', around: /with <Tex/, reason: 'the family so(p,2n-p) with p <= n - 2 (2.15)' },
   { text: 'n\\ge2', around: /compact forms of/, reason: 'the compact forms of A_n, n >= 2 (2.15)' },
