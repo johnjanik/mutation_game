@@ -42,7 +42,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { boardFromName, chevalleySerre, fire, minusculeMatrices, play, stringThrough, toLabels, toPositions } from '../../../packages/engine/src/index';
-import type { AnyBoard, Board } from '../../../packages/engine/src/index';
+import type { AnyBoard, Board, SparseMatrix } from '../../../packages/engine/src/index';
 import { nodePositions } from '../../src/components/draw/layouts';
 import { bigBoard } from '../../src/lib/state';
 import { copiedLink, downloadData, openForExport, unsafeNumbers } from './exportIntegers';
@@ -1062,5 +1062,35 @@ test.describe('regressions', () => {
       await expect(tool.locator('[data-out="relation-verdict"]')).toHaveText('not checked', { timeout: 30000 });
       await expect(tool.locator('[data-live]')).toHaveText(await tool.locator('[data-out="all-relations"]').innerText());
     });
+  });
+
+  /** The nonzero cells of a drawn MatrixView, "row,col=value" with 1-based indices. */
+  const cellsOf = (m: Locator): Promise<string[]> =>
+    m.locator('td[data-row]').evaluateAll((tds) => tds.filter((t) => t.getAttribute('data-value') !== '0').map((t) => `${t.getAttribute('data-row')},${t.getAttribute('data-col')}=${t.getAttribute('data-value')}`).sort());
+  const engineCells = (m: SparseMatrix): string[] =>
+    [...m]
+      .map(([k, v]) => {
+        const [r, c] = k.split(',').map(Number) as [number, number];
+        return `${r + 1},${c + 1}=${v}`;
+      })
+      .sort();
+
+  // SPEC 4 T12: "the tool displays the matrix on each side of the relation and whether they are equal";
+  // acceptance "choosing the non-minuscule node 2 of D4 shows a failing relation". The two sides are read
+  // where they differ, so a tool that draws one matrix in both panels fails.
+  // regression: P5-RT-10-01
+  test('on node 2 of D4 the relation checker shows the two different sides of [E1, F1] = H1', async ({ page }) => {
+    const D4 = boardFromName('D4');
+    const [p1, p2] = toPositions(D4, [1, 2]) as [number, number];
+    const m = minusculeMatrices(D4, p2)!;
+    const rec = chevalleySerre(D4, m.E, m.F, m.H).find((c) => c.relation === 'ef' && c.i === p1 && c.j === p1)!;
+    expect(rec.holds).toBe(false);
+    await open(page, 'g=D4&k=2&q=ef:1,1');
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
+    const left = await cellsOf(out(page, 'relation-left'));
+    const right = await cellsOf(out(page, 'relation-right'));
+    expect(left, 'relation-left is [E1, F1] of chevalleySerre').toEqual(engineCells(rec.left));
+    expect(right, 'relation-right is H1 of chevalleySerre').toEqual(engineCells(rec.right));
+    expect(left).not.toEqual(right);
   });
 });
