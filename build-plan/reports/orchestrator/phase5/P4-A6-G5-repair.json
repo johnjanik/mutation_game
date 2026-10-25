@@ -1,0 +1,133 @@
+{
+ "agent": "P4-A6",
+ "status": "done",
+ "branch": "worktree-agent-a75108b88edf8525c",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a75108b88edf8525c",
+ "commits": [
+  "f8e2c58 P4-A6: M7 anatomy test expects the next-module link to M8 (G5)",
+  "63bd424 P4-A6: M7 trims 15 repeated words to make room for the next-module link (G5)"
+ ],
+ "filesChanged": [
+  "site/tests/e2e/M7.spec.ts",
+  "site/src/content/modules/m7-geometry.mdx",
+  "decisions/P4-A6.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard de46828",
+   "exit": 0,
+   "summary": "HEAD is now at de46828 MERGE: fold the P5-A2 repair; stages 5.2 and 5.3 recorded after review"
+  },
+  {
+   "cmd": "npm ci --prefer-offline (worktree root)",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm --prefix /home/user/mutation_game/.claude/worktrees/agent-a75108b88edf8525c run build (before the repair)",
+   "exit": 0,
+   "summary": "35 page(s) built; links: 1286 internal links on 35 pages checked, 0 problems"
+  },
+  {
+   "cmd": "playwright test --config <scratch>/m7-repair/playwright.config.ts (port 7760, astro preview --ignore-lock in site/) site/tests/e2e/M7.spec.ts -g \"word count between|anatomy of 8.2\" (before)",
+   "exit": 1,
+   "summary": "2 failed, reproducing G5: anatomy found 1 link to m8; M7 prose words: 1803"
+  },
+  {
+   "cmd": "npm --prefix /home/user/mutation_game/.claude/worktrees/agent-a75108b88edf8525c run build (after)",
+   "exit": 0,
+   "summary": "35 page(s) built in 13.20s; links: 1286 internal links on 35 pages checked, 0 problems"
+  },
+  {
+   "cmd": "playwright test --config <scratch>/m7-repair/playwright.config.ts site/tests/e2e/M7.spec.ts",
+   "exit": 0,
+   "summary": "34 passed (1.1m); M7 prose words: 1788"
+  },
+  {
+   "cmd": "playwright test --config <scratch>/m7-repair/playwright.config.ts site/tests/e2e/nojs.spec.ts",
+   "exit": 0,
+   "summary": "83 passed (59.4s)"
+  },
+  {
+   "cmd": "playwright test --config <scratch>/m7-repair/playwright.config.ts site/tests/e2e/a11y.spec.ts -g m7",
+   "exit": 0,
+   "summary": "1 passed (19.2s): modules/m7-geometry/ has no serious or critical axe violations"
+  },
+  {
+   "cmd": "npm --prefix /home/user/mutation_game/.claude/worktrees/agent-a75108b88edf8525c run check -w site",
+   "exit": 0,
+   "summary": "astro check: 321 files, 0 errors, 0 warnings; svelte-check: 1150 files, 0 errors, 1 warning (src/components/tools/t02/LayerChart.svelte, a11y_no_noninteractive_tabindex: an existing warning in a file this repair does not touch)"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist (worktree)",
+   "exit": 0,
+   "summary": "deleted"
+  },
+  {
+   "cmd": "git status --porcelain",
+   "exit": 0,
+   "summary": "empty (0 lines); Playwright stopped its preview server and nothing listens on ports 7760 to 7763"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "G5 repair 1, SPEC 8.2 item 7: exactly one next link, to M8 under the base; it is the only link to M8; its target returns 200; no link to the Atlas (phase 6) and none to T11 or its golden tab (phase 7)",
+   "status": "pass",
+   "test": "site/tests/e2e/M7.spec.ts > anatomy of 8.2"
+  },
+  {
+   "item": "G5 repair 2, SPEC 8.2: between 800 and 1800 words with the links block counted. 1803 before, 1788 after (15 words cut, at least 10 required)",
+   "status": "pass",
+   "test": "site/tests/e2e/M7.spec.ts > word count between 800 and 1800"
+  },
+  {
+   "item": "No fact, provenance, citation, sentence a test checks, number or formula lost: the Tex and brace allowlists are unchanged",
+   "status": "pass",
+   "test": "site/tests/e2e/M7.spec.ts (all 34 tests, among them numbers in prose, beats state their ideas in the site words, Cox35 and CKPS95 are cited only for what 2.14 gives them, regressions)"
+  },
+  {
+   "item": "No em-dash or en-dash in the lesson, the spec or the fragment",
+   "status": "pass",
+   "test": "site/tests/e2e/M7.spec.ts > no em-dash in the built text"
+  },
+  {
+   "item": "Reads without JavaScript",
+   "status": "pass",
+   "test": "site/tests/e2e/nojs.spec.ts (83 passed)"
+  },
+  {
+   "item": "axe on /modules/m7-geometry/",
+   "status": "pass",
+   "test": "site/tests/e2e/a11y.spec.ts -g m7"
+  },
+  {
+   "item": "Type checks of the site",
+   "status": "pass",
+   "test": "npm run check -w site"
+  },
+  {
+   "item": "Size and lab timings of the route",
+   "status": "not-automated",
+   "test": "npm run size and npm run lab are run by MERGE and GATE (COMMON 4.3)"
+  }
+ ],
+ "deviations": [],
+ "requests": [],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P4-A6.md",
+ "openQuestions": [
+  "M6.spec.ts at de46828 does not assert its next link to M7. It checks only the sandbox link, and only when that link is present, so there was no form to copy. The new assertion follows SPEC 8.2 item 7, M8.spec.ts's link checks and this file's own way of reading the base from page.url() (from 'shell table links decode'). M6.spec.ts may want the same assertion."
+ ],
+ "wordCount": {
+  "before": 1803,
+  "after": 1788,
+  "method": "The rule in the header of M7.spec.ts, the same as M5 and M6: the words of <article> after removing tool roots, details, live and status regions, the draft mark and the list of sources; each KaTeX formula counts as one word; the static tables and the links block are counted."
+ },
+ "cuts": [
+  "beat 2: 'and here the two words never name the same thing' loses 'here' (the sentence before already says 'told here')",
+  "beat 2: 'the table under the studio lists what the rings give on A_3 and B_3' loses 'on A_3 and B_3' (the table's caption, directly below, names both boards)",
+  "beat 4: 'the other two edges of the move graph join' becomes 'the move graph's other two join' (the sentence said 'edges' three times)",
+  "beat 5: 'So the rings (1,1,0), on the two long nodes, give' loses ', on the two long nodes,' (the sentence before says nodes 1 and 2 are long)"
+ ],
+ "handoff": "Both G5 failures of M7.spec.ts are fixed. The anatomy test now expects exactly one ModuleLinks next link, to modules/m8-lie-algebras/ under the base, and still no link to the Atlas or to T11. The lesson went from 1803 to 1788 words by cutting four repetitions in beats 2, 4 and 5, with nothing else changed. The cuts are recorded under '## 2026-10-25 P4-A6: room for the next-module link (G5)' in decisions/P4-A6.md. M7.spec.ts (34), nojs.spec.ts (83), a11y -g m7 (1) and npm run check -w site all pass against npm run build on port 7760."
+}
