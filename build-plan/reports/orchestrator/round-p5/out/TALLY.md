@@ -34,3 +34,5 @@
 - P5-RT-13-02 major: DUPLICATE of P5-RT-08-01 (T12 writes omega_i, the site's term is e_i; first met in b1's explanation): merged, not verified again.
 - P5-RT-13-03 major: DUPLICATE of P5-RT-09-02 (T12 'Dimension' is the orbit size off minuscule nodes; E8 node 8 240 vs 248): merged, not verified again.
 - Notes: SPEC 2.18 and M8 beat 4 count 18 representations, B2 node 2 and C2 node 1 are one (17; owner); SPEC 1.4 statement 6 (M0 beat 5) against M8 beat 6 on E8's smallest representation (owner); orbit-graph edge colours 3 and 4 are the view accents (6.3, owner); held classes P3-RT-13-01 and P4-RT-13-04 have new instances in M8 (not reported); history counter '50 of 50' at 51 positions.
+- RT-13 refute: 01 not refuted (P2 'Results are stated in the prose'; P3-RT-13-01 is about answers visible before commitment, a different rule). Reproduce pending.
+- RT-13 verdicts: 01 CONFIRMED major (reproduced: FAIL 2 of 2 on the release build without JavaScript; not refuted). 02 and 03 merged into P5-RT-08-01 and P5-RT-09-02.
