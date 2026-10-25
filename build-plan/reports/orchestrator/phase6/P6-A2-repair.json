@@ -1,0 +1,154 @@
+{
+ "agent": "P6-A2",
+ "status": "done",
+ "branch": "worktree-agent-a0d95de323afa23e5 (git rev-parse --show-toplevel: /home/user/mutation_game/.claude/worktrees/agent-a0d95de323afa23e5)",
+ "base": "7b54ff9",
+ "commits": [
+  "8f44aef P6-A2 repair: canonicalPair refuses a board with more symmetries than the cap",
+  "6f38676 P6-A2 repair: ranks 9 to 16 against the closed forms of SPEC 6.4; least image at positions 9 and above",
+  "f48c43a P6-A2 repair: golden values read from the golden file, not typed into the engine tests",
+  "49dbc04 P6-A2 repair: the catalogue names in satake-names.json; names.json back to the 32 type names",
+  "6e61d76 P6-A2 repair: decisions fragment, entries of the repair after review"
+ ],
+ "filesChanged": [
+  "packages/engine/src/satakeCatalogue.ts",
+  "packages/engine/test/golden/p6b-guards.test.ts",
+  "packages/engine/test/golden/p6b-beyond-rank-8.test.ts (new)",
+  "packages/engine/test/golden/p6b-satake-records.test.ts",
+  "packages/engine/test/golden/p6b-admissible-counts.test.ts",
+  "packages/engine/test/golden/p6b-match.test.ts",
+  "packages/engine/test/golden/p6b-quasi-split.test.ts",
+  "scripts/names.mjs",
+  "site/tests/unit/names-catalogue.test.ts",
+  "decisions/P6-A2.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 7b54ff9",
+   "exit": 0,
+   "summary": "HEAD is now at 7b54ff9 MERGE: P6-A2 reviewed (4 minors); rulings"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed from the lockfile; node v22.22.0"
+  },
+  {
+   "cmd": "npm run build (at 7b54ff9, before any edit)",
+   "exit": 0,
+   "summary": "the prebuild names line listed 32 types, 167 real forms, 24 labels and 36 restricted types; links: 1570 on 51 pages, 0 problems; typesetNames.9boPckgS.js 263919 raw"
+  },
+  {
+   "cmd": "npx vitest run --root packages/engine test/golden/p6b-guards.test.ts, run against the HEAD satakeCatalogue.ts (scratch revert) and then the fixed one",
+   "exit": 0,
+   "summary": "unfixed: 1 failed | 51 passed ('[6,7]: expected null to be an instance of RangeError'); fixed: 52 passed"
+  },
+  {
+   "cmd": "python3 scratch cap7_oracle.py, worked_oracle.py",
+   "exit": 0,
+   "summary": "the oracle's canonical_pair gives the same values as the test on 7 isolated nodes (5040 automorphisms) and on the A11 and A13 worked cases"
+  },
+  {
+   "cmd": "node scratch/p6-a2-review/mutate.mjs <repo> 0,1,2,3,4,5,6,7,12",
+   "exit": 0,
+   "summary": "the review's 8 surviving mutants are now all killed (31, 4, 3, 24, 8, 7, 4 and 6 of 175 tests fail). Mutant 12 (ties go to the last symmetry, <=) still survives; the review classed it as equivalent. The source was restored byte for byte"
+  },
+  {
+   "cmd": "C2-orbits-not-reversed mutant against p6b-satake-records.test.ts (scratch, then restored)",
+   "exit": 1,
+   "summary": "3 failed | 7 passed, including the rewritten worked-values test that reads the golden file"
+  },
+  {
+   "cmd": "node scratch typed-golden.mjs (the review's grep list) at 7b54ff9 and in the work tree",
+   "exit": 0,
+   "summary": "12 typed golden values before, 0 after"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit names-catalogue.test.ts against the old names.mjs, then against a mutant that puts realForms back in names.json",
+   "exit": 1,
+   "summary": "old names.mjs: 'writeGenerated is not a function' and the file fails. Mutant: 1 failed ('expected [ katex, names, realForms ] to deeply equal [ katex, names ]'). Fixed: passes"
+  },
+  {
+   "cmd": "node scripts/names.mjs",
+   "exit": 0,
+   "summary": "names: 32 types (names.json); 167 real forms, 24 Cartan labels, 36 restricted types (satake-names.json); typeset with katex 0.16.47"
+  },
+  {
+   "cmd": "npx vitest run --root packages/engine test/golden/p6b",
+   "exit": 0,
+   "summary": "Test Files 6 passed (6); Tests 175 passed (175)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run build (after the fix)",
+   "exit": 0,
+   "summary": "prebuild printed the new names line; [build] Complete!; links: 1570 internal links on 51 pages, 0 problems"
+  },
+  {
+   "cmd": "node scratch/p6-a2-review/chunk-size.mjs site/dist/_astro site/src/generated/names.json",
+   "exit": 0,
+   "summary": "typesetNames.B5Jk4Ff-.js raw 36932, gzip9 1354. Minified names.json is 35038 bytes, the same as its content before P6-A2. No dist chunk contains the catalogue sections"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit T10.test.ts katex.test.ts names-catalogue.test.ts scripts.test.ts",
+   "exit": 0,
+   "summary": "Test Files 4 passed (4); Tests 76 passed (76)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings, 1 hint (the existing one in T06.spec.ts); svelte-check: 0 errors, 1 warning (the existing one in LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm test -w packages/engine",
+   "exit": 0,
+   "summary": "Test Files 87 passed (87); Tests 2712 passed (2712); 42 s; coverage missingByPhase['6'] is []"
+  },
+  {
+   "cmd": "npm test (root)",
+   "exit": 0,
+   "summary": "Test Files 181 passed (181); Tests 3709 passed (3709); 232 s at load average 10 to 15"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "working tree clean at 6e61d76"
+  }
+ ],
+ "findings": [
+  {
+   "finding": "canonicalPair gave wrong answers, with no warning, on a board with more than 10000 symmetries (symmetries returned a capped list with no flag)",
+   "status": "fixed",
+   "test": "p6b-guards.test.ts > a board with more symmetries than the cap (repair after review) > 8 isolated nodes (8! = 40320 symmetries): canonicalPair throws RangeError naming CAPS.relabellingsDefault; also 7 isolated nodes (5040, under the cap) checked against the oracle",
+   "evidence": "red before ('[6,7]: expected null to be an instance of RangeError', 1 failed | 51 passed), green after (52 passed). The fragment's sentence 'works on every finite board' and the words 'at most 6 on a finite board' are corrected"
+  },
+  {
+   "finding": "no test guarded ranks beyond 8 or positions 9 and above; 8 mutants survived",
+   "status": "fixed",
+   "test": "p6b-beyond-rank-8.test.ts: 32 tests (A, B, C, D ranks 9 to 16) against the closed forms of SPEC 6.4 (dim k, multiplicities by class, (m_lambda, m_2lambda) per orbit, verify.py's identities, matchCatalogue), plus least image and invariance on A11, A13 and D12 at positions 9 and above",
+   "evidence": "red before: all 8 review mutants passed 137/137. Green after: each of the 8 is now killed (between 3 and 31 of 175 tests fail), and the unmutated engine passes 175/175"
+  },
+  {
+   "finding": "names.json held the catalogue sections, so T10's lazily loaded typesetNames chunk was about 7.5 times larger",
+   "status": "fixed",
+   "test": "names-catalogue.test.ts > the generated files of names.mjs (repair after review) > two files: names.json with only the KaTeX version and the 32 type names, satake-names.json with the catalogue; and > each writer alone writes the same bytes",
+   "evidence": "red before (old names.mjs: writeGenerated is not a function; a mutant adding realForms to names.json fails with keys [katex, names, realForms]), green after"
+  },
+  {
+   "finding": "golden values typed into the tests (su(2,2)'s [[1,3],[2]], and the counts 167, 166, 27, 24, 36, 12, 9, 8)",
+   "status": "fixed",
+   "test": "p6b-satake-records (worked values and the C2 adjustment read through matchRecord), p6b-admissible-counts, p6b-match, p6b-quasi-split, names-catalogue (counts and sets read from golden.satake)",
+   "evidence": "red before: the review's grep list found 12 typed values at 7b54ff9. Green after: it finds 0. The C2-not-reversed mutant fails the rewritten golden-read worked-values test, so the reads are live"
+  }
+ ],
+ "typesetNamesChunk": {
+  "before": "typesetNames.9boPckgS.js: 263919 bytes raw, 8459 gzip (level 6), 7784 gzip (level 9), at 7b54ff9",
+  "after": "typesetNames.B5Jk4Ff-.js: 36932 bytes raw, 1410 gzip (level 6), 1354 gzip (level 9)"
+ },
+ "decisionsFragment": "decisions/P6-A2.md",
+ "handoff": "For P6-A3 (T13) and P6-A4 (T14): typeset real forms, Cartan labels and restricted types are in site/src/generated/satake-names.json, written by scripts/names.mjs (writeSatakeNames, or writeGenerated in the prebuild). Its keys are { katex, realForms, cartanLabels, restrictedTypes }; look up realForms[real_form] (su*(2m) also has alt sl(m,H)), cartanLabels[cartan_label], and restrictedTypes[restricted_type_display]. Import only the section you need, for example import.meta.glob('<rel>/generated/satake-names.json', { eager: true, import: 'realForms' }); the file is not committed, so expect an empty object when it is absent, as typesetNames.ts does. site/src/generated/names.json now holds only { katex, names } (the 32 finite type names) and is for board type names only; do not add sections to it, because T10 imports all of it into a browser chunk. canonicalPair now throws a RangeError naming CAPS.relabellingsDefault on a board with more than 10000 symmetries (custom boards of 8 or more nodes only); T13's named boards are unaffected."
+}
