@@ -21,6 +21,10 @@
     type Observation,
   } from '@lib/pages/challengeCheck';
   import { untrack } from 'svelte';
+  // The two engine functions of the input check, by name: they sit in the engine chunk that the tool
+  // this challenge reads has already loaded. A dynamic import of the whole engine ('@engine') made the
+  // bundler put every engine module in one chunk that every route fetched (SPEC.md 7.6, P6-size).
+  import { boardFromName, mutate } from '@engine';
 
   interface Props {
     /** The goal, one sentence. */
@@ -91,8 +95,7 @@
   async function tryInput(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     if (check.kind !== 'input' || met) return;
-    // The engine is loaded only for this kind, so other challenges never fetch it.
-    const engine = await import('@engine');
+    const engine = { boardFromName, mutate };
     inputTried = true;
     inputAccepted = acceptsInput(check.predicate, check.board, typed, engine);
     update(toolRoot);

@@ -24,6 +24,7 @@
   // 'signed-move': the state fields and the panel put first), caption; linkTo and layers are accepted and
   // ignored (no set of positions grows off the finite types).
   import { flushSync, tick, untrack, type Snippet } from 'svelte';
+  import { chevalleySerre } from '@two-games/engine';
   import type { AnyBoard, RelationCheck } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -37,7 +38,7 @@
   import { digestMarkup, readDigest, staticMarkup } from './t12/static';
   import { encodeState } from '../../lib/urlCodec';
   import { speak } from '../../lib/a11y';
-  import { engineCall } from '../../lib/worker';
+  import { engineCall, provide } from '../../lib/worker';
   import type { ToolState } from '../../lib/state';
   import { NUMBERS_ICON } from '../draw/palette';
   import { isLong, shortValue } from './t01/longNumber';
@@ -109,6 +110,9 @@
     type Representation,
     type Step,
   } from './t12/model';
+
+  // The engine function this tool calls by name through engineCall (positionsOf is worker.ts's own).
+  provide({ chevalleySerre });
 
   interface Props {
     id?: string;

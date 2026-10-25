@@ -28,6 +28,21 @@ function gitCommit() {
   }
 }
 
+/**
+ * Whether the bundler must keep a module for its side effects even when none of its exports is used
+ * (Rolldown's treeshake.moduleSideEffects; default true). The engine's modules have none: at the top
+ * level they only declare (pure functions, SPEC.md E-5; no DOM and no dependencies, CLAUDE.md), and no
+ * module registers anything in another when it loads. Saying so lets the bundler link an
+ * import through the engine's index.ts to the module that defines the name, so that a route's chunks
+ * hold only the engine modules its own code uses, instead of one chunk with every module (SPEC.md 7.6,
+ * P6-size). Every other module keeps the default.
+ * @param {string} id the module id (an absolute path for the engine's files)
+ * @returns {boolean}
+ */
+export function moduleSideEffects(id) {
+  return !/[\\/]packages[\\/]engine[\\/]src[\\/][^\\/]+\.ts$/.test(id);
+}
+
 const { site, base } = siteAndBase(process.env);
 
 export default defineConfig({
@@ -37,6 +52,9 @@ export default defineConfig({
   output: 'static',
   // shippedPackagesIntegration: the packages whose code the client build bundles, for the credits page (SPEC.md 7.9).
   integrations: [mdx(), svelte(), openItemsReportIntegration(), shippedPackagesIntegration()],
-  vite: { define: { 'import.meta.env.PUBLIC_GIT_COMMIT': JSON.stringify(gitCommit()) } },
+  vite: {
+    define: { 'import.meta.env.PUBLIC_GIT_COMMIT': JSON.stringify(gitCommit()) },
+    build: { rolldownOptions: { treeshake: { moduleSideEffects } } },
+  },
   markdown: { processor: unified({ remarkPlugins: [remarkMath], rehypePlugins: [[rehypeKatex, { output: 'htmlAndMathml' }]] }) },
 });
