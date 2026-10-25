@@ -20,6 +20,7 @@ import {
   adjacency,
   affineExtension,
   boardFromName,
+  canonicalPair,
   cartanNumbers,
   coxeterNumber,
   coxeterPlaneRings,
@@ -149,6 +150,14 @@ export interface AtlasSheet {
   /** The affine board of 2.12: its name recognised from its shape, the name that builds it, marks and comarks (node 0 first). */
   affine: { name: string; constructorName: string; labels: number[]; marks: number[]; comarks: number[] };
   realForms: RealFormLine[];
+  /**
+   * The number of real forms the records make: records whose pairs (black nodes, tau) are related by a symmetry of
+   * the board are one real form (6.4 "Coincidences"; the engine's canonicalPair). Equal to realForms.length except
+   * on D4.
+   */
+  realFormCount: number;
+  /** The groups of two or more records that are one real form, by their plain-text names, in catalogue order. */
+  coincidences: string[][];
   /** The tool link of each item; null where an item is omitted (the Coxeter plane on rank 1). */
   links: Record<ItemId, ToolLink | null>;
   wildberger: WildbergerNote;
@@ -279,8 +288,16 @@ export function atlasData(name: string): AtlasSheet {
   if (affineName === null || ext.board.name === undefined) throw new Error(`atlasData: the affine board of ${name} has no name`);
   const affinePositions = positionsByLabel(ext.board);
 
-  // 16. Real forms: the Satake catalogue of the board, in catalogue order (6.4), with labels.
-  const realForms: RealFormLine[] = satakeCatalogue(name).map((e) => {
+  // 16. Real forms: the Satake catalogue of the board, in catalogue order (6.4), with labels. Records whose pairs
+  // have the same representative under the symmetries of the board are one real form (6.4 "Coincidences").
+  const records = satakeCatalogue(name);
+  const classes = new Map<string, string[]>();
+  for (const e of records) {
+    const k = canonicalPair({ board, black: e.black_nodes, tau: e.tau });
+    const key = `${k.black.join('.')}|${k.tau.join('.')}`;
+    classes.set(key, [...(classes.get(key) ?? []), e.real_form]);
+  }
+  const realForms: RealFormLine[] = records.map((e) => {
     const black = byLabel(e.black_nodes);
     const tau = positionsByLabel(board).map((p) => toLabels(board, [e.tau[p]!])[0]!);
     return {
@@ -289,7 +306,8 @@ export function atlasData(name: string): AtlasSheet {
       black,
       tau,
       restrictedTypeDisplay: e.restricted_type_display,
-      link: link('satake', name, { black, tau }, `Open the real form ${e.real_form} (${e.cartan_label}) in the Satake Studio`),
+      // The typeset name and Cartan's label are already on the line (6.5); the link text carries no data spelling.
+      link: link('satake', name, { black, tau }, 'Open this real form in the Satake Studio'),
     };
   });
 
@@ -303,10 +321,14 @@ export function atlasData(name: string): AtlasSheet {
     roots: link('garden', name, {}, `Grow the root populations of ${name} from the single Martians in the Orbit Garden`),
     'highest-roots': link('kostant', name, {}, `Play Kostant's game on ${name}: it ends at a highest root`),
     exponents: link('numbers', name, {}, `Play the numbers game on ${name} in the Numbers Game Lab; its Tally tab reads the exponents off the numbers fired`),
-    'coxeter-number': link('numbers', name, {}, `Open the Numbers Game Lab on ${name} and choose its Wave tab to count the rounds`),
+    // On rank 1 the wave degenerates to a single move (F8), so the link promises no rounds there.
+    'coxeter-number':
+      n >= 2
+        ? link('numbers', name, {}, `Open the Numbers Game Lab on ${name} and choose its Wave tab to count the rounds`)
+        : link('numbers', name, {}, `Play the numbers game on ${name} in the Numbers Game Lab`),
     'weyl-order': weyl
       ? link('weyl', name, {}, `See every element of the group of ${name} in the Weyl Explorer`)
-      : link('numbers', name, {}, `Play the numbers game on ${name} in the Numbers Game Lab; its Tally tab gives the exponents, and the group order is the product of the exponents plus one`),
+      : link('numbers', name, {}, `Play the numbers game on ${name} in the Numbers Game Lab; its Tally tab gives the exponents, and the group order is the product of the exponents each increased by one`),
     'det-cartan': link('board', name, { view: 'linked' }, `See a = Cp at work on ${name} in the linked view of the Game Board`),
     'minuscule-nodes':
       minuscule.length > 0
@@ -327,10 +349,19 @@ export function atlasData(name: string): AtlasSheet {
     'complete-games': weyl
       ? link('weyl', name, {}, `Open the Weyl Explorer on ${name} and choose its counter`)
       : link('board', name, { view: 'numbers', mode: 'legal', coords: 'numbers', start: ones }, `Play a complete game from all ones on ${name} in the Game Board`),
+    // T10 opens with the short roots hidden, and that option cannot travel in a link (6.6); on a board with two
+    // root lengths the rings listed hold the short roots too, so the text says what to tick.
     'coxeter-plane':
       rings === null
         ? null
-        : link('geometry', name, { rings: numbersOfTheta, projection: 'coxeter' }, `See the roots of ${name} in the Coxeter plane in the Geometry Studio`),
+        : link(
+            'geometry',
+            name,
+            { rings: numbersOfTheta, projection: 'coxeter' },
+            short === null
+              ? `See the roots of ${name} in the Coxeter plane in the Geometry Studio`
+              : `See the roots of ${name} in the Coxeter plane in the Geometry Studio; tick Short roots to see all ${all.items.length} roots on the rings listed here`,
+          ),
     affine: link('affine', ext.board.name, {}, `Play on the affine board ${ext.board.name} in the Affine Playground`),
   };
 
@@ -369,6 +400,8 @@ export function atlasData(name: string): AtlasSheet {
       comarks: vectorInLabelOrder(ext.board, ext.comarks),
     },
     realForms,
+    realFormCount: classes.size,
+    coincidences: [...classes.values()].filter((g) => g.length > 1),
     links,
     wildberger: wildbergerNote(letter, n, name),
     kacNumbering: name === 'E6' || name === 'E7' || name === 'E8' || name === 'G2',

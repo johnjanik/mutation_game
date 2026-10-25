@@ -332,6 +332,69 @@ describe('tool links', () => {
     expect(b3.links['complete-games']!.text).toMatch(/counter/i);
     for (const T of TYPE_NAMES) for (const l of allLinks(sheetOf(T))) expect(l.text.includes('\u2014')).toBe(false);
   });
+
+  // Repair after review (MERGE's rulings): what each link text promises is what the tool shows.
+  it('the Coxeter-plane link tells the reader to tick Short roots on exactly the boards with two root lengths', () => {
+    const twoLengths = TYPE_NAMES.filter((T) => golden.types[T]!.highest_short_root != null);
+    expect(twoLengths).toHaveLength(16);
+    for (const T of TYPE_NAMES) {
+      const l = sheetOf(T).links['coxeter-plane'];
+      if (l === null) continue; // A1
+      if (twoLengths.includes(T)) {
+        // T10 opens with the short roots hidden (the option cannot travel in a link, 6.6): the text says what to do.
+        expect(l.text, T).toMatch(/; tick Short roots to see all (\d+) roots on the rings listed here$/);
+        intEq(Number(/all (\d+) roots/.exec(l.text)![1]), golden.types[T]!.n_roots, `${T}: the number of roots in the link text`);
+      } else {
+        expect(l.text, T).not.toMatch(/short roots/i);
+      }
+    }
+  });
+
+  it('the Weyl-order link of T5 says each exponent is increased by one', () => {
+    for (const T of TYPE_NAMES) {
+      const l = sheetOf(T).links['weyl-order']!;
+      if (l.tool !== 'numbers') continue;
+      expect(l.text, T).toContain('the group order is the product of the exponents each increased by one');
+      expect(l.text, T).not.toMatch(/exponents plus one/);
+    }
+  });
+
+  it('the h link promises rounds of the wave only where there is a wave (rank at least 2)', () => {
+    for (const T of TYPE_NAMES) {
+      const text = sheetOf(T).links['coxeter-number']!.text;
+      if (golden.types[T]!.cartan.length === 1) expect(text, T).not.toMatch(/round|wave/i);
+      else expect(text, T).toMatch(/Wave tab to count the rounds/);
+    }
+  });
+
+  it('the links to the Satake Studio carry no data spelling of a name', () => {
+    for (const T of TYPE_NAMES) {
+      for (const line of sheetOf(T).realForms) {
+        // The typeset name is already on the line (6.5); the data spelling ("e6(-14)") is never shown.
+        expect(line.link.text, `${T} ${line.realForm}`).toBe('Open this real form in the Satake Studio');
+      }
+      for (const l of allLinks(sheetOf(T))) expect(l.text, T).not.toMatch(/\(-\d/);
+    }
+  });
+});
+
+describe('records and real forms', () => {
+  it('the catalogue records and the real forms they make are counted from the engine, for every board', () => {
+    const counts = golden.admissible_counts as Record<string, { real_forms_including_compact: number; catalogue_records: number }>;
+    for (const T of TYPE_NAMES) {
+      const s = sheetOf(T);
+      intEq(s.realForms.length, counts[T]!.catalogue_records, `${T} catalogue_records`);
+      intEq(s.realFormCount, counts[T]!.real_forms_including_compact, `${T} real_forms_including_compact`);
+      // A group of records that are one real form (6.4 "Coincidences"), each name a record of this board.
+      expect(s.coincidences.reduce((k, g) => k + g.length - 1, 0), T).toBe(s.realForms.length - s.realFormCount);
+      for (const g of s.coincidences) {
+        expect(g.length, T).toBeGreaterThan(1);
+        for (const name of g) expect(s.realForms.some((r) => r.realForm === name), `${T} ${name}`).toBe(true);
+      }
+    }
+    // Only D4 has two records that are one real form (6.4).
+    expect(TYPE_NAMES.filter((T) => sheetOf(T).coincidences.length > 0)).toEqual(TYPE_NAMES.filter((T) => counts[T]!.catalogue_records !== counts[T]!.real_forms_including_compact));
+  });
 });
 
 // The source files of the Atlas build path (plan: components/atlas and pages/atlas).
@@ -345,6 +408,8 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe('no golden data in the build path', () => {
+  // The modules themselves are loaded with the golden file made unreadable in atlas-build-path.test.ts (the
+  // ruling after review); this scan also covers the .astro files, which Vitest does not load.
   it('no golden import, no <G>, no {{path}}, no golden resolver in components/atlas and pages/atlas', () => {
     const files = BUILD_PATH.flatMap(sourceFiles);
     expect(files.length).toBeGreaterThanOrEqual(6);
@@ -355,6 +420,11 @@ describe('no golden data in the build path', () => {
       [/<G[\s/>]/, 'the <G> component'],
       [/\{\{/, 'a {{path}}'],
       [/['"]@components\/content['"]|content\/index|content\/G\.astro|math\/Tex\.astro/, 'the content barrel, G or Tex (which import the golden file)'],
+      // The review's surviving mutants: an import.meta.glob of reference/, any import from reference/, and the
+      // content barrel by a relative path ('../content', '../../components/content').
+      [/import\.meta\.glob\b[^;]*reference\//, 'an import.meta.glob of reference/'],
+      [/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)['"`][^'"`]*\breference\//, 'an import from reference/'],
+      [/['"`](?:\.{1,2}\/)+(?:components\/)?content(?:\/index(?:\.[jt]s)?)?['"`]/, 'the content barrel by a relative path'],
     ];
     const hits: string[] = [];
     for (const f of files) {

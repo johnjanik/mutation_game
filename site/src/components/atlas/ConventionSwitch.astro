@@ -5,11 +5,12 @@
 // shown, through CSS alone (:has with :checked sets display none on the other, so a screen reader skips it
 // too). No script and no island: the switch works without JavaScript and from the keyboard (arrow keys
 // inside the group, as the browser gives a radio group). The default is this site's convention.
-// "This site, Kac and SageMath" shows C with C_ij = <alpha_i^vee, alpha_j>; "Bourbaki and Humphreys
-// (transposed)" shows the transpose, with the same numbering of the nodes (2.9). Kac numbers the nodes of
-// E6, E7, E8 and G2 differently (2.9: [S2] for E6, [U] for the rest; Appendix E item 4): the sentence
-// is wrapped in <Unverified item="E4"> on all four pages (the plan allows wrapping E6 too), and nothing is
-// renumbered.
+// The legend names a convention, not a printed matrix ("in the convention of"): "This site, Kac and
+// SageMath" shows C with C_ij = <alpha_i^vee, alpha_j>; "Bourbaki and Humphreys (transposed)" shows the
+// transpose, and the note says that Bourbaki and Humphreys number the nodes as this site does (2.9, last
+// row). Nothing about Kac's numbering is said outside <Unverified item="E4"> (repair after review): Kac
+// numbers the nodes of E6, E7, E8 and G2 differently (2.9: [S2] for E6, [U] for the rest; Appendix E item 4),
+// and that sentence is wrapped on all four pages (the plan allows wrapping E6 too); nothing is renumbered.
 // Hooks: data-out="cartan" and data-out="cartan-transposed" with data-exact (the matrix as JSON, rows and
 // columns in label order); data-convention on each box; data-kac-note on the Kac sentence.
 import Cite from '@components/content/Cite.astro';
@@ -29,7 +30,7 @@ const tex = (src: string): string => renderTex(src, false);
 ---
 <div class="convention-switch">
   <fieldset class="convention-choice">
-    <legend>Show the Cartan matrix as it is printed by</legend>
+    <legend>Show the Cartan matrix in the convention of</legend>
     <label><input type="radio" name="convention" value="site" checked data-convention-choice="site" /> This site, Kac and SageMath</label>
     <label><input type="radio" name="convention" value="bourbaki" data-convention-choice="bourbaki" /> Bourbaki and Humphreys (transposed)</label>
   </fieldset>
@@ -46,7 +47,7 @@ const tex = (src: string): string => renderTex(src, false);
   <Fragment set:html={tex('A_{ij}=-C_{ji}')} /> roads from node <Fragment set:html={tex('i')} /> to node <Fragment set:html={tex('j')} />.{' '}
   Bourbaki <Cite k="Bou68" /> and Humphreys <Cite k="Hum72" /> print the transpose,{' '}
   <Fragment set:html={tex('\\langle\\alpha_i,\\alpha_j^\\vee\\rangle')} /> in row <Fragment set:html={tex('i')} /> and column{' '}
-  <Fragment set:html={tex('j')} />. The nodes are numbered the same way in both, so the switch changes the matrix and nothing else.
+  <Fragment set:html={tex('j')} />. Bourbaki and Humphreys number the nodes as this site does, so the switch changes the matrix and nothing else.
 </p>
 {sheet.kacNumbering && (
   <p data-kac-note>
