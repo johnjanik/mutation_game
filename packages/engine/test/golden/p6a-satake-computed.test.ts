@@ -267,8 +267,16 @@ describe('named checks', () => {
     // a tau of order 3 tells "q[tau[i]] = p[i]" from "q[i] = p[tau[i]]": D4, the rotation 1 -> 3 -> 4 -> 1
     const rot = diagram('D4', [], [3, 2, 4, 1]);
     expect(theta(rot, [1, 0, 0, 0])).toEqual([0, 0, -1, 0]);
-    // on su(1,3) the black node 2 is played after the flip: -s_2 of the flipped e_3, not the flip of -s_2 e_3
+    // on su(1,3) the black node 2 is played after the flip: -s_2 of the flipped e_3
     expect(theta(diagram('A3', [2], [3, 2, 1]), [0, 0, 1])).toEqual([-1, -1, 0]);
+    // where tau moves the black set (A3, black node 1, the flip; theta does not check admissibility) the two
+    // orders differ: permuting first gives the oracle's values, playing w_X first would give their negatives
+    // on the first three (values of the oracle's theta)
+    const moved = diagram('A3', [1], [3, 2, 1]);
+    expect(theta(moved, [1, 0, 0])).toEqual([0, 0, -1]);
+    expect(theta(moved, [0, 1, 0])).toEqual([-1, -1, 0]);
+    expect(theta(moved, [0, 0, 1])).toEqual([1, 0, 0]);
+    expect(theta(moved, [1, 1, 0])).toEqual([-1, -1, -1]);
   });
 });
 
