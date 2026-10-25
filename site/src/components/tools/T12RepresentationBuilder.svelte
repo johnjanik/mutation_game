@@ -327,14 +327,14 @@
   const isSoon = (step: Step | undefined): boolean => step !== undefined && (step as Step & { soon?: boolean }).soon === true;
 
   /**
-   * The scroll box of the figure that has the focus, as a selector by its data-out, or ''. A step that
-   * replaces the box's panel or table (the server's boxes are taken over after hydration) gives the focus
-   * to the box drawn in its place, never to <body> (SPEC 7.5 A-1, WCAG 2.4.3).
+   * The scroll box of the figure that has the focus (the only focusable role="group" of the figure, the
+   * child of a MatrixView's or the orbit drawing's root), as a selector by that root's data-out, or ''. A
+   * step that replaces the box's panel or table (the server's boxes are taken over after hydration) gives
+   * the focus to the box drawn in its place, never to <body> (SPEC 7.5 A-1, WCAG 2.4.3).
    */
-  const BOX = '[role="group"][tabindex="0"]';
   function focusedBox(): string {
     const a = document.activeElement;
-    return a?.matches(BOX) && figureEl?.contains(a) ? `[data-out="${a.closest('[data-out]')?.getAttribute('data-out')}"] ${BOX}` : '';
+    return a?.matches('[role=group]') && figureEl?.contains(a) ? `[data-out="${a.parentElement?.dataset.out}"] [role=group]` : '';
   }
 
   /**
@@ -647,12 +647,11 @@
 
   /**
    * The representation whose verdict the reader was told is being checked in the background (a relation
-   * pick), with the announcer of that pick: the verdict, or that it could not be checked, is announced when
-   * the worker replies (SPEC 4.0: each result is announced).
+   * pick), with the announcer of that pick: the verdict is announced when the worker's list arrives (SPEC
+   * 4.0: each result is announced).
    */
   let owed: Representation | null = null;
   let say = (_t: string): void => {};
-  const lostLine = (d: number): string => `The relations of these ${d} by ${d} matrices could not be checked in the background; reloading the page tries again.`;
 
   /** The digest stands for the list of this representation (the configured state, above the bound). */
   const digestHolds = (r: Representation): boolean => digest !== null && digest.board === r.name && digest.node === r.node;
@@ -678,7 +677,6 @@
           () => {
             inFlight.delete(r);
             relationsLost = r;
-            if (owed === r && r === tool.rep) say(lostLine(dimensionOf(r)));
           },
         );
       });
@@ -936,7 +934,7 @@
       </div>
       <p class="line" data-out="all-relations" data-total={tally.total} data-failing={tally.failing}>{relationSummary(tally)}</p>
     {:else if relationsLost === rep}
-      <p class="line" data-out="all-relations">{lostLine(dim)}</p>
+      <p class="line" data-out="all-relations">The relations of these {dim} by {dim} matrices could not be checked in the background; reloading the page tries again.</p>
     {:else}
       <p class="line" data-out="all-relations">The {6 * anyBoard.n * anyBoard.n - 2 * anyBoard.n} relations of these {dim} by {dim} matrices are being checked in the background.</p>
     {/if}

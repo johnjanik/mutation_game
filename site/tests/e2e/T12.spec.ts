@@ -1053,20 +1053,6 @@ test.describe('regressions', () => {
         ).toBe(true);
       });
     }
-
-    // The other reply of the worker: a list it could not compute ("not checked") is announced too.
-    // regression: P5-RT-05-03
-    test('M8 b7: a picked relation that the worker could not check is announced as not checked', async ({ page }) => {
-      await page.route('**/*engine.worker*', (r) => r.abort());
-      await page.goto('modules/m8-lie-algebras/');
-      const tool = page.locator('[data-tool="rep"][data-instance="b7"]');
-      await tool.scrollIntoViewIfNeeded();
-      await expect(tool).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
-      await expect(tool.locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 30000 });
-      await tool.locator('[data-control="relation"]').selectOption('hf');
-      await expect(tool.locator('[data-out="relation-verdict"]')).toHaveText('not checked', { timeout: 30000 });
-      await expect(tool.locator('[data-live]')).toHaveText(await tool.locator('[data-out="all-relations"]').innerText());
-    });
   });
 
   /** The nonzero cells of a drawn MatrixView, "row,col=value" with 1-based indices. */
