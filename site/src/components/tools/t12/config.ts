@@ -29,13 +29,14 @@ export interface T12Preset {
  * The presets of CONTRACTS 6 that exist in phase 5 (`one-zero-weight` arrives in phase 7, SPEC 2.18 "One
  * zero weight"), matched to the figure table of SPEC 3 M8:
  * - `default` (rows 2 and 4, with the lesson's `board` and `node`): A2, node 1, [E1, F1] = H1, the string
- *   through omega_1; the smallest case with 3 by 3 matrices (M8 beat 3);
+ *   through (1, 1), the default start of SPEC 6.6 (RT-FIX P5-RT-10-03); the smallest case with 3 by 3
+ *   matrices (M8 beat 3);
  * - `string-viewer` (row 1): the string through (2, 0) at node 1 of A2, the string viewer first;
  * - `relation-checker` (row 3): A2, node 1, ef:1,1, the relation checker first; the reader then picks ef:1,2;
  * - `signed-move` (row 5): A2, node 1, the move beside its signed version first.
  */
 export const T12_PRESETS: Readonly<Record<'default' | 'string-viewer' | 'relation-checker' | 'signed-move', T12Preset>> = {
-  default: { board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 0], moves: [], first: null },
+  default: { board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 1], moves: [], first: null },
   'string-viewer': { board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [2, 0], moves: [], first: 'string' },
   'relation-checker': { board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 0], moves: [], first: 'relations' },
   'signed-move': { board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 0], moves: [], first: 'signed' },

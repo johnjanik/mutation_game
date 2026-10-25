@@ -268,9 +268,13 @@ export function acceptRelations(rep: Representation, checks: RelationCheck[]): b
 // The state of 6.6 (fields board, node, relation, coords, start, moves)
 // ---------------------------------------------------------------------------------------------
 
-/** omega_i as a start in label order: 1 at the node's label, 0 elsewhere (the default start, plan). */
-export function omegaStart(board: AnyBoard, nodeLabel: number): number[] {
-  return labelOrder(board).map((l) => (l === nodeLabel ? 1 : 0));
+/**
+ * The default start, all ones in label order (SPEC 6.6, field `start`: "default: all ones for numbers"), on
+ * the tool route and after a pick of a board or a node; an author's start stays (RT-FIX P5-RT-10-03: it was
+ * the fundamental position of the node).
+ */
+export function defaultStart(board: AnyBoard): number[] {
+  return labelOrder(board).map(() => 1);
 }
 
 /** The tool's default state for a board, and a node (default: defaultNode), as a picker sets it (4.0; plan). */
@@ -279,7 +283,7 @@ export function defaultsFor(spec: string, nodeLabel?: number): ToolState {
   const board = resolveBoard(spec);
   const node = nodeLabel ?? defaultNode(board);
   const rep = representationOf(spec, node, 'default');
-  return { schema: 1, tool: 'rep', board: spec, node, relation: defaultRelation(rep), coords: 'numbers', start: omegaStart(board, node), moves: [] };
+  return { schema: 1, tool: 'rep', board: spec, node, relation: defaultRelation(rep), coords: 'numbers', start: defaultStart(board), moves: [] };
 }
 
 /** The state of a preset (its fields; the panel it puts first is not part of the state, 6.6). */

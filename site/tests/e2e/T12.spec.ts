@@ -337,7 +337,7 @@ test('unreadable links load the default state with the notice', async ({ page })
     await open(page, query);
     await expect(out(page, 'notice'), query).toHaveText(NOTICE);
     await expect(out(page, 'dimension'), query).toHaveText('3');
-    expect(await valuesOf(page), query).toEqual(['1', '0']);
+    expect(await valuesOf(page), query).toEqual(['1', '1']);
     await expect(control(page, 'relation'), query).toHaveValue('ef');
   }
 });
@@ -353,7 +353,7 @@ test('nothing is written to the address bar before the reader acts, and changing
   await expect(out(page, 'dimension')).toHaveText('4');
   await settled(page);
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  expect(await valuesOf(page)).toEqual(['1', '0', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1', '1']);
   await expect(control(page, 'node')).toHaveValue('1');
   await expect(control(page, 'relation')).toHaveValue('ef');
   await expect(live(page)).toHaveText('A3, node 1: the orbit of e1 has 4 positions. Node 1 is minuscule: every number in the orbit of e1 is −1, 0 or 1, and all the relations hold.');
@@ -372,11 +372,11 @@ test('keyboard: Enter on a node fires it, u undoes and r redoes', async ({ page 
   await expect(node(page, 1)).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(root(page)).toHaveAttribute('data-moves', '1');
-  expect(await valuesOf(page)).toEqual(fired('A2', [1, 0], 1));
-  await expect(live(page)).toHaveText('Fired node 1. Numbers now minus 1, 1. Move 1.');
+  expect(await valuesOf(page)).toEqual(fired('A2', [1, 1], 1));
+  await expect(live(page)).toHaveText('Fired node 1. Numbers now minus 1, 2. Move 1.');
   await page.keyboard.press('u');
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  await expect(live(page)).toHaveText('Undid move 1. Numbers now 1, 0.');
+  await expect(live(page)).toHaveText('Undid move 1. Numbers now 1, 1.');
   await page.keyboard.press('r');
   await expect(root(page)).toHaveAttribute('data-moves', '1');
 });
@@ -390,14 +390,14 @@ test('redo, reset and the strip of past positions', async ({ page }) => {
   const third = await valuesOf(page);
   await root(page).locator('[data-step="1"]').click();
   await expect(root(page)).toHaveAttribute('data-moves', '1');
-  expect(await valuesOf(page)).toEqual(fired('A2', [1, 0], 1));
+  expect(await valuesOf(page)).toEqual(fired('A2', [1, 1], 1));
   await control(page, 'redo').click();
   await control(page, 'redo').click();
   await expect(root(page)).toHaveAttribute('data-moves', '3');
   expect(await valuesOf(page)).toEqual(third);
   await control(page, 'reset').click();
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  expect(await valuesOf(page)).toEqual(['1', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1']);
 });
 
 test('a link with 51 moves shows the slider, and the slider scrubs', async ({ page }) => {
@@ -405,10 +405,10 @@ test('a link with 51 moves shows the slider, and the slider scrubs', async ({ pa
   await open(page, `g=A2&k=1&w=${moves}`);
   await expect(root(page)).toHaveAttribute('data-moves', '51');
   await expect(out(page, 'historyCounter')).toHaveText('51 of 51');
-  expect(await valuesOf(page)).toEqual(['-1', '1']);
+  expect(await valuesOf(page)).toEqual(['-1', '2']);
   await control(page, 'historySlider').fill('10');
   await expect(root(page)).toHaveAttribute('data-moves', '10');
-  expect(await valuesOf(page)).toEqual(['1', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1']);
 });
 
 test('a link with 2001 moves is replayed in the worker and shows the end of the play', async ({ page }) => {
@@ -419,7 +419,7 @@ test('a link with 2001 moves is replayed in the worker and shows the end of the 
   await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
   await expect(node(page, 1)).toHaveAttribute('data-can-act', 'true', { timeout: 20000 });
   await expect(root(page)).toHaveAttribute('data-moves', '2001');
-  expect(await valuesOf(page)).toEqual(['-1', '1']);
+  expect(await valuesOf(page)).toEqual(['-1', '2']);
   expect(workers.length).toBeGreaterThan(0);
 });
 
@@ -447,7 +447,7 @@ test('the table view lists the orbit and has a button per node that fires it', a
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   // A true minus sign (SPEC 6.3; review P5-A2, finding 7).
   await expect(button).toHaveText('−1');
-  expect(await valuesOf(page)).toEqual(['-1', '1']);
+  expect(await valuesOf(page)).toEqual(['-1', '2']);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -487,7 +487,7 @@ test('Download data gives the basis, the matrices, the relations and the string,
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   const { raw, doc } = await downloadData(page);
   expect(doc.tool).toBe('rep');
-  expect(doc.state).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 0], moves: [1] });
+  expect(doc.state).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 1], moves: [1] });
   expect(doc.derived.dimension).toBe(3);
   expect(doc.derived.basis).toEqual([[1, 0], [0, -1], [-1, 1]]);
   expect(doc.derived.E[0]).toEqual([[1, 3, 1]]);
@@ -505,7 +505,7 @@ test('Download data gives the basis, the matrices, the relations and the string,
   expect(doc.derived.edges).toHaveLength(2);
   expect(doc.derived.edges).toContainEqual([1, 3, 1]);
   expect(doc.derived.relationSides).toEqual({ relation: 'ef:1,1', holds: true, left: [[1, 1, 1], [3, 3, -1]], right: [[1, 1, 1], [3, 3, -1]] });
-  expect(doc.derived.positions).toEqual([[1, 0], [-1, 1]]);
+  expect(doc.derived.positions).toEqual([[1, 1], [-1, 2]]);
   expect(unsafeNumbers(raw)).toEqual([]);
   // A start beyond the safe integers keeps its digits as text (6.6), in the state and the derived tables.
   const big = '12345678901234567890';
@@ -561,7 +561,7 @@ test('every node button carries data-node, data-board, data-value and data-can-a
     await expect(b).toHaveAttribute('data-can-act', 'true');
   }
   await expect(node(page, 1)).toHaveAttribute('aria-label', 'Node 1, value 1, can be fired');
-  await expect(node(page, 2)).toHaveAttribute('aria-label', 'Node 2, value 0, can be fired');
+  await expect(node(page, 2)).toHaveAttribute('aria-label', 'Node 2, value 1, can be fired');
   await expect(root(page).getByRole('group', { name: 'String viewer board A2' })).toHaveCount(1);
 });
 
@@ -613,7 +613,7 @@ test.describe('without JavaScript', () => {
     for (const name of ['matrix-e', 'matrix-f', 'matrix-h', 'relation-left', 'relation-right', 'move-matrix', 'signed-move']) await expect(out(page, name)).toHaveAttribute('data-format', 'grid');
     await expect(out(page, 'all-relations')).toHaveText(`All ${relationCount(2)} relations hold.`);
     await expect(out(page, 'relation-formula').locator('math')).toHaveCount(1);
-    expect(await lineKeys(page)).toEqual(['1,0', '-1,1']);
+    expect(await lineKeys(page)).toEqual(['1,1', '-1,2']);
     await expect(out(page, 'caption')).toContainText('Chevalley-Serre relations');
     await expect(root(page).locator('details [data-table="orbit"]')).toHaveCount(1);
     for (const el of await root(page).locator('button, select, input').all()) await expect(el).toBeDisabled();
@@ -800,7 +800,7 @@ test('every action works without a drag: pickers, relations, firing, the strip b
   await expect(root(page)).toHaveAttribute('data-moves', '50');
   await page.keyboard.press('Home');
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  expect(await valuesOf(page)).toEqual(['1', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1']);
   await page.keyboard.press('End');
   await expect(root(page)).toHaveAttribute('data-moves', '51');
   expect(await root(page).locator('[draggable="true"]').count()).toBe(0);
@@ -877,9 +877,9 @@ test('the tables of the server stay in place when the reader acts on the string 
     return tables.length;
   });
   expect(marked).toBe(5);
-  expect(await valuesOf(page)).toEqual(['1', '0']);
+  expect(await valuesOf(page)).toEqual(['1', '1']);
   await node(page, 1).click();
-  await expect.poll(() => valuesOf(page)).toEqual(fired('A2', [1, 0], 1));
+  await expect.poll(() => valuesOf(page)).toEqual(fired('A2', [1, 1], 1));
   await page.waitForTimeout(300);
   // Firing changes the state (and the tool's version): the five tables are still the server's elements.
   await expect(root(page).locator('[data-test-kept="true"]')).toHaveCount(5);

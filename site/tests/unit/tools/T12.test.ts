@@ -839,10 +839,10 @@ describe('T12 string viewer', () => {
 describe('T12 state and links', () => {
   const configured = configuredState({ preset: 'default' });
 
-  it('the default state is A2, node 1, ef:1,1, the numbers game from omega_1', () => {
-    expect(configured).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 0], moves: [] });
-    expect(defaultsFor('E7')).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [0, 0, 0, 0, 0, 0, 1], moves: [] });
-    expect(defaultsFor('D4', 2)).toMatchObject({ node: 2, relation: 'ef:1,1', start: [0, 1, 0, 0] });
+  it('the default state is A2, node 1, ef:1,1, the numbers game from all ones (SPEC 6.6; RT-FIX P5-RT-10-03)', () => {
+    expect(configured).toEqual({ schema: 1, tool: 'rep', board: 'A2', node: 1, relation: 'ef:1,1', coords: 'numbers', start: [1, 1], moves: [] });
+    expect(defaultsFor('E7')).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [1, 1, 1, 1, 1, 1, 1], moves: [] });
+    expect(defaultsFor('D4', 2)).toMatchObject({ node: 2, relation: 'ef:1,1', start: [1, 1, 1, 1] });
     expect(configuredState({ board: 'D4', node: 2 })).toMatchObject({ board: 'D4', node: 2, relation: 'ef:1,1' });
     expect(configuredState({ preset: 'string-viewer' })).toMatchObject({ board: 'A2', node: 1, start: [2, 0] });
     expect(() => configuredState({ coords: 'populations' })).toThrow(RangeError);
@@ -860,13 +860,15 @@ describe('T12 state and links', () => {
   });
 
   it('links that change the board or the node take that board\'s and node\'s defaults for what they do not name', () => {
-    expect(admitLink('?g=E7', configured, '').state).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [0, 0, 0, 0, 0, 0, 1], moves: [] });
-    expect(admitLink('?g=D4&k=2', configured, '').state).toMatchObject({ board: 'D4', node: 2, relation: 'ef:1,1', start: [0, 1, 0, 0] });
+    expect(admitLink('?g=E7', configured, '').state).toMatchObject({ board: 'E7', node: 7, relation: 'ef:7,7', start: [1, 1, 1, 1, 1, 1, 1], moves: [] });
+    expect(admitLink('?g=D4&k=2', configured, '').state).toMatchObject({ board: 'D4', node: 2, relation: 'ef:1,1', start: [1, 1, 1, 1] });
     expect(admitLink('?g=A2&k=1&q=ef:1,2', configured, '').state).toMatchObject({ relation: 'ef:1,2' });
     expect(admitLink('?g=A2&k=1&c=n&s=2,0', configured, '').state).toMatchObject({ start: [2, 0], node: 1 });
-    expect(admitLink('?k=2', configured, '').state).toMatchObject({ board: 'A2', node: 2, relation: 'ef:2,2', start: [0, 1] });
-    // c without s keeps the tool's start (the codec's default for c is all ones).
-    expect(admitLink('?k=2&c=n', configured, '').state).toMatchObject({ start: [0, 1] });
+    expect(admitLink('?k=2', configured, '').state).toMatchObject({ board: 'A2', node: 2, relation: 'ef:2,2', start: [1, 1] });
+    // c without s keeps the tool's start (the codec's default for c is all ones, now the tool's default start
+    // too, so the configured start of the string viewer's preset shows the rule).
+    expect(admitLink('?k=2&c=n', configured, '').state).toMatchObject({ start: [1, 1] });
+    expect(admitLink('?c=n', configuredState({ preset: 'string-viewer' }), '').state).toMatchObject({ start: [2, 0] });
     // Keys of other tools are ignored, as unknown keys are.
     expect(admitLink('?v=l&m=l&g=A3', configured, '')).toMatchObject({ notice: null, state: { board: 'A3', node: 1 } });
   });
@@ -930,7 +932,7 @@ describe('T12 state and links', () => {
     const big = JSON.parse(exportJSON(e7two.state(), exportData(e7two)));
     expect(big.derived.orbit).toHaveLength(576);
     expect(big.derived.edges).toBeNull();
-    expect(doc.derived.string.positions.map((p: { position: number[] }) => p.position)).toEqual([[1, 0], [-1, 1]]);
+    expect(doc.derived.string.positions.map((p: { position: number[] }) => p.position)).toEqual([[1, 1], [-1, 2]]);
     const e7 = new T12Tool(configOf(defaultsFor('E7')));
     const d = JSON.parse(exportJSON(e7.state(), exportData(e7)));
     expect(d.derived.dimension).toBe(56);
@@ -955,7 +957,7 @@ describe('T12 state and links', () => {
     // Above four nodes only the changed nodes are read (A-4).
     const e7 = new T12Tool(configOf(defaultsFor('E7')));
     const m = e7.act(7)!;
-    expect(moveSentence(e7, m)).toBe('Fired node 7. Node 6 now 1, node 7 now minus 1. Move 1.');
+    expect(moveSentence(e7, m)).toBe('Fired node 7. Node 6 now 2, node 7 now minus 1. Move 1.');
   });
 
   it('a long list of moves from a link is replayed in the worker (E-9 rule 2), a short one on the main thread', () => {
@@ -1250,8 +1252,8 @@ describe('T12 server render', () => {
     expect(body).toContain('<msub>');
     expect(body).not.toContain('class="katex');
     expect([...body.matchAll(/data-out="string-position" data-value="([^"]+)" data-in-orbit="(true|false)"/g)].map((m) => [m[1], m[2]])).toEqual([
-      ['1,0', 'true'],
-      ['-1,1', 'true'],
+      ['1,1', 'true'],
+      ['-1,2', 'true'],
     ]);
     expect(outText(body, 'string-length')).toEqual(['2']);
     expect(outText(body, 'caption')).toEqual([T12.presets.default.caption]);
@@ -1693,6 +1695,37 @@ describe('regressions', () => {
       expect(T12.presets['string-viewer']!.caption).toBe(
         'On A2 the line through (2, 0) at node 1 has 3 positions: (2, 0), (0, 1) and (−2, 2). Firing node 1 turns it end over end, and (0, 1) lies outside the orbit of (2, 0).',
       );
+    });
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-10-t12-default-start.test.ts (RT-10, phase 5 round, attack 12;
+  // SPEC 6.6, field `start`: "the starting position; default: all ones for numbers, one Martian in the
+  // first city for populations"). T12's state has coords "numbers" and a start (its string viewer plays the
+  // numbers game), but its default start, on the tool route and after a pick of a board or a node, was
+  // omega_i (1 at the node, 0 elsewhere). SPEC 4 T12 names no start ("for a chosen position mu").
+  describe('P5-RT-10-03: the default start of T12 is the default of 6.6', () => {
+    for (const board of ['A2', 'D4', 'E7']) {
+      // regression: P5-RT-10-03
+      it(`defaultsFor('${board}') has coords numbers and the start all ones`, () => {
+        const s = defaultsFor(board);
+        expect(s.coords).toBe('numbers');
+        expect(s.start, `${board}: ${JSON.stringify(s.start)}`).toEqual(s.start!.map(() => 1));
+      });
+    }
+    // regression: P5-RT-10-03
+    it('the default preset of the tool route has the start all ones', () => {
+      expect(T12.presets.default.start).toEqual([1, 1]);
+    });
+    // regression: P5-RT-10-03
+    it('a pick of a node, and a link that changes the board or the node, take the start all ones; an author\'s start stays', () => {
+      for (const [board, node] of [['D4', 2], ['E8', 1], ['B3', 3], ['G2', 2]] as const) {
+        expect(defaultsFor(board, node).start, `${board} node ${node}`).toEqual(named(board).labels.map(() => 1));
+      }
+      const configured = configuredState({ preset: 'default' });
+      expect(admitLink('?g=E7&k=2', configured, '').state.start).toEqual([1, 1, 1, 1, 1, 1, 1]);
+      // M8's figures keep the starts their authors give (b1: the string through (2, 0)).
+      expect(configuredState({ preset: 'string-viewer', board: 'A2', node: 1, start: [2, 0] }).start).toEqual([2, 0]);
+      expect(configuredState({ board: 'D4', node: 1, start: [0, 0, 1, 0] }).start).toEqual([0, 0, 1, 0]);
     });
   });
 });
