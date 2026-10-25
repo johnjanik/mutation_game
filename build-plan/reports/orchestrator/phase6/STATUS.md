@@ -4,3 +4,5 @@
 - Stage 6.1 (base 5d16e79), running: P6-A1 engine phase 6A (satake.ts), P6-A5 LaTeX export, embed routes and Cite (ports 7100-7103), P6-A6 history, confusions, credits, version footer (ports 7110-7113).
 - To come: 6.1b P6-A2 (catalogue, records, names; after P6-A1); 6.2 P6-A3 T13 and P6-A4 T14; 6.3 P6-A7 M9 and P6-A8 M10; 6.4 gate G6 with release 1.0 (the owner tags).
 - Size budget to watch: /tools/rep/ 87.9 of 90 kB; ToolFrame changes land on every tool route.
+- P6-A1 done and merged (87a2665; records dff494c): 81 engine files, all 167 satake records' computed fields, admissible_pairs, satake_examples, property 9; E7/E8 satake 2 to 8 ms. Review running on dff494c.
+- Stage 6.1b started on dff494c: P6-A2 (satakeCatalogue.ts, names).
