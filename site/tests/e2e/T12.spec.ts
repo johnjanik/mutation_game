@@ -1007,4 +1007,60 @@ test.describe('regressions', () => {
       expect(where, `/modules/m8-lie-algebras/ ${inst}: document.activeElement after the island hydrated, the focus having been on the box "${outName}"`).toBe(`div in ${inst} (${outName})`);
     });
   }
+
+  // SPEC 4.0 "a polite live region announces each result" (7.5 A-4, 4.1.3): where the relation list is
+  // computed in the worker (E6 node 1, E7 node 7: RELATIONS_MAIN_WORK), the verdict drawn when the list
+  // arrives is announced, not only "checked in the background".
+  test.describe('a verdict from the worker', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.addInitScript(() => {
+        (window as unknown as { __ann: { inst: string | null; text: string }[] }).__ann = [];
+        new MutationObserver((recs) => {
+          for (const r of recs) {
+            const el = r.target.nodeType === 1 ? (r.target as Element) : r.target.parentElement;
+            const region = el?.closest('[aria-live], [role="status"]');
+            if (region && region.textContent) (window as unknown as { __ann: { inst: string | null; text: string }[] }).__ann.push({ inst: region.closest('[data-tool]')?.getAttribute('data-instance') ?? null, text: region.textContent });
+          }
+        }).observe(document, { subtree: true, childList: true, characterData: true });
+      });
+    });
+
+    for (const inst of ['b6', 'b7']) {
+      // regression: P5-RT-05-03
+      test(`M8 ${inst}: the verdict of a relation picked by keys is announced when the worker's list arrives`, async ({ page }) => {
+        await page.goto('modules/m8-lie-algebras/');
+        const tool = page.locator(`[data-tool="rep"][data-instance="${inst}"]`);
+        await tool.scrollIntoViewIfNeeded();
+        await expect(tool).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+        await expect(tool.locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 30000 });
+        const select = tool.locator('[data-control="relation"]');
+        await expect(select).toBeEnabled();
+        await select.focus();
+        await page.keyboard.press('ArrowUp'); // [E, F] = H or 0  ->  [H, F] = -C F
+        const verdict = tool.locator('[data-out="relation-verdict"]');
+        await expect(verdict, 'the worker list arrives and the verdict is drawn').toHaveAttribute('data-holds', /^(true|false)$/, { timeout: 30000 });
+        const shown = (await verdict.textContent())?.trim() ?? '';
+        await page.waitForTimeout(1200);
+        const said = (await page.evaluate(() => (window as unknown as { __ann: { inst: string | null; text: string }[] }).__ann)).filter((a) => a.inst === inst).map((a) => a.text);
+        expect(
+          said.some((t) => / are (equal|not equal)\./.test(t)),
+          `/modules/m8-lie-algebras/ ${inst}: the screen shows the verdict "${shown}", the live region said only ${JSON.stringify([...new Set(said)])}`,
+        ).toBe(true);
+      });
+    }
+
+    // The other reply of the worker: a list it could not compute ("not checked") is announced too.
+    // regression: P5-RT-05-03
+    test('M8 b7: a picked relation that the worker could not check is announced as not checked', async ({ page }) => {
+      await page.route('**/*engine.worker*', (r) => r.abort());
+      await page.goto('modules/m8-lie-algebras/');
+      const tool = page.locator('[data-tool="rep"][data-instance="b7"]');
+      await tool.scrollIntoViewIfNeeded();
+      await expect(tool).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      await expect(tool.locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 30000 });
+      await tool.locator('[data-control="relation"]').selectOption('hf');
+      await expect(tool.locator('[data-out="relation-verdict"]')).toHaveText('not checked', { timeout: 30000 });
+      await expect(tool.locator('[data-live]')).toHaveText(await tool.locator('[data-out="all-relations"]').innerText());
+    });
+  });
 });

@@ -620,7 +620,8 @@
    * A relation list from the worker: stored with its representation, and, when that is the one shown, its
    * two sides drawn one per task (the reply was read in a task of its own, SPEC 7.6). A node that is not
    * minuscule moves from its default [E_i, F_i] = H_i to its first failing relation when the reader picked
-   * none (failingDefault).
+   * none (failingDefault). A verdict the reader was told is being checked in the background is announced
+   * (owed; SPEC 4.0: each result).
    */
   function acceptFromWorker(r: Representation, list: RelationCheck[]): void {
     if (!acceptRelations(r, list) || r !== tool.rep) return;
@@ -635,6 +636,7 @@
     // The server's tables of these sides were taken over when they were drawn: the waiting line stands for them now.
     if (again.some((p) => adoptables[p] !== undefined)) adoptables = Object.fromEntries(Object.entries(adoptables).filter(([p]) => !again.includes(p as Piece))) as typeof adoptables;
     touch();
+    if (owed === r) say(relationSentence(tool, shownCheck(r, tool.relation, digest)));
     runSteps(
       generation,
       again.map((p): Step => () => {
@@ -642,6 +644,15 @@
       }),
     );
   }
+
+  /**
+   * The representation whose verdict the reader was told is being checked in the background (a relation
+   * pick), with the announcer of that pick: the verdict, or that it could not be checked, is announced when
+   * the worker replies (SPEC 4.0: each result is announced).
+   */
+  let owed: Representation | null = null;
+  let say = (_t: string): void => {};
+  const lostLine = (d: number): string => `The relations of these ${d} by ${d} matrices could not be checked in the background; reloading the page tries again.`;
 
   /** The digest stands for the list of this representation (the configured state, above the bound). */
   const digestHolds = (r: Representation): boolean => digest !== null && digest.board === r.name && digest.node === r.node;
@@ -667,6 +678,7 @@
           () => {
             inFlight.delete(r);
             relationsLost = r;
+            if (owed === r && r === tool.rep) say(lostLine(dimensionOf(r)));
           },
         );
       });
@@ -772,7 +784,10 @@
       else needList = true;
     }
     touch();
-    announce(relationSentence(tool, shownCheck(rep, code, digest)));
+    const c = shownCheck(rep, code, digest);
+    owed = c === null ? rep : null;
+    say = announce;
+    announce(relationSentence(tool, c));
   }
 
   function setStart(announce: (t: string) => void): void {
@@ -921,7 +936,7 @@
       </div>
       <p class="line" data-out="all-relations" data-total={tally.total} data-failing={tally.failing}>{relationSummary(tally)}</p>
     {:else if relationsLost === rep}
-      <p class="line" data-out="all-relations">The relations of these {dim} by {dim} matrices could not be checked in the background; reloading the page tries again.</p>
+      <p class="line" data-out="all-relations">{lostLine(dim)}</p>
     {:else}
       <p class="line" data-out="all-relations">The {6 * anyBoard.n * anyBoard.n - 2 * anyBoard.n} relations of these {dim} by {dim} matrices are being checked in the background.</p>
     {/if}
