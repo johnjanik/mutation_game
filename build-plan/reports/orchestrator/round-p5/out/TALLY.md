@@ -76,3 +76,4 @@
 - RT-11 refute: 01, 02, 03 not refuted (5.4 takes any E, F, H, the oracle gives False with the finding's sides; 4.0 each result announced; COMMON 4.4 and the files' own headers). Reproduce pending.
 - RT-11 verdicts: 01, 02, 03 CONFIRMED minor (reproduced; not refuted).
 - MERGED cfbdbc5: lessons (5 of 5 confirmed). Confirmer's note: the cut 'Taking one for the other gives wrong answers;' leaves 'the table sets them side by side' (M8 'what mutation is not' sidebar) with a loose antecedent (caption resolves it). MERGE to note at folding: the P5-A3 entry's 'the 26 of F4' is superseded by P5-RT-08-02.
+- MERGED: toolchain (P5-RT-12-01 confirmed). Wording note: after a prebuild failure the refusal describes the later failed build, the report keeps the earlier build's generatedAt (tests assert 'did not finish').
