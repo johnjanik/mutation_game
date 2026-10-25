@@ -38,6 +38,7 @@ export const BOARDS_OFFERED: Readonly<Partial<Record<ToolId, 'all' | readonly st
   geometry: T10_BOARDS,
   fold: T11_BOARDS,
   rep: T12_BOARDS,
+  satake: NAMED_TYPES,
   affine: AFFINE_BOARDS,
   sandbox: 'all',
 };
