@@ -1,5 +1,5 @@
 # Phase 5 red-team round: tally (gate commit 006f50d)
-- Lenses running (2026-10-25 04:15): RT-02, RT-04, RT-06, RT-12. Done: RT-01, RT-03, RT-05, RT-08, RT-09, RT-10, RT-13. To come: RT-07, RT-11.
+- Lenses running (2026-10-25 04:16): RT-02, RT-04, RT-06, RT-11, RT-12. Done: RT-01, RT-03, RT-05, RT-08, RT-09, RT-10, RT-13. To come: RT-07 (last, on a quiet machine).
 ## RT-01: 1 finding (minor). Retests hold: 01-01, 01-02 (one sibling missed, below). rep.ts and T12 against the oracle: 12,624 + tool-boundary comparisons, 0 disagreements.
 - P5-RT-01-01 minor: formIsInvariant throws RangeError 'is not an integer' on an integer form entry beyond 2^53 (form.ts:104 isSafeInteger), so gram(C) of a board with such road counts cannot be tested.
 - Notes: T12 prints 'Dimension: N' on non-minuscule nodes where N is the orbit size, not dim V(omega_i) (D4 node 2: 24 vs 28; F4 node 4: 24 vs 26; E8 node 8: 240 vs 248); SafeInt checks intermediate products (E-2, documented); P3-RT-01-01 still reproduces (held).
@@ -46,3 +46,4 @@
 - P5-RT-03-01 major: T12's string viewer prints the line's length and the count of positions not listed in full beyond 12 digits (4.0 'Long numbers').
 - Notes: stringThrough has no bound on its length (E-6, logged in P5-A1; owner); minusculeMatrices cap 0 throws RangeError (logged); 7 unit timeouts at load 16.7 (no finding).
 - RT-10 verdicts: 01 CONFIRMED major (as claimed; reproducer keeps major, refuter's rubric reading noted); 02 CONFIRMED minor; 03 CONFIRMED major (refuter raised; 6.6 against 4.0 'the tool's defaults' noted for the owner).
+- RT-03 refute: 01 not refuted (4.0 'Long numbers' has no qualifier; precedent RT-FIX-P3-export-long read a count as a value). Reproduce pending.
