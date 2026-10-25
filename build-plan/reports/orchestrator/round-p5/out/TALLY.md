@@ -71,3 +71,5 @@
 - P5-RT-11-02 minor: T12's announcement of a failing picked relation is never heard by a test (mutant 'always equal' passes).
 - P5-RT-11-03 minor: T12.test.ts and T12.spec.ts type golden orbit sizes and dimensions.
 - Notes: S2 digest mutant equivalent on shipped pages (every configured state is minuscule); T15.spec:542 reads the live region at the first entry (race under load); T12.test.ts:303 F11 agreement only up to 600 positions (by instruction).
+- RT-12 reproduce: 01 reproduced (step 4 exit 0 with the step 1 report). Refute pending.
+- RT-12 verdicts: 01 CONFIRMED minor (reproduced; not refuted: P4 decision counts the prebuild as part of the release build).
