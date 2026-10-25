@@ -18,6 +18,8 @@
   // "notice", "noscript"; data-control="undo", "redo", "reset", "copyLink", "downloadData"; data-live.
   // P2-A6 (additive): data-export="svg", "png"; data-export-option="footer", "labels"; data-out="exportNotice".
   // P6-A5 (additive): data-control="latex", "cite"; data-out="citeText", rendered after a click on Cite.
+  // P6-A3 (additive, MERGE ruling (3) on P6-A3): the prop `moves` overrides state.moves?.length for data-moves,
+  // for a tool whose moves are not part of its state (T13 keeps its steps out of the link).
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import { createAnnouncer } from '../../lib/a11y';
@@ -33,6 +35,8 @@
     /** States the result the figure demonstrates (4.0 "Starts meaningful"). */
     caption: string;
     state: ToolState;
+    /** P6-A3: the number of moves for data-moves when the moves are not in the state; default state.moves?.length. */
+    moves?: number;
     derivedForExport?: Record<string, unknown> | (() => Record<string, unknown>);
     onUndo?: () => void;
     onRedo?: () => void;
@@ -60,6 +64,7 @@
     title,
     caption,
     state: toolState,
+    moves: movesOverride,
     derivedForExport = {},
     onUndo,
     onRedo,
@@ -92,7 +97,7 @@
     announce,
   };
 
-  const moves = $derived(toolState.moves?.length ?? 0);
+  const moves = $derived(movesOverride ?? toolState.moves?.length ?? 0);
   const hasHistoryRow = $derived(onUndo !== undefined || onRedo !== undefined || onReset !== undefined);
 
   // $effect runs only in the browser: this is hydration.
