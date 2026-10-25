@@ -49,14 +49,15 @@ export const SEEN = 'verified by computation';
     the predictions come from the engine (stringThrough, fire), and the list of checked representations
     from the golden file. Eight figures b1 to b8 in the beats, the static E8 figure of beat 6, and four
     challenge tools b9 to b12 after their challenges; b1 is client:idle, every other island client:visible.
-    No default state needs the worker: every instance is a minuscule node whose orbit is far below the cap, and whose
-    relations T12 computes on the main thread for a configured state. Beat 7 is the placeholder of phase 7.
+    No default state needs the worker: every instance is a minuscule node whose orbit is far below the cap, and for a
+    configured state the server ships a digest of its relations, so hydration computes no relation list (P5-A2 repair).
+    Beat 7 is the placeholder of phase 7.
     decisions/P5-A3.md lists the typed numbers. No apostrophe in this comment: the scanner reads one as the
     start of a string. */}
 
 <Beat n={1}>
 
-This module stays in the <View v="numbers"/> view: positions, their <Term a="numbers">numbers</Term>, and node $i$. The numbers game is due to Mozes <Cite k="Moz90"/>; Proctor used the same <Term a="fire">firing</Term> process before him <Cite k="Pro84"/>, and Eriksson developed it <Cite k="Eri95a"/>.
+This module stays in the <View v="numbers"/> view: positions, <Term a="numbers">numbers</Term> and node $i$. The numbers game is due to Mozes <Cite k="Moz90"/>; Proctor used the same <Term a="fire">firing</Term> process before him <Cite k="Pro84"/>, and Eriksson developed it <Cite k="Eri95a"/>.
 
 Fix a <Term a="node">node</Term> $i$ and write $\alpha_i$ for column $i$ of the Cartan matrix $C$. Take a position $\mu$ whose number $\mu_i$ is not negative and subtract $\alpha_i$ from it, $\mu_i$ times. The positions met, <Tex src="\mu,\ \mu-\alpha_i,\ \dots,\ \mu-\mu_i\alpha_i"/>, form the **string** through $\mu$ at node $i$. Firing node $i$ sends $\mu$ to the last of them and turns the whole string end over end. On <Tex src="A_2"/> at node {'1'}, the string through <G k="minuscule_representations[type=A2;node=1].weights_dynkin_labels[0]"/> has two positions, <G k="minuscule_representations[type=A2;node=1].weights_dynkin_labels[0]"/> and <G k="minuscule_representations[type=A2;node=1].weights_dynkin_labels[2]"/>. The string through <Tex src="(2,0)"/> has three, <Tex src="(2,0)"/>, {show(STRING_TWO[1])} and <Tex src="(-2,2)"/>, and its middle position is not in the orbit of <Tex src="(2,0)"/>. That orbit holds <Tex src="(2,0)"/>, <Tex src="(-2,2)"/> and <Tex src="(0,-2)"/> only.
 
@@ -68,7 +69,9 @@ In Lie theory the pattern is general: in every finite-dimensional representation
 
 <Beat n={2}>
 
-Give each <Term a="position">position</Term> of an orbit a basis vector of its own. A **single step** moves a position by $\alpha_i$: the matrix $F_i$ steps down, subtracting $\alpha_i$, and $E_i$ steps up, adding it, and a step that would leave the orbit gives <Tex src="0"/>. A third matrix, $H_i$, counts: it multiplies each position by its number on node $i$.
+The first figure's two firings reach {show(AFTER_TWO)}, whose string at node {'1'} is that position alone.
+
+Give each <Term a="position">position</Term> of an orbit its own basis vector. A **single step** moves a position by $\alpha_i$: the matrix $F_i$ steps down, subtracting $\alpha_i$, and $E_i$ steps up, adding it, and a step that would leave the orbit gives <Tex src="0"/>. A third matrix, $H_i$, counts: it multiplies each position by its number on node $i$.
 
 The smallest case is <Tex src="A_1"/>. The orbit of the <Term a="fundamental-position">fundamental position</Term> <Tex src="e_1"/> has <G k="minuscule_representations[type=A1;node=1].dimension"/> positions, <G k="minuscule_representations[type=A1;node=1].weights_dynkin_labels[0]"/> and <G k="minuscule_representations[type=A1;node=1].weights_dynkin_labels[1]"/>. Here <Tex src="F_1"/> sends <G k="minuscule_representations[type=A1;node=1].weights_dynkin_labels[0]"/> to <G k="minuscule_representations[type=A1;node=1].weights_dynkin_labels[1]"/>, <Tex src="E_1"/> sends it back, and <Tex src="H_1=\operatorname{diag}(1,-1)"/>. Firing node {'1'} exchanges them, so on this orbit a whole move is one single step, down or up.
 
@@ -110,7 +113,7 @@ On a minuscule orbit, firing node $k$ permutes the positions, so its matrix hold
 
 <Beat n={6}>
 
-<Tex src="E_8"/>, <Tex src="F_4"/> and <Tex src="G_2"/> have no minuscule node: their Cartan matrices have determinants <G k="types.E8.det_cartan"/>, <G k="types.F4.det_cartan"/> and <G k="types.G2.det_cartan"/>. That is why <Tex src="E_8"/> is the case Wildberger's construction leaves out <Cite k="W03a"/>. By a standard fact of Lie theory, its smallest nontrivial representation is the one on its own Lie algebra, of dimension <G k="satake[dynkin_type=E8;real_form=e8(8)].dim_g"/>: one basis vector for each of its <G k="types.E8.n_roots"/> roots and <G k="satake[dynkin_type=E8;real_form=e8(8)].rank"/> for the zero position, which is repeated. The figure draws these positions. The recipe of this module and the one previewed in beat {'7'} reach no representation in which a position is repeated, and none whose nonzero positions form several orbits. Out of their reach are the <G k="weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension"/>-dimensional representation of <Tex src="F_4"/>, studied in <Cite k="vE"/>, and the representation of every board of rank at least {'2'} on its own Lie algebra: their matrices need more than the game.
+<Tex src="E_8"/>, <Tex src="F_4"/> and <Tex src="G_2"/> have no minuscule node: their Cartan matrices have determinants <G k="types.E8.det_cartan"/>, <G k="types.F4.det_cartan"/> and <G k="types.G2.det_cartan"/>. That is why Wildberger's construction leaves out <Tex src="E_8"/> <Cite k="W03a"/>. By a standard fact of Lie theory, its smallest nontrivial representation is the one on its own Lie algebra, of dimension <G k="satake[dynkin_type=E8;real_form=e8(8)].dim_g"/>: one basis vector for each of its <G k="types.E8.n_roots"/> roots and <G k="satake[dynkin_type=E8;real_form=e8(8)].rank"/> for the zero position, which is repeated. The figure draws these positions. Neither this module's recipe nor the one previewed in beat {'7'} reaches a representation with a repeated position or with nonzero positions in several orbits. Out of their reach are the <G k="weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension"/>-dimensional representation of <Tex src="F_4"/>, studied in <Cite k="vE"/>, and the representation of every board of rank at least {'2'} on its own Lie algebra: their matrices need more than the game.
 
 <figure slot="figure" class="static-figure" data-static-figure="e8-roots">
 <svg viewBox="0 0 320 352" width="100%" role="img" aria-labelledby="e8-roots-title e8-roots-desc" style="max-width: 320px; display: block">
@@ -123,7 +126,7 @@ On a minuscule orbit, firing node $k$ permutes the positions, so its matrix hold
 <circle cx="146" cy="324" r="6" fill="none" stroke="currentColor" stroke-width="2" /><text x="160" y="328">{`the centre: ${E8_ZEROS} zeros`}</text>
 </g>
 </svg>
-<figcaption>The <G k="types.E8.n_roots"/> roots of <Tex src="E_8"/> in its Coxeter plane and, at the centre, the zero position, counted <G k="satake[dynkin_type=E8;real_form=e8(8)].rank"/> times: <Tex src="{{satake[dynkin_type=E8;real_form=e8(8)].dim_g}}={{types.E8.n_roots}}+{{satake[dynkin_type=E8;real_form=e8(8)].rank}}"/> positions in all. {studio ? <a href={studio} data-link="geometry">Turn them in the Geometry Studio.</a> : null}</figcaption>
+<figcaption>The <G k="types.E8.n_roots"/> roots of <Tex src="E_8"/> in its Coxeter plane and, at the centre, the zero position, counted <G k="satake[dynkin_type=E8;real_form=e8(8)].rank"/> times: <Tex src="{{satake[dynkin_type=E8;real_form=e8(8)].dim_g}}={{types.E8.n_roots}}+{{satake[dynkin_type=E8;real_form=e8(8)].rank}}"/> positions. {studio ? <a href={studio} data-link="geometry">Turn them in the Geometry Studio.</a> : null}</figcaption>
 </figure>
 </Beat>
 
@@ -131,7 +134,7 @@ On a minuscule orbit, firing node $k$ permutes the positions, so its matrix hold
 
 <div data-released="false">
 
-Some representations have as positions one orbit together with the zero position, counted once: the vector representations of type <Tex src="B"/> and the <G k="orbit_plus_zero_representations[type=G2;highest_weight=1,0].dimension"/>-dimensional representation of <Tex src="G_2"/>. A later version of this module builds them from single steps as well.
+Some representations have as positions one orbit together with the zero position, counted once: the vector representations of type <Tex src="B"/> and the <G k="orbit_plus_zero_representations[type=G2;highest_weight=1,0].dimension"/>-dimensional representation of <Tex src="G_2"/>. A later version of this module builds them from single steps.
 
 </div>
 </Beat>
@@ -146,7 +149,7 @@ Some representations have as positions one orbit together with the zero position
 
 <aside id="what-mutation-is-not" aria-labelledby="what-mutation-is-not-title" data-sidebar="not-quiver" style={{ borderInlineStart: '4px solid var(--sign-zero-outline)', paddingInlineStart: '16px', marginBlock: '24px' }}>
 <h2 id="what-mutation-is-not-title">Sidebar: what mutation is not</h2>
-<p>Fomin and Zelevinsky give the name mutation to an operation on a quiver and its variables. Taking one for the other gives wrong answers; the table sets them side by side, with <Tex src="N"/> positive roots and <Tex src="n"/> nodes.</p>
+<p>Fomin and Zelevinsky give the name mutation to an operation on a quiver and its variables; the table sets them side by side, with <Tex src="N"/> positive roots and <Tex src="n"/> nodes.</p>
 <div class="table-wrap" role="region" aria-labelledby="mutation-compared-caption" tabindex="0" style={{ overflowX: 'auto' }}>
 <table data-table="mutation-compared">
 <caption id="mutation-compared-caption">Two operations called mutation</caption>
@@ -171,7 +174,7 @@ Some representations have as positions one orbit together with the zero position
 
 <ul data-seen-statements>
 <li data-seen-statement>For the <G k="minuscule_representations" as="count"/> representations listed in beat {'4'}, the single steps of the game on the orbit give matrices of zeros and ones that satisfy all the Chevalley-Serre relations: verified by computation. At every minuscule node of a simply laced board this is Wildberger's construction <Cite k="W03a"/>, whose Theorem {'4.1'} is stated without proof; the proofs are in the later literature <Cite k="Gre13"/>.</li>
-<li data-seen-statement>The move of node $k$ is <Tex src="E_k+F_k+P_k^0"/>, and the signed move <Tex src="\exp(E_k)\exp(-F_k)\exp(E_k)"/> is <Tex src="E_k-F_k+P_k^0"/>, with square <Tex src="(-1)^{H_k}"/>: verified by computation for every node of the same representations. At node {'2'} of <Tex src="D_4"/> the recipe fails: verified by computation.</li>
+<li data-seen-statement>The move of node $k$ is <Tex src="E_k+F_k+P_k^0"/>, and the signed move <Tex src="\exp(E_k)\exp(-F_k)\exp(E_k)"/> is <Tex src="E_k-F_k+P_k^0"/>, with square <Tex src="(-1)^{H_k}"/>: verified by computation for every node of the same representations. At node {'2'} of <Tex src="D_4"/> the recipe fails, and from node {'3'} the orbit has <G k="minuscule_representations[type=D4;node=3].dimension"/> positions: verified by computation.</li>
 <li data-seen-statement>In a finite-dimensional representation, its positions on the line through one of them, $\mu$, in the direction of $\alpha_i$ form an unbroken run with <Tex src="r-q=\mu_i"/>: a standard fact of Lie theory. <Unverified item="E10" fallback="It is found in the standard texts on Lie algebras.">See <Cite k="Hum72"/>, sections {'9.4 and 21.3'}.</Unverified></li>
 </ul>
 
@@ -179,7 +182,7 @@ Some representations have as positions one orbit together with the zero position
 
 <LieTheory>
 
-The matrices <Tex src="E_i,F_i,H_i"/> are Chevalley generators of the simple Lie algebra of the board, and the relations of beat {'3'} are the Chevalley-Serre relations, written with <Tex src="C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle"/> as in Kac and SageMath; Bourbaki prints the transpose. A position is a weight in Dynkin labels, $e_i$ is the fundamental weight <Tex src="\omega_i"/>, and the string of the game is part of the <Tex src="\alpha_i"/>-string through $\mu$, with <Tex src="r-q=\langle\mu,\alpha_i^\vee\rangle"/>. A <Term a="minuscule-node">minuscule node</Term> gives a minuscule weight: its Weyl group orbit carries a representation in which each weight occurs once. The signed move lifts the simple reflection <Tex src="s_k"/> to the group, with square <Tex src="(-1)^{H_k}"/>. On simply laced boards, Wildberger builds these representations on the ideals of a minuscule <Term a="heap">heap</Term> <Cite k="W03a"/>, with proofs in <Cite k="Gre13"/>, and <Cite k="W03c"/> builds <Tex src="G_2"/> combinatorially in another basis, with entries from <Tex src="-2"/> to <Tex src="2"/>. The smallest nontrivial representation of <Tex src="E_8"/>, by a standard fact, is its adjoint representation.
+The matrices <Tex src="E_i,F_i,H_i"/> are Chevalley generators of the simple Lie algebra of the board, and the relations of beat {'3'} are the Chevalley-Serre relations, written with <Tex src="C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle"/> as in Kac and SageMath; Bourbaki prints the transpose. A position is a weight in Dynkin labels, $e_i$ is the fundamental weight <Tex src="\omega_i"/>, and the string of the game is part of the <Tex src="\alpha_i"/>-string through $\mu$, with <Tex src="r-q=\langle\mu,\alpha_i^\vee\rangle"/>. A <Term a="minuscule-node">minuscule node</Term> gives a minuscule weight: its Weyl group orbit carries a representation in which each weight occurs once. The signed move lifts the simple reflection <Tex src="s_k"/> to the group. On simply laced boards, Wildberger builds these representations on the ideals of a minuscule <Term a="heap">heap</Term> <Cite k="W03a"/>, with proofs in <Cite k="Gre13"/>, and <Cite k="W03c"/> builds <Tex src="G_2"/> combinatorially in another basis, with entries from <Tex src="-2"/> to <Tex src="2"/>. The smallest nontrivial representation of <Tex src="E_8"/>, by a standard fact, is its adjoint representation.
 
 </LieTheory>
 

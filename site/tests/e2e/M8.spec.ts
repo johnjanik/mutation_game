@@ -513,7 +513,8 @@ test('no default state starts the worker', async ({ page, context }) => {
     await expect(out(page, id, 'dimension'), id).toHaveText(String(orbitOf(board, node)));
     await expect(out(page, id, 'all-relations'), id).toHaveText(/^All \d+ relations hold\.$/);
   }
-  // The largest default, the 56 of E7, computes its relations on the main thread and is below the cap.
+  // The largest default, the 56 of E7, is below the cap; the server ships a digest of its relations (P5-A2
+  // repair), so hydration computes no relation list.
   expect(dim('E7', 7)).toBeLessThanOrEqual(CAPS.repOrbit);
   await page.waitForLoadState('networkidle');
   expect(requested).toEqual([]);
@@ -757,6 +758,7 @@ const ALLOWED_M8: Allowed[] = [
   { text: '1', around: /at node \{'1'\}|from node \{'1'\}|Firing node \{'1'\}/, reason: 'node label 1' },
   { text: '2', around: /node \$j\$ to \{'2'\}|Node \{'2'\} of|At node \{'2'\} of/, reason: 'node label 2' },
   { text: '7', around: /from node \{'7'\}/, reason: 'node label 7 of E7' },
+  { text: '3', around: /from node \{'3'\} the orbit has/, reason: 'node label 3 of D4, in the answer of the prediction of b5 stated after it (P5-RT-13-01)' },
   { text: '3', around: /beat \{'3'\}/, reason: 'beat number' },
   { text: '4', around: /beat \{'4'\}/, reason: 'beat number' },
   { text: '7', around: /beat \{'7'\}/, reason: 'beat number' },
@@ -1534,4 +1536,49 @@ test("Kostant's game climbs the Hasse diagram of the positive roots on every sim
   expect(mutate(t, big([1, 0, 0]), 1).map(Number)).toEqual([1, 1, 0]);
   expect(raisingNodes(t, big([1, 1, 0]))).toContain(2);
   expect(mutate(t, big([1, 1, 0]), 2).map(Number)).toEqual([1, 1, 2]);
+});
+
+test.describe('regressions', () => {
+  test.describe('without JavaScript', () => {
+    test.use({ javaScriptEnabled: false });
+    // RT-13, attack 8 (P2), from the script redteam/rt13-p5-reveal-only.mjs of the lens branch, which read a
+    // reading log of the release build without JavaScript and found the answers of b1 and b5 "stated outside
+    // the reveal in: nowhere" (SPEC 8.1 P2: "Results are stated in the prose."; 4.0 Starts meaningful). The
+    // script removed the prediction blocks and looked for each answer, with the patterns below, in every
+    // other block of the page (prose, captions and the tools' own text), formulas as $TeX$. Oracle: b1, A2
+    // from (2, 0), firing node 1 then node 2 gives (0, -2), whose string at node 1 has 1 position; b5, the
+    // orbit of node 3 of D4 has 8 positions (python3 redteam/rt13-p5-oracle-m8.py on the lens branch).
+    // Adoption: the same patterns on the same page without JavaScript, read from the built page; the stating
+    // text must also follow its prediction block, as the held class P3-RT-13-01 asks (no answer readable
+    // before the reader commits).
+    // regression: P5-RT-13-01
+    test('the answers of M8 predictions b1 and b5 are stated outside their reveals, after the prediction block', async ({ page }) => {
+      await page.goto(ROUTE);
+      const answers = [
+        { id: 'b1', stated: /\(0, ?(−|-)2\)[^.]*(one position|1 position|alone|single position)|(one position|alone)[^.]*\(0, ?(−|-)2\)/ },
+        { id: 'b5', stated: /node 3[^.]*\b8\b[^.]*position|\b8\b positions[^.]*node 3|nodes? 1(, 3)? and 3[^.]*\b8\b|orbit of (e|ω)3[^.]*\b8\b/i },
+      ];
+      expect(String(AFTER_TWO_LENGTH)).toBe('1');
+      expect(key(AFTER_TWO)).toBe('0,-2');
+      expect(dim('D4', 3)).toBe(8);
+      const texts = await page.locator('article').evaluate((article) => {
+        const blocks = [...article.querySelectorAll('p, li, figcaption, td, th, [data-out="caption"]')].filter((el) => el.closest('[data-prediction], details') === null);
+        const predictions = [...article.querySelectorAll('[data-tool] [data-prediction]')];
+        return blocks.map((el) => {
+          const copy = el.cloneNode(true) as HTMLElement;
+          for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(`$${k.querySelector('annotation')?.textContent ?? ''}$`));
+          for (const d of copy.querySelectorAll('[data-prediction], details, script, style')) d.remove();
+          const after = predictions.filter((p) => (p.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0).map((p) => p.closest('[data-tool]')?.getAttribute('data-instance') ?? '');
+          return { text: (copy.textContent ?? '').replace(/\s+/g, ' ').trim(), after };
+        });
+      });
+      expect(texts.length).toBeGreaterThan(40);
+      const report = answers.map(({ id, stated }) => {
+        const hits = texts.filter((t) => stated.test(t.text));
+        return { id, after: hits.filter((h) => h.after.includes(id)).length, before: hits.filter((h) => !h.after.includes(id)).map((h) => `${id}: ${h.text}`) };
+      });
+      expect(report.filter((r) => r.after === 0).map((r) => `${r.id}: stated outside the reveal, after the prediction block, in: nowhere`)).toEqual([]);
+      expect(report.flatMap((r) => r.before), 'stated before the prediction block').toEqual([]);
+    });
+  });
 });
