@@ -1,0 +1,112 @@
+{
+ "agent": "P5-A2-G5-repair",
+ "status": "partial",
+ "branch": "worktree-agent-a4e6c13a21a0f8a1b",
+ "base": "00e6a4c3ced8501f0d3c47161df6157f239d2017",
+ "commits": [
+  "c326dd3 P5-A2 G5 repair: split the heavy steps of a pick of T12",
+  "68d93ef P5-A2 G5 repair: record the traces, the measurements and the residual"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/src/components/math/MatrixView.svelte",
+  "site/src/components/tools/t12/OrbitLayers.svelte",
+  "site/src/components/tools/t12/rep.ts",
+  "site/tests/e2e/T12.spec.ts",
+  "site/tests/unit/tools/T12.test.ts",
+  "decisions/P5-A2.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 00e6a4c; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "HEAD at 00e6a4c; modules installed"
+  },
+  {
+   "cmd": "npm run build (base, root) and GITHUB_REPOSITORY=johnjanik/mutation_game OUT_DIR=<scratch> npm run build (base, CI base); both copied to scratch",
+   "exit": 0,
+   "summary": "35 pages each; links: 1292 internal links, 0 problems"
+  },
+  {
+   "cmd": "astro build with the RT-07 lens's astro.sourcemap.config.mjs (copied to scratch) into scratch dirs, base and each change, served on 7032/7033",
+   "exit": 0,
+   "summary": "35 pages each; used only for traces"
+  },
+  {
+   "cmd": "node <scratch>/pick-trace.mjs: the test's pick through CDP Tracing (devtools.timeline, optional V8 sampling profiler, source maps), MutationObserver tags, ~400 picks",
+   "exit": 0,
+   "summary": "per-step durations; findings in cause"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T12.test.ts",
+   "exit": 0,
+   "summary": "82 passed"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 0,
+   "summary": "Test Files 166 passed; Tests 3390 passed"
+  },
+  {
+   "cmd": "npm run check -w site (final tree)",
+   "exit": 0,
+   "summary": "0 errors; svelte-check 0 errors, 1 warning (pre-existing, LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "35 pages; links 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7031 (--json to scratch)",
+   "exit": 0,
+   "summary": "35 routes, 0 over budget; /tools/rep/ and M8 87831 B gzip (base 86803)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch copy, port 7030> site/tests/e2e/T12.spec.ts --workers 1",
+   "exit": 0,
+   "summary": "67 passed (includes the new grid test and the two long-task tests)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch> site/tests/e2e/M8.spec.ts --workers 1",
+   "exit": 0,
+   "summary": "30 passed"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch> nojs.spec.ts a11y.spec.ts -g 'tools/rep/|m8-lie-algebras'",
+   "exit": 0,
+   "summary": "7 passed"
+  },
+  {
+   "cmd": "scratch mutant (adoptableTable drops its last chunk of rows), rebuilt, T12.spec.ts -g 'seven grids'",
+   "exit": 1,
+   "summary": "red: matrix-e expected 27 rows, received 24; green again after restoring (1 passed)"
+  },
+  {
+   "cmd": "T12.spec.ts -g 'no long task when' --repeat-each 40 --workers 1, port 7030: before root, before CI base, after root, after CI base",
+   "exit": 1,
+   "summary": "failures E6/E7 of 40: before root 3/2, before CI 3/0, after root 0/1, after CI 1/2"
+  },
+  {
+   "cmd": "pick-trace.mjs --notrace, 40 picks each at the CI base after the change (MutationObserver attribution)",
+   "exit": 0,
+   "summary": "E6 0 of 40 with a long task; E7 3 of 40, all the shared Board's mount (54, 54, 87 ms)"
+  },
+  {
+   "cmd": "git diff 00e6a4c..HEAD | grep for em-dash, console.log, .only/.skip, any, export let, $:, on:click",
+   "exit": 1,
+   "summary": "nothing found"
+  },
+  {
+   "cmd": "pkill my previews (7030-7033); rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "no preview left; tree clean"
+  }
+ ],
+ "cause": "I traced picks made the way the test makes them: CDP tracing plus the V8 sampler on a source-map build of 00e6a4c, 360x800, processor slowed four times, load 0.5 to 1.5. Thread time equals wall time in these tasks, and the same work varies about 2x between picks, so any task of about 25 ms or more can pass 50 ms.\n\nE6, node 1: each of the seven 27x27 grids (E, F, H, the two relation sides, the move, the signed move) was written, parsed and drawn in one task of 20 to 61 ms. Parsing alone took 10 to 22 ms. The first grid (E) took 35 to 62 ms, including a minor GC of 6 to 10 ms. These grids were the long tasks the observer saw; once it was the Board mount instead.\n\nOther steps at 21 to 56 ms:\n- orbit panel with its layout: 23 to 56\n- the task that loads the state, including the pickers' options: 21 to 46\n- take-down of the old panels: 21 to 39\n- board resolution plus default node: 22 to 36\n- the two tables of the table view: 25 to 29\n\nE7 untraced at base, 30 picks: the long tasks were the Board mount (75, 66), take-down (51), the load step (57) and the orbit panel (66, 53).\n\nAfter my change, every remaining E7 long task I could identify (3 of 40 picks at the CI base) is the mount of the string viewer's shared Board. That is one Svelte component mount (Board, seven Node, Roads with six roads, seven buttons): 21 to 60 ms in 50 traced picks (median 32), with no GC in it. About half the time is in Node.svelte, a quarter in Roads.svelte and a sixth in the buttons. When two Boards have already been mounted on the page it takes at most 26 ms, so the cost comes from cold code. T12 cannot split a single component mount. Drawing the string panel first gave a median of 25 against 27 ms over 20 picks each, which is within noise, so I did not keep it.\n\nThe 170 ms task (14b log) started at 1315, within a few ms of the pick. The only task that runs then is the change event: Playwright's selectOption (its injected script is about 60% of the samples), T12's pickBoard and the building line. That task normally takes 20 to 43 ms (median 27 over 41 traced tasks). The rerun used 2 workers, and the other worker was loading tool pages at that moment. With a second browser loading pages here, the same task took 20 to 31 ms. So 170 ms was contention, and I could not reproduce it at load 2 or less. Its partner of 53 ms at about +420 ms falls where the base draws the orbit panel and the first grid, the two heaviest E6 steps.",
+ "before": "00e6a4c, T12.spec.ts long-task tests --repeat-each 40 --workers 1: root load 1.15-1.45: E6 37/40, E7 38/40 (long tasks 50-59 ms). CI base /mutation_game/ load 1.06-1.34: E6 37/40, E7 40/40 (51-53 ms).",
+ "after": "c326dd3 (same code at 68d93ef): root load 0.83-1.47: E6 40/40, E7 39/40 (one task of 60 ms). CI base load 1.30-1.46: E6 39/40 (60 ms), E7 38/40 (56, 59 ms). E7 at the CI base misses the target of at most 1 failure in 40. The attribution batch puts every remaining E7 long task on the shared Board's mount.",
+ "deviations": [],
+ "decisionsFragment": "decisions/P5-A2.md",
+ "handoff": "Only T12's own files changed (T12RepresentationBuilder.svelte, t12/OrbitLayers.svelte, t12/rep.ts, math/MatrixView.svelte), plus one new e2e test and one new unit test in T12's files.\n\nMatrixView's props are unchanged. It now also exports matrixTableParts, matrixInput, adoptableTable and ADOPT_CELLS; matrixTable's output is identical. OrbitLayers also exports orbitSvgLayers, and orbitSvg's output is identical. representationDimension is now cached per representation.\n\nAfter a pick:\n- each grid is built outside the page about 250 cells per task, and its MatrixView takes it over only when its props match\n- the orbit's layout gets a task of its own, and its SVG layers are written when shown\n- the board is resolved in a task of its own\n- the state and tool are made a task before they load\n- the pickers show the target one task early\n- the previous panels are taken down in two tasks\n- the orbit table is drawn 20 rows per task\n\nThe final DOM is unchanged; only the transitional drawing order differs.\n\nE6 meets the target. E7 does not at the CI base, because the shared Board's mount is a single task of 21 to 60 ms that T12 cannot split. The owner needs to choose one of:\n(a) the Board's owner lightens its mount (Roads uses spread attributes; each button has six listeners).\n(b) T12 keeps one Board across picks and updates its props. A2 to E7 would then create 5 of 7 nodes, an estimated 20 to 30% saving, but the old board would show while a pick builds, which is a visible change.\n(c) Accept the residual. I did not change the test, its threshold or its throttling."
+}
