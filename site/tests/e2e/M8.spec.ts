@@ -760,8 +760,7 @@ const ALLOWED_M8: Allowed[] = [
   { text: '3', around: /beat \{'3'\}/, reason: 'beat number' },
   { text: '4', around: /beat \{'4'\}/, reason: 'beat number' },
   { text: '7', around: /beat \{'7'\}/, reason: 'beat number' },
-  // Numbers with no golden value (instruction 5.8).
-  { text: '26', around: /dimensional representation of/, reason: 'the 26 of F4, the subject of [vE]' },
+  // Numbers with no golden value (instruction 5.8). The 26 of F4 has one and is a <G> (P5-RT-08-02).
   { text: '2', around: /rank at least \{'2'\}/, reason: 'rank at least 2 (adjoint representations out of reach)' },
 ];
 const ALLOWED_PAGE: Allowed[] = [
