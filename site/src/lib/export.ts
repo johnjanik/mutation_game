@@ -769,6 +769,27 @@ export function defaultLatexExport(state: ToolState): { kind: 'dynkin'; data: Dy
   return { kind: 'dynkin', data: { type: state.board as string, black: [...(state.black ?? [])], tau: [...tau] } };
 }
 
+/** What a tool passes to ToolFrame's `latexForExport` (plan). */
+export type LatexChoice = { kind: LatexKind; data: unknown };
+
+/**
+ * The .tex file of "Export LaTeX" (plan): the tool's choice (`latexForExport`, a value or a function),
+ * else defaultLatexExport; the file name of exportFileName with the board name of the SVG export (P2-A6).
+ * Throws Error(NOTHING_TO_EXPORT_LATEX) when there is nothing to write, RangeError on data exportLaTeX refuses.
+ */
+export function latexDownload(
+  choice: LatexChoice | (() => LatexChoice | null) | undefined,
+  state: ToolState,
+  toolId: string,
+  boardName: string | undefined,
+  link: string,
+): { filename: string; text: string } {
+  const chosen = typeof choice === 'function' ? choice() : (choice ?? defaultLatexExport(state));
+  if (!chosen) throw new Error(NOTHING_TO_EXPORT_LATEX);
+  const name = boardName ?? (typeof state.board === 'string' ? state.board : 'custom board');
+  return { filename: exportFileName(toolId, name, 'tex'), text: latexFile(chosen.kind, exportLaTeX(chosen.kind, chosen.data), link) };
+}
+
 /** The parts of a citation (SPEC 7.4 "Cite": page title, site version, date, link). */
 export interface CiteParts {
   title: string;
@@ -796,4 +817,12 @@ export function citationTitle(documentTitle: string, siteName: string = SITE_NAM
 export function localIsoDate(d: Date): string {
   const pad = (k: number): string => String(k).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * The text "Cite" shows and copies (SPEC 7.4): the page title at the click, the site name, the commit of
+ * exportJSON (GIT_COMMIT), the reader's local date and the link "Copy link" gives (history.ts linkFor).
+ */
+export function citation(documentTitle: string, link: string, now: Date = new Date()): string {
+  return citeText({ title: citationTitle(documentTitle), siteName: SITE_NAME, commit: GIT_COMMIT, date: localIsoDate(now), link });
 }

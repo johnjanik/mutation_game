@@ -7,7 +7,20 @@
 import { describe, expect, it } from 'vitest';
 import golden from '../../../reference/golden_data.json';
 import * as ex from '@lib/export';
-import { citationTitle, citeText, defaultLatexExport, exportLaTeX, latexFile, localIsoDate, NOTHING_TO_EXPORT_LATEX, SITE_NAME } from '@lib/export';
+import {
+  citation,
+  citationTitle,
+  citeText,
+  defaultLatexExport,
+  exportLaTeX,
+  GIT_COMMIT,
+  latexDownload,
+  latexFile,
+  localIsoDate,
+  NOTHING_TO_EXPORT_LATEX,
+  SITE_NAME,
+  type LatexChoice,
+} from '@lib/export';
 import type { ToolState } from '@lib/state';
 
 interface SatakeRow {
@@ -315,6 +328,35 @@ describe('the downloaded file and the citation', () => {
     for (const board of ['A4~', 'C2~', 'D4^(3)', 'pentagon', 'square', 'H3'] as const) expect(defaultLatexExport(state(board)), board).toBeNull();
     expect(defaultLatexExport(state({ cartan: [[2, -1], [-1, 2]] }))).toBeNull();
     expect(NOTHING_TO_EXPORT_LATEX).toBe('nothing to export as LaTeX');
+  });
+
+  it('the file of Export LaTeX: the tool choice, else the board diagram, else the notice', () => {
+    const state = (board: ToolState['board'], extra: Partial<ToolState> = {}): ToolState => ({ schema: 1, tool: 'board', board, ...extra });
+    expect(latexDownload(undefined, state('E6'), 'board', undefined, 'L')).toEqual({ filename: 'board-E6.tex', text: '% L\n% needs \\usepackage{dynkin-diagrams}\n\\dynkin E{oooooo}\n' });
+    // The board name of the SVG export (P2-A6) names the file.
+    expect(latexDownload(undefined, state('C2'), 'board', 'B2=C2', 'L').filename).toBe('board-B2-C2.tex');
+    // A tool's choice wins; a function is called at the click.
+    const graph: LatexChoice = { kind: 'tikz-graph', data: { nodes: [{ x: 0, y: 0 }], edges: [] } };
+    expect(latexDownload(graph, state('E6'), 'garden', undefined, 'L').text).toBe(`% L\n% needs \\usepackage{tikz}\n${exportLaTeX('tikz-graph', graph.data)}\n`);
+    expect(latexDownload(() => graph, state('A4~'), 'garden', undefined, 'L').filename).toBe('garden-A4-.tex');
+    // Nothing to export: a board with no form of 6.7 and no choice, or a choice that gives none.
+    expect(() => latexDownload(undefined, state('A4~'), 'affine', undefined, 'L')).toThrow(NOTHING_TO_EXPORT_LATEX);
+    expect(() => latexDownload(undefined, state({ cartan: [[2, -1], [-1, 2]] }), 'sandbox', undefined, 'L')).toThrow(NOTHING_TO_EXPORT_LATEX);
+    expect(() => latexDownload(() => null, state('E6'), 'board', undefined, 'L')).toThrow(NOTHING_TO_EXPORT_LATEX);
+    // Data exportLaTeX refuses is refused here too.
+    expect(() => latexDownload({ kind: 'dynkin', data: { type: 'A4~' } }, state('E6'), 'board', undefined, 'L')).toThrow(RangeError);
+  });
+
+  it('the text of Cite is composed at the click', () => {
+    const at = new Date(2026, 10, 2, 9, 15);
+    expect(citation('The mutation game: Two Games on a Dynkin Diagram', 'http://localhost/modules/m1-mutation/', at)).toBe(
+      `The mutation game. Two Games on a Dynkin Diagram, site version ${GIT_COMMIT}, 2026-11-02. http://localhost/modules/m1-mutation/`,
+    );
+    expect(citation('Game Board', 'http://localhost/tools/board/?z=1&g=A2', at)).toBe(
+      citeText({ title: 'Game Board', siteName: SITE_NAME, commit: GIT_COMMIT, date: '2026-11-02', link: 'http://localhost/tools/board/?z=1&g=A2' }),
+    );
+    // The commit is the one "Download data" writes.
+    expect(JSON.parse(ex.exportJSON({ schema: 1, tool: 'board', board: 'A2' }, {})).commit).toBe(GIT_COMMIT);
   });
 });
 
