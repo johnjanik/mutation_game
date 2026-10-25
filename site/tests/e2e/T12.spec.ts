@@ -41,7 +41,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { boardFromName, chevalleySerre, fire, minusculeMatrices, play, stringThrough, toLabels, toPositions } from '../../../packages/engine/src/index';
+import { boardFromName, chevalleySerre, fire, minusculeMatrices, play, signedMoves, stringThrough, toLabels, toPositions } from '../../../packages/engine/src/index';
 import type { AnyBoard, Board, SparseMatrix } from '../../../packages/engine/src/index';
 import { nodePositions } from '../../src/components/draw/layouts';
 import { bigBoard } from '../../src/lib/state';
@@ -1092,5 +1092,34 @@ test.describe('regressions', () => {
     expect(left, 'relation-left is [E1, F1] of chevalleySerre').toEqual(engineCells(rec.left));
     expect(right, 'relation-right is H1 of chevalleySerre').toEqual(engineCells(rec.right));
     expect(left).not.toEqual(right);
+  });
+
+  // SPEC 4 T12 bullet 4: the move matrix beside its signed version, of the node k whose matrices are shown.
+  // regression: P5-RT-10-02
+  test('the move matrix and its signed version follow the node chosen for the matrices (A2, node 2)', async ({ page }) => {
+    const A2 = boardFromName('A2');
+    const [p1, p2] = toPositions(A2, [1, 2]) as [number, number];
+    const m = minusculeMatrices(A2, p1)!;
+    const signed = signedMoves(m.basis, m.E, m.F);
+    await open(page, 'g=A2&k=1');
+    await root(page).locator('[data-control="matrix-node"]').selectOption('2');
+    await expect(out(page, 'matrix-e').locator('caption')).toHaveText('E2, 3 by 3');
+    expect(await cellsOf(out(page, 'move-matrix')), 'move-matrix is the firing of node 2').toEqual(engineCells(m.moves[p2]!));
+    expect(await cellsOf(out(page, 'signed-move')), 'signed-move is E2 - F2 + P2').toEqual(engineCells(signed[p2]!));
+  });
+
+  // SPEC 4 T12 bullet 1 and 6.3: edges coloured by node, read on an orbit with several edges per node.
+  // regression: P5-RT-10-02
+  test('edges of the orbit are coloured by node: one colour per node on the orbit of omega_1 of D4', async ({ page }) => {
+    await open(page, 'g=D4&k=1');
+    const edges = await out(page, 'orbit-graph')
+      .locator('[data-edge]')
+      .evaluateAll((es) => es.map((e) => ({ node: e.getAttribute('data-edge-node')!, stroke: getComputedStyle(e.querySelector('line')!).stroke })));
+    expect(edges.length).toBeGreaterThan(4);
+    const byNode = new Map<string, Set<string>>();
+    for (const e of edges) byNode.set(e.node, (byNode.get(e.node) ?? new Set()).add(e.stroke));
+    for (const [n, strokes] of byNode) expect([...strokes], `edges of node ${n}`).toHaveLength(1);
+    const colours = [...byNode.values()].map((s) => [...s][0]);
+    expect(new Set(colours).size, 'different nodes, different colours').toBe(byNode.size);
   });
 });
