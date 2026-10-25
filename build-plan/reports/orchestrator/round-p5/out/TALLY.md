@@ -74,3 +74,4 @@
 - RT-12 reproduce: 01 reproduced (step 4 exit 0 with the step 1 report). Refute pending.
 - RT-12 verdicts: 01 CONFIRMED minor (reproduced; not refuted: P4 decision counts the prebuild as part of the release build).
 - RT-11 refute: 01, 02, 03 not refuted (5.4 takes any E, F, H, the oracle gives False with the finding's sides; 4.0 each result announced; COMMON 4.4 and the files' own headers). Reproduce pending.
+- RT-11 verdicts: 01, 02, 03 CONFIRMED minor (reproduced; not refuted).
