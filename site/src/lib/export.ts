@@ -547,3 +547,282 @@ export async function exportPNG(svg: SVGSVGElement, footer: FooterLine | null, s
     URL.revokeObjectURL(url);
   }
 }
+
+// ---------------------------------------------------------------------------------------------
+// LaTeX export and the citation text (phase 6, P6-A5; SPEC.md 6.7, 2.15, 4.0 "Share and export",
+// "Long numbers", 7.4 "Citing"; CONTRACTS.md 4). Pure text: no DOM, no engine call, no KaTeX, so that
+// it runs in Node at build time (T14) and loads with the dynamic import() of ToolFrame.
+// ---------------------------------------------------------------------------------------------
+
+/** The three kinds of CONTRACTS 4. */
+export type LatexKind = 'dynkin' | 'tikz-graph' | 'tikz-points';
+
+/**
+ * A Dynkin or Satake diagram (plan). `type` names a finite type ("E6", "A5", "C2"); `black` holds the
+ * labels of the black nodes (default none); `tau` the image of every node, as labels in label order
+ * (default the identity): the convention of ToolState.black and ToolState.tau (SPEC 6.6) and of the
+ * golden fields `black_nodes` and `tau`. On a named finite board label k is Bourbaki node k (E-7).
+ */
+export interface DynkinExportData {
+  type: string;
+  black?: readonly number[];
+  tau?: readonly number[];
+}
+
+/** An orbit graph (plan): coordinates in centimetres, y up; edges join indices of `nodes`. */
+export interface TikzGraphData {
+  nodes: { x: number; y: number; label?: string }[];
+  edges: [number, number][];
+  directed?: boolean;
+}
+
+/** A projection (plan): points in centimetres, y up; edges join indices of `points`. */
+export interface TikzPointsData {
+  points: [number, number][];
+  edges?: [number, number][];
+  labels?: (string | null)[];
+}
+
+/** The site's name (SPEC 1.7, D1 default: the working title [D]); the layouts type it as text. */
+export const SITE_NAME = 'Two Games on a Dynkin Diagram';
+
+/** What "Export LaTeX" shows in data-out="exportNotice" when the tool has no LaTeX form (plan). */
+export const NOTHING_TO_EXPORT_LATEX = 'nothing to export as LaTeX';
+
+/**
+ * The finite types the package draws with explicit marks, by family letter: the ranks of the 32 types
+ * of the golden file (A1..A8, B2..B8, C2..C8, D4..D8, E6..E8, F4, G2). Affine, twisted, preset and
+ * custom boards have no form in SPEC 6.7 and are refused.
+ */
+const RANKS: Record<string, readonly [number, number]> = { A: [1, 8], B: [2, 8], C: [2, 8], D: [4, 8], E: [6, 8], F: [4, 4], G: [2, 2] };
+
+/** The family letter and rank of a finite type name, or null when the name is not one of the 32. */
+function finiteType(name: unknown): { letter: string; rank: number } | null {
+  if (typeof name !== 'string') return null;
+  const m = /^([A-G])([1-9])$/.exec(name);
+  if (!m) return null;
+  const letter = m[1]!;
+  const rank = Number(m[2]);
+  const [lo, hi] = RANKS[letter]!;
+  return rank >= lo && rank <= hi ? { letter, rank } : null;
+}
+
+/** Whether `name` is one of the 32 finite types that exportLaTeX('dynkin') draws. */
+export function isDynkinType(name: unknown): boolean {
+  return finiteType(name) !== null;
+}
+
+const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+
+/** A list of node labels, each an integer from 1 to n. */
+function labelList(value: unknown, n: number, what: string): number[] {
+  if (!Array.isArray(value)) throw new RangeError(`exportLaTeX: ${what} must be a list of node labels`);
+  for (const v of value) {
+    if (typeof v !== 'number' || !Number.isInteger(v) || v < 1 || v > n) throw new RangeError(`exportLaTeX: ${what} holds ${String(v)}, which is not a node label from 1 to ${n}`);
+  }
+  return value as number[];
+}
+
+function dynkin(data: unknown): string {
+  if (!isRecord(data)) throw new RangeError('exportLaTeX: dynkin data must be an object { type, black?, tau? }');
+  const t = finiteType(data.type);
+  if (t === null) throw new RangeError(`exportLaTeX: ${typeof data.type === 'string' ? data.type : 'a board'} is not a finite type the dynkin-diagrams package draws with marks (A1..A8, B2..B8, C2..C8, D4..D8, E6..E8, F4, G2)`);
+  const n = t.rank;
+  const black = new Set<number>();
+  for (const b of data.black === undefined ? [] : labelList(data.black, n, 'black')) {
+    if (black.has(b)) throw new RangeError(`exportLaTeX: black names node ${b} twice`);
+    black.add(b);
+  }
+  const identity = Array.from({ length: n }, (_, k) => k + 1);
+  const tau = data.tau === undefined ? identity : labelList(data.tau, n, 'tau');
+  if (tau.length !== n) throw new RangeError(`exportLaTeX: tau must give the image of each of the ${n} nodes`);
+  if (new Set(tau).size !== n) throw new RangeError('exportLaTeX: tau is not a permutation of the nodes');
+  for (let i = 1; i <= n; i++) {
+    if (tau[tau[i - 1]! - 1] !== i) throw new RangeError(`exportLaTeX: tau squared is not the identity (node ${i})`);
+  }
+  // One mark per node in Bourbaki order (label k is Bourbaki node k): o white, * black.
+  const marks = identity.map((k) => (black.has(k) ? '*' : 'o')).join('');
+  // Arrows join white nodes exchanged by tau (2.15, 6.4 "pairs of white nodes"); a tau that moves black
+  // nodes contributes nothing. Each pair is its two labels, smaller first, in order of the smaller.
+  const pairs: string[] = [];
+  for (let i = 1; i <= n; i++) {
+    const j = tau[i - 1]!;
+    if (i < j && !black.has(i) && !black.has(j)) {
+      if (j > 9) throw new RangeError('exportLaTeX: a label above 9 cannot be written in the involutions option');
+      pairs.push(`${i}${j}`);
+    }
+  }
+  const option = pairs.length > 0 ? `[involutions={${pairs.join(';')}}]` : '';
+  return `\\dynkin${option} ${t.letter}{${marks}}`;
+}
+
+/** A coordinate with at most four decimals, trailing zeros removed, minus zero written 0 (plan). */
+function coordinate(x: unknown): string {
+  if (typeof x !== 'number' || !Number.isFinite(x) || Math.abs(x) >= 1e15) throw new RangeError(`exportLaTeX: ${String(x)} is not a coordinate`);
+  const s = x.toFixed(4).replace(/\.?0+$/, '');
+  return s === '-0' ? '0' : s;
+}
+
+const TEX_SPECIALS: Record<string, string> = {
+  '\\': '\\mbox{\\textbackslash}',
+  '#': '\\#',
+  $: '\\$',
+  '%': '\\%',
+  '&': '\\&',
+  _: '\\_',
+  '{': '\\{',
+  '}': '\\}',
+  '~': '\\mbox{\\textasciitilde}',
+  '^': '\\mbox{\\textasciicircum}',
+};
+
+/** A label in math mode with every TeX special character escaped; written in full, never shortened (4.0). */
+function texLabel(label: unknown): string {
+  if (typeof label !== 'string') throw new RangeError('exportLaTeX: a label must be text');
+  return label === '' ? '' : `$${label.replace(/[\\#$%&_{}~^]/g, (c) => TEX_SPECIALS[c]!)}$`;
+}
+
+/** A list of edges, each a pair of integer indices below `count`. */
+function edgeList(value: unknown, count: number): [number, number][] {
+  if (!Array.isArray(value)) throw new RangeError('exportLaTeX: edges must be a list of pairs of indices');
+  for (const e of value) {
+    const ok = Array.isArray(e) && e.length === 2 && e.every((k) => typeof k === 'number' && Number.isInteger(k) && k >= 0 && k < count);
+    if (!ok) throw new RangeError(`exportLaTeX: the edge ${JSON.stringify(e)} does not join two of the ${count} vertices`);
+  }
+  return value as [number, number][];
+}
+
+const picture = (lines: string[]): string => ['\\begin{tikzpicture}', ...lines.map((l) => `  ${l}`), '\\end{tikzpicture}'].join('\n');
+
+function tikzGraph(data: unknown): string {
+  if (!isRecord(data) || !Array.isArray(data.nodes)) throw new RangeError('exportLaTeX: tikz-graph data must be { nodes, edges, directed? }');
+  const nodes = data.nodes as unknown[];
+  const lines = nodes.map((v, k) => {
+    if (!isRecord(v)) throw new RangeError(`exportLaTeX: vertex ${k} must be { x, y, label? }`);
+    const label = v.label === undefined ? '' : texLabel(v.label);
+    return `\\node[circle,draw,inner sep=1pt] (n${k}) at (${coordinate(v.x)},${coordinate(v.y)}) {${label}};`;
+  });
+  // An arrow tip is a TikZ option on the same straight path: \draw[->] (a) -- (b).
+  const draw = data.directed === true ? '\\draw[->]' : '\\draw';
+  for (const [a, b] of edgeList(data.edges, nodes.length)) lines.push(`${draw} (n${a}) -- (n${b});`);
+  return picture(lines);
+}
+
+function tikzPoints(data: unknown): string {
+  if (!isRecord(data) || !Array.isArray(data.points)) throw new RangeError('exportLaTeX: tikz-points data must be { points, edges?, labels? }');
+  const points = (data.points as unknown[]).map((p, k) => {
+    if (!Array.isArray(p) || p.length !== 2) throw new RangeError(`exportLaTeX: point ${k} must be a pair [x, y]`);
+    return `(${coordinate(p[0])},${coordinate(p[1])})`;
+  });
+  let labels: unknown[] = [];
+  if (data.labels !== undefined) {
+    if (!Array.isArray(data.labels) || data.labels.length !== points.length) throw new RangeError('exportLaTeX: labels must give one label or null per point');
+    labels = data.labels;
+  }
+  const lines: string[] = [];
+  points.forEach((at, k) => {
+    lines.push(`\\fill ${at} circle (1pt);`);
+    const label = labels[k];
+    if (label !== undefined && label !== null && label !== '') lines.push(`\\node[anchor=south west,inner sep=1pt] at ${at} {${texLabel(label)}};`);
+  });
+  for (const [a, b] of data.edges === undefined ? [] : edgeList(data.edges, points.length)) lines.push(`\\draw ${points[a]} -- ${points[b]};`);
+  return picture(lines);
+}
+
+/**
+ * LaTeX for a diagram or a figure (CONTRACTS 4; SPEC 6.7). 'dynkin': one \dynkin line for the package
+ * dynkin-diagrams, explicit marks in Bourbaki order and the arrows as the involutions option
+ * (DynkinExportData). 'tikz-graph' and 'tikz-points': a tikzpicture of plain coordinates (TikzGraphData,
+ * TikzPointsData). No trailing newline. Throws RangeError, naming the fault, on data it cannot write.
+ */
+export function exportLaTeX(kind: 'dynkin' | 'tikz-graph' | 'tikz-points', data: unknown): string {
+  switch (kind) {
+    case 'dynkin':
+      return dynkin(data);
+    case 'tikz-graph':
+      return tikzGraph(data);
+    case 'tikz-points':
+      return tikzPoints(data);
+    default:
+      throw new RangeError(`exportLaTeX: unknown kind ${String(kind)}`);
+  }
+}
+
+/**
+ * The text of the .tex file "Export LaTeX" downloads (plan): a comment with the link, a comment naming
+ * the package the snippet needs, the body, a final newline. A snippet to \input, not a document.
+ */
+export function latexFile(kind: LatexKind, body: string, link: string): string {
+  if (/[\r\n]/.test(link)) throw new RangeError('latexFile: the link must be one line');
+  const needs = kind === 'dynkin' ? 'dynkin-diagrams' : 'tikz';
+  return `% ${link}\n% needs \\usepackage{${needs}}\n${body}\n`;
+}
+
+/**
+ * The default LaTeX export of a tool (plan): the diagram of its board when `state.board` names one of the
+ * 32 finite types, with the state's black nodes and tau (T13) or none; otherwise null.
+ */
+export function defaultLatexExport(state: ToolState): { kind: 'dynkin'; data: DynkinExportData } | null {
+  const t = finiteType(state.board);
+  if (t === null) return null;
+  const tau = state.tau ?? Array.from({ length: t.rank }, (_, k) => k + 1);
+  return { kind: 'dynkin', data: { type: state.board as string, black: [...(state.black ?? [])], tau: [...tau] } };
+}
+
+/** What a tool passes to ToolFrame's `latexForExport` (plan). */
+export type LatexChoice = { kind: LatexKind; data: unknown };
+
+/**
+ * The .tex file of "Export LaTeX" (plan): the tool's choice (`latexForExport`, a value or a function),
+ * else defaultLatexExport; the file name of exportFileName with the board name of the SVG export (P2-A6).
+ * Throws Error(NOTHING_TO_EXPORT_LATEX) when there is nothing to write, RangeError on data exportLaTeX refuses.
+ */
+export function latexDownload(
+  choice: LatexChoice | (() => LatexChoice | null) | undefined,
+  state: ToolState,
+  toolId: string,
+  boardName: string | undefined,
+  link: string,
+): { filename: string; text: string } {
+  const chosen = typeof choice === 'function' ? choice() : (choice ?? defaultLatexExport(state));
+  if (!chosen) throw new Error(NOTHING_TO_EXPORT_LATEX);
+  const name = boardName ?? (typeof state.board === 'string' ? state.board : 'custom board');
+  return { filename: exportFileName(toolId, name, 'tex'), text: latexFile(chosen.kind, exportLaTeX(chosen.kind, chosen.data), link) };
+}
+
+/** The parts of a citation (SPEC 7.4 "Cite": page title, site version, date, link). */
+export interface CiteParts {
+  title: string;
+  siteName: string;
+  commit: string;
+  date: string;
+  link: string;
+}
+
+/** One line (plan): `<title>. <siteName>, site version <commit>, <date>. <link>`. */
+export function citeText(parts: CiteParts): string {
+  const title = parts.title.trim();
+  const stop = /[.?!]$/.test(title) ? '' : '.';
+  return `${title}${stop} ${parts.siteName}, site version ${parts.commit}, ${parts.date}. ${parts.link}`;
+}
+
+/** The page title for a citation: the document title without the layouts' suffix `: <site name>`. */
+export function citationTitle(documentTitle: string, siteName: string = SITE_NAME): string {
+  const t = documentTitle.trim();
+  const suffix = `: ${siteName}`;
+  return t.endsWith(suffix) && t.length > suffix.length ? t.slice(0, -suffix.length).trim() : t;
+}
+
+/** The reader's local date as ISO 8601 YYYY-MM-DD (the access date of a web citation; plan). */
+export function localIsoDate(d: Date): string {
+  const pad = (k: number): string => String(k).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * The text "Cite" shows and copies (SPEC 7.4): the page title at the click, the site name, the commit of
+ * exportJSON (GIT_COMMIT), the reader's local date and the link "Copy link" gives (history.ts linkFor).
+ */
+export function citation(documentTitle: string, link: string, now: Date = new Date()): string {
+  return citeText({ title: citationTitle(documentTitle), siteName: SITE_NAME, commit: GIT_COMMIT, date: localIsoDate(now), link });
+}

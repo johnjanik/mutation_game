@@ -17,9 +17,11 @@
   // Hooks: data-frame, data-tool, data-moves, data-hydrated on the root; data-out="caption",
   // "notice", "noscript"; data-control="undo", "redo", "reset", "copyLink", "downloadData"; data-live.
   // P2-A6 (additive): data-export="svg", "png"; data-export-option="footer", "labels"; data-out="exportNotice".
+  // P6-A5 (additive): data-control="latex", "cite"; data-out="citeText", rendered after a click on Cite.
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import { createAnnouncer } from '../../lib/a11y';
+  import type { LatexChoice } from '../../lib/export';
   import { copyLink, linkFor, registerInstance, stateChanged, unregisterInstance } from '../../lib/history';
   import type { ToolId, ToolState } from '../../lib/state';
 
@@ -45,6 +47,8 @@
     onPopState?: (state: ToolState, notice: string | null) => void;
     /** P2-A6: the board name of the export footer (SPEC 8.3, D19); default: state.board when it is a name, else `custom board`. */
     boardName?: string;
+    /** P6-A5: what "Export LaTeX" writes; default: the diagram of a named finite board (defaultLatexExport). */
+    latexForExport?: LatexChoice | (() => LatexChoice | null);
     figure: Snippet<[FrameApi]>;
     controls?: Snippet<[FrameApi]>;
     table?: Snippet<[FrameApi]>;
@@ -65,6 +69,7 @@
     defaults,
     onPopState,
     boardName,
+    latexForExport,
     figure,
     controls,
     table,
@@ -172,6 +177,33 @@
       exportNotice = e instanceof Error ? e.message : String(e);
     }
   }
+
+  // P6-A5: LaTeX export and the citation (SPEC 6.7, 7.4 "Citing"). export.ts is fetched on the first
+  // click, as for the other exports; nothing starts on load.
+  let citation = $state('');
+
+  async function onExportLatex(): Promise<void> {
+    try {
+      const { latexDownload } = await import('../../lib/export');
+      const { filename, text } = latexDownload(latexForExport, toolState, toolId, boardName, linkFor(instanceId));
+      save(new Blob([text], { type: 'application/x-tex' }), filename);
+      exportNotice = '';
+    } catch (e) {
+      exportNotice = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  async function onCite(): Promise<void> {
+    let copied = false;
+    try {
+      citation = (await import('../../lib/export')).citation(document.title, linkFor(instanceId));
+      await navigator.clipboard.writeText(citation);
+      copied = true;
+    } catch {
+      // No clipboard (permission, an insecure origin): the text stays shown below the tool.
+    }
+    announce(copied ? 'Citation copied.' : citation ? 'Citation shown below the tool.' : 'The citation could not be made.');
+  }
 </script>
 
 <section
@@ -209,7 +241,8 @@
     <button type="button" class="control" data-control="downloadData" disabled={!hydrated} onclick={onDownloadData}>Download data</button>
     <button type="button" class="control" data-export="svg" disabled={!hydrated} onclick={() => onExport('svg')}>Export SVG</button>
     <button type="button" class="control" data-export="png" disabled={!hydrated} onclick={() => onExport('png')}>Export PNG</button>
-    <!-- P6-A5 adds "Export LaTeX" and "Cite" here (phase 6). -->
+    <button type="button" class="control" data-control="latex" disabled={!hydrated} onclick={onExportLatex}>Export LaTeX</button>
+    <button type="button" class="control" data-control="cite" disabled={!hydrated} onclick={onCite}>Cite</button>
     <fieldset class="export-options">
       <legend class="visually-hidden">Export options</legend>
       <label class="export-option"><input type="checkbox" data-export-option="footer" disabled={!hydrated} bind:checked={exportFooter} /> Footer line</label>
@@ -217,6 +250,7 @@
     </fieldset>
     <span class="export-notice" data-out="exportNotice">{exportNotice}</span>
   </div>
+  {#if citation}<p class="cite-text" data-out="citeText">{citation}</p>{/if}
   {#if table}
     <details class="table-view">
       <summary>Show as table</summary>
@@ -348,6 +382,12 @@
   }
   .export-notice:empty {
     display: none;
+  }
+  /* P6-A5: the citation, selectable and wrapping at 320 pixels (A-11). */
+  .cite-text {
+    margin: 0;
+    overflow-wrap: anywhere;
+    user-select: text;
   }
   @media (max-width: 399.98px) {
     .tool-figure {

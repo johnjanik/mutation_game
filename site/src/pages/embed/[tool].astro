@@ -1,0 +1,97 @@
+---
+// One route per registered tool, /embed/<id> (SPEC.md 7.4 "Embedding", 7.3; CONTRACTS.md 5.2). Owner
+// P6-A5. The tool alone, for an <iframe>: its default state with its caption, hydrated when the browser
+// is idle (7.6), with an empty instance id so that the URL keys are bare and the same query as on
+// /tools/<id> loads the same state (6.6); the tool reads the URL itself through decodeState. No site
+// navigation, header, theme switch or footer; the tokens and themes of the site follow the reader's
+// prefers-color-scheme (an embedding page cannot reach the stored theme). The page is not indexed and
+// names /tools/<id> as canonical; one link under the tool opens the same state on the site. Every path
+// comes from import.meta.env.BASE_URL (7.2 item 10).
+//
+// Hydration (P1-A2 trap 1): Astro hydrates only components imported statically in the file that sets
+// the client directive, and the static table of the tools lives inside pages/tools/[tool].astro, where
+// no other page can import it. P6-A5's instruction forbids a second copy of that table: the embed page
+// renders the shared module site/src/tools/ToolIsland.astro (props { entry, caption }), into which
+// P6-A5 asked (request R1, decisions/P6-A5.md) that the table of [tool].astro move. Until that module
+// exists, this page builds no route and the build says so; once it exists, every registered tool gets
+// its /embed/<id> route with no edit here. The glob below is the device for a file that may be absent.
+import '../../styles/base.css';
+import { katexStylesheetHref } from '@lib/katex';
+import { toolRoutes, type ToolRoute } from '../../tools/index';
+
+type IslandProps = { entry: ToolRoute['props']['entry']; caption: string };
+
+/** The shared table of hydrated tools, when it exists (request R1). */
+const islands = import.meta.glob<{ default: (props: IslandProps) => unknown }>('../../tools/ToolIsland.astro', { eager: true });
+const ToolIsland = Object.values(islands)[0]?.default ?? null;
+
+export function getStaticPaths(): ToolRoute[] {
+  // getStaticPaths runs in a scope of its own, so the glob is read again here.
+  if (Object.keys(import.meta.glob('../../tools/ToolIsland.astro')).length === 0) {
+    console.warn('[embed] no /embed/<id> route built: site/src/tools/ToolIsland.astro, the shared table of hydrated tools, does not exist (P6-A5 request R1)');
+    return [];
+  }
+  return toolRoutes();
+}
+
+const { entry, caption } = Astro.props as ToolRoute['props'];
+const base = import.meta.env.BASE_URL;
+const toolPath = `${base}tools/${entry.id}/`;
+const canonical = new URL(toolPath, Astro.site ?? Astro.url).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{entry.title}</title>
+    <meta name="description" content={caption} />
+    <link rel="canonical" href={canonical} />
+    <link rel="stylesheet" href={katexStylesheetHref(base)} />
+  </head>
+  <body data-embed={entry.id}>
+    <main class="embed">
+      {ToolIsland && <ToolIsland entry={entry} caption={caption} />}
+      <p class="open-on-site">
+        <a href={toolPath} data-href={toolPath} data-open-on-site target="_blank" rel="noopener">Open on the site</a>
+      </p>
+    </main>
+    <script is:inline>
+      // "Open on the site" carries the state this page shows: the query the address bar holds now.
+      (function () {
+        var a = document.querySelector('[data-open-on-site]');
+        if (!a) return;
+        var set = function () { a.href = a.getAttribute('data-href') + location.search; };
+        set();
+        ['focus', 'pointerenter', 'pointerdown', 'click'].forEach(function (t) { a.addEventListener(t, set); });
+      })();
+    </script>
+  </body>
+</html>
+
+<style>
+  :global(body) {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .embed {
+    max-width: 42rem;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  .open-on-site {
+    margin: 0 0 16px;
+  }
+  .open-on-site a {
+    display: inline-block;
+    min-height: 24px;
+    padding: 10px 0;
+    color: var(--text);
+  }
+  .open-on-site a:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+</style>
