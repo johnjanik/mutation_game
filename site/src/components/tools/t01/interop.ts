@@ -6,7 +6,8 @@ import { followToolState, type ToolState } from '../../../lib/state';
 import type { Highlight } from '../../../lib/highlight';
 import type { Prediction } from '../../../tools/types';
 import type { AnyBoard } from '@two-games/engine';
-import { inLabelOrder, type Shown } from './model';
+import { inLabelOrder } from './inLabelOrder';
+import type { Shown } from './model';
 
 /**
  * Follows states published under `instanceId` by other tools (plan: T2's jump). A state equal to the

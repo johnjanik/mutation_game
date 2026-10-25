@@ -22,6 +22,8 @@ import {
 } from '@two-games/engine';
 import type { AnyBoard, Board, PlayResult, Rational } from '@two-games/engine';
 import { bigBoard, defaultStart, labelOrder, resolveBoard, type BoardSpec, type ToolState } from '../../../lib/state';
+// In a module of its own, which t01/interop.ts imports without the rest of this one (SPEC 7.6).
+import { inLabelOrder } from './inLabelOrder';
 
 export type View = 'populations' | 'numbers' | 'linked';
 export type Mode = 'free' | 'legal' | 'raising';
@@ -191,10 +193,7 @@ export function startVector(board: AnyBoard, start: readonly (number | string)[]
   return v;
 }
 
-/** A vector by position as a list in label order (the order of `start`, the table and exports). */
-export function inLabelOrder<X>(board: AnyBoard, v: readonly X[]): X[] {
-  return toPositions(board, labelOrder(board)).map((p) => v[p]!);
-}
+export { inLabelOrder };
 
 // ---------------------------------------------------------------------------------------------
 // Goals (SPEC 4 T1 Configuration "goal")
