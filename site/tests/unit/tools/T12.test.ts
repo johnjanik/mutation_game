@@ -100,6 +100,7 @@ import {
   shownCheck,
   someNumberPhrase,
   startRepresentation,
+  stringCaption,
   stringNote,
   stringView,
   undoSentence,
@@ -1646,6 +1647,52 @@ describe('regressions', () => {
         expect(body.includes('ω'), JSON.stringify(props)).toBe(false);
       }
       expect(loader.render(T12C.default, { id: '' })).toContain('The orbit of e1 in layers');
+    });
+  });
+
+  // P5-RT-03-01 (RT-03, attack 12; SPEC 4.0 Long numbers): the string viewer printed the length of its line
+  // and the count of positions not listed in full beyond 12 digits; stringCaption and the figure's name did
+  // the same. The browser check is in site/tests/e2e/T12.spec.ts (describe regressions).
+  describe('P5-RT-03-01: the string viewer prints the length of the line and the count of positions not listed beyond 12 digits', () => {
+    const big = '12345678901234567890';
+    // regression: P5-RT-03-01
+    it('the server markup shows the length and the count shortened, with the exact digits in data-value and the tooltip', () => {
+      const body = loader.render(T12C.default, { id: 'l1', board: 'A2', node: 1, start: [big, 0] }).replace(/<!--[^]*?-->/g, '');
+      const length = /<span([^>]*data-out="string-length"[^>]*)>([^<]*)<\/span>/.exec(body);
+      const gap = /<li([^>]*data-out="string-gap"[^>]*)>([^<]*)<\/li>/.exec(body);
+      expect(length).not.toBeNull();
+      expect(gap).not.toBeNull();
+      expect(length![2]!.trim()).toBe('1.2345... x 10^19 (20 digits)');
+      expect(length![1]).toContain('data-value="12345678901234567891"');
+      expect(length![1]).toContain('title="12345678901234567891"');
+      expect(gap![2]!.replace(/\s+/g, ' ').trim()).toBe('and 1.2345... x 10^19 (20 digits) more positions');
+      expect(gap![1]).toContain('data-value="12345678901234567889"');
+      // No count or entry of 20 digits is printed in the string panel's text or in the figure's name (the
+      // table view keeps the exact digits, 4.0).
+      const panel = /<section[^>]*data-panel="string"[^>]*>([^]*?)<\/section>/.exec(body)![1]!;
+      expect(panel.replace(/<[^>]+>/g, ' ')).not.toMatch(/\d{13}/);
+      const label = /<figure[^>]*aria-label="([^"]*)"/.exec(body)![1]!;
+      expect(label).not.toMatch(/\d{13}/);
+      expect(label).toContain('has 1.2345... x 10^19 (20 digits) positions');
+      // A short line keeps its numbers as they are.
+      const short = loader.render(T12C.default, { id: 'l2', board: 'A2', node: 1, start: [1999, 0] }).replace(/<!--[^]*?-->/g, '');
+      expect(/data-out="string-length"[^>]*>([^<]*)</.exec(short)![1]).toBe('2000');
+    });
+
+    // regression: P5-RT-03-01
+    it('stringCaption shortens the length and the positions beyond 12 digits', () => {
+      const A2 = named('A2');
+      const { board, vector } = inArithmetic(A2, [big, '0']);
+      const view = stringView(board, vector, 1);
+      expect(view.length).toBe(12345678901234567891n);
+      const caption = stringCaption('A2', view);
+      expect(caption).not.toMatch(/\d{13}/);
+      expect(caption).toContain('has 1.2345... x 10^19 (20 digits) positions');
+      expect(caption).toContain('the line through (1.2345... x 10^19 (20 digits), 0)');
+      // Up to 12 digits nothing changes (the registry's caption of the string viewer).
+      expect(T12.presets['string-viewer']!.caption).toBe(
+        'On A2 the line through (2, 0) at node 1 has 3 positions: (2, 0), (0, 1) and (−2, 2). Firing node 1 turns it end over end, and (0, 1) lies outside the orbit of (2, 0).',
+      );
     });
   });
 });

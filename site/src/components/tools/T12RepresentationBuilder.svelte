@@ -237,9 +237,11 @@
   const tooltip = (k: number): string | null => (isLong(values[k]!) ? values[k]! : null);
   const shown = (t: string): string => (isLong(t) ? shortValue(t) : t.startsWith('-') ? `${MINUS}${t.slice(1)}` : t);
   const positionShown = (v: readonly string[]): string => `(${v.map(shown).join(', ')})`;
+  /** The exact digits of a long count, for its tooltip (4.0 Long numbers; RT-FIX P5-RT-03-01). */
+  const exact = (n: bigint): string | undefined => (isLong(String(n)) ? String(n) : undefined);
 
   const figureLabel = $derived(
-    `Representation Builder on ${spec}, node ${nodeLabel}: ${rep.minuscule ? 'a minuscule node' : 'a node that is not minuscule'}, the orbit of ${omegaName(nodeLabel)} has ${rep.orbitSize} positions; the line through ${positionText(view.through)} at node ${nodeLabel} has ${view.length} ${view.length === 1n ? 'position' : 'positions'}.`,
+    `Representation Builder on ${spec}, node ${nodeLabel}: ${rep.minuscule ? 'a minuscule node' : 'a node that is not minuscule'}, the orbit of ${omegaName(nodeLabel)} has ${rep.orbitSize} positions; the line through ${positionShown(view.through)} at node ${nodeLabel} has ${shown(String(view.length))} ${view.length === 1n ? 'position' : 'positions'}.`,
   );
 
   // Only the names History reads: a move names at most 50 positions however long the play (7.4).
@@ -990,7 +992,7 @@
           <span class="orbit-mark">{p.inOrbit ? 'in the orbit' : 'outside the orbit'}</span>
         </li>
         {#if view.gapAfter === k}
-          <li class="gap">and {view.elided} more {view.elided === 1n ? 'position' : 'positions'}</li>
+          <li class="gap" data-out="string-gap" data-value={String(view.elided)} title={exact(view.elided)}>and {shown(String(view.elided))} more {view.elided === 1n ? 'position' : 'positions'}</li>
         {/if}
       {/each}
     </ol>
@@ -1010,7 +1012,7 @@
     {@render piece('string-board', boardPiece, api)}
     {@render piece('string-history', historyPiece, api)}
     <p class="line">
-      The line through {positionShown(view.through)} has <span class="numeral" data-out="string-length">{view.length}</span>
+      The line through {positionShown(view.through)} has <span class="numeral" data-out="string-length" data-value={String(view.length)} title={exact(view.length)}>{shown(String(view.length))}</span>
       {view.length === 1n ? 'position' : 'positions'}:
     </p>
     {@render piece('string-line', linePiece, api)}

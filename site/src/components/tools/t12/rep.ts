@@ -25,6 +25,7 @@ import {
 } from '@two-games/engine';
 import type { AnyBoard, Board, RelationCheck, SparseMatrix } from '@two-games/engine';
 import { layeredLayout } from '../../draw/layeredLayout';
+import { shortValue } from '../t01/longNumber';
 
 /** The true minus sign of SPEC 6.3. */
 export const MINUS = '−';
@@ -956,6 +957,9 @@ export function stringNote(view: StringView): string {
 // Captions (4.0 "Starts meaningful": the caption states the result; every number from the engine)
 // ---------------------------------------------------------------------------------------------
 
+/** A position written with each entry shortened beyond 12 digits (SPEC 4.0 Long numbers; RT-FIX P5-RT-03-01). */
+const positionShort = (v: readonly (number | bigint | string)[]): string => positionText(v.map((x) => shortValue(String(x))));
+
 function joinAnd(items: readonly string[]): string {
   return items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
@@ -999,12 +1003,12 @@ export function signedCaption(rep: Representation, k: number, digest: RelationDi
 /** The caption of the string viewer (plan): the line, its length, and the positions outside the orbit. */
 export function stringCaption(name: string, view: StringView): string {
   const i = view.node;
-  const mu = positionText(view.through);
+  const mu = positionShort(view.through);
   const n = view.length;
-  const listed = view.elided === 0n ? `: ${joinAnd(view.shown.map((p) => positionText(p.values)))}` : `, from ${positionText(view.shown[0]!.values)} to ${positionText(view.shown[view.shown.length - 1]!.values)}`;
-  const head = `On ${name} the line through ${mu} at node ${i} has ${n} ${n === 1n ? 'position' : 'positions'}${listed}.`;
+  const listed = view.elided === 0n ? `: ${joinAnd(view.shown.map((p) => positionShort(p.values)))}` : `, from ${positionShort(view.shown[0]!.values)} to ${positionShort(view.shown[view.shown.length - 1]!.values)}`;
+  const head = `On ${name} the line through ${mu} at node ${i} has ${shortValue(String(n))} ${n === 1n ? 'position' : 'positions'}${listed}.`;
   if (view.direction === 'single') return `${head} The number on node ${i} is 0, so firing node ${i} leaves it where it is.`;
-  const outside = view.shown.filter((p) => !p.inOrbit).map((p) => positionText(p.values));
+  const outside = view.shown.filter((p) => !p.inOrbit).map((p) => positionShort(p.values));
   const tail =
     outside.length === 0
       ? '.'

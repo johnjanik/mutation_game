@@ -84,12 +84,13 @@ export const T12_OUTS = [
   // T12: the string viewer
   'string-position',
   'string-length',
+  'string-gap',
   'string-note',
   'start-message',
 ] as const;
 
-/** The names of T12_OUTS that the default state does not render (a prediction; above the cap; a typed start refused). */
-export const T12_CONDITIONAL_OUTS: readonly string[] = ['notice', 'predictResult', 'predictReveal', 'historyCounter', 'no-minuscule', 'limit', 'start-message'];
+/** The names of T12_OUTS that the default state does not render (a prediction; above the cap; a typed start refused; a line of more than 12 positions). */
+export const T12_CONDITIONAL_OUTS: readonly string[] = ['notice', 'predictResult', 'predictReveal', 'historyCounter', 'no-minuscule', 'limit', 'start-message', 'string-gap'];
 
 /** The board list as data for the picker: one group per letter (4.0 Board pickers). */
 export const T12_GROUPS: readonly { letter: string; names: readonly string[] }[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((letter) => ({

@@ -30,7 +30,8 @@
 //   matrices), minuscule,
 //   explanation, no-minuscule, limit, orbit-graph, matrix-e, matrix-f, matrix-h, relation-formula,
 //   relation-verdict, relation-left, relation-right, all-relations (with data-total, data-failing),
-//   move-matrix, signed-move, string-position, string-length, string-note, start-message
+//   move-matrix, signed-move, string-position, string-length (data-value: the exact length), string-gap
+//   (the count of positions not listed; data-value: the exact count), string-note, start-message
 // data-control names: picker, node, matrix-node, relation, relation-i, relation-j, start-entry (with
 //   data-entry), set-start; undo, redo, reset, historySlider (History.svelte); copyLink, downloadData
 //   (ToolFrame); data-export="svg" | "png" (ToolFrame)
@@ -534,7 +535,9 @@ test('a long number is shown shortened with its digits in the tooltip and the ho
   await expect(line(page).first()).toHaveAttribute('data-value', `${big},0`);
   await expect(line(page).first()).toContainText('x 10^19 (20 digits)');
   await expect(line(page).first()).toHaveAttribute('title', `(${big}, 0)`);
-  await expect(out(page, 'string-length')).toHaveText(String(BigInt(big) + 1n));
+  // The length, a value of 20 digits, is shown shortened, its digits in the hook (RT-FIX P5-RT-03-01).
+  await expect(out(page, 'string-length')).toHaveAttribute('data-value', String(BigInt(big) + 1n));
+  await expect(out(page, 'string-length')).toHaveText('1.2345... x 10^19 (20 digits)');
   // The line of more than 2000 positions is given by its ends, with the stated limit (5.9; review finding 5).
   await expect(line(page)).toHaveCount(2);
   await expect(out(page, 'string-note')).toContainText('more than 2000');
@@ -969,4 +972,27 @@ test.describe('regressions', () => {
       await expect(t.locator('[data-out="orbit-size"]').first()).toHaveText(String(orbit));
     });
   }
+
+  // Adopted from site/tests/e2e/redteam-RT-03-t12.spec.ts (RT-03, phase 5 round, attack 12, SPEC 4.0 Long
+  // numbers: "A value of more than 12 digits is shown shortened"). The string viewer shortened the positions
+  // it lists but printed the length of the line and the count of positions not listed in full. The gap item
+  // is read through its hook data-out="string-gap" (the reproducer read its class); the exact digits are in
+  // the hooks' data-value and in the tooltip.
+  // regression: P5-RT-03-01
+  test('the length of a line of 12345678901234567891 positions, and the count of positions not listed', async ({ page }) => {
+    await page.goto(`${ROUTE}?g=A2&k=1&c=n&s=12345678901234567890,0`);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await settled(page);
+    // The positions on the line are shortened (the tool's own test checks this) ...
+    await expect(out(page, 'string-position').first()).toContainText('x 10^19 (20 digits)');
+    // ... and so must be the length and the count of positions between the two ends, each a value of 20 digits.
+    const length = (await out(page, 'string-length').innerText()).trim();
+    const gap = (await out(page, 'string-gap').innerText()).trim();
+    expect({ length, gap }).toEqual({ length: '1.2345... x 10^19 (20 digits)', gap: expect.stringContaining('x 10^19 (20 digits)') });
+    // The exact digits stay in the hook and the tooltip (4.0).
+    await expect(out(page, 'string-length')).toHaveAttribute('data-value', '12345678901234567891');
+    await expect(out(page, 'string-length')).toHaveAttribute('title', '12345678901234567891');
+    await expect(out(page, 'string-gap')).toHaveAttribute('data-value', '12345678901234567889');
+    await expect(out(page, 'string-gap')).toHaveAttribute('title', '12345678901234567889');
+  });
 });
