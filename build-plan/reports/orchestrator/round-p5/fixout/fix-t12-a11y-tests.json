@@ -1,0 +1,226 @@
+{
+ "agent": "rtfix-p5-t12-a11y",
+ "status": "done",
+ "branch": "worktree-agent-ab217d3d17fec4f2c",
+ "base": "95d0060664bcf9e381b03024d4fad7127051b655",
+ "commits": [
+  "8206c53 RT-FIX P5-RT-11-01: chevalleySerre's hh, he and hf records tested where they fail",
+  "458bf90 RT-FIX P5-RT-05-01: the string viewer's board box is as wide as the figure",
+  "ccc90bd RT-FIX P5-RT-05-02: the focus on a scroll box survives the island's hydration",
+  "a835fa6 RT-FIX P5-RT-05-03: a verdict from the worker is announced",
+  "63e7d3f RT-FIX P5-RT-10-01: the two sides of a failing relation are read where they differ",
+  "3089432 RT-FIX P5-RT-10-02: edge colours and the move of a picked node tested where a wrong source differs",
+  "57518fb RT-FIX P5-RT-11-02: the announcement of a picked relation that fails is heard",
+  "77322b3 RT-FIX P5-RT-11-03: T12's tests read golden orbit sizes and dimensions",
+  "453c54b RT-FIX P5-RT-06-01: the run without JavaScript reads T12's orbit drawing and matrices",
+  "152940c RT-FIX P5-RT-05-01 P5-RT-05-02 P5-RT-05-03 P5-RT-06-01: decisions fragment",
+  "ef8ebf7 RT-FIX P5-RT-05-02 P5-RT-05-03: T12's client additions fit the shared size limit",
+  "26644a5 RT-FIX P5-RT-11-03: the golden reads hold beside the content fix of T12",
+  "b0cc94c RT-FIX P5-RT-05-03: decisions fragment records the size limit"
+ ],
+ "filesChanged": [
+  "packages/engine/test/unit/rep-hh-he-hf-fail.test.ts",
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/tests/e2e/T12.spec.ts",
+  "site/tests/unit/tools/T12.test.ts",
+  "site/tests/e2e/nojs.spec.ts",
+  "decisions/RT-FIX-P5-t12-a11y.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git reset --hard 95d0060; git rev-parse HEAD; git branch --show-current",
+   "exit": 0,
+   "summary": "95d0060664bcf9e381b03024d4fad7127051b655, worktree-agent-ab217d3d17fec4f2c"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474..2a2f, 485caee..bad, 1fc9f82..384d: equal to CONTRACTS 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed (run twice: again after the first cleanup, for the size trim)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 73 passed, Tests 2411 passed (a first run in the background failed under load 10 with output lost; the rerun passed)"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- rep-hh-he-hf-fail under each lens mutant M33-hh-he-hf-hold, M33-hh-skipped, M33-hh-holds, M33-he-right-zero, M33-hf-right-left",
+   "exit": 1,
+   "summary": "6, 2, 2, 1 and 2 failed of 7; unmutated 7 passed"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run build (base)",
+   "exit": 0,
+   "summary": "35 pages, links 1286, 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 6961 (base)",
+   "exit": 0,
+   "summary": "/tools/rep/ and M8 89757 B (89.8 kB), 0 over budget"
+  },
+  {
+   "cmd": "playwright T12.spec.ts -g 'regressions|at 320 pixels' on the base build (port 6960)",
+   "exit": 1,
+   "summary": "11 failed, 4 passed: hit areas 39 and 34 (expected 43 and 38), focus BODY on b4 and b3, verdicts on b6 and b7 not announced; the RT-10 and RT-11 tests pass at base"
+  },
+  {
+   "cmd": "npm run build + npm run size -- --port 6961 (first fix)",
+   "exit": 1,
+   "summary": "/tools/rep/ 90003 B, OVER; code made smaller"
+  },
+  {
+   "cmd": "build of the base component with the 4 site mutants (relation-left-shows-right, move-matrix-of-rep-node, edge-colour-by-vertex, S1) + playwright T12.spec.ts -g regressions",
+   "exit": 1,
+   "summary": "15 failed: each RT-10/RT-11 test fails with its own message (relation-left is [E1, F1] of chevalleySerre; move-matrix is the firing of node 2; edges of node 1; live region '[E1, F2] = 0: the two sides are equal.')"
+  },
+  {
+   "cmd": "vitest site-unit T12.test.ts -t regressions with S1 applied / with base T12.spec.ts / with base T12.test.ts plus the regressions block",
+   "exit": 1,
+   "summary": "S1: 1 failed (expected 'not equal'); base spec: grep finds 6 lines; base unit: grep finds 9 lines"
+  },
+  {
+   "cmd": "nojs.spec.ts -g 'blank: modules/m8' with the base predicate, then with the new one",
+   "exit": 1,
+   "summary": "red: 12 roots accepted ('b1 as board' to 'b12 as board'); green: 1 passed"
+  },
+  {
+   "cmd": "python3 stage.py check (each commit's state rebuilt from the final files)",
+   "exit": 0,
+   "summary": "undoing every stage restores the four files at base exactly"
+  },
+  {
+   "cmd": "npm run check -w site at stages 2 and 4",
+   "exit": 0,
+   "summary": "0 errors"
+  },
+  {
+   "cmd": "npm run build (final, after the size trim)",
+   "exit": 0,
+   "summary": "35 pages, 0 link problems; T12 chunk 22750 B gzip"
+  },
+  {
+   "cmd": "npm run size -- --port 6961 (final)",
+   "exit": 0,
+   "summary": "/tools/rep/ and /modules/m8-lie-algebras/ 89905 B (89.9 kB); base 89757 B, so +148 B; 0 over budget"
+  },
+  {
+   "cmd": "playwright T12.spec.ts M8.spec.ts --workers=1 (final build)",
+   "exit": 0,
+   "summary": "84 passed (4.1m), including both long-task timing tests"
+  },
+  {
+   "cmd": "playwright nojs.spec.ts a11y.spec.ts -g 'm8-lie-algebras|tools/rep/' (final build)",
+   "exit": 0,
+   "summary": "7 passed"
+  },
+  {
+   "cmd": "playwright nojs.spec.ts (whole sweep, before the trim; the predicate is unchanged since)",
+   "exit": 0,
+   "summary": "84 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T12.test.ts (final)",
+   "exit": 0,
+   "summary": "58 passed (56 at base)"
+  },
+  {
+   "cmd": "npm run typecheck (final)",
+   "exit": 0,
+   "summary": "tsc engine ok; astro check 0 errors; svelte-check 0 errors (1 warning in an unrelated file)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 0,
+   "summary": "Test Files 74 passed, Tests 2418 passed (baseline 2411)"
+  },
+  {
+   "cmd": "section 6 greps over git diff 95d0060..HEAD",
+   "exit": 0,
+   "summary": "no forbidden path; no redteam file added; 0 added .only/.skip/xit/toBeCloseTo/console.log/': any'/astro dev/export let/$:/on:/em-dash; every subject starts with RT-FIX and a cluster id"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "empty; no preview server on 6960 to 6963"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P5-RT-05-01: the T12 string viewer's node hit areas are below the 6.1 rule at 320 px and on eight-column boards at 360 px, because the panel, not the edge-to-edge figure, is the board's size container",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > T12 string viewer at {320,360} px on {E8,D8,A7,A8,B8}: every node hit area is {43,38} px (6.1, A-7); and > at 320 pixels the page has no horizontal scroll and the targets are large enough (tightened to the 6.1 side)",
+   "evidence": "Severity: major (no adjustment). Red at base 95d0060: 6 failed, e.g. '/tools/rep/?g=E8&k=8 at 320 x 800: node 1 hit area 39 x 39, expected 43 x 43', A8 and B8 at 320 '34 x 34, expected 38 x 38', A8 at 360 '39 x 39, expected 43 x 43'. The tightened 320 test also failed: 'g=D8&k=8: hit area 39 by 39, expected 43 (7 columns)'. Green after: 7 passed, and in the full T12+M8 run. Cause: Board.svelte reads its unit from the nearest inline-size container, which was the string panel (12 px padding and a 1 px border each side). Fix: .board-host now runs over the panel's padding and border (margin-inline -13px) and is itself the container. CSS only, 0 bytes of JavaScript. Commit 458bf90."
+  },
+  {
+   "item": "P5-RT-05-02: when an island hydrates, the server's matrix and relation scroll boxes are replaced, so focus on one of them goes to body",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > M8 b4: the focus on the server box \"relation-left\" survives the island's hydration; M8 b3: ... \"matrix-e\" ...",
+   "evidence": "Severity: major (no adjustment). Red at base: 2 failed, 'Expected: \"div in b4 (relation-left)\" Received: \"BODY\"', and the same on b3 matrix-e. Green after the fix and after the size trim: 2 passed in three separate runs. Cause: goLive and activate replace the server's panels, and MatrixView moves only the table into a new box, so the focused box is removed. Fix: before each step, runSteps notes the figure's focused scroll box by its parent's data-out. If the step leaves the focus on body, the box drawn in its place gets the focus: first the server box moved into the live panel, then the live MatrixView's box. Commits ccc90bd and ef8ebf7."
+  },
+  {
+   "item": "P5-RT-05-03: a relation verdict computed in the worker is drawn but never announced",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > a verdict from the worker > M8 b6 / M8 b7: the verdict of a relation picked by keys is announced when the worker's list arrives",
+   "evidence": "Severity: major (no adjustment). Red at base: 2 failed, 'b6: the screen shows the verdict \"equal\", the live region said only [\"[H1, F1] = −2F1: checked in the background.\"]', and the same for b7 '[H7, F7] = −2F7'. Green after: 2 passed (3 runs). Cause: acceptFromWorker drew the verdict without announcing it. Fix: a relation pick that announces 'checked in the background' records the representation and the pick's announcer, and the worker's list for that representation announces the relation sentence with its verdict. Scope, recorded in the fragment: a failure of the worker and the jump to the first failing relation after a board or node pick are not announced. The announcer of a11y.ts keeps only the last text given within 500 ms, so a second announcement would drop the pick sentence, and the 90 kB limit left no room. I implemented and tested the failure announcement (green), then removed it with its test to fit the shared budget: it and a longer focus selector together cost 70 B. Commits a835fa6 and ef8ebf7."
+  },
+  {
+   "item": "P5-RT-10-01: no test tells T12's two relation sides apart where they differ",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > on node 2 of D4 the relation checker shows the two different sides of [E1, F1] = H1",
+   "evidence": "Severity: major (no adjustment). This is a test-only fix and it bites. It passes at base and on the fixed build. On a build of the base component with the lens mutation t12-relation-left-shows-right (applied together with the other three site mutants) it fails with 'Error: relation-left is [E1, F1] of chevalleySerre'. Adopted from the lens test 1 without changing its assertions. Commit 63e7d3f."
+  },
+  {
+   "item": "P5-RT-10-02: the edge colours and the move and signed matrices of a picked node are tested only on A2 node 1",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > the move matrix and its signed version follow the node chosen for the matrices (A2, node 2); edges of the orbit are coloured by node: one colour per node on the orbit of omega_1 of D4",
+   "evidence": "Severity: minor (no adjustment). This is a test-only fix and it bites. Both tests pass at base. Under t12-move-matrix-of-rep-node the first fails with 'Error: move-matrix is the firing of node 2' (expected 1,1=1, 2,3=1, 3,2=1). Under t12-edge-colour-by-vertex the second fails with 'Error: edges of node 1'. These are the lens tests 2 and 3, adopted. Commit 3089432."
+  },
+  {
+   "item": "P5-RT-06-01: no run without JavaScript reads T12's orbit drawing or matrix cells on M8",
+   "status": "fixed",
+   "test": "site/tests/e2e/nojs.spec.ts > nojs.spec.ts rejects a T12 root whose orbit drawing and matrices are blank: modules/m8-lie-algebras/",
+   "evidence": "Severity: minor (no adjustment). Red with the base predicate (the adopted test appended to the base file): 1 failed, accepting 'b1 as board' to 'b12 as board'. Green with the new predicate: 1 passed. The whole nojs.spec.ts sweep passes (84). Cause: toolReport accepted a T12 root as 'board' through its string viewer and read no orbit vertex and no matrix cell. Fix: toolReport now lists the figure parts that have lost their content, and figureProblems rejects a root that has any. An orbit-graph must hold data-positions vertices and at least positions - 1 edges, or layer counts that add up to data-positions. A matrix must hold rows x cols cells as a grid, or one value cell per list row. Commit 453c54b."
+  },
+  {
+   "item": "P5-RT-11-01: chevalleySerre's hh, he and hf verdicts are never tested where they fail",
+   "status": "fixed",
+   "test": "packages/engine/test/unit/rep-hh-he-hf-fail.test.ts > chevalleySerre: hh, he and hf can fail, and each record compares its two sides > {hh:0,1, hh:1,0, he:0,0, he:1,0, hf:0,0, hf:1,0} fails with the oracle's two sides; the records that hold in the oracle hold here",
+   "evidence": "Severity: minor (no adjustment). This is a test-only fix: rep.ts is correct. It passes at base (7 passed). Under each lens mutant it fails: M33-hh-he-hf-hold 6 failed, M33-hh-skipped 2, M33-hh-holds 2, M33-he-right-zero 1, M33-hf-right-left 2. I reran the oracle values with the lens's oracle script (python3 -B; chevalley_serre_ok = False, sides equal to the test's literals); the call is written in the header comment. Engine suite 2418 passed (baseline 2411). Commit 8206c53."
+  },
+  {
+   "item": "P5-RT-11-02: the announcement of a picked relation that fails is never heard by a test",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > a failing relation picked on D4 node 2 is announced as not equal, a holding one as equal; site/tests/unit/tools/T12.test.ts > regressions > relationSentence says not equal for a picked relation that fails and equal for one that holds",
+   "evidence": "Severity: minor (no adjustment). Test-only fix. With S1-relation-sentence-equal the unit test fails: 'expected \"[E1, F2] = 0: the two sides are equal.\" to be \"[E1, F2] = 0: the two sides are not equal.\"'. On the S1 build the e2e test fails with the live region reading '[E1, F2] = 0: the two sides are equal.'. Both pass on the clean code. Commit 57518fb."
+  },
+  {
+   "item": "P5-RT-11-03: T12.test.ts and T12.spec.ts type golden orbit sizes and dimensions",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T12.test.ts > regressions > T12.test.ts and T12.spec.ts read the golden orbit sizes and dimensions instead of typing them",
+   "evidence": "Severity: minor (no adjustment). The finding's two greps are now a test. It is red on the base files: it finds 9 lines in T12.test.ts and 6 in T12.spec.ts, exactly the finding's list. It is green after the fix: only D4 node 2's worked value 24, checked against the golden file first, and the hand count of zeros remain. Each typed value is now read from types[T].fundamental_orbit_sizes (via toPositions) or from minuscule_representations. E7 node 7's 56 is also read where the same tests used it in a caption text and in the OrbitLayers layer count. Following the coordinator's note, D4 node 1's 'dimension' reads minuscule_representations, so it holds beside the content fix, and the test allows the worked-value lines by predicate rather than listing them exactly. Commits 77322b3 and 26644a5."
+  }
+ ],
+ "deviations": [],
+ "decisionsFragment": "decisions/RT-FIX-P5-t12-a11y.md",
+ "openQuestions": [
+  "Contrived sibling of P5-RT-05-02, not fixed (size budget, untested path): in an island whose digest holds the shown relation (M8 b6, b7), suppose the reader picks a relation the digest lacks, picks back to the digest's relation while the worker list is pending, and focuses a side box. When the list arrives, acceptFromWorker redraws that side and the focus falls to body. Calling the focus check of runSteps there before marking the sides not ready would close it.",
+  "Typed golden values outside the finding's greps, left as they are: T12.test.ts representationSteps test `expect(d7.basis).toHaveLength(64)` (D7 node 7); T12.spec.ts `out(page, 'dimension')).toHaveText('4')` for A3 node 1, and the pick sentence asserted with 'has 4 positions'.",
+  "P5-RT-05-03 scope: the jump to the first failing relation after a board or node pick, and a failure of the worker, are drawn but not announced (see the fragment). Announcing them without losing the pick sentence needs either a joined sentence or a change to the 500 ms coalescing in site/src/lib/a11y.ts (shared), plus bytes /tools/rep/ does not have after the content fix.",
+  "proposedFix of P5-RT-05-02 not followed: MatrixView is unchanged (adopting the server's box would still move a focused element, which drops the focus). The focus is restored in runSteps by data-out, which covers both the panel swap of goLive and the later step in which MatrixView takes over the table."
+ ],
+ "handoff": "Size: /tools/rep/ and M8 measure 89905 B with this branch, against 89757 B at its base (the coordinator measured 89758): +148 B. With the content fix's +72 B that is about 89978 of 90000. Every changed file is inside the cluster, and every test I added avoids the content fix's changed texts: values come from the engine or the golden file, and the live-region checks use regexes on 'are (equal|not equal)'. Expect textual merge conflicts with that branch in T12RepresentationBuilder.svelte (pickRelation, acceptFromWorker, the .board-host CSS) and in T12.spec.ts and T12.test.ts (line 136 of the D4 acceptance test, the E6/E7 grid test, the regressions blocks at the ends). For the lens reruns: RT-05 should note that a worker failure and the failingDefault jump are deliberately silent (fragment entry, size). RT-10 and RT-11 mutants: all nine patches I ran fail the new tests."
+}
