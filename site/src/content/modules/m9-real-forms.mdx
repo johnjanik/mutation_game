@@ -1,0 +1,266 @@
+---
+title: "Real forms and Satake diagrams"
+module: 9
+question: "The same board describes several different real Lie algebras. What tells them apart?"
+phase: 6
+released: true
+draft: true
+outcomes: ["LO9"]
+sources: ["Sat60", "Ara62", "Hel01", "Kol14", "DK19", "Kna02", "Tit66", "W20", "Moz90", "Pro84", "Eri95a"]
+---
+import T13SatakeStudio from '@components/tools/T13SatakeStudio.svelte';
+import { G, Tex, Cite, Unverified } from '@components/content';
+import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
+import { linkIfReleased } from '@lib/pages/released';
+import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
+import { admissibility, identify, mutate, shadow2, subBoard, theta, toLabels, toPositions } from '@engine';
+import { assembleData, coordinatesInBourbaki, defaultRoot, diagramOf, fromLabelOrder, halfText, inLabelOrder, restrictedClick, shadowRows, stageStep, wordOfWX } from '@components/tools/t13/model';
+import { computeNow } from '@components/tools/t13/load';
+
+export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
+export const m6 = linkIfReleased({ kind: 'module', number: 6 });
+export const studio = linkIfReleased({ kind: 'tool', id: 'satake' });
+export const gv = (k) => resolveGoldenPath(k);
+export const fmt = (k, as) => formatGoldenValue(resolveGoldenPath(k), as);
+export const S = (type, form) => `satake[dynkin_type=${type};real_form=${form}]`;
+export const X = (type, black, tau) => `satake_examples[type=${type};black_nodes=${black};tau=${tau}]`;
+export const show = (v) => `(${v.map((x) => (x < 0 ? `−${-x}` : String(x))).join(', ')})`;
+export const half = (v) => `(${v.map(halfText).join(', ')})`;
+export const tx = (v) => `(${v.join(',')})`;
+export const last = (list) => list[list.length - 1];
+export const TEX = (name) => `${name[0]}_${name.slice(1)}`;
+export const L = (d, v) => inLabelOrder(d.board, v);
+export const P = (d, v) => fromLabelOrder(d.board, v);
+export const labelsOf = (d, ps) => toLabels(d.board, ps).sort((a, b) => a - b);
+export const joinAnd = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+export const whiteOrbits = (d) => { const black = new Set(d.black); const seen = new Set(); let k = 0; d.tau.forEach((j, i) => { if (black.has(i) || seen.has(i)) return; seen.add(i); seen.add(j); k += 1; }); return k; };
+export const shadowOf = (d, p) => half(L(d, shadow2(d, p)));
+export const dataOf = (d) => { const now = computeNow(d, admissibility(d)); return assembleData(now.sat, now.rb, now.records, d); };
+export const SEEN = 'verified by computation';
+export const FORMS = gv('satake').length;
+export const POSITIVE = gv('satake').filter((r) => r.real_rank > 0).length;
+export const SAME = gv('satake').filter((r) => r.dynkin_type === 'D4' && ['so(2,6)', 'so*(8)'].includes(r.real_form));
+
+export const A1W = diagramOf('A1', [], [1]);
+export const A1B = diagramOf('A1', [1], [1]);
+export const A1_ROOT = gv('types.A1.positive_roots[0]');
+export const A1_WHITE = L(A1W, theta(A1W, P(A1W, A1_ROOT)));
+export const A1_MUTATED = L(A1B, mutate(A1B.board, P(A1B, A1_ROOT), 0));
+export const A1_BLACK = L(A1B, theta(A1B, P(A1B, A1_ROOT)));
+
+export const SU4 = diagramOf('A3', gv(`${S('A3', 'su*(4)')}.black_nodes`), gv(`${S('A3', 'su*(4)')}.tau`));
+export const ROOT2 = gv('types.A3.positive_roots[1]');
+export const W2 = wordOfWX(SU4);
+export const ST1 = stageStep(SU4, P(SU4, ROOT2), 1, W2)[0];
+export const ST2 = stageStep(SU4, ST1, 2, W2);
+export const ST3 = stageStep(SU4, last(ST2), 3, W2)[0];
+export const W2_LABELS = toLabels(SU4.board, W2);
+
+export const SU12 = diagramOf('A2', gv(`${S('A2', 'su(1,2)')}.black_nodes`), gv(`${S('A2', 'su(1,2)')}.tau`));
+export const ROWS12 = shadowRows(SU12);
+export const rootIndex = (type, v) => gv(`types.${type}.positive_roots`).findIndex((r) => r.join(',') === v.join(','));
+export const CHECK12 = ROWS12.forEach((row, k) => { if (row.roots.length !== gv(`${S('A2', 'su(1,2)')}.multiplicities[${k}].mult`)) throw new Error(`M9 beat 3: the shadow ${row.text} carries ${row.roots.length} roots, not the golden multiplicity`); });
+
+export const A2B1 = diagramOf('A2', [1], [1, 2]);
+export const A2B1_REASON = admissibility(A2B1).reasons.condition_3;
+export const A2B1_NODE = toLabels(A2B1.board, A2B1_REASON.nodes)[0];
+export const A2B1_VALUE = A2B1_REASON.value.replace('-', '−');
+export const DIMK_FIVE = (gv('types.A2.cartan').length - whiteOrbits(A2B1)) + (gv('types.A2.n_roots') + gv('types.A1.n_roots')) / 2;
+
+export const SU13 = diagramOf('A3', gv(`${S('A3', 'su(1,3)')}.black_nodes`), gv(`${S('A3', 'su(1,3)')}.tau`));
+export const ROOT13 = gv('types.A3.positive_roots[0]');
+export const W13 = wordOfWX(SU13);
+export const ST13_1 = stageStep(SU13, P(SU13, ROOT13), 1, W13)[0];
+export const ST13_2 = stageStep(SU13, ST13_1, 2, W13);
+export const THETA13 = L(SU13, theta(SU13, P(SU13, ROOT13)));
+export const SHADOW13 = shadowOf(SU13, P(SU13, ROOT13));
+
+export const E626 = diagramOf('E6', gv(`${S('E6', 'e6(-26)')}.black_nodes`), gv(`${S('E6', 'e6(-26)')}.tau`));
+export const E626_DATA = dataOf(E626);
+export const E626_ROOT = defaultRoot(E626);
+export const coords = (p) => coordinatesInBourbaki(E626, E626_DATA, shadow2(E626, p));
+export const ORBIT_TWO = gv(`${S('E6', 'e6(-26)')}.restricted_orbits_in_bourbaki_order[1]`);
+export const X_TYPE = identify(subBoard(E626.board, E626.black)).name;
+export const XO_TYPE = identify(subBoard(E626.board, [...E626.black, ...toPositions(E626.board, ORBIT_TWO)])).name;
+export const XO_LETTERS = gv(`types.${XO_TYPE}.n_positive_roots`);
+export const PLAYED = gv(`${S('E6', 'e6(-26)')}.w_X_word`).length + XO_LETTERS;
+export const MOVE_TWO = restrictedClick(E626, E626_DATA, 2, E626_ROOT);
+export const AFTER_TWO = last(MOVE_TWO.populations);
+export const MOVE_ONE = restrictedClick(E626, E626_DATA, 1, AFTER_TWO);
+export const AFTER_ONE = last(MOVE_ONE.populations);
+export const MOVE_THREE = restrictedClick(E626, E626_DATA, 2, AFTER_ONE);
+export const TARGET = last(MOVE_THREE.populations);
+export const CHECK_PLAYED = (() => { if (MOVE_TWO.word.length !== PLAYED) throw new Error(`M9 beat 6: a click plays ${MOVE_TWO.word.length} letters, not ${PLAYED}`); })();
+
+export const SO10 = diagramOf('D5', gv(`${S('D5', 'so*(10)')}.black_nodes`), gv(`${S('D5', 'so*(10)')}.tau`));
+export const SO10_START = diagramOf('D5', gv(`${S('D5', 'so*(10)')}.black_nodes`), [1, 2, 3, 4, 5]);
+export const SO10_REASON = admissibility(SO10_START).reasons.condition_3;
+export const E614 = diagramOf('E6', gv(`${S('E6', 'e6(-14)')}.black_nodes`), gv(`${S('E6', 'e6(-14)')}.tau`));
+
+{/* P6-A7: lesson M9, drafted from SPEC.md 2.15, 2.13 (b) and 3 M9 in the words of the site (D17: a draft
+    until the owner approves it). Every number with a golden value goes through G, a golden path inside Tex,
+    or resolveGoldenPath and formatGoldenValue in an export or a property; populations, shadows, coordinates
+    and reasons with no golden value come from the engine through the functions of the Satake Studio
+    (t13/model.ts, t13/load.ts), which compute nothing of their own beyond the engine. Nine figures b1 to b9
+    in beats 1 to 8 and a static drawing in beat 9; three challenge tools b10 to b12 after their challenges;
+    b1 is client:idle, every other island client:visible. No default state needs the worker (E6 is on the main
+    thread). No figure shows populations and numbers together, so the bridge sentence is not needed here.
+    decisions/P6-A7.md lists the typed numbers. No apostrophe in this comment: the scanner reads one as the
+    start of a string. */}
+
+<Beat n={1}>
+
+A complex Lie algebra can be cut down to a real one in several ways, each a **real form** with an **involution** $\theta$: a move that, done twice, gives back the start.
+
+The board <Tex src="A_1"/> has one node. Left **white**, it stands for <Tex src="\mathfrak{sl}(2,\mathbb{R})"/>: $\theta$ turns every Martian of the <Term a="population">population</Term> into an anti-Martian, <Tex src="{{types.A1.positive_roots[0]}}"/> into <Tex src={tx(A1_WHITE)}/>. Painted **black**, it stands for <Tex src="\mathfrak{su}(2)"/>: $\theta$ first <Term a="mutate">mutates</Term> the city, giving <Tex src={tx(A1_MUTATED)}/>, then changes every sign, giving back <Tex src={tx(A1_BLACK)}/>. A node is black exactly when $\theta$ fixes its root; a real form whose $\theta$ fixes every root is **compact**. The data of beat {'5'} differ too: real rank <G k={`${S('A1', 'sl(2,R)')}.real_rank`}/> against <G k={`${S('A1', 'su(2)')}.real_rank`}/>, <Tex src="\dim\mathfrak k"/> <G k={`${S('A1', 'sl(2,R)')}.dim_k`}/> against <G k={`${S('A1', 'su(2)')}.dim_k`}/>. These are the <G k="admissible_counts.A1.real_forms_including_compact"/> real forms of <Tex src="A_1"/>.
+
+<T13SatakeStudio slot="figure" client:idle id="b1" preset="default" board="A1" black={[]} tau={[1]} caption={`On A1 the white node gives the real form ${fmt(`${S('A1', 'sl(2,R)')}.real_form`)}, of real rank ${fmt(`${S('A1', 'sl(2,R)')}.real_rank`)}; painted black, the node gives the compact form ${fmt(`${S('A1', 'su(2)')}.real_form`)}, of real rank ${fmt(`${S('A1', 'su(2)')}.real_rank`)}.`} />
+</Beat>
+
+<Beat n={2}>
+
+A **Satake diagram** on a board of finite type is a pair <Tex src="(X,\tau)"/>: a set $X$ of <Term a="black">black</Term> nodes, the rest <Term a="white">white</Term>, and a symmetry $\tau$ of the board with <Tex src="\tau^2=1"/> and <Tex src="\tau(X)=X"/>; white nodes exchanged by $\tau$ are joined by an **arrow**. Its involution is <Tex src="\theta=-\,w_X\circ\tau"/>: $\tau$ permutes the entries of a population, and $w_X$, the longest element of the black sub-board, is played as mutations.
+
+So $\theta$ is played in three stages: move each city's population along the arrows of $\tau$; play the word of $w_X$, recorded by the numbers game as the nodes fired from all ones on the black sub-board, the lowest positive node first; turn every Martian into an anti-Martian and back, as in Wildberger's Mars story <Cite k="W20"/>. The numbers game is Mozes' <Cite k="Moz90"/>, with Proctor's earlier use of the same process <Cite k="Pro84"/> and Eriksson's development <Cite k="Eri95a"/>.
+
+Paint nodes {'1'} and {'3'} of <Tex src="A_3"/> black: <Tex src="\mathfrak{su}^*(4)"/>, also written <Tex src="\mathfrak{sl}(2,\mathbb{H})"/>, whose $w_X$ has the word <G k={`${S('A3', 'su*(4)')}.w_X_word`} as="word"/>. From <Tex src="{{types.A3.positive_roots[1]}}"/>, one Martian in city {'2'}, stage one changes nothing, stage two mutates city {W2_LABELS[0]}, then city {W2_LABELS[1]}, giving <Tex src={tx(L(SU4, ST2[0]))}/> and <Tex src={tx(L(SU4, ST2[1]))}/>, and stage three gives <Tex src={tx(L(SU4, ST3))}/>.
+
+<T13SatakeStudio slot="figure" client:visible id="b2" preset="play-theta" board="A3" black={[1, 3]} tau={[1, 2, 3]} root={ROOT2} caption={`On A3 with black nodes 1 and 3, the real form ${fmt(`${S('A3', 'su*(4)')}.real_form`)}, θ takes the population ${show(ROOT2)} to ${show(L(SU4, last(ST2)))} after the word ${fmt(`${S('A3', 'su*(4)')}.w_X_word`, 'word')} of w_X, and to ${show(L(SU4, ST3))} after the change of sign.`} />
+</Beat>
+
+<Beat n={3}>
+
+Each root $\alpha$ casts a **shadow** <Tex src="\bar\alpha=\tfrac12(\alpha-\theta\alpha)"/>; exactly the roots of the black sub-board cast the shadow zero. The other shadows form a root system, possibly the non-reduced <Tex src="BC_r"/>, which the Studio calls restricted roots. The **multiplicity** of a shadow is the number of roots casting it <Cite k="DK19"/>; it depends only on the length of the shadow, verified by computation for every real form in the catalogue.
+
+On <Tex src="A_2"/> with no black node and $\tau$ exchanging the two nodes, <Tex src="\theta(p_1,p_2)=-(p_2,p_1)"/>: this is <Tex src="\mathfrak{su}(1,2)"/>.
+
+<div class="table-wrap" role="region" aria-labelledby="su12-shadows-caption" tabindex="0" style={{ overflowX: 'auto' }}>
+<table id="su12-shadows" data-table="su12-shadows">
+<caption id="su12-shadows-caption">The shadows of <Tex src="\mathfrak{su}(1,2)"/></caption>
+<thead><tr><th scope="col">shadow <Tex src="\bar\alpha"/></th><th scope="col">number of positive roots above it</th><th scope="col">positive roots <Tex src="\alpha"/> with <Tex src="\theta\alpha"/></th></tr></thead>
+<tbody>
+{ROWS12.map((row, k) => <tr data-row={k}><th scope="row">{row.text}</th><td><G k={`${S('A2', 'su(1,2)')}.multiplicities[${k}].mult`}/></td><td>{row.roots.map((x, j) => <>{j > 0 ? '; ' : ''}<G k={`types.A2.positive_roots[${rootIndex('A2', L(SU12, x.root))}]`}/>{' ↦ '}{show(L(SU12, x.theta))}</>)}</td></tr>)}
+</tbody>
+</table>
+</div>
+
+One shadow direction $\lambda$ has multiplicity <G k={`${S('A2', 'su(1,2)')}.multiplicities[0].mult`}/> and its double <G k={`${S('A2', 'su(1,2)')}.multiplicities[1].mult`}/>: the pair is <Tex src="(m_\lambda,m_{2\lambda})={{satake[dynkin_type=A2;real_form=su(1,2)].restricted_simple_multiplicities[0]}}"/>, and the shadows form the system <G k={`${S('A2', 'su(1,2)')}.restricted_type_display`}/>.
+
+<T13SatakeStudio slot="figure" client:visible id="b3" preset="shadows" board="A2" black={[]} tau={[2, 1]} caption={`For ${fmt(`${S('A2', 'su(1,2)')}.real_form`)} on A2 the shadows lie on one line: ${ROWS12[0].text} is cast by ${ROWS12[0].roots.length} roots and its double ${ROWS12[1].text} by ${ROWS12[1].roots.length}, a system of type ${fmt(`${S('A2', 'su(1,2)')}.restricted_type_display`)}.`} />
+</Beat>
+
+<Beat n={4}>
+
+A pair <Tex src="(X,\tau)"/> is **admissible** when three conditions hold <Cite k="Kol14"/> ({'Definition 2.3'}):
+
+<ol data-conditions>
+<li data-condition="1"><Tex src="\tau^2=1"/> and <Tex src="\tau(X)=X"/>;</li>
+<li data-condition="2">on the black nodes, $\tau$ agrees with <Tex src="-w_X"/>: <Tex src="w_X(\alpha_i)=-\alpha_{\tau(i)}"/> for every black node $i$;</li>
+<li data-condition="3">at every white node $j$ that $\tau$ fixes, <Tex src="\langle\alpha_j,\rho_X^\vee\rangle=\sum_{\beta\in\Phi_X^+}\frac{(\alpha_j,\beta)}{(\beta,\beta)}"/> is an integer.</li>
+</ol>
+
+The Studio shows each condition as a light. Up to symmetries of the board the admissible pairs are exactly the real forms, the all-black pair being the compact one (<Cite k="Kol14"/>, remark after {'Definition 2.3'}, citing Araki's table), verified by computation on every board of rank at most eight.
+
+In the first figure, paint node {'1'} black. Conditions {'1'} and {'2'} hold, and <Tex src="\theta=-s_1"/> is an involution that permutes the roots, but condition {'3'} fails: at node {A2B1_NODE} the number is <Tex src={A2B1_REASON.value}/>. Yet no involution of the Lie algebra <Tex src="\mathfrak{sl}(3)"/> acts as this $\theta$ on its Cartan subalgebra and fixes the root vectors of node {'1'}: the natural candidate, from the Chevalley involution and a matrix for $w_X$, has order <Tex src="4"/>, verified by computation, and the formula of beat {'5'} would give <Tex src="\dim\mathfrak k"/> equal to {DIMK_FIVE}, while the real forms of <Tex src="A_2"/> have <G k={`${S('A2', 'sl(3,R)')}.dim_k`}/>, <G k={`${S('A2', 'su(1,2)')}.dim_k`}/> and <G k={`${S('A2', 'su(3)')}.dim_k`}/>. So this decoration is not the Satake diagram of any real form, and the Studio shows no data for it. <Unverified item="E15" fallback="Another standard picture, the Vogan diagram of the sidebar at the end of the beats, is built on a different Cartan subalgebra.">The same permutation of the roots does occur for a real form, <Tex src="\mathfrak{sl}(3,\mathbb{R})"/>, on its maximally compact Cartan subalgebra, where the fixed root is imaginary and non-compact; Vogan diagrams are built on such Cartan subalgebras.</Unverified>
+
+The second figure loads the examples of <Tex src="A_3"/>: black nodes {'1'} and {'3'} with $\tau$ the identity give <G k={`${X('A3', '1,3', '1,2,3')}.real_forms[0]`}/>, and node {'2'} with $\tau$ exchanging {'1'} and {'3'} gives <G k={`${X('A3', '2', '3,2,1')}.real_forms[0]`}/>; node {'1'} alone fails condition {'3'}, nodes {'1'} and {'2'} fail condition {'2'}, and node {'1'} with that $\tau$ fails all three.
+
+<T13SatakeStudio slot="figure" client:visible id="b4" preset="lights" board="A2" black={[]} tau={[1, 2]} caption={`On A2 all white with τ the identity, the three lights are green: ${fmt(`${S('A2', 'sl(3,R)')}.real_form`)}. With node 1 painted black, condition 3 fails, because at node ${A2B1_NODE} the number is ${A2B1_VALUE}, which is not an integer.`} />
+<T13SatakeStudio slot="figure" client:visible id="b5" preset="lights" board="A3" black={[]} tau={[1, 2, 3]} caption={`The examples of A3: black nodes 1 and 3 give ${fmt(`${X('A3', '1,3', '1,2,3')}.real_forms[0]`)}, and black node 2 with τ exchanging 1 and 3 gives ${fmt(`${X('A3', '2', '3,2,1')}.real_forms[0]`)}; node 1 alone fails condition 3, nodes 1 and 2 fail condition 2, and node 1 with τ exchanging 1 and 3 fails all three.`} />
+</Beat>
+
+<Beat n={5}>
+
+The data panel reads a real form off its diagram, verified by computation for all <G k="satake" as="count"/> records. The **real rank** $r$ is the number of $\tau$-orbits of white nodes. The shadows of the white nodes, one per orbit, are the simple <Term a="shadow">shadows</Term>, each with a pair <Tex src="(m_\lambda,m_{2\lambda})"/> whose second entry is zero unless the system is <Tex src="BC_r"/>. With $n$ nodes, roots $\Phi$, and roots $\Phi_X$ of the black sub-board,
+
+<Tex display src="\dim\mathfrak k=(n-r)+\tfrac12(|\Phi|+|\Phi_X|),\qquad \dim\mathfrak p=r+\tfrac12(|\Phi|-|\Phi_X|)."/>
+
+The **character** <Tex src="\dim\mathfrak p-\dim\mathfrak k=2r-n-|\Phi_X|"/> is a closed form derived on this site from these two formulas, not found stated in a source and verified by computation for every record.
+
+For <Tex src="\mathfrak{su}(1,3)"/>, node {'2'} black and $\tau$ exchanging {'1'} and {'3'}: <Tex src="n={{satake[dynkin_type=A3;real_form=su(1,3)].rank}},\ r={{satake[dynkin_type=A3;real_form=su(1,3)].real_rank}},\ |\Phi|={{types.A3.n_roots}},\ |\Phi_X|={{satake[dynkin_type=A3;real_form=su(1,3)].roots_compact_imaginary}}"/>, so <Tex src="\dim\mathfrak k={{satake[dynkin_type=A3;real_form=su(1,3)].dim_k}}"/>, <Tex src="\dim\mathfrak p={{satake[dynkin_type=A3;real_form=su(1,3)].dim_p}}"/> and the character is <G k={`${S('A3', 'su(1,3)')}.character`}/>; the shadows form <G k={`${S('A3', 'su(1,3)')}.restricted_type_display`}/> with the pair <Tex src="{{satake[dynkin_type=A3;real_form=su(1,3)].restricted_simple_multiplicities[0]}}"/>.
+
+<T13SatakeStudio slot="figure" client:visible id="b6" preset="data" board="A3" black={[2]} tau={[3, 2, 1]} prediction={{ question: `Here stage 1 of θ moves the population ${show(ROOT13)} to ${show(L(SU13, ST13_1))}, and stage 2 plays the word of w_X, the single letter ${toLabels(SU13.board, W13).join(' ')}. Where does θ send ${show(ROOT13)}?`, answer: { type: 'position', value: THETA13 }, reveal: `Mutating city ${toLabels(SU13.board, W13).join(' ')} turns ${show(L(SU13, ST13_1))} into ${show(L(SU13, last(ST13_2)))}, and stage 3 changes every sign. The shadow, half of ${show(ROOT13)} minus its image, is ${SHADOW13}, as the figure shows; the Play θ panel steps through the stages.` }} caption={`On A3 with black node 2 and τ exchanging 1 and 3, the real form ${fmt(`${S('A3', 'su(1,3)')}.real_form`)}: real rank ${fmt(`${S('A3', 'su(1,3)')}.real_rank`)}, shadows of type ${fmt(`${S('A3', 'su(1,3)')}.restricted_type_display`)} with the pair ${fmt(`${S('A3', 'su(1,3)')}.restricted_simple_multiplicities[0]`)}, dim k = ${fmt(`${S('A3', 'su(1,3)')}.dim_k`)}, dim p = ${fmt(`${S('A3', 'su(1,3)')}.dim_p`)} and character ${fmt(`${S('A3', 'su(1,3)')}.character`)}.`} />
+</Beat>
+
+<Beat n={6}>
+
+The shadows have a game of their own. For a $\tau$-orbit $O$ of white nodes the **composite move** <Tex src="\tilde s_O=w_{X\cup O}\cdot w_X"/> plays the word of $w_X$, then that of the longest element of the sub-board <Tex src="X\cup O"/>. It commutes with $\theta$ and reflects the shadows in the simple shadow of $O$ (<Cite k="DK19"/>, {'equation (2.8) and Theorem 2.4'}, credited there to Lusztig), verified by computation for the {POSITIVE} records of positive real rank. The shadows thus play a mutation game on the **restricted board**, with Cartan matrix <Tex src="\bar C_{OO'}=2(\bar\alpha_O,\bar\alpha_{O'})/(\bar\alpha_O,\bar\alpha_O)"/>, and a composite move has reduced length <Tex src="\ell(w_{X\cup O})-\ell(w_X)"/>.
+
+On <Tex src="E_6"/> paint nodes {'2'}, {'3'}, {'4'} and {'5'} black: <Tex src="\mathfrak{e}_{6(-26)}"/>, with restricted board <G k={`${S('E6', 'e6(-26)')}.restricted_board`}/> and multiplicity <G k={`${S('E6', 'e6(-26)')}.multiplicities[0].mult`}/> on every shadow. Restricted node {'2'}, the orbit of node {ORBIT_TWO.join(' ')}, plays the <G k={`${S('E6', 'e6(-26)')}.w_X_word`} as="count"/> letters of $w_X$, a longest word of <Tex src={TEX(X_TYPE)}/>, then the <G k={`types.${XO_TYPE}.n_positive_roots`}/> of a longest word of <Tex src={TEX(XO_TYPE)}/>: {PLAYED} moves of <Tex src="E_6"/> for one move of reduced length <G k={`${S('E6', 'e6(-26)')}.restricted_reflection_word_lengths[1]`}/>, taking the shadow coordinates from <Tex src={tx(coords(E626_ROOT))}/> to <Tex src={tx(coords(AFTER_TWO))}/>.
+
+<T13SatakeStudio slot="figure" client:visible id="b7" preset="restricted" board="E6" black={[2, 3, 4, 5]} tau={[1, 2, 3, 4, 5, 6]} prediction={{ question: `Pressing restricted node 2 sends the shadow coordinates ${show(coords(E626_ROOT))} to ${show(coords(AFTER_TWO))}. Press node 2 and then node 1: which coordinates will the restricted board show?`, answer: { type: 'position', value: coords(AFTER_ONE) }, reveal: `Each composite move acts on the coordinates as a mutation of the restricted board ${fmt(`${S('E6', 'e6(-26)')}.restricted_board`)}: node 2 gives ${show(coords(AFTER_TWO))}, and node 1 then replaces the first coordinate by the second minus the first.` }} caption={`For ${fmt(`${S('E6', 'e6(-26)')}.real_form`)} the restricted board is ${fmt(`${S('E6', 'e6(-26)')}.restricted_board`)} and every shadow has multiplicity ${fmt(`${S('E6', 'e6(-26)')}.multiplicities[0].mult`)}; each composite move plays ${PLAYED} moves on E6 and has reduced length ${fmt(`${S('E6', 'e6(-26)')}.restricted_reflection_word_lengths[0]`)}.`} />
+</Beat>
+
+<Beat n={7}>
+
+The catalogue has <G k="satake" as="count"/> records, one per real form of each board of rank at most eight, and one class of admissible pairs fewer: on <Tex src="D_4"/>, <Tex src="\mathfrak{so}(2,6)"/> and <Tex src="\mathfrak{so}^*(8)"/> are one real form, exchanged by a symmetry of the board such as the swap of nodes {'1'} and {'4'}, verified by computation. So <Tex src="D_4"/> has <G k="admissible_counts.D4.catalogue_records"/> records for <G k="admissible_counts.D4.real_forms_including_compact"/> real forms; with nodes {'3'} and {'4'} black the Studio shows both names, with shadows of type <G k={`${S('D4', 'so(2,6)')}.restricted_type_display`}/> and <G k={`${S('D4', 'so*(8)')}.restricted_type_display`}/>, one system under two names, and equal data such as <Tex src="\dim\mathfrak k={{satake[dynkin_type=D4;real_form=so*(8)].dim_k}}"/>. <Unverified item="E1" fallback="The multiplicities on this site are computed for every board of rank at most eight.">For <Tex src="\mathfrak{so}^*(8)"/> the multiplicity is <G k={`${S('D4', 'so*(8)')}.multiplicities[0].mult`}/> on the short shadows and <G k={`${S('D4', 'so*(8)')}.multiplicities[1].mult`}/> on the long ones.</Unverified> <Tex src="B_2"/> and <Tex src="C_2"/> each list the same three algebras.
+
+All white with no arrow is the **split form**, here <Tex src="\mathfrak{so}(4,4)"/>: <Tex src="\theta=-1"/> and every multiplicity is <Tex src="1"/>. All black is the compact form <Tex src="\mathfrak{so}(8)"/>: $\theta$ fixes every root, and no root casts a shadow. No black node but arrows gives a **quasi-split form**, here <Tex src="\mathfrak{so}(3,5)"/>, whose shadows are the averaged roots of {m6 ? <a href={m6} data-link="m6">module six</a> : 'module six'}, verified by computation.
+
+<T13SatakeStudio slot="figure" client:visible id="b8" preset="catalogue" board="D4" black={[]} tau={[1, 2, 3, 4]} caption={`The catalogue of D4 has ${fmt('admissible_counts.D4.catalogue_records')} records for ${fmt('admissible_counts.D4.real_forms_including_compact')} real forms: ${SAME[0].real_form} and ${SAME[1].real_form} are the same real form. Loading a record paints its decoration.`} />
+</Beat>
+
+<Beat n={8}>
+
+By condition {'2'}, $\tau$ may move black nodes, and may differ from the identity with no arrow drawn. Printed tables record $\tau$ on white nodes only; the toggle Show τ on black nodes draws the rest of it.
+
+For <Tex src="\mathfrak{su}(1,5)"/> on <Tex src="A_5"/>, nodes {'2'}, {'3'} and {'4'} are black, $\tau$ is the flip and the pair is <Tex src="{{satake[dynkin_type=A5;real_form=su(1,5)].restricted_simple_multiplicities[0]}}"/>. The drawing shows one arrow, between nodes {'1'} and {'5'}; the toggle reveals that $\tau$ also exchanges the black nodes {'2'} and {'4'}. So it is for <Tex src="\mathfrak{su}(p,q)"/> whenever <Tex src="q-p\ge3"/>, and for <Tex src="\mathfrak{e}_{6(-14)}"/>. $\tau$ is not the identity, yet no arrow is drawn, for <Tex src="\mathfrak{so}(p,2n-p)"/> with <Tex src="p\le n-2"/> and $n-p$ odd, and for the compact forms of <Tex src="A_n"/> (<Tex src="n\ge2"/>), <Tex src="D_n"/> ($n$ odd) and <Tex src="E_6"/>: all verified by computation.
+
+<T13SatakeStudio slot="figure" client:visible id="b9" preset="tau-on-black" board="A5" black={[2, 3, 4]} tau={[5, 4, 3, 2, 1]} caption={`For ${fmt(`${S('A5', 'su(1,5)')}.real_form`)} on A5 the drawing shows only the arrow between nodes 1 and 5; the toggle Show τ on black nodes shows that τ also exchanges the black nodes 2 and 4.`} />
+</Beat>
+
+<Beat n={9}>
+
+<aside id="vogan" aria-labelledby="vogan-title" data-sidebar="vogan" style={{ borderInlineStart: '4px solid var(--sign-zero-outline)', paddingInlineStart: '16px', marginBlock: '24px' }}>
+<h2 id="vogan-title">Sidebar: Vogan diagrams</h2>
+<p>Vogan diagrams, the other standard picture, are built from a maximally compact Cartan subalgebra (<Cite k="Kna02"/>, {'section VI.8'}); the Tits index <Cite k="Tit66"/> carries the same information as the Satake diagram over the real numbers. The same undecorated diagram means the split form as a Satake diagram and the compact form as a Vogan diagram.</p>
+<figure data-static-figure="vogan" style={{ margin: '0' }}>
+<svg viewBox="0 0 320 80" width="100%" role="img" aria-labelledby="vogan-svg-title vogan-svg-desc" style={{ maxWidth: '320px', display: 'block' }}>
+<title id="vogan-svg-title">{'The undecorated diagram A2, drawn twice'}</title>
+<desc id="vogan-svg-desc">{'Two white nodes joined by a line, drawn twice.'}</desc>
+<g fill="none" stroke="currentColor" stroke-width="2.5">
+<line x1="40" y1="40" x2="120" y2="40" /><circle cx="40" cy="40" r="12" fill="var(--page)" /><circle cx="120" cy="40" r="12" fill="var(--page)" />
+<line x1="200" y1="40" x2="280" y2="40" /><circle cx="200" cy="40" r="12" fill="var(--page)" /><circle cx="280" cy="40" r="12" fill="var(--page)" />
+</g>
+</svg>
+<figcaption>The undecorated <Tex src="A_2"/>: <Tex src="\mathfrak{sl}(3,\mathbb{R})"/> as a Satake diagram, <Tex src="\mathfrak{su}(3)"/> as a Vogan diagram.</figcaption>
+</figure>
+</aside>
+
+</Beat>
+
+<Seen provenance={['Kol14', 'DK19', SEEN]}>
+
+<ul data-seen-statements>
+<li data-seen-statement>Up to symmetry, the admissible pairs (<Cite k="Kol14"/>, {'Definition 2.3'}) are the real forms (<Cite k="Kol14"/>, citing Araki): verified by computation on every board of rank at most eight.</li>
+<li data-seen-statement>Shadows, multiplicities and composite moves <Cite k="DK19"/>: the read-off rules are verified by computation for the <G k="satake" as="count"/> records, the restricted game for the {POSITIVE} of positive real rank.</li>
+<li data-seen-statement>The character <Tex src="2r-n-|\Phi_X|"/> is a closed form derived on this site, verified by computation for every record.</li>
+<li data-seen-statement>$\tau$ may move black nodes, with or without a drawn arrow: verified by computation.</li>
+</ul>
+
+</Seen>
+
+<LieTheory>
+
+A real form of a complex simple Lie algebra <Tex src="\mathfrak g"/> has a Cartan involution $\theta$ and a decomposition <Tex src="\mathfrak k\oplus\mathfrak p"/>. Built on a maximally split Cartan subalgebra, its Satake diagram records the compact simple roots in black and the involution on the rest (<Cite k="Sat60"/>, <Cite k="Ara62"/>); all black, $\theta$ is the identity and the real form is the compact algebra <Tex src="\mathfrak k"/>. The shadows are the restricted roots with their multiplicities, the restricted board is the Dynkin diagram of the restricted root system, and its game is the relative Weyl group, generated by the <Tex src="\tilde s_O"/> (credited to Lusztig in <Cite k="DK19"/>). The character is the number in brackets of <Tex src="\mathfrak{e}_{6(-26)}"/>. The tables are in <Cite k="Hel01"/> ({'pp. 532-534'}) and <Cite k="Ara62"/> ({'pp. 32-33'}); <Cite k="Kol14"/> states the conditions for quantum symmetric pairs. Here <Tex src="C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle"/>, as in Kac and SageMath, with Bourbaki's numbering.
+
+</LieTheory>
+
+## Challenges
+
+<Challenge client:visible for="b10" goal="On D5 with nodes 1 and 3 black, find the τ that turns all three lights green." explanation={`With τ the identity, condition 3 fails at nodes ${joinAnd(toLabels(SO10_START.board, SO10_REASON.nodes))}, white nodes fixed by τ and joined to the black node 3. τ must exchange them: then the only white node τ fixes is node 2, and all three lights turn green. This is ${fmt(`${S('D5', 'so*(10)')}.real_form`)}, with an arrow between nodes ${joinAnd(toLabels(SO10_START.board, SO10_REASON.nodes))}.`} check={{ kind: 'out', name: 'shadow', equals: shadowOf(SO10, defaultRoot(SO10)) }} />
+
+<T13SatakeStudio client:visible id="b10" preset="default" board="D5" black={[1, 3]} tau={[1, 2, 3, 4, 5]} caption={`On D5 with black nodes 1 and 3 and τ the identity, condition 3 fails at nodes ${joinAnd(toLabels(SO10_START.board, SO10_REASON.nodes))}, so the decoration is not the Satake diagram of any real form.`} />
+
+<Challenge client:visible for="b11" goal="On E6, find a decoration with a black node and an arrow that all three lights accept." explanation={`Paint nodes ${joinAnd(gv(`${S('E6', 'e6(-14)')}.black_nodes`))} black and choose the flip of E6: this is ${fmt(`${S('E6', 'e6(-14)')}.real_form`)}, with one arrow, between nodes 1 and 6, while τ also exchanges the black nodes 3 and 5. The other real forms of E6 have no black node, or no arrow.`} check={{ kind: 'out', name: 'shadow', equals: shadowOf(E614, defaultRoot(E614)) }} />
+
+<T13SatakeStudio client:visible id="b11" preset="default" board="E6" black={[]} tau={[1, 2, 3, 4, 5, 6]} caption={`On E6 all white with τ the identity: the split form ${fmt(`${S('E6', 'e6(6)')}.real_form`)}, of real rank ${fmt(`${S('E6', 'e6(6)')}.real_rank`)}.`} />
+
+<Challenge client:visible for="b12" goal={`On E6 with nodes 2, 3, 4 and 5 black, bring the shadow to the coordinates ${show(coords(TARGET))}.`} explanation={`From ${show(coords(E626_ROOT))}, restricted node 2 gives ${show(coords(AFTER_TWO))}, node 1 gives ${show(coords(AFTER_ONE))} and node 2 again gives ${show(coords(TARGET))}: three composite moves, each a reflection of the restricted board. Choosing in the Root list a root whose shadow has those coordinates reaches the goal too.`} check={{ kind: 'out', name: 'shadow', equals: shadowOf(E626, TARGET) }} />
+
+<T13SatakeStudio client:visible id="b12" preset="restricted" board="E6" black={[2, 3, 4, 5]} tau={[1, 2, 3, 4, 5, 6]} caption={`For ${fmt(`${S('E6', 'e6(-26)')}.real_form`)} the shadow of the population starts at the coordinates ${show(coords(E626_ROOT))} on the restricted board ${fmt(`${S('E6', 'e6(-26)')}.restricted_board`)}.`} />
+
+<ModuleLinks module={9} board="A3" />
+
+<Sources keys={['Sat60', 'Ara62', 'Hel01', 'Kol14', 'DK19', 'Kna02', 'Tit66', 'W20', 'Moz90', 'Pro84', 'Eri95a']} />
