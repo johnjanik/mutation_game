@@ -1,0 +1,120 @@
+{
+ "reviewed": "149eee2",
+ "findings": [
+  {
+   "severity": "major",
+   "what": "On the 16 boards with two root lengths (B2 to B8, C2 to C8, F4, G2), the Coxeter-plane link opens T10 with the short roots hidden. The tool then shows different rings from the item it is linked from, yet the link text promises 'the roots'. The short-roots toggle cannot travel in a link (6.6), and unlike the Wave, counter and orbit links, this text does not tell the reader what to do.",
+   "where": "site/src/components/atlas/atlasData.ts:333",
+   "evidence": "pw/specs/claims2.spec.ts (scratch) on /tools/geometry/?z=1&g=B3&r=0.1.0&j=coxeter gave 'B3 pointCount 12 | ringSizes 6, 6 | shortRoots hidden'. After ticking Short roots it gave 'pointCount 18 | ringSizes 12, 6', which is what /atlas/B3/ states ('lie on 2 rings ... 12, 6 roots'). claims.spec.ts gave 'G2 pointCount 6 | ringSizes 6' (page: 6, 6) and 'C3 pointCount 6 | ringSizes 6' (page: 6, 6, 6). Link text on all 16 pages: 'See the roots of <T> in the Coxeter plane in the Geometry Studio'.",
+   "specRef": "SPEC 4 T14 ('Every item links to the tool that demonstrates it'); 6.6 (options outside a link open at their defaults); 4 T10 (root polytope 'offers the short roots as a second set of points'); instruction 5.2 item 14 and 5.3",
+   "proposedFix": "Where highestShortRoot is not null, write the link text as '...; tick Short roots to see all <2N> roots on the rings listed here'. Assert /short roots/i on those 16 boards in atlas.test.ts."
+  },
+  {
+   "severity": "major",
+   "what": "On E6, E7, E8 and G2 the convention switch states Kac's numbering as fact, outside the E4 wrapper. The legend reads 'Show the Cartan matrix as it is printed by', the first option is 'This site, Kac and SageMath', and the note says 'The nodes are numbered the same way in both'. Together these say Kac prints this exact matrix. SPEC 2.9 says Kac numbers E6 differently [S2] and E7, E8, G2 [U]. In preview the wrapped sentence just below contradicts the legend; in release the E4 fallback sits under a legend that still names Kac.",
+   "where": "site/src/components/atlas/ConventionSwitch.astro:32-34,49",
+   "evidence": "python3 scratch/scripts/page_text.py dist-release/atlas/E6/index.html prints '<legend> Show the Cartan matrix as it is printed by', '<label> This site, Kac and SageMath', '... The nodes are numbered the same way in both, so the switch changes the matrix and nothing else.' and then the fallback 'Other books may number the nodes of this board differently ...'. The preview /atlas/E6/ shows 'Kac numbers the nodes of E6 differently from Bourbaki' under the same legend.",
+   "specRef": "SPEC 2.9 (last two rows); Appendix E item 4; 7.3 Unverified; instruction 5.4",
+   "proposedFix": "Change the legend to 'Show the Cartan matrix in the convention of'. Replace 'numbered the same way in both' with 'Bourbaki and Humphreys number the nodes as this site does', so nothing about Kac's numbering is stated outside <Unverified item=\"E4\">. Add a T14.spec assertion on the E6 legend."
+  },
+  {
+   "severity": "minor",
+   "what": "The Weyl-order link text on the 18 boards that T8 does not offer says 'the group order is the product of the exponents plus one'. Read normally this is (product of m_i) + 1, which is false. The page body has the right wording.",
+   "where": "site/src/components/atlas/atlasData.ts:309",
+   "evidence": "python3 scratch/scripts/page_text.py site/dist/atlas/D5/index.html prints '[Play the numbers game on D5 in the Numbers Game Lab; its Tally tab gives the exponents, and the group order is the product of the exponents plus one]'. On B5 the exponents 1, 3, 5, 7, 9 have product 945, and 945 + 1 is not |W| = 3840. The page body (AtlasSheet.astro:184) says 'each increased by one'.",
+   "specRef": "SPEC 2.7 F7 (|W| = prod(m_i + 1)); 8.4",
+   "proposedFix": "Use 'the product of the exponents each increased by one'."
+  },
+  {
+   "severity": "minor",
+   "what": "The wave sentence never defines 'round'. A reader who counts 'one colour, then the other' as one round gets h/2.",
+   "where": "site/src/components/atlas/AtlasSheet.astro:173-174",
+   "evidence": "The B3 page says 'fire every node of one colour, then every node of the other, and repeat. The game ends after exactly h such rounds.' SPEC F8 defines one round as the firing of one colour class, and T5's Wave tab on B3 counts 'the Coxeter number is 6'.",
+   "specRef": "SPEC 2.7 F8; 4 T5 (Wave)",
+   "proposedFix": "Add ', one round being the firing of one colour class'."
+  },
+  {
+   "severity": "minor",
+   "what": "On A1 the h link still says 'choose its Wave tab to count the rounds'. On A1 the wave is a single move, the tool says so, and the page itself drops the wave sentence for rank 1.",
+   "where": "site/src/components/atlas/atlasData.ts:306",
+   "evidence": "claims.spec.ts, A1 wave panel: 'On A1 one colour class is empty: the wave is a single move.' Link text on /atlas/A1/: 'Open the Numbers Game Lab on A1 and choose its Wave tab to count the rounds'.",
+   "specRef": "SPEC 2.7 F8 (A1 degenerates); 4 T5 acceptance; 6.6",
+   "proposedFix": "For rank 1, use a text that does not promise h rounds."
+  },
+  {
+   "severity": "minor",
+   "what": "The D4 page says 'The Satake catalogue lists 6 real forms of D4' and then 'two records of the catalogue are one real form'. There are 6 records but 5 real forms.",
+   "where": "site/src/components/atlas/AtlasSheet.astro:291",
+   "evidence": "page_text.py on atlas/D4 prints 'The Satake catalogue lists 6 real forms of D4 ...' and later 'On D4 two records of the catalogue are one real form: so(2,6) and so*(8). Both are listed.'",
+   "specRef": "SPEC 6.4 'Coincidences' (167 records make 166 classes)",
+   "proposedFix": "Say 'lists N records', or on D4 '6 records, 5 real forms'."
+  },
+  {
+   "severity": "minor",
+   "what": "Every T13 link text shows the plain data name: 'e6(-14)', 'sp(4,R)', 'su*(4)'. Names should be typeset from names.json on screen, and the minus here is a hyphen-minus, not U+2212.",
+   "where": "site/src/components/atlas/atlasData.ts:292",
+   "evidence": "python3 scratch/scripts/style_scan.py site/dist found 11 hyphen-minus numbers in visible text, for example 'Open the real form e6(-14) (E III) in the Satake Studio' (E6, E7, E8, F4, G2). The 'sp(2n,R)' texts appear on the C pages.",
+   "specRef": "SPEC 6.5; 6.3; A-5; instruction trap 12",
+   "proposedFix": "Make the visible text 'Open this real form in the Satake Studio', since the typeset name is already on the line. Or build the text from names.json with U+2212. Add a test that no visible text matches /\\(-\\d/."
+  },
+  {
+   "severity": "minor",
+   "what": "The registry import '../../components/tools/../atlas/AtlasPicker.svelte' resolves to the right file only because the URL is normalised. Its sole purpose is to satisfy a regex that hard-codes components/tools/. It hides where the component lives, and ToolIsland imports '@components/atlas/AtlasPicker.svelte'.",
+   "where": "site/src/tools/registry/T14.ts:65; site/tests/e2e/registry-outs.spec.ts:46",
+   "evidence": "registry-outs.spec.ts:46 uses /import\\('(?:\\.\\.\\/\\.\\.\\/components|@components)\\/tools\\/([^']+\\.svelte)'\\)/. It captures '../atlas/AtlasPicker.svelte', and new URL(file, COMPONENTS) normalises that to components/atlas/. registry-outs.spec.ts passed (part of 233 passed).",
+   "specRef": "CONTRACTS 5.2; instruction 5.10",
+   "proposedFix": "registry-outs.spec.ts should resolve the specifier itself (alias @components to src/components, otherwise relative to the registry file) and accept any components/ directory. T14.ts can then import '@components/atlas/AtlasPicker.svelte'."
+  },
+  {
+   "severity": "minor",
+   "what": "The 'no golden data in the build path' guard is a regex over the source text. Indirect imports pass it, and so does a golden value printed instead of computed.",
+   "where": "site/tests/unit/atlas.test.ts:347-366",
+   "evidence": "python3 scratch/scripts/mutate_unit.py: these three mutants survived with '116 passed (116)': U8 (import.meta.glob('../../../../reference/*.json') in atlasData.ts), U9 (|W| read from the golden file through that glob instead of weylOrder) and U10 (import { G } from '../content' in AtlasSheet.astro, the barrel that loads G.astro and Tex.astro).",
+   "specRef": "Roster trap 1; instruction 5.1 and section 6 ('no golden import or <G> in the build path'); CONTRACTS 3",
+   "proposedFix": "Add a separate test file, without the harness, that vi.mock()s reference/golden_data.json to throw and then imports atlasData, downloads and names for all 32 boards. Alternatively, have a build step check the module graph of pages/atlas for golden_data.json, lib/golden.ts, G.astro and Tex.astro. As a stopgap, add /reference\\//, /import\\.meta\\.glob/ and /\\.\\.\\/content['\"]/ to the regex."
+  },
+  {
+   "severity": "minor",
+   "what": "'displayed values equal golden on every page' reads only data-exact, so the visible values on 31 of 32 pages are untested. A display that differs from its hook passes.",
+   "where": "site/tests/e2e/T14.spec.ts:156-221",
+   "evidence": "python3 scratch/scripts/mutate_e2e.py built mutants E5 (the Marks row shows the comarks) and E6 (black nodes shown as positions). T14.spec.ts: '3 failed, 18 passed', and the passing tests include 'displayed values equal golden on every page'. scratch/scripts/check_values.py on the same dist reports 'B2: visible marks row: page [Marks,1,1,1] expected [Marks,1,1,2]'.",
+   "specRef": "SPEC 4 T14 acceptance ('every displayed value'); instruction section 6",
+   "proposedFix": "Also compare the visible text against golden: MatrixView cells with U+2212, the tuples, the marks and comarks cells, and the black-node and tau phrases."
+  },
+  {
+   "severity": "minor",
+   "what": "The Wildberger note test checks only fragments of each row. The E-row path mapping, the 'vertex 0 joined to vertex 3' clause and the G2 row are not asserted.",
+   "where": "site/tests/e2e/T14.spec.ts:393-420",
+   "evidence": "mutate_e2e.py mutants E3 ('his path 1, 2, 3, ... is the nodes 1, 2, 3, ...') and E4 ('his vertex 1 is the long node') are present in the built dist (grep -c gives 1 each). 'Wildberger note: the row of 2.10 that applies' still passed.",
+   "specRef": "SPEC 2.10; 9.5; instruction section 6 (Wildberger note)",
+   "proposedFix": "Assert the full sentence of each of the seven rows (B2/C2, B_n, C_n, F4, G2, D_n, E6/E7) on one page each, built from SPEC 2.10 or golden wildberger_lists.names."
+  },
+  {
+   "severity": "minor",
+   "what": "The theorem-like sentences beside the values carry no provenance. Only the Wildberger note has one.",
+   "where": "site/src/components/atlas/AtlasSheet.astro:152,155,173-174,192,200,209,273",
+   "evidence": "/atlas/B3/ states 'there are det C-1 of them' (F11), 'The game ends after exactly h such rounds' (F8), 'A complete game from numbers that are all positive ends at their negatives' (F4), the Kostant sentences (F13), 'sublattice of index det C' (2.4(c)) and 'reversing every road exchanges them' (2.12). None of these carries a provenance on the page.",
+   "specRef": "SPEC 8.4 ('Every theorem-like statement carries its provenance')",
+   "proposedFix": "Add one sentence per sheet, for example 'The statements beside the values were checked by computation for every board of rank at most 8 (section 2.7)', or one per item."
+  }
+ ],
+ "checked": [
+  "1 Values: 32 built pages; 1652 data-exact values and 1840 visible-text checks against the oracle (lie_games.py) and golden_data.json gave 0 problems. Covered: C and C^T, roads (A[i][j]=-C[j][i], more roads from long to short on every page), weights, roots and positive roots in order with the 120 cap, highest and highest short roots with their numbers, exponents, h, |W|, det C, minuscule nodes, -w0 with 'identity', orbit sizes, games (null on 9 boards; 5 shortened with digit count, exact digits in title and details), rings (none on A1), affine name, marks and comarks node 0 first (B2 (1,1,2), C2 (1,2,1), both C2~ with B2=C2), real forms with labels and display names, sp note on 7 C pages only. JSON and CSV downloads of all 32 pages match golden (0 problems). LaTeX downloads equal exportLaTeX's strings (199 lines).",
+  "2 Words: read the B2, C2, B3, C3, D4, D5, E6, E7, E8, F4, G2 and A1 pages. Wildberger rows match SPEC 2.10 (B and C exchanged for rank at least 3; D and E rows correct; nothing invented for A_n and E8; no root list shown). The Kac sentence is wrapped in E4 on E6, E7, E8 and G2 (preview mark; release fallback on all 4; 0 'Kac numbers' in release). Citations resolve. 0 em-dashes on 35 pages. True minus everywhere except the T13 link texts. D19 holds on B2 and C2. Findings: switch legend, wave, D4 count, 'plus one', provenance.",
+  "3 Links: all 646 tool links of the 32 pages opened in Chromium. 646 hydrated with 0 notices, and Download data showed the linked board, view, mode, coords, start, node, rings, projection, black and tau. All 167 T13 links show the right black nodes and the record name. Base-path build: 0 hrefs or srcs on the 33 Atlas pages outside /sub/path/; picker links (64) and the LaTeX URL are under the base. Link-text findings: T10 short roots, A1 wave, real-form names.",
+  "4 No script: 33 Atlas pages have 0 script[src], 0 astro-island and 0 client: directives, only the shell's inline theme script. npm run size gives 0.0 kB on every Atlas page (labelled 'tool' with a 90 kB limit) and 46.0 kB on /tools/atlas and /embed/atlas. The switch works without JavaScript and by keyboard, downloads work without JavaScript (data URIs), and the release build shows the E4 fallback on E6, E7, E8 and G2.",
+  "5 Picker: 45.9 kB gzip = Svelte client 19.9 + engine core 10.9 + worker/store chunk 4.9 + urlCodec 3.7 + draw geometry 3.4 + picker 2.6 + renderer 0.5. Engine calls are boardFromName and adjacency for the 32 drawings (recomputed at hydration) plus decodeState. Keyboard order and Enter tested (T14.spec). Axe found 0 violations in light and dark. The import-path trick is noted as a finding.",
+  "6 Accessibility: axe (wcag2a/aa, 21, 22aa, best-practice) found 0 violations of any impact on /atlas/B3/, /atlas/E8/, /atlas/B8/, /atlas/ and /tools/atlas/ in light and dark, with the switch in both states. 0 duplicate ids, 0 heading skips, every table has a caption and th. At 320 px the scrollWidth is 320 on every route, and the 8x8 matrices and ring tables scroll in their own focusable boxes. 1992 KaTeX spans carry 1992 MathML elements. nojs.spec and a11y.spec on the Atlas routes: 105 passed.",
+  "7 Build cost: preview build 132 s. The 35 Atlas routes took 4.86 s of the 10.46 s of page generation. Largest HTML is B8 at 204117 B (24707 gzip); E8 is 188857 B (24471 gzip). Lab: /atlas/E8/ LCP 0.761 s, TBT 0, CLS 0; /atlas/B8/ LCP 0.903 s, TBT 0, CLS 0; /atlas/ LCP 0.331 s, TBT 118.9 ms, CLS 0 (load 12 to 16).",
+  "8 Tests: atlas.test.ts 116 passed; T14.spec.ts 21 passed; embed, registry-outs, registry-weight, engine-weight, engine-fallback and module-links 233 passed; basepath.spec and T14.spec on the base-path build 110 passed. Unit mutants killed (6): transpose not transposed, minuscule as positions, -w0 as positions, B and C swapped in the note data, s without c, tau as positions. Unit mutants survived (3): golden glob import, golden |W| printed, relative content barrel. Display mutants built together (6): 2 killed (switch shows C twice, long number not shortened), 4 survived (E-row path, G2 long or short, Marks row shows comarks, black nodes as positions). No golden value typed except the count 9."
+ ],
+ "notes": [
+  "Scripts and logs are in /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a4-review/ (scripts/check_values.py, check_downloads.py, extract_links.py, style_scan.py, structure.py, island_chunks.py, mutate_unit.py, mutate_e2e.py; pw/specs/links.spec.ts, claims.spec.ts, claims2.spec.ts, a11y-atlas.spec.ts; the *.log files).",
+  "size.mjs labels every /atlas/<T>/ as 'tool' with a 90 kB limit. The 15 kB rule is enforced only by T14.spec's no-script test (MERGE kept this labelling).",
+  "The largest Atlas page is B8 (204117 B), not E8 as the report suggests.",
+  "T14.spec.ts:214 matches satake records with records.find rather than the harness's matchRecord (rule 5 helper, no exactly-one check). '\\\\dynkin B{ooo}' is typed in both test files; it is the SPEC 6.7 form, not a golden value.",
+  "The pages use 'fundamental weight' where Appendix C gives the site term 'fundamental position'. SPEC T14 and F10/F11 use the same Lie term, so I have not raised it.",
+  "Inline Cite links are 20 px high, which the inline exception of 2.5.8 allows. Nav still has no Atlas link (assigned to P6-A8). Affine names are plain text pending P6-A2's names.json.",
+  "No preview server is left on ports 7240 to 7243. node_modules, site/node_modules, packages/engine/node_modules and site/dist are deleted. git status --porcelain is empty at 149eee2."
+ ]
+}
