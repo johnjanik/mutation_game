@@ -118,22 +118,20 @@ describe('the catalogue', () => {
 });
 
 describe('satake records', () => {
-  it('the 167 records and no others', () => {
+  it('the records of the golden file and no others', () => {
     const got = computed().map(({ rec }) => `${rec.dynkin_type} ${rec.real_form}`);
     const expected = GOLDEN.map((g) => `${g.dynkin_type} ${g.real_form}`);
     expect(new Set(got).size).toBe(got.length);
     expect([...got].sort()).toEqual([...expected].sort());
+    // as many as the golden records (SPEC.md 6.4 counts them in its prose; the count is read from the file)
     expect(got.length).toBe(GOLDEN.length);
-    // SPEC.md 6.4: "key satake, 167 records, compact forms included"
-    expect(got.length).toBe(167);
   });
 
-  it('field names of a record: the 27 names of the golden record, in its order, and no other', () => {
+  it('field names of a record: the names of the golden record, in its order, and no other', () => {
     for (const { rec } of computed()) {
       const g = matchRecord(GOLDEN, { dynkin_type: rec.dynkin_type, real_form: rec.real_form });
       expect(Object.keys(rec), `${rec.dynkin_type} ${rec.real_form}`).toEqual(Object.keys(g));
     }
-    expect(Object.keys(GOLDEN[0]!).length).toBe(27);
   });
 
   it('every field of every record', () => {
@@ -186,30 +184,22 @@ describe('satake records', () => {
       intEq(rec.restricted_reflection_word_lengths, g.restricted_reflection_word_lengths, `${where}: restricted_reflection_word_lengths`);
       seen('multiplicities', 'restricted_simple_multiplicities', 'restricted_cartan', 'restricted_reflection_word_lengths');
     }
-    // every one of the 27 fields was compared
+    // every field of the golden record was compared
     expect([...checked].sort()).toEqual(Object.keys(GOLDEN[0]!).sort());
   });
 
-  it('worked values of the instruction: e6(-14), su(2,2), su(4)', () => {
-    const rec = (type: string, form: string): { board: Board; rec: SatakeRecord } => {
-      const c = computed().find((x) => x.type === type && x.rec.real_form === form)!;
-      return { board: c.board, rec: c.rec };
-    };
-    const e6 = rec('E6', 'e6(-14)');
-    const g = matchRecord(GOLDEN, { dynkin_type: 'E6', real_form: 'e6(-14)' });
-    // tau exchanges the black nodes 3 and 5 as well as the white nodes 1 and 6; one arrow is drawn
-    expect(labels(e6.board, e6.rec.tau)).toEqual(g.tau);
-    expect(e6.rec.arrows.map((p) => labels(e6.board, p))).toEqual(g.arrows);
-    expect(e6.rec.arrows.length).toBe(1);
-    expect(e6.rec.tau_moves_black_nodes).toBe(true);
-    expect(e6.rec.restricted_board).toBe('B2');
-    const su22 = rec('A3', 'su(2,2)');
-    expect(su22.rec.restricted_board).toBe('C2');
-    expect(su22.rec.restricted_type).toBe('B2');
-    const su4 = rec('A3', 'su(4)');
-    expect(su4.rec.arrows).toEqual([]);
-    expect(su4.rec.tau_moves_black_nodes).toBe(true);
-    expect(isIdentity(su4.rec.tau)).toBe(false);
+  it('worked values of the instruction: e6(-14), su(2,2), su(4), read from the golden file', () => {
+    // instruction 5.4: the worked values are pinned through the golden file, not typed (repair after review)
+    for (const [type, form] of [['E6', 'e6(-14)'], ['A3', 'su(2,2)'], ['A3', 'su(4)']] as const) {
+      const { board, rec } = computed().find((x) => x.type === type && x.rec.real_form === form)!;
+      const g = matchRecord(GOLDEN, { dynkin_type: type, real_form: form });
+      expect(labels(board, rec.tau), form).toEqual(g.tau);
+      expect(rec.arrows.map((p) => labels(board, p)), form).toEqual(g.arrows);
+      expect(rec.tau_moves_black_nodes, form).toBe(g.tau_moves_black_nodes);
+      expect(rec.restricted_type, form).toBe(g.restricted_type);
+      expect(rec.restricted_board, form).toBe(g.restricted_board);
+      expect(rec.restricted_orbits_in_bourbaki_order?.map((o) => labels(board, o)) ?? null, form).toEqual(g.restricted_orbits_in_bourbaki_order);
+    }
   });
 });
 
@@ -247,11 +237,13 @@ describe('SPEC.md 6.4 rules', () => {
         for (const f of COMPUTED_FIELDS) expect(rec[f], `${where}: ${f}`).toEqual(s[f]);
       }
     }
-    // su(2,2): satake lists the orbits [[2], [1, 3]] in identify's order, the record [[1, 3], [2]], short node first
+    // su(2,2): the record lists the orbits as the golden file does, short node first, and satake in the reverse
+    // (identify's) order; the golden value is read, not typed (instruction 5.4; repair after review)
     const su22 = recs.find(({ rec }) => rec.real_form === 'su(2,2)')!;
+    const g22 = matchRecord(GOLDEN, { dynkin_type: 'A3', real_form: 'su(2,2)' }).restricted_orbits_in_bourbaki_order!;
     const s22 = satake({ board: su22.board, black: su22.entry.black_nodes, tau: su22.entry.tau });
-    expect(s22.restricted_orbits_in_bourbaki_order!.map((o) => labels(su22.board, o))).toEqual([[2], [1, 3]]);
-    expect(su22.rec.restricted_orbits_in_bourbaki_order!.map((o) => labels(su22.board, o))).toEqual([[1, 3], [2]]);
+    expect(su22.rec.restricted_orbits_in_bourbaki_order!.map((o) => labels(su22.board, o))).toEqual(g22);
+    expect(s22.restricted_orbits_in_bourbaki_order!.map((o) => labels(su22.board, o))).toEqual([...g22].reverse());
   });
 
   it('compact forms', () => {
