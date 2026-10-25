@@ -720,7 +720,7 @@ const NAME = /^(?:[A-H]_\d|[A-H]_\{?n\}?|[eEFHPs]_\d|\\omega_[i\d])$/;
 const ALLOWED_M8: Allowed[] = [
   // Positions with no golden record (instruction 5.8, "M8, beats 1 to 6").
   { text: '(2,0)', around: /string through|orbit of|orbit holds/, reason: 'the start (2, 0) of the string of beat 1, which is not a minuscule orbit' },
-  { text: '(-2,2)', around: /dynkin_labels\[1\]"\/> and <Tex src="\(-2,2\)"|holds <Tex src="\(2,0\)"\/>, <Tex src="\(-2,2\)"/, reason: 'the fired end of the string through (2, 0), in its orbit' },
+  { text: '(-2,2)', around: /STRING_TWO\[1\]\)\} and <Tex src="\(-2,2\)"|holds <Tex src="\(2,0\)"\/>, <Tex src="\(-2,2\)"/, reason: 'the fired end of the string through (2, 0), in its orbit' },
   { text: '(0,-2)', around: /<Tex src="\(-2,2\)"\/> and <Tex src="\(0,-2\)"\/> only/, reason: 'the third position of the orbit of (2, 0)' },
   // The zero vector, and a matrix entry 1.
   { text: '0', around: /leave the orbit gives|every other case gives|sends it to|on node \$k\$ is|sends the others to/, reason: 'the zero vector, or the number 0 of the projection P^0' },
