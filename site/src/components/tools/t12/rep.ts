@@ -649,9 +649,22 @@ export function matrixFormat(dim: number): 'grid' | 'list' {
   return dim <= CAPS.matrixGridDim ? 'grid' : 'list';
 }
 
-/** The row and column headers of a matrix: the basis positions written with true minus signs. */
-export function basisHeaders(rep: Representation): string[] {
-  return (rep.basis ?? []).map((v) => positionText(inLabelOrder(rep.board, v)));
+const NO_HEADERS: readonly string[] = Object.freeze([]);
+const headersOf = new WeakMap<object, readonly string[]>();
+
+/**
+ * The row and column headers of a matrix: the basis positions written with true minus signs. The same
+ * array for the same basis, so that a drawn MatrixView keeps its table (and the one it took over from the
+ * server) when the tool's state changes elsewhere: new headers would write every table again.
+ */
+export function basisHeaders(rep: Representation): readonly string[] {
+  if (rep.basis === null) return NO_HEADERS;
+  let h = headersOf.get(rep.basis);
+  if (h === undefined) {
+    h = Object.freeze(rep.basis.map((v) => positionText(inLabelOrder(rep.board, v))));
+    headersOf.set(rep.basis, h);
+  }
+  return h;
 }
 
 /** A sparse matrix as [row, column, value] with 1-based basis indices, row-major (Download data, plan). */

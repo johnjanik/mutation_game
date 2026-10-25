@@ -861,11 +861,34 @@ test('data-out="state-board" and "state-node" name the board and the node of the
   await expect(out(page, 'state-board')).toHaveText('E6');
 });
 
+test('the tables of the server stay in place when the reader acts on the string viewer or picks a relation', async ({ page }) => {
+  await open(page);
+  await settled(page);
+  // Each drawn MatrixView took over the table of the server's markup; mark those elements.
+  const marked = await page.evaluate(() => {
+    const tool = document.querySelector('[data-tool="rep"]')!;
+    const tables = [...tool.querySelectorAll('[data-out^="matrix-"] .box table, [data-out^="relation-"] .box table')];
+    tables.forEach((t) => t.setAttribute('data-test-kept', 'true'));
+    return tables.length;
+  });
+  expect(marked).toBe(5);
+  expect(await valuesOf(page)).toEqual(['1', '0']);
+  await node(page, 1).click();
+  await expect.poll(() => valuesOf(page)).toEqual(fired('A2', [1, 0], 1));
+  await page.waitForTimeout(300);
+  // Firing changes the state (and the tool's version): the five tables are still the server's elements.
+  await expect(root(page).locator('[data-test-kept="true"]')).toHaveCount(5);
+  await control(page, 'relation').selectOption('he');
+  await expect(root(page).locator('[data-out="relation-verdict"]')).toHaveText('equal');
+  // A new relation draws its two sides; the matrices E, F and H keep the server's tables.
+  await expect(root(page).locator('[data-out^="matrix-"] [data-test-kept="true"]')).toHaveCount(3);
+});
+
 // ---------------------------------------------------------------------------------------------
 // Main-thread work (SPEC 7.6; E-9; decisions/P5-A2.md): the processor slowed four times, as the lab
-// profile of 7.6. The relation list is computed on the main thread up to 27 positions (E6 node 1 is the
-// largest) and in the worker above (E7 node 7, the largest listed representation); a pick builds the
-// representation one engine call per task and draws the panels one piece per task.
+// profile of 7.6. The relation list is computed on the main thread up to RELATIONS_MAIN_WORK (positions
+// times records, 2500: D6 node 1 is the largest) and in the worker above (E6 node 1 and E7 node 7 among
+// them); a pick builds the representation one engine call per task and draws the panels one piece per task.
 // ---------------------------------------------------------------------------------------------
 
 async function recordLongTasks(page: Page): Promise<void> {

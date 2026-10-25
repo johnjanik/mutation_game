@@ -12,10 +12,12 @@
   // Hydration (SPEC 7.4, 7.6; decisions/P5-A2.md): the five panels and the tables of the table view are the
   // server's markup, adopted without hydration (t12/static.ts), and the configured state computes only the
   // facts of its node while it hydrates (minusculeNodes, orbitSize, legal play, the string); the counts and
-  // the relation shown come from the server's digest (island data). After hydration the matrices and the
-  // relation list are computed and the panels the reader acts on (relations, matrices, string, the table of
-  // the board) are drawn from the state, one task each, the parts of a panel not yet drawn kept from the
-  // server's markup meanwhile; the orbit and the signed move stay the server's until the state changes.
+  // the relation shown come from the server's digest (island data). After hydration the matrices are
+  // computed and the panels the reader acts on (relations, matrices, string, the table of the board) are
+  // drawn from the state, one task each (those with form controls first, one task after another), the
+  // pieces not yet drawn kept from the server's markup meanwhile; the relation list waits for the reader to
+  // ask for another relation or for the data; the orbit and the signed move stay the server's until the
+  // state changes.
   //
   // Properties (CONTRACTS 5.2; listed in site/tests/e2e/T12.spec.ts): id, board, node, relation, coords
   // ('numbers' only), start, moves, prediction, preset ('default' | 'string-viewer' | 'relation-checker' |
@@ -269,9 +271,22 @@
   const live = $state<Record<Part, boolean>>(Object.fromEntries(PARTS.map((p) => [p, false])) as Record<Part, boolean>);
   /**
    * Elements of the server's markup that a drawn panel shows in place of a piece not drawn yet (the board,
-   * the strip, the line, the typed start), or whose tables a drawn MatrixView takes over (adopt).
+   * the strip, the line, the typed start, the matrices), or whose tables a drawn MatrixView takes over
+   * (adopt), each with the key of what it shows (pieceKey): once the reader has changed that (another node
+   * k, another relation), the element no longer stands for the piece.
    */
-  let adoptables = $state.raw<Partial<Record<Piece, Element>>>({});
+  let adoptables = $state.raw<Partial<Record<Piece, { el: Element; key: string }>>>({});
+  /** What a piece of the server's markup shows: the board and node, and the node k or the relation of a matrix. */
+  function pieceKey(p: Piece): string {
+    if (p.startsWith('matrix-')) return `${spec}|${nodeLabel}|${matrixNode}`;
+    if (p.startsWith('relation-')) return `${spec}|${nodeLabel}|${relationCode}`;
+    return `${spec}|${nodeLabel}`;
+  }
+  /** The element of the server's markup that stands for a piece, if any still does. */
+  function kept(p: Piece): Element | null {
+    const a = adoptables[p];
+    return a !== undefined && a.key === pieceKey(p) ? a.el : null;
+  }
   /** How many layers of the orbit drawing are shown while it is drawn layer by layer (undefined: all). */
   let orbitShown = $state<{ vertices: number; edges: number } | undefined>(undefined);
   let figureEl = $state<HTMLElement | undefined>(undefined);
@@ -298,12 +313,28 @@
   /** The number of runs of steps in progress (data-drawn="true" on the figure when none is). */
   let drawing = $state(0);
 
-  /** Runs the steps one per task, each after a frame, while the generation is unchanged; a step may return steps, which run next. */
+  /**
+   * A step that runs in the task right after the previous one, without waiting for a frame. The steps that
+   * put form controls in the page (selects, inputs, buttons) after hydration run so, one after another:
+   * Chromium's autofill reads every form control of the page about 100 ms after the first one is added or
+   * removed, and on a lesson with many tools that reading took about 70 ms with the processor slowed four
+   * times, once for each group of insertions (measured on M8: three times when each such step waited for a
+   * frame).
+   */
+  function soon(step: Step): Step {
+    return Object.assign(step, { soon: true });
+  }
+  const isSoon = (step: Step | undefined): boolean => step !== undefined && (step as Step & { soon?: boolean }).soon === true;
+
+  /**
+   * Runs the steps one per task, each after a frame (a step marked soon in the next task), while the
+   * generation is unchanged; a step may return steps, which run next.
+   */
   function runSteps(g: number, steps: Step[], done?: () => void): void {
     const queue = [...steps];
     drawing++;
     const next = (): void => {
-      afterFrame(() => {
+      const run = (): void => {
         if (g !== generation) {
           drawing--;
           return;
@@ -317,7 +348,9 @@
         const more = step();
         if (Array.isArray(more)) queue.unshift(...more);
         next();
-      });
+      };
+      if (isSoon(queue[0])) setTimeout(run, 0);
+      else afterFrame(run);
     };
     next();
   }
@@ -403,8 +436,17 @@
       { piece: 'string-entry', selector: '[data-piece="string-entry"]' },
     ],
   };
-  /** The pieces drawn later, one task each, while their server markup stands for them. */
-  const LATER: Partial<Record<Part, Piece[]>> = { string: ['string-board', 'string-history', 'string-line', 'string-entry'] };
+  /**
+   * The pieces drawn later, one task each, while their server markup stands for them (a drawn MatrixView then
+   * takes over the server's table): the first drawing of a panel runs code not run before on the page, so
+   * that each piece is a task of its own (measured with the processor slowed four times: the relation
+   * checker drawn whole took 39 to 55 ms, the string viewer's board alone 44 to 49 ms).
+   */
+  const LATER: Partial<Record<Part, Piece[]>> = {
+    relations: ['relation-left', 'relation-right'],
+    matrices: ['matrix-e', 'matrix-f', 'matrix-h'],
+    string: ['string-board', 'string-history', 'string-line', 'string-entry'],
+  };
 
   /**
    * Draws a part from the state in place of the server's markup (after hydration, the configured state): the
@@ -414,19 +456,24 @@
   function goLive(part: Part): Step[] {
     if (live[part]) return [];
     const el = partElement(part);
-    const found: Partial<Record<Piece, Element>> = {};
+    const found: Partial<Record<Piece, { el: Element; key: string }>> = {};
     for (const { piece, selector } of ADOPT[part] ?? []) {
       const e = el?.querySelector(selector);
-      if (e) found[piece] = e;
+      if (e) found[piece] = { el: e, key: pieceKey(piece) };
     }
     adoptables = { ...adoptables, ...found };
     const later = (LATER[part] ?? []).filter((p) => found[p] !== undefined);
     for (const p of later) ready[p] = false;
     live[part] = true;
-    return later.map((p): Step => () => {
-      ready[p] = true;
+    return later.map((p): Step => {
+      const step: Step = () => {
+        ready[p] = true;
+      };
+      return CONTROLS.has(p) ? soon(step) : step;
     });
   }
+  /** The later pieces that hold form controls (the board's and the history's buttons, the typed start's fields). */
+  const CONTROLS = new Set<Piece>(['string-board', 'string-history', 'string-entry']);
 
   /**
    * After hydration (the configured state, from the server's markup): the matrices, then the panels the
@@ -434,9 +481,16 @@
    * server's digest holds the relation shown and the counts, and the list is computed when the reader asks
    * for another relation (pickRelation: on the main thread within RELATIONS_MAIN_WORK, in the worker above)
    * or for the data (exportData). Without a digest (it could not be read) the list is computed as after a
-   * pick. The signed moves wait for a change of the node k (pickMatrixNode) or for the data.
+   * pick. The signed moves wait for a change of the node k (pickMatrixNode) or for the data. The parts and
+   * pieces with form controls are drawn first, in tasks that follow one another (soon); then the matrices of
+   * the relation checker and of the panel of E, F and H, the line and the table view, each after a frame.
    */
   function activate(g: number): void {
+    const later: Step[] = [];
+    const drawPart = (part: Part): Step =>
+      soon(() => {
+        if (part === 'string' || tool.rep.built) later.push(...goLive(part));
+      });
     const steps: Step[] = [
       () => {
         if (!tool.rep.built) return;
@@ -450,8 +504,10 @@
         else needList = true;
         touch();
       },
-      ...(['relations', 'matrices'] as Part[]).map((part): Step => () => (tool.rep.built ? goLive(part) : undefined)),
-      () => goLive('string'),
+      drawPart('relations'),
+      drawPart('matrices'),
+      drawPart('string'),
+      soon(() => [...later.filter(isSoon), ...later.filter((s) => !isSoon(s))]),
       () => goLive('table-board'),
     ];
     runSteps(g, steps);
@@ -563,6 +619,8 @@
     // (its piece not ready yet) is left to that load's steps, so that no task draws both (SPEC 7.6).
     const again = (['relation-left', 'relation-right'] as Piece[]).filter((p) => ready[p] && ready['shell-relations']);
     for (const p of again) ready[p] = false;
+    // The server's tables of these sides were taken over when they were drawn: the waiting line stands for them now.
+    if (again.some((p) => adoptables[p] !== undefined)) adoptables = Object.fromEntries(Object.entries(adoptables).filter(([p]) => !again.includes(p as Piece))) as typeof adoptables;
     touch();
     runSteps(
       generation,
@@ -740,7 +798,9 @@
 
 {#snippet matrix(out: Piece, caption: string, sparse: ReadonlyMap<string, bigint>)}
   {#if ready[out]}
-    <MatrixView {out} {caption} rowHeaders={headers} colHeaders={headers} {sparse} {format} sparseDisplay={sparseDots} indexHeaders listMax={DRAW_MAX} adopt={adoptables[out] ?? null} />
+    <MatrixView {out} {caption} rowHeaders={headers} colHeaders={headers} {sparse} {format} sparseDisplay={sparseDots} indexHeaders listMax={DRAW_MAX} adopt={kept(out)} />
+  {:else if kept(out) !== null}
+    <div class="piece kept" use:adoptInto={kept(out)!}></div>
   {:else}
     <p class="line waiting">Drawing {caption}.</p>
   {/if}
@@ -749,8 +809,8 @@
 {#snippet piece(name: Piece, body: Snippet<[FrameApi]>, api: FrameApi)}
   {#if ready[name]}
     <div class="piece" data-piece={name}>{@render body(api)}</div>
-  {:else if adoptables[name] !== undefined}
-    <div class="piece kept" use:adoptInto={adoptables[name]!}></div>
+  {:else if kept(name) !== null}
+    <div class="piece kept" use:adoptInto={kept(name)!}></div>
   {:else}
     <p class="line waiting" data-piece-waiting={name}>{WAITING[name] ?? 'Drawing.'}</p>
   {/if}

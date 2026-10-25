@@ -44,6 +44,7 @@ import {
   STRING_SHOWN_MAX,
   T12Tool,
   acceptRelations,
+  addMatrices,
   addSignedMoves,
   admitLink,
   basisHeaders,
@@ -94,6 +95,7 @@ import {
   routedCalls,
   shownCheck,
   someNumberPhrase,
+  startRepresentation,
   stringNote,
   stringView,
   undoSentence,
@@ -1394,6 +1396,20 @@ describe('T12 hooks and texts (review P5-A2, findings 5, 7, 9 and request 11)', 
     const a2 = matchRecord(RECORDS, { type: 'A2', node: 1 }).weights_dynkin_labels!;
     expect(rows).toEqual(a2.map((w, r) => `${r + 1}: ${positionText(w)}`));
     expect(rows).toEqual(['1: (1, 0)', '2: (0, −1)', '3: (−1, 1)']);
+  });
+
+  it('the headers are one array per basis, so that a change of state elsewhere does not write the drawn tables again', () => {
+    const rep = buildRepresentation(named('E6'), 1);
+    const h = basisHeaders(rep);
+    expect(h).toHaveLength(27);
+    expect(basisHeaders(rep)).toBe(h);
+    expect(Object.isFrozen(h)).toBe(true);
+    // A representation with the matrices still to compute has no headers, and gets its own once they are.
+    const fresh = startRepresentation(named('D4'), 1);
+    expect(basisHeaders(fresh)).toEqual([]);
+    addMatrices(fresh);
+    expect(basisHeaders(fresh)).toHaveLength(8);
+    expect(basisHeaders(fresh)).toBe(basisHeaders(fresh));
   });
 
   it('relation nodes are read through toLabels: a board whose labels are not in position order', () => {
