@@ -427,7 +427,7 @@
   /**
    * The steps that draw the orbit: its layers (orbitGraph), its layout (orbitView), the panel, then each SVG
    * layer in a task of its own. The layout has a task of its own (G5 repair: with the panel's drawing it took
-   * 24 to 56 ms with the processor slowed four times on E7, node 7).
+   * 23 to 56 ms with the processor slowed four times on E6 and E7).
    */
   function orbitSteps(): Step[] {
     return [
@@ -625,7 +625,7 @@
     building = `Building ${spec}${node === null ? '' : `, node ${node}`}.`;
     let label = node ?? 0;
     // The previous state's panels are taken down before the new state is drawn, in two frames of their own
-    // (G5 repair: taken down in one task they took 22 to 40 ms with the processor slowed four times). A piece
+    // (G5 repair: taken down in one task they took 21 to 39 ms with the processor slowed four times). A piece
     // leaves `adoptables` in the step that takes it down, so that no piece shows an element of the server's
     // markup that a drawn view has emptied.
     const takeDown = (parts: Part[]): Step => () => {
