@@ -21,6 +21,7 @@ import {
   boardFromName,
   chevalleySerre,
   fire,
+  minusculeMatrices,
   minusculeNodes,
   orbitSize,
   play,
@@ -65,6 +66,7 @@ import {
   forgetRepresentations,
   inArithmetic,
   interaction,
+  largestAt,
   limitSentence,
   linkNames,
   listOnMain,
@@ -1465,5 +1467,106 @@ describe('regressions', () => {
         expect(sentence ?? '').not.toMatch(/its representations need more than the game/);
       });
     }
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-p5-t12-claims.test.ts (RT-09, phase 5 round, attack 26). The
+  // panel "The move of node k beside its signed version" stated, on every built node, that the firing matrix
+  // is E_k + F_k + P_k^0 and that exp(E_k) exp(-F_k) exp(E_k) is E_k - F_k + P_k^0, and on a node that is not
+  // minuscule that the signed matrix is no longer the move with signs. SPEC 2.18 states the identities "in a
+  // minuscule representation"; on D4 node 2 at k = 2 both are false, on B3 node 1 at k = 1 both hold. The
+  // reproducer printed the claim and the engine's verdict side by side; here each claim the panel makes is
+  // checked against the engine's matrices on the same states (and, through largestAt, on every node k of
+  // every built node of eight boards).
+  describe('P5-RT-09-01: T12 states the identities of a minuscule orbit on every built node', () => {
+    /** The explanatory sentences of a panel: its <p class="line"> paragraphs, without the matrices. */
+    const panelText = (body: string, name: string): string => {
+      const m = new RegExp(`<section[^>]*data-panel="${name}"[^>]*>([^]*?)</section>`).exec(body);
+      if (m === null) return '';
+      return [...m[1]!.matchAll(/<p class="line[^"]*"[^>]*>([^]*?)<\/p>/g)].map((x) => x[1]!.replace(/<!--[^]*?-->/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()).join(' ');
+    };
+    const eye = (m: number): SparseMatrix => new Map(Array.from({ length: m }, (_, r) => [`${r},${r}`, 1n] as [string, bigint]));
+    /** The engine's own matrices of node `label` of `name` at node `k` (labels; positions inside). */
+    function at(name: string, label: number, k: number) {
+      const board = boardFromName(name);
+      const [i] = toPositions(board, [label]);
+      const [kp] = toPositions(board, [k]);
+      const m = minusculeMatrices(board, i!)!;
+      const E = m.E[kp!]!;
+      const F = m.F[kp!]!;
+      const n = m.basis.length;
+      const P0: SparseMatrix = new Map(m.basis.flatMap((v, r) => (v[kp!] === 0 ? [[`${r},${r}`, 1n] as [string, bigint]] : [])));
+      const signedK = signedMoves(m.basis, m.E, m.F)[kp!]!;
+      const I = eye(n);
+      // E_k^2 = F_k^2 = 0 for these matrices, so exp(E_k) = I + E_k and exp(-F_k) = I - F_k.
+      const nilpotent = spMul(E, E).size === 0 && spMul(F, F).size === 0;
+      const exp = spMul(spMul(spAdd(I, E), spAdd(I, F, -1n)), spAdd(I, E));
+      const efp = spAdd(spAdd(E, F), P0);
+      const moveWithSigns = signedK.size === m.moves[kp!]!.size && [...m.moves[kp!]!.keys()].every((key) => signedK.has(key));
+      const squareIsSign = spEq(spMul(signedK, signedK), minusOneToH(m.basis, kp!));
+      return { minuscule: minusculeNodes(board).includes(i!), n, nilpotent, moveIsEFP: spEq(m.moves[kp!]!, efp), expIsSigned: spEq(exp, signedK), moveWithSigns, squareIsSign };
+    }
+    /** What the panel of node k claims, read from its text. */
+    const claims = (text: string, k: number) => ({
+      moveIsEFP: text.includes(`its matrix is E${k} + F${k} + P${k}`),
+      expIsSigned: text.includes(`exp(E${k}) exp(−F${k}) exp(E${k}) is E${k} − F${k} + P${k}`),
+      noLonger: text.includes('no longer the move with signs'),
+      square: text.includes(`Its square multiplies each position by −1 to the power of its number at node ${k}`),
+    });
+
+    // regression: P5-RT-09-01
+    it('D4 node 2, k = 2 (SPEC 4 T12 acceptance example): the panel does not say that the firing matrix is E2 + F2 + P2 or that exp(E2) exp(-F2) exp(E2) is E2 - F2 + P2; both are false there', () => {
+      const body = loader.render(T12C.default, { id: 'r1', board: 'D4', node: 2 });
+      const text = panelText(body, 'signed');
+      expect(text).not.toBe('');
+      const d = at('D4', 2, 2);
+      expect(d.minuscule).toBe(false);
+      expect(d.nilpotent).toBe(true);
+      expect({ moveIsEFP: d.moveIsEFP, expIsSigned: d.expIsSigned }).toEqual({ moveIsEFP: false, expIsSigned: false });
+      const said = claims(text, 2);
+      expect({ moveIsEFP: said.moveIsEFP, expIsSigned: said.expIsSigned, square: said.square }, `T12 on D4 node 2: "${text}"`).toEqual({ moveIsEFP: false, expIsSigned: false, square: false });
+    });
+
+    // regression: P5-RT-09-01
+    it('B3 node 1, k = 1: the panel does not say that the signed matrix is no longer the move with signs; there it is the move with signs', () => {
+      const body = loader.render(T12C.default, { id: 'r2', board: 'B3', node: 1 });
+      const text = panelText(body, 'signed');
+      const b = at('B3', 1, 1);
+      expect(b.minuscule).toBe(false);
+      expect({ moveIsEFP: b.moveIsEFP, expIsSigned: b.expIsSigned, moveWithSigns: b.moveWithSigns, squareIsSign: b.squareIsSign }).toEqual({ moveIsEFP: true, expIsSigned: true, moveWithSigns: true, squareIsSign: true });
+      const said = claims(text, 1);
+      expect(said.noLonger, `T12 on B3 node 1: "${text}"`).toBe(false);
+      expect({ moveIsEFP: said.moveIsEFP, expIsSigned: said.expIsSigned, square: said.square }, `T12 on B3 node 1: "${text}"`).toEqual({ moveIsEFP: true, expIsSigned: true, square: true });
+    });
+
+    // regression: P5-RT-09-01
+    it('on every node k of every built node of eight boards, the panel states the identities exactly where the engine\'s matrices satisfy them', () => {
+      for (const name of ['A3', 'B2', 'B3', 'C3', 'D4', 'D5', 'G2', 'F4']) {
+        const board = named(name);
+        for (const label of [...board.labels].sort((a, b) => a - b)) {
+          const rep = buildRepresentation(board, label, { relations: 'later' });
+          if (!rep.built) continue;
+          for (const k of [...board.labels].sort((a, b) => a - b)) {
+            const e = at(name, label, k);
+            const holds = e.moveIsEFP && e.expIsSigned && e.squareIsSign;
+            expect(largestAt(rep, pos(board, k)) <= 1, `${name} node ${label}, k = ${k}`).toBe(holds);
+            // Either both identities hold or neither does (2.18: the move fails exactly where a number at k is 2 or more).
+            expect(e.moveIsEFP, `${name} node ${label}, k = ${k}`).toBe(e.expIsSigned);
+            if (rep.minuscule) expect(holds, `${name} node ${label}, k = ${k}`).toBe(true);
+          }
+        }
+      }
+      // The panel itself on a few of these states (the server's markup draws node k = node i).
+      for (const [name, label] of [['B2', 1], ['C3', 3], ['G2', 1], ['A3', 2]] as const) {
+        const text = panelText(loader.render(T12C.default, { id: 'r3', board: name, node: label }), 'signed');
+        const e = at(name, label, label);
+        const said = claims(text, label);
+        expect({ moveIsEFP: said.moveIsEFP, expIsSigned: said.expIsSigned, square: said.square, noLonger: said.noLonger }, `${name} node ${label}: "${text}"`).toEqual({
+          moveIsEFP: e.moveIsEFP,
+          expIsSigned: e.expIsSigned,
+          square: e.moveIsEFP && e.squareIsSign,
+          noLonger: false,
+        });
+      }
+    });
   });
 });

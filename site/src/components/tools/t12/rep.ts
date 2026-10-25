@@ -394,6 +394,20 @@ export function addRelations(rep: Representation, opts: { engine?: RepEngine; ro
   rep.checks = engine.chevalleySerre(rep.board, rep.E!, rep.F!, rep.H!);
 }
 
+/**
+ * The largest number at the node with position k over the orbit of a built representation (0 before the
+ * matrices are built). Firing node k moves a position mu by mu_k steps, and E_k and F_k take single steps,
+ * so the firing matrix is E_k + F_k + P_k^0, and exp(E_k) exp(-F_k) exp(E_k) is E_k - F_k + P_k^0 with
+ * square (-1)^{H_k}, exactly when this is at most 1, as on every minuscule node (SPEC 2.18); otherwise a
+ * position with a number of 2 or more at node k lies outside every entry of E_k, F_k and P_k^0, and
+ * E_k - F_k + P_k^0 is singular (RT-FIX P5-RT-09-01).
+ */
+export function largestAt(rep: Representation, k: number): number {
+  let m = 0;
+  for (const v of rep.basis ?? []) if (v[k]! > m) m = v[k]!;
+  return m;
+}
+
 /** The dimension shown (data-out="dimension"): the size of the basis, which equals the orbit's size. */
 export function dimensionOf(rep: Representation): number {
   return rep.basis?.length ?? rep.orbitSize;
