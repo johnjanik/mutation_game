@@ -13,6 +13,12 @@
 // data-out and data-exact (the value as JSON in label order, integers beyond 2^53 as decimal strings), the
 // names listed in the registry's outs and at the top of site/tests/e2e/T14.spec.ts. The radio group of the
 // convention switch sits outside the root, since it is a control that works before and without JavaScript.
+//
+// Provenance (SPEC 8.4 "Every theorem-like statement carries its provenance"; repair after review): each
+// statement beside a value is followed by a line class="provenance" with data-provenance naming the place in
+// SPEC that gives it (F1 to F13 of 2.7, 2.4, 2.12, 6.4), worded as SPEC states it: "verified by computation"
+// with the range SPEC gives, and the citations SPEC names, never more.
+import Cite from '@components/content/Cite.astro';
 import { linkIfReleased } from '@lib/pages/released';
 import { renderTex } from '@lib/katex';
 import MatrixView from '@components/math/MatrixView.svelte';
@@ -138,6 +144,10 @@ const items: [string, string][] = [
         ? `All ${sheet.nPositiveRoots} positive roots are listed.`
         : `The first ${sheet.positiveRoots.length} of the ${sheet.nPositiveRoots} positive roots are listed (at most ${ROOT_LIST_CAP} are).`}
     </p>
+    <p class="provenance" data-provenance="F1">
+      That every root is a positive root or the negative of one is verified by computation for every board of finite type of
+      rank at most 8; <Cite k="W03a" /> states it for boards with single roads.
+    </p>
   </AtlasItem>
 
   <AtlasItem id="highest-roots" title="Highest roots" link={sheet.links['highest-roots']}>
@@ -154,12 +164,20 @@ const items: [string, string][] = [
     ) : (
       <p>Every root of {T} has the same length, so there is no separate highest short root. Kostant's game ends at the highest root from every node.</p>
     )}
+    <p class="provenance" data-provenance="F13">
+      Where Kostant's game ends is verified by computation for every board of finite type of rank at most 8; the game is
+      attributed to Kostant <Cite k="Che17" />.
+    </p>
   </AtlasItem>
 
   <AtlasItem id="exponents" title="Exponents" link={sheet.links.exponents}>
     <p>
       The exponents are <span class="value" data-out="exponents" data-exact={exact(sheet.exponents)}>{list(sheet.exponents)}</span>. They are read off
       the game from all ones: count how many times each value is fired, and read the counts sideways.
+    </p>
+    <p class="provenance" data-provenance="F7">
+      Reading the exponents off the game is verified by computation for every board of finite type of rank at most 8; the
+      theorem behind it is that of Shapiro, Steinberg, Kostant and Macdonald <Cite k="Ste59" /> <Cite k="Kos59" />.
     </p>
   </AtlasItem>
 
@@ -171,10 +189,21 @@ const items: [string, string][] = [
       {n >= 2 && (
         <>
           Colour the nodes with two colours so that joined nodes differ; from all ones, fire every node of one colour, then every node of the
-          other, and repeat. The game ends after exactly <Fragment set:html={tex('h')} /> such rounds.
+          other, and repeat, one round being the firing of one colour class. The game ends after exactly <Fragment set:html={tex('h')} /> rounds.
         </>
       )}
     </p>
+    {n >= 2 ? (
+      <p class="provenance" data-provenance="F7 F8">
+        That <Fragment set:html={tex('h')} /> is one more than the largest exponent, and the number of rounds of the wave, are verified by
+        computation for every board of finite type of rank at most 8; the wave is in <Cite k="FZ03b" /> (Lemma 2.1) and <Cite k="Ste59" /> (6.3).
+      </p>
+    ) : (
+      <p class="provenance" data-provenance="F7">
+        That <Fragment set:html={tex('h')} /> is one more than the largest exponent is verified by computation for every board of finite type
+        of rank at most 8.
+      </p>
+    )}
   </AtlasItem>
 
   <AtlasItem id="weyl-order" link={sheet.links['weyl-order']}>
@@ -182,6 +211,9 @@ const items: [string, string][] = [
     <p>
       The Weyl group has <Fragment set:html={tex('|W|=')} /><span class="value" data-out="weyl-order" data-exact={exact(sheet.weylOrder)}>{sheet.weylOrder}</span> elements,
       the product of the exponents each increased by one.
+    </p>
+    <p class="provenance" data-provenance="F7">
+      That the order is this product is verified by computation for every board of finite type of rank at most 8.
     </p>
   </AtlasItem>
 
@@ -192,12 +224,19 @@ const items: [string, string][] = [
       The translation <Fragment set:html={tex('a=Cp')} /> sends the populations onto a sublattice of index <Fragment set:html={tex('\\det C')} />{' '}
       in the positions of the numbers game.
     </p>
+    <p class="provenance" data-provenance="2.4">
+      The index is a fact of linear algebra: an integer matrix with a nonzero determinant sends the integer vectors onto a sublattice
+      whose index is the absolute value of its determinant.
+    </p>
   </AtlasItem>
 
   <AtlasItem id="minuscule-nodes" title="Minuscule nodes" link={sheet.links['minuscule-nodes']}>
     <p>
       Minuscule nodes: <span class="value" data-out="minuscule-nodes" data-exact={exact(sheet.minusculeNodes)}>{sheet.minusculeNodes.length === 0 ? 'none' : list(sheet.minusculeNodes)}</span>.
       A node is minuscule when every number fired in the game from its fundamental weight is 1; there are <Fragment set:html={tex('\\det C-1')} /> of them.
+    </p>
+    <p class="provenance" data-provenance="F11">
+      Both statements are verified by computation for every node of every board of finite type of rank at most 8.
     </p>
   </AtlasItem>
 
@@ -207,6 +246,10 @@ const items: [string, string][] = [
       <Fragment set:html={tex('-w_0')} /> sends the nodes 1 to {lastLabel} to{' '}
       <span class="value" data-out="minus-w0" data-exact={exact(sheet.minusW0)}>{tuple(sheet.minusW0)}</span>{sheet.minusW0Identity ? ', the identity' : ''}.
       A complete game from numbers that are all positive ends at their negatives, moved by this permutation of the nodes.
+    </p>
+    <p class="provenance" data-provenance="F4">
+      This is verified by computation from all ones and from six random starts with every number positive, on every board of finite type of
+      rank at most 8.
     </p>
   </AtlasItem>
 
@@ -228,6 +271,9 @@ const items: [string, string][] = [
           A complete game from all ones can be played in{' '}
           <span class="value" data-out="complete-games" data-exact={exact(sheet.completeGames)} data-long={games.long ? 'true' : undefined} title={games.long ? `${games.exact}, exactly` : undefined}>{games.shown}</span>{' '}
           ways: the number of reduced words of the longest element.
+        </p>
+        <p class="provenance" data-provenance="F5">
+          That the complete games are the reduced words of the longest element is in <Cite k="Don08" /> (Theorem 2.8).
         </p>
         {games.long && (
           <details class="exact" data-exact-value>
@@ -272,6 +318,10 @@ const items: [string, string][] = [
       its comarks are the positive integers <Fragment set:html={tex('c')} /> with <Fragment set:html={tex('c^{\\mathsf T}C=0')} />, the weights of the level that no firing changes.{' '}
       {marksEqual ? 'On a simply laced board marks and comarks coincide, as they do here.' : 'Here they differ, and reversing every road exchanges them.'}
     </p>
+    <p class="provenance" data-provenance="2.12">
+      The marks and comarks, and how they are related, are verified by computation for the affine board of every board of finite type
+      of rank at most 8.
+    </p>
     <div class="table-box" tabindex="0" role="region" aria-label={`Marks and comarks of the affine board of ${T}`}>
       <table class="affine-table">
         <caption>Marks and comarks of the affine board of {T}, node 0 first</caption>
@@ -287,9 +337,13 @@ const items: [string, string][] = [
   </AtlasItem>
 
   <AtlasItem id="real-forms" title="Real forms" link={null}>
-    <p>
-      The Satake catalogue lists {sheet.realForms.length} real forms of {T}, each with Cartan's label beside its name. Each opens in the
-      Satake Studio with its black nodes and its involution <Fragment set:html={tex('\\tau')} />.
+    <p data-real-form-count>
+      {sheet.realFormCount === sheet.realForms.length ? (
+        <>The Satake catalogue lists {sheet.realForms.length} real forms of {T}, each with Cartan's label beside its name.</>
+      ) : (
+        <>The Satake catalogue lists {sheet.realForms.length} records for {T}, which make {sheet.realFormCount} real forms; each record has Cartan's label beside its name.</>
+      )}{' '}
+      Each opens in the Satake Studio with its black nodes and its involution <Fragment set:html={tex('\\tau')} />.
     </p>
     <ul class="real-forms" data-out="real-forms" data-exact={exact(sheet.realForms.map((f) => ({ cartan_label: f.cartanLabel, real_form: f.realForm, black_nodes: f.black, tau: f.tau })))}>
       {sheet.realForms.map((f) => {
@@ -320,12 +374,19 @@ const items: [string, string][] = [
         {otherHref !== null ? <a href={`${otherHref}#real-forms`}>the real forms of {other}</a> : <>the real forms of {other}</>} are the same list under the other names.
       </p>
     )}
-    {T === 'D4' && (
-      <p>
-        On <Fragment set:html={typeName('D4')} /> two records of the catalogue are one real form:{' '}
-        <Fragment set:html={realFormName('so(2,6)').html} /> and <Fragment set:html={realFormName('so*(8)').html} />. Both are listed.
+    {sheet.coincidences.map((group) => (
+      <p data-coincidence={group.join(' ')}>
+        On <Fragment set:html={name} /> the records{' '}
+        {group.map((f, k) => (
+          <>{k === 0 ? '' : k === group.length - 1 ? ' and ' : ', '}<Fragment set:html={realFormName(f).html} /></>
+        ))}{' '}
+        are one real form, as verified by computation; {group.length === 2 ? 'both are' : 'all of them are'} listed.
       </p>
-    )}
+    ))}
+    <p class="provenance" data-provenance="6.4">
+      The catalogue is verified by computation: up to the symmetries of the board, its records are exactly the admissible pairs of black
+      nodes and involution, for every board of finite type of rank at most 8.
+    </p>
   </AtlasItem>
 
   <section class="atlas-item" id="downloads" aria-labelledby="downloads-heading" data-item="downloads">
@@ -401,6 +462,9 @@ const items: [string, string][] = [
   }
   .real-forms li {
     margin-block: 8px;
+  }
+  .provenance {
+    font-size: 0.95em;
   }
   .real-forms a {
     display: inline-block;

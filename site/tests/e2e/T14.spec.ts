@@ -15,13 +15,18 @@
 // JSON in label order), data-item (each section), data-board-name (h1), data-atlas, data-convention and
 // data-convention-choice (the switch), data-kac-note, data-unverified (Unverified.astro), data-wildberger,
 // data-letters-exchanged, data-rank2-note, data-other-page, data-sp-note, data-long, data-exact-value,
-// data-download, data-tool-link, data-board-link, data-group, data-control="cite", data-live; KaTeX's
-// <annotation> for typeset names.
+// data-download, data-tool-link, data-board-link, data-group, data-control="cite", data-live, data-real-form,
+// data-cartan-label, data-real-form-count, data-coincidence, data-provenance (the place in SPEC that gives a
+// statement); T10's data-control="shortRoots" and data-out="ringSizes", "pointCount"; the site navigation
+// (nav[aria-label="Site"]); KaTeX's <annotation> for typeset names.
+//
+// Repair after review: every displayed value is compared with golden as shown on the page (the visible text)
+// as well as through data-exact; the satake records are matched with the harness's matchRecord.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { siteAndBase } from '../../src/lib/siteAndBase.mjs';
-import { TYPE_NAMES, golden, intEq, ringsEq } from '../../../packages/engine/test/golden/_harness';
+import { TYPE_NAMES, golden, intEq, matchRecord, ringsEq } from '../../../packages/engine/test/golden/_harness';
 
 interface GoldenSatake {
   dynkin_type: string;
@@ -29,6 +34,7 @@ interface GoldenSatake {
   real_form: string;
   black_nodes: number[];
   tau: number[];
+  restricted_type_display: string | null;
 }
 interface GoldenAffine {
   name: string;
@@ -38,6 +44,11 @@ interface GoldenAffine {
 }
 const SATAKE = golden.satake as GoldenSatake[];
 const AFFINE = golden.affine as Record<string, GoldenAffine>;
+const COUNTS = golden.admissible_counts as Record<string, { real_forms_including_compact: number; catalogue_records: number }>;
+/** Wildberger's name for each board he names (golden wildberger_lists.names: his name to this site's board). */
+const HIS_NAMES = (golden.wildberger_lists as { names: Record<string, string> }).names;
+/** A release build (RELEASE set), as the build and its preview are run (openItemsReport.mjs isReleaseBuild). */
+const RELEASE = process.env.RELEASE !== undefined && process.env.RELEASE !== '';
 
 const ITEMS = [
   'cartan', 'roads', 'weights', 'roots', 'highest-roots', 'exponents', 'coxeter-number', 'weyl-order', 'det-cartan',
@@ -65,6 +76,55 @@ async function downloadOf(page: Page, kind: string): Promise<{ file: string; tex
 const transpose = (m: number[][]): number[][] => m.map((row, i) => row.map((_, j) => m[j]![i]!));
 /** An integer as the pages show it: a true minus sign (SPEC 6.3). */
 const signed = (x: number): string => (x < 0 ? `\u2212${-x}` : String(x));
+/** A vector as the pages show it. */
+const tuple = (v: readonly number[]): string => `(${v.map(signed).join(', ')})`;
+/** A list in a sentence as the pages show it. */
+const list = (v: readonly number[]): string => v.map(signed).join(', ');
+
+/** The visible text of the one element with this data-out. */
+async function shown(page: Page, out: string): Promise<string> {
+  const el = page.locator(`[data-out="${out}"]`);
+  await expect(el, out).toHaveCount(1);
+  return ((await el.textContent()) ?? '').replace(/\s+/g, ' ').trim();
+}
+
+/** The entries of the matrix inside [data-out=out] as shown, row by row (MatrixView's data-row and data-col). */
+async function cellsOf(page: Page, out: string): Promise<string[][]> {
+  return page.locator(`[data-out="${out}"] td[data-row][data-col]`).evaluateAll((tds) => {
+    const rows: string[][] = [];
+    for (const td of tds) {
+      const r = Number(td.getAttribute('data-row')) - 1;
+      const c = Number(td.getAttribute('data-col')) - 1;
+      (rows[r] ??= [])[c] = (td.textContent ?? '').trim();
+    }
+    return rows;
+  });
+}
+
+/** The prose of the elements matching a selector, each formula replaced by its TeX source (KaTeX's annotation). */
+async function proseOf(page: Page, selector: string): Promise<string[]> {
+  return page.locator(selector).evaluateAll((els) =>
+    els.map((el) => {
+      const copy = el.cloneNode(true) as HTMLElement;
+      for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(k.querySelector('annotation')?.textContent ?? ''));
+      return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+    }),
+  );
+}
+
+/** The text a reader sees in main: KaTeX's MathML (and its TeX annotation), scripts and styles left out. */
+async function visibleText(page: Page): Promise<string> {
+  return page.locator('main').evaluate((m) => {
+    const copy = m.cloneNode(true) as HTMLElement;
+    for (const e of copy.querySelectorAll('.katex-mathml, script, style')) e.remove();
+    return (copy.textContent ?? '').replace(/\s+/g, ' ');
+  });
+}
+
+/** A count as the pages show it (4.0 "Long numbers": above 12 digits, shortened with the number of digits). */
+function countShown(digits: string): string {
+  return digits.length > 12 ? `${digits[0]}.${digits.slice(1, 5)}... x 10^${digits.length - 1} (${digits.length} digits)` : digits;
+}
 
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
@@ -134,7 +194,7 @@ test.describe('convention switch', () => {
         intEq(await exactOf(page, 'cartan'), C);
         intEq(await exactOf(page, 'cartan-transposed'), transpose(C));
         // A native radio group with a legend: the arrow key moves the choice.
-        await expect(page.locator('fieldset:has([data-convention-choice]) > legend')).toHaveText('Show the Cartan matrix as it is printed by');
+        await expect(page.locator('fieldset:has([data-convention-choice]) > legend')).toHaveText('Show the Cartan matrix in the convention of');
         await page.locator('[data-convention-choice="site"]').focus();
         await page.keyboard.press('ArrowDown');
         await expect(page.locator('[data-convention-choice="bourbaki"]')).toBeChecked();
@@ -151,16 +211,101 @@ test.describe('convention switch', () => {
       });
     });
   }
+
+  // Repair after review (major b): the switch names a convention; nothing about Kac's numbering of the nodes is
+  // said outside <Unverified item="E4"> (SPEC 2.9, last two rows; Appendix E item 4). Run on the preview build
+  // and on the release build (RELEASE=1), where the wrapped sentence is replaced by its fallback.
+  test(`E6: the switch names a convention, and Kac's numbering is said only inside Unverified E4 (${RELEASE ? 'release' : 'preview'} build)`, async ({ page }) => {
+    await page.goto('atlas/E6/');
+    await expect(page.locator('fieldset:has([data-convention-choice]) > legend')).toHaveText('Show the Cartan matrix in the convention of');
+    // The text of the item outside the wrapper.
+    const outside = await page.locator('#cartan').evaluate((el) => {
+      const copy = el.cloneNode(true) as HTMLElement;
+      for (const e of copy.querySelectorAll('[data-unverified], .katex-mathml')) e.remove();
+      return (copy.textContent ?? '').replace(/\s+/g, ' ');
+    });
+    expect(outside).toContain('Bourbaki and Humphreys number the nodes as this site does, so the switch changes the matrix and nothing else.');
+    expect(outside).not.toMatch(/as it is printed by|numbered the same way/);
+    for (const sentence of outside.split(/(?<=\.)\s/)) expect(/Kac/.test(sentence) && /number/i.test(sentence), sentence).toBe(false);
+    const wrapped = page.locator('[data-kac-note] [data-unverified="E4"]');
+    await expect(wrapped).toHaveCount(1);
+    if (RELEASE) {
+      await expect(wrapped).toHaveClass(/unverified-fallback/);
+      expect(await visibleText(page)).not.toContain('Kac numbers');
+    } else {
+      await expect(wrapped).toContainText('Kac numbers the nodes of E6 differently from Bourbaki');
+      await expect(wrapped.locator('a.unverified-mark')).toHaveCount(1);
+    }
+  });
 });
 
 test.describe('displayed values', () => {
   test.use({ javaScriptEnabled: false });
   test('displayed values equal golden on every page', async ({ page }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
     for (const T of TYPE_NAMES) {
       const rec = golden.types[T]!;
+      const n = rec.cartan.length;
       await page.goto(`atlas/${T}/`);
       await expect(page.locator('h1')).toHaveAttribute('data-board-name', T);
+      // As shown: the matrices cell by cell with a true minus sign, the vectors, lists and counts as text.
+      expect(await cellsOf(page, 'cartan'), `${T} cartan shown`).toEqual(rec.cartan.map((r) => r.map(signed)));
+      expect(await cellsOf(page, 'cartan-transposed'), `${T} transpose shown`).toEqual(transpose(rec.cartan).map((r) => r.map(signed)));
+      expect(await cellsOf(page, 'adjacency'), `${T} adjacency shown`).toEqual(rec.adjacency.map((r) => r.map(signed)));
+      expect(await shown(page, 'symmetrizer'), `${T} symmetrizer shown`).toBe(tuple(rec.symmetrizer));
+      expect(await shown(page, 'n-roots'), `${T} n_roots shown`).toBe(String(rec.n_roots));
+      expect(await shown(page, 'n-positive-roots'), `${T} n_positive_roots shown`).toBe(String(rec.n_positive_roots));
+      const rootsShown = await page.locator('[data-out="positive-roots"] li').allTextContents();
+      if (rec.positive_roots !== undefined) expect(rootsShown, `${T} positive_roots shown`).toEqual(rec.positive_roots.map(tuple));
+      else expect(rootsShown, `${T} positive roots shown`).toHaveLength(rec.n_positive_roots);
+      expect(await shown(page, 'highest-root'), `${T} highest_root shown`).toBe(tuple(rec.highest_root));
+      expect(await shown(page, 'numbers-of-highest-root'), `${T} numbers_of_highest_root shown`).toBe(tuple(rec.numbers_of_highest_root));
+      if (rec.highest_short_root != null && rec.numbers_of_highest_short_root != null) {
+        expect(await shown(page, 'highest-short-root'), `${T} highest_short_root shown`).toBe(tuple(rec.highest_short_root));
+        expect(await shown(page, 'numbers-of-highest-short-root'), `${T} numbers_of_highest_short_root shown`).toBe(tuple(rec.numbers_of_highest_short_root));
+      }
+      expect(await shown(page, 'exponents'), `${T} exponents shown`).toBe(list(rec.exponents));
+      expect(await shown(page, 'coxeter-number'), `${T} coxeter_number shown`).toBe(String(rec.coxeter_number));
+      expect(await shown(page, 'weyl-order'), `${T} weyl_order shown`).toBe(String(rec.weyl_order));
+      expect(await shown(page, 'det-cartan'), `${T} det_cartan shown`).toBe(signed(Number(rec.det_cartan)));
+      expect(await shown(page, 'minuscule-nodes'), `${T} minuscule_nodes shown`).toBe(rec.minuscule_nodes.length === 0 ? 'none' : list(rec.minuscule_nodes));
+      expect(await shown(page, 'minus-w0'), `${T} minus_w0 shown`).toBe(tuple(rec.minus_w0));
+      expect(await shown(page, 'fundamental-orbit-sizes'), `${T} fundamental_orbit_sizes shown`).toBe(tuple(rec.fundamental_orbit_sizes));
+      if (rec.n_reduced_words_w0 !== undefined) expect(await shown(page, 'complete-games'), `${T} n_reduced_words_w0 shown`).toBe(countShown(String(rec.n_reduced_words_w0)));
+      if (rec.coxeter_plane !== undefined) {
+        expect(await shown(page, 'coxeter-plane-rings'), `${T} ring sizes shown`).toBe(list(rec.coxeter_plane.rings.map((r) => r[1])));
+        const table = await page.locator('#coxeter-plane table.rings tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => Number(td.textContent))));
+        ringsEq(table.map(([r, k]) => [r!, k!] as [number, number]), rec.coxeter_plane.rings);
+      }
+      const affine = AFFINE[T]!;
+      expect(await shown(page, 'affine-name'), `${T} affine name shown`).toBe(affine.name);
+      const affineRows = await page.locator('#affine table.affine-table tr').evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll('th, td')].map((c) => (c.textContent ?? '').trim())));
+      expect(affineRows, `${T} marks and comarks shown`).toEqual([
+        ['Node', ...Array.from({ length: n + 1 }, (_, k) => String(k))],
+        ['Marks', ...affine.marks.map(signed)],
+        ['Comarks', ...affine.comarks.map(signed)],
+      ]);
+      // Each real form as shown: its black nodes and tau, matched to its record by the harness (rule 5).
+      const recordsHere = SATAKE.filter((r) => r.dynkin_type === T);
+      const lines = await page.locator('[data-out="real-forms"] > li').evaluateAll((lis) =>
+        lis.map((li) => {
+          const copy = li.cloneNode(true) as HTMLElement;
+          for (const k of copy.querySelectorAll('.katex')) k.remove();
+          return { form: li.getAttribute('data-real-form')!, label: li.getAttribute('data-cartan-label')!, text: (copy.textContent ?? '').replace(/\s+/g, ' ') };
+        }),
+      );
+      expect(lines, T).toHaveLength(recordsHere.length);
+      for (const line of lines) {
+        const g = matchRecord(recordsHere, { real_form: line.form });
+        expect(line.label, `${T} ${line.form}`).toBe(g.cartan_label);
+        const black = g.black_nodes.length === 0 ? 'No black node' : `Black ${g.black_nodes.length === 1 ? 'node' : 'nodes'} ${list(g.black_nodes)}`;
+        expect(line.text, `${T} ${line.form} black nodes shown`).toContain(`${black};`);
+        const identity = g.tau.every((t, k) => t === k + 1);
+        expect(line.text, `${T} ${line.form} tau shown`).toContain(identity ? ' the identity;' : ` sends the nodes to ${tuple(g.tau)};`);
+        if (g.restricted_type_display === null) expect(line.text, `${T} ${line.form}`).toContain('the compact form, with no restricted roots.');
+        else expect(line.text, `${T} ${line.form}`).toContain('restricted roots of type');
+      }
+      // And the hooks (data-exact).
       intEq(await exactOf(page, 'cartan'), rec.cartan, `${T} cartan`);
       intEq(await exactOf(page, 'cartan-transposed'), transpose(rec.cartan), `${T} transpose`);
       intEq(await exactOf(page, 'adjacency'), rec.adjacency, `${T} adjacency`);
@@ -211,7 +356,8 @@ test.describe('displayed values', () => {
       const records = SATAKE.filter((r) => r.dynkin_type === T);
       expect(forms.map((f) => `${f.cartan_label} | ${f.real_form}`).sort(), T).toEqual(records.map((r) => `${r.cartan_label} | ${r.real_form}`).sort());
       for (const f of forms) {
-        const g = records.find((r) => r.real_form === f.real_form)!;
+        const g = matchRecord(records, { real_form: f.real_form });
+        expect(f.cartan_label, `${T} ${f.real_form}`).toBe(g.cartan_label);
         intEq(f.black_nodes, g.black_nodes, `${T} ${f.real_form} black`);
         intEq(f.tau, g.tau, `${T} ${f.real_form} tau`);
       }
@@ -337,6 +483,43 @@ test.describe('links', () => {
     await page.goto('atlas/B2/');
     expect(await page.locator('#affine a[data-tool-link="affine"]').getAttribute('href')).toMatch(/g=B2~$/);
   });
+
+  // Repair after review (major a): T10 opens with the short roots hidden (6.6 keeps the option out of a link), so on
+  // a board with two root lengths the link says to tick Short roots; ticked, the tool shows the rings the page lists.
+  test('links: with Short roots ticked, the Coxeter-plane link shows all the roots on the rings listed (B3, C3, G2)', async ({ page }) => {
+    test.setTimeout(180_000);
+    for (const T of ['B3', 'C3', 'G2']) {
+      const rec = golden.types[T]!;
+      expect(rec.highest_short_root, `${T} has two root lengths`).not.toBeNull();
+      await page.goto(`atlas/${T}/`);
+      const a = page.locator('#coxeter-plane a[data-tool-link="geometry"]');
+      await expect(a).toHaveText(`See the roots of ${T} in the Coxeter plane in the Geometry Studio; tick Short roots to see all ${rec.n_roots} roots on the rings listed here`);
+      const listed = await shown(page, 'coxeter-plane-rings');
+      await page.goto((await a.getAttribute('href'))!);
+      const root = page.locator('[data-tool="geometry"]').first();
+      await expect(root, T).toHaveAttribute('data-hydrated', 'true', { timeout: 30_000 });
+      await root.locator('[data-control="shortRoots"]').check();
+      await expect(root.locator('[data-out="ringSizes"]'), `${T}: the rings with the short roots`).toHaveText(listed);
+      await expect(root.locator('[data-out="pointCount"]'), `${T}: every root`).toHaveText(String(rec.n_roots));
+    }
+    // A simply laced board has one root length, and its link says nothing of short roots.
+    await page.goto('atlas/D4/');
+    await expect(page.locator('#coxeter-plane a[data-tool-link="geometry"]')).toHaveText('See the roots of D4 in the Coxeter plane in the Geometry Studio');
+  });
+
+  test('links: the texts of h and |W| promise what the Numbers Game Lab shows', async ({ page }) => {
+    // A1: the wave is a single move (F8), so its h link promises no rounds.
+    await page.goto('atlas/A1/');
+    const a1 = (await page.locator('#coxeter-number a[data-tool-link]').textContent())!;
+    expect(a1).not.toMatch(/round|wave/i);
+    await expect(page.locator('#coxeter-number')).not.toContainText('round');
+    // D5 (not offered by T8): the order is the product of the exponents each increased by one (F7).
+    await page.goto('atlas/D5/');
+    await expect(page.locator('#weyl-order a[data-tool-link="numbers"]')).toContainText('the group order is the product of the exponents each increased by one');
+    await expect(page.locator('#coxeter-number a[data-tool-link="numbers"]')).toContainText('choose its Wave tab to count the rounds');
+    // A round is the firing of one colour class (F8), so h rounds and not h/2.
+    await expect(page.locator('#coxeter-number')).toContainText('and repeat, one round being the firing of one colour class. The game ends after exactly');
+  });
 });
 
 test.describe('pages', () => {
@@ -379,6 +562,11 @@ test.describe('pages', () => {
       await page.goto(`atlas/${T}/`);
       const wrapped = page.locator('[data-kac-note] [data-unverified="E4"]');
       await expect(wrapped, T).toHaveCount(1);
+      if (RELEASE) {
+        // A release build shows the fallback in its place (7.3).
+        await expect(wrapped).toHaveText('Other books may number the nodes of this board differently; compare the Cartan matrices before reading off a node.');
+        continue;
+      }
       // The preview build shows the sentence with its mark (7.3).
       await expect(wrapped).toContainText(`Kac numbers the nodes of ${T} differently`);
       expect(await wrapped.locator('a.unverified-mark').getAttribute('href')).toMatch(/open-items#E4$/);
@@ -396,26 +584,167 @@ test.describe('pages', () => {
     await expect(page.locator(note)).toHaveAttribute('data-wildberger', 'reversed');
     // His name first, then this board's: his "C3" is this board, B3, reversed.
     expect(await texIn(page, `${note} p:first-of-type`)).toEqual(['C_{3}', 'B_{3}']);
-    await expect(page.locator(`${note} p:first-of-type`)).toContainText('with the order of the nodes reversed: his vertex k is node 4 − k');
     await expect(page.locator('[data-letters-exchanged]')).toHaveCount(1);
     await expect(page.locator(note)).toContainText('checked by computation against the printed lists of positive roots');
     await page.goto('atlas/C3/');
     expect(await texIn(page, `${note} p:first-of-type`)).toEqual(['B_{3}', 'C_{3}']);
     await expect(page.locator('[data-letters-exchanged]')).toHaveCount(1);
     await page.goto('atlas/F4/');
-    await expect(page.locator(note)).toContainText('his vertices 3 and 4 are the long nodes');
     await expect(page.locator('[data-letters-exchanged]')).toHaveCount(0);
-    await page.goto('atlas/D5/');
-    await expect(page.locator(note)).toHaveAttribute('data-wildberger', 'D');
-    await expect(page.locator(note)).toContainText('his vertex k is node 5 − k, and his vertex 0 is node 5');
-    await page.goto('atlas/E6/');
-    await expect(page.locator(note)).toHaveAttribute('data-wildberger', 'E');
-    await expect(page.locator(note)).toContainText('his vertex 0 is node 2');
     for (const T of ['E8', 'A4']) {
       await page.goto(`atlas/${T}/`);
       await expect(page.locator(note), T).toHaveAttribute('data-wildberger', 'none');
-      await expect(page.locator(note), T).toContainText("This site uses Bourbaki's names and numbering of the nodes");
-      expect(((await page.locator(note).textContent()) ?? '').includes('His'), T).toBe(false);
+      expect(await proseOf(page, `${note} p`), T).toEqual(["This site uses Bourbaki's names and numbering of the nodes [Bou68]."]);
+    }
+  });
+
+  // Repair after review: the full sentence of each of the seven rows of SPEC 2.10, on one page each. His name is
+  // read from golden wildberger_lists.names (his name to this site's board); the rest of each sentence is the row
+  // of 2.10 in the site's words, and the facts it states are checked against the golden board as well.
+  test('Wildberger note: the full sentence of each row of 2.10', async ({ page }) => {
+    const hisName = (T: string): string => {
+      const his = Object.keys(HIS_NAMES).filter((k) => HIS_NAMES[k] === T || HIS_NAMES[k] === `${T} with the node order reversed`);
+      expect(his, T).toHaveLength(1);
+      return his[0]!;
+    };
+    const tex = (name: string): string => `${name[0]}_{${name.slice(1)}}`;
+    const opening = "This site uses Bourbaki's names and numbering of the nodes. Wildberger's paper [W20] (section 9) and manuscript [W-MS] (pages 23 to 29) name and number some boards differently.";
+    const rank = (T: string): number => golden.types[T]!.cartan.length;
+    const d = (T: string): number[] => golden.types[T]!.symmetrizer;
+    const joined = (T: string, a: number, b: number): boolean => golden.types[T]!.adjacency[a - 1]![b - 1]! > 0;
+    const rows: [string, string, string][] = [
+      ['B2 and C2', 'B2', `His “${tex(hisName('B2'))}” is this board, with the same numbering of the nodes.`],
+      ['B_n', 'B3', `His “${tex(hisName('B3'))}” is this board, ${tex('B3')}, with the order of the nodes reversed: his vertex k is node ${rank('B3') + 1} \u2212 k.`],
+      ['C_n', 'C4', `His “${tex(hisName('C4'))}” is this board, ${tex('C4')}, with the order of the nodes reversed: his vertex k is node ${rank('C4') + 1} \u2212 k.`],
+      ['F4', 'F4', `His “${tex(hisName('F4'))}” is this board with the order of the nodes reversed, so his vertices 3 and 4 are the long nodes.`],
+      ['G2', 'G2', `His “${tex(hisName('G2'))}” is this board, with the same numbering of the nodes: his vertex 1 is the short node.`],
+      ['D_n', 'D5', `His “${tex(hisName('D5'))}” is a path 1, …, ${rank('D5') - 1} with a vertex 0 joined to vertex 2: his vertex k is node ${rank('D5')} \u2212 k, and his vertex 0 is node ${rank('D5')}.`],
+      ['E6 and E7', 'E7', `His “${tex(hisName('E7'))}” is a path 1, 2, 3, … with a vertex 0 joined to vertex 3: his path 1, 2, 3, … is the nodes 1, 3, 4, … of this site, and his vertex 0 is node 2.`],
+    ];
+    for (const [row, T, sentence] of rows) {
+      await page.goto(`atlas/${T}/`);
+      const [first] = await proseOf(page, '[data-wildberger] p:first-of-type');
+      expect(first, `${row} (${T})`).toBe(`${opening} ${sentence}`);
+    }
+    // What the sentences say, on the golden boards: on F4 his vertices 3 and 4 (nodes 2 and 1) are the long
+    // nodes; on G2 his vertex 1 (node 1) is short; on D5 his vertex 0 (node 5) is joined to his vertex 2 (node 3);
+    // on E7 his vertex 0 (node 2) is joined to his vertex 3 (node 4), and his path is the nodes 1, 3, 4, 5, 6, 7.
+    expect(Math.min(d('F4')[0]!, d('F4')[1]!)).toBeGreaterThan(Math.max(d('F4')[2]!, d('F4')[3]!));
+    expect(d('G2')[0]!).toBeLessThan(d('G2')[1]!);
+    expect(joined('D5', 5, 3)).toBe(true);
+    expect(joined('E7', 2, 4)).toBe(true);
+    for (const [a, b] of [[1, 3], [3, 4], [4, 5], [5, 6], [6, 7]]) expect(joined('E7', a!, b!), `E7 nodes ${a} and ${b}`).toBe(true);
+    // The sentence of 2.10 on the B and C pages, and the provenance in words.
+    await page.goto('atlas/B3/');
+    expect(await proseOf(page, '[data-letters-exchanged]')).toEqual([
+      "For rank at least 3 the letters B and C are exchanged relative to Bourbaki: Wildberger's “B_n” is this site's C_n with the order of the nodes reversed, and his “C_n” is this site's B_n reversed.",
+    ]);
+    expect(await proseOf(page, '[data-wildberger] p.provenance')).toEqual(['These translations were checked by computation against the printed lists of positive roots: the lists were compared for ranks 3 and 4.']);
+  });
+
+  // Repair after review: the records and the real forms they make are counted truly on every board (6.4
+  // "Coincidences"), from golden admissible_counts; on D4 the two records that are one real form are named.
+  test('real forms: records and real forms counted on every page; the coincidence of D4 named', async ({ page }) => {
+    test.setTimeout(180_000);
+    for (const T of TYPE_NAMES) {
+      await page.goto(`atlas/${T}/`);
+      const { catalogue_records: records, real_forms_including_compact: forms } = COUNTS[T]!;
+      const [sentence] = await proseOf(page, '[data-real-form-count]');
+      if (records === forms) {
+        expect(sentence, T).toMatch(new RegExp(`^The Satake catalogue lists ${records} real forms of ${T}, each with Cartan's label beside its name\\.`));
+        await expect(page.locator('[data-coincidence]'), T).toHaveCount(0);
+      } else {
+        expect(sentence, T).toMatch(new RegExp(`^The Satake catalogue lists ${records} records for ${T}, which make ${forms} real forms; each record has Cartan's label beside its name\\.`));
+        await expect(page.locator('[data-coincidence]'), T).toHaveCount(records - forms);
+      }
+    }
+    await page.goto('atlas/D4/');
+    const group = (await page.locator('[data-coincidence]').getAttribute('data-coincidence'))!.split(' ');
+    expect(group).toHaveLength(2);
+    for (const f of group) matchRecord(SATAKE.filter((r) => r.dynkin_type === 'D4'), { real_form: f });
+    expect(await texIn(page, '[data-coincidence]')).toHaveLength(3);
+    await expect(page.locator('[data-coincidence]')).toContainText('are one real form, as verified by computation; both are listed.');
+  });
+
+  // Repair after review: SPEC 8.4 "Every theorem-like statement carries its provenance", as SPEC gives it (2.4,
+  // 2.7, 2.12, 6.4): the place in SPEC, the range verified by computation, and the citations SPEC names.
+  test('provenance: each statement beside a value carries the provenance SPEC gives it, on every page', async ({ page }) => {
+    test.setTimeout(240_000);
+    const computed = 'verified by computation for every board of finite type of rank at most 8';
+    const expected = (T: string): Record<string, { marker: string; words: string; cites: string[] }> => ({
+      roots: { marker: 'F1', words: computed, cites: ['W03a'] },
+      'highest-roots': { marker: 'F13', words: computed, cites: ['Che17'] },
+      exponents: { marker: 'F7', words: computed, cites: ['Ste59', 'Kos59'] },
+      'coxeter-number': golden.types[T]!.cartan.length >= 2 ? { marker: 'F7 F8', words: computed, cites: ['FZ03b', 'Ste59'] } : { marker: 'F7', words: computed, cites: [] },
+      'weyl-order': { marker: 'F7', words: computed, cites: [] },
+      'det-cartan': { marker: '2.4', words: 'a fact of linear algebra', cites: [] },
+      'minuscule-nodes': { marker: 'F11', words: 'verified by computation for every node of every board of finite type of rank at most 8', cites: [] },
+      'minus-w0': { marker: 'F4', words: 'This is verified by computation from all ones and from six random starts with every number positive, on every board of finite type of rank at most 8', cites: [] },
+      ...(golden.types[T]!.n_reduced_words_w0 !== undefined ? { 'complete-games': { marker: 'F5', words: 'the reduced words of the longest element', cites: ['Don08'] } } : {}),
+      affine: { marker: '2.12', words: 'verified by computation for the affine board of every board of finite type of rank at most 8', cites: [] },
+      'real-forms': { marker: '6.4', words: 'verified by computation', cites: [] },
+    });
+    for (const T of TYPE_NAMES) {
+      await page.goto(`atlas/${T}/`);
+      const found = await page.locator('[data-provenance]').evaluateAll((ps) =>
+        ps.map((p) => ({
+          item: p.closest('section[data-item]')?.getAttribute('data-item') ?? '',
+          marker: p.getAttribute('data-provenance') ?? '',
+          text: (p.textContent ?? '').replace(/\s+/g, ' '),
+          cites: [...p.querySelectorAll('a.cite')].map((a) => a.getAttribute('data-cite') ?? ''),
+        })),
+      );
+      const want = expected(T);
+      expect(found.map((f) => f.item), T).toEqual(Object.keys(want));
+      for (const f of found) {
+        const w = want[f.item]!;
+        expect(f.marker, `${T} ${f.item}`).toBe(w.marker);
+        expect(f.text, `${T} ${f.item}`).toContain(w.words);
+        expect(f.cites, `${T} ${f.item}`).toEqual(w.cites);
+      }
+    }
+  });
+
+  // Repair after review: names are typeset (6.5) and numbers carry a true minus sign (6.3); no data spelling
+  // such as "e6(-14)" reaches the visible text of any Atlas page.
+  test('no visible text on an Atlas page writes a number with a hyphen-minus', async ({ page }) => {
+    test.setTimeout(180_000);
+    for (const path of ['atlas/', ...TYPE_NAMES.map((T) => `atlas/${T}/`), 'tools/atlas/']) {
+      await page.goto(path);
+      const text = await visibleText(page);
+      expect(text.match(/.{0,40}\(-\d.{0,20}/g), path).toBeNull();
+      expect(text.match(/.{0,40}(?<![\w.])-\d.{0,20}/g), path).toBeNull();
+    }
+  });
+
+  // The site navigation links to the Atlas index (MERGE's request to P6-A4), after Modules, on every kind of page,
+  // marked as the current page on the index, and the navigation still fits at 320 px.
+  test('navigation: the Atlas index is in the site navigation and fits at 320 px', async ({ page, baseURL }) => {
+    const base = new URL(baseURL!).pathname;
+    for (const path of ['', 'about/', 'atlas/', 'atlas/E8/', 'tools/atlas/', 'modules/']) {
+      await page.goto(path);
+      const nav = page.locator('nav[aria-label="Site"]');
+      expect(await nav.locator('a').allTextContents(), path).toEqual(['Home', 'Modules', 'Atlas', 'Glossary', 'Sources', 'About', 'Credits']);
+      await expect(nav.locator('a', { hasText: 'Atlas' }), path).toHaveAttribute('href', `${base}atlas/`);
+      if (path === 'atlas/') await expect(nav.locator('a[aria-current="page"]')).toHaveText('Atlas');
+      else await expect(nav.locator('a', { hasText: 'Atlas' }), path).not.toHaveAttribute('aria-current', 'page');
+    }
+    await page.goto('about/');
+    await page.locator('nav[aria-label="Site"] a', { hasText: 'Atlas' }).click();
+    await expect(page).toHaveURL(new RegExp(`${base}atlas/$`));
+    await expect(page.locator('main h1')).toHaveText('Atlas');
+    await page.setViewportSize({ width: 320, height: 800 });
+    for (const path of ['about/', 'atlas/', 'atlas/B8/']) {
+      await page.goto(path);
+      const [scrollWidth, innerWidth] = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
+      expect(scrollWidth, path).toBeLessThanOrEqual(innerWidth!);
+      const boxes = await page.locator('nav[aria-label="Site"] a, [data-theme-switch]').evaluateAll((es) => es.map((e) => e.getBoundingClientRect()).map((r) => [r.left, r.right, r.height]));
+      expect(boxes, path).toHaveLength(8);
+      for (const [left, right, height] of boxes) {
+        expect(left!, path).toBeGreaterThanOrEqual(0);
+        expect(right!, path).toBeLessThanOrEqual(320);
+        expect(height!, path).toBeGreaterThanOrEqual(24);
+      }
     }
   });
 
