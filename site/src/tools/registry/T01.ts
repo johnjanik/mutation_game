@@ -35,6 +35,7 @@ export const T01_OUTS = [
   'predictReveal',
   'noscript',
   'exportNotice', // ToolFrame's export notice (phase 2, P2-A6), on every tool (RT-FIX P3-RT-10-06)
+  'citeText', // ToolFrame's Cite text (P6-A5), rendered after a click on Cite (MERGE, on P6-tikz's request)
   'colourClasses', // the phase-3 panel of P3-A5, drawn when a page lists 'colours' in `panels` (RT-FIX P3-RT-10-06)
 ] as const;
 

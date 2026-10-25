@@ -222,6 +222,9 @@ test('hooks on every node and every registered out', async ({ page, browser, bas
   await expect(root(page)).toHaveAttribute('data-moves', '120');
   await collect(page);
   await open(page, 'g=A2&v=p&m=l&c=p&s=1,0');
+  // The Cite text appears after a click on Cite (P6-A5; MERGE, on P6-tikz's request).
+  await control(page, 'cite').click();
+  await expect(root(page).locator('[data-out="citeText"]')).toHaveCount(1);
   await collect(page);
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   const nojs = await context.newPage();

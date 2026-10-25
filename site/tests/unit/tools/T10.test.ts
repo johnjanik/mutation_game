@@ -947,7 +947,8 @@ describe('server rendering', () => {
     }
     // Every data-out of the registry that is always rendered is present.
     for (const name of T10_OUTS) {
-      if (name === 'notice' || name === 'noscript' || T10_PROP_ONLY_OUTS.includes(name)) continue;
+      // citeText: rendered only after a click on Cite, which T10.spec.ts presses (MERGE, P6-tikz's request)
+      if (name === 'notice' || name === 'noscript' || name === 'citeText' || T10_PROP_ONLY_OUTS.includes(name)) continue;
       expect(body, name).toContain(`data-out="${name}"`);
     }
     // Ring board hooks.

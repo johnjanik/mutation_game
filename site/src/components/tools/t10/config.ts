@@ -90,6 +90,8 @@ export const T10_OUTS = [
   'notice',
   'noscript',
   'exportNotice',
+  // rendered after a click on Cite (P6-A5; MERGE, on P6-tikz's request)
+  'citeText',
   // T10: the figure
   'snapshot',
   'boardName',

@@ -759,6 +759,9 @@ test('hooks are present', async ({ page }) => {
   const registry = readFileSync(fileURLToPath(new URL('../../src/components/tools/t10/config.ts', import.meta.url)), 'utf8');
   const outs = [...registry.slice(registry.indexOf('T10_OUTS')).matchAll(/^\s+'([A-Za-z]+)',$/gm)].map((m) => m[1]!);
   expect(outs.length).toBeGreaterThan(20);
+  // The Cite text appears after a click on Cite (P6-A5; MERGE, on P6-tikz's request).
+  await control(page, 'cite').click();
+  await expect(out(page, 'citeText')).toHaveCount(1);
   for (const name of outs) {
     if (name === 'notice' || name === 'noscript') continue; // a bad link; JavaScript off (tested above)
     // Rendered only with a prediction (lesson instances; registry-outs.spec.ts checks them on M7).
