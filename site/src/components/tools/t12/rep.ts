@@ -1,9 +1,10 @@
 // T12, the Representation Builder: the computations of the tool, as pure functions with no DOM and no
 // site library (SPEC.md 4 T12, 2.18, 2.7 F11, 5.4 "Representations", 5.6, E-5, E-7, E-9). Owner P5-A2.
 // Every mathematical value comes from the engine: minusculeNodes, orbitSize, play, minusculeMatrices,
-// signedMoves, chevalleySerre, orbitGraph, fire and stringThrough. This module only converts between
-// labels and positions (toLabels and toPositions, E-7), looks records up by their fields, and writes the
-// sentences. It imports the engine and the layered layout only, so that the registry entry can compute the
+// signedMoves, chevalleySerre, orbitGraph, fire, stringThrough and weylDimension. This module only converts
+// between labels and positions (toLabels and toPositions, E-7), looks records up by their fields, and writes
+// the sentences. It imports the engine, the layered layout and the pure long-number helper of t01 only, so
+// that the registry entry can compute the
 // captions in plain Node (site/tests/e2e/registry-outs.spec.ts loads it); t12/model.ts adds the state, the
 // links and the routing of E-9 (each call's hint goes through whereToRun before the call is made).
 import {
