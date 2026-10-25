@@ -9,28 +9,16 @@
 // comes from import.meta.env.BASE_URL (7.2 item 10).
 //
 // Hydration (P1-A2 trap 1): Astro hydrates only components imported statically in the file that sets
-// the client directive, and the static table of the tools lives inside pages/tools/[tool].astro, where
-// no other page can import it. P6-A5's instruction forbids a second copy of that table: the embed page
-// renders the shared module site/src/tools/ToolIsland.astro (props { entry, caption }), into which
-// P6-A5 asked (request R1, decisions/P6-A5.md) that the table of [tool].astro move. Until that module
-// exists, this page builds no route and the build says so; once it exists, every registered tool gets
-// its /embed/<id> route with no edit here. The glob below is the device for a file that may be absent.
+// the client directive. The table of hydrated tools is the shared module src/tools/ToolIsland.astro
+// (request R1 of P6-A5, decisions/P6-A5.md), which pages/tools/[tool].astro renders too; it is
+// imported statically here, so every registered tool gets its /embed/<id> route, and a build without
+// that module fails instead of dropping the routes.
 import '../../styles/base.css';
 import { katexStylesheetHref } from '@lib/katex';
+import ToolIsland from '../../tools/ToolIsland.astro';
 import { toolRoutes, type ToolRoute } from '../../tools/index';
 
-type IslandProps = { entry: ToolRoute['props']['entry']; caption: string };
-
-/** The shared table of hydrated tools, when it exists (request R1). */
-const islands = import.meta.glob<{ default: (props: IslandProps) => unknown }>('../../tools/ToolIsland.astro', { eager: true });
-const ToolIsland = Object.values(islands)[0]?.default ?? null;
-
 export function getStaticPaths(): ToolRoute[] {
-  // getStaticPaths runs in a scope of its own, so the glob is read again here.
-  if (Object.keys(import.meta.glob('../../tools/ToolIsland.astro')).length === 0) {
-    console.warn('[embed] no /embed/<id> route built: site/src/tools/ToolIsland.astro, the shared table of hydrated tools, does not exist (P6-A5 request R1)');
-    return [];
-  }
   return toolRoutes();
 }
 
@@ -53,7 +41,7 @@ const canonical = new URL(toolPath, Astro.site ?? Astro.url).href;
   </head>
   <body data-embed={entry.id}>
     <main class="embed">
-      {ToolIsland && <ToolIsland entry={entry} caption={caption} />}
+      <ToolIsland entry={entry} caption={caption} />
       <p class="open-on-site">
         <a href={toolPath} data-href={toolPath} data-open-on-site target="_blank" rel="noopener">Open on the site</a>
       </p>
