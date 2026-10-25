@@ -36,6 +36,7 @@ export const T07_OUTS = [
   'predictResult',
   'predictReveal',
   'exportNotice',
+  'citeText', // ToolFrame, after a click on Cite (P6-A5)
 ] as const;
 
 export default {

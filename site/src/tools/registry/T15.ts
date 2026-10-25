@@ -46,6 +46,7 @@ export const T15_OUTS = [
   'notice',
   'noscript',
   'exportNotice',
+  'citeText', // ToolFrame, after a click on Cite (P6-A5)
 ] as const;
 
 export default {
