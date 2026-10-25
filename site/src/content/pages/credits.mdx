@@ -45,7 +45,7 @@ export const LICENCE_NAMES = {
 export const licenceName = (id) => LICENCE_NAMES[id]?.[0] ?? `the licence with SPDX identifier ${id}`;
 export const licenceShort = (id) => LICENCE_NAMES[id]?.[1] ?? id;
 export const NOT_STATED = 'not stated in the package';
-export const plain = (s) => (s === null || s === undefined ? NOT_STATED : s.replace(/\s*—\s*/g, ', '));
+export const plain = (s) => (s === null || s === undefined ? NOT_STATED : s.replace(/\s*\u2014\s*/g, ', '));
 export const allRows = () => dependencyRows(findRoot(process.cwd()), bundledPackages(import.meta.env.PROD));
 export const Package = ({ row, hook }) => (
   <li {...{ [`data-${hook}`]: row.name }}><strong data-field="title">{row.name}</strong> <span data-field="version">{row.version}</span>. Author: <span data-field="author">{plain(row.author)}</span>. Source: <span data-field="source">{plain(row.source)}</span>. Licence: <span data-field="licence">{plain(row.licence)}</span>.</li>

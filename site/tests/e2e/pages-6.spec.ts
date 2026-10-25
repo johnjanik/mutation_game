@@ -109,6 +109,11 @@ test.describe('the version footer', () => {
     }
     expected.push(['katex', installed('katex').version!]);
     expected.push([ENGINE_PKG.name!, installed(ENGINE_PKG.name!).version!]);
+    // Read, never typed: the footer's source holds no version number and no licence identifier in its markup.
+    const source = readFileSync(join(SITE_DIR, 'src', 'components', 'Footer.astro'), 'utf8');
+    expect(source, 'a version typed in Footer.astro').not.toMatch(/['"`>]\s*v?\d+\.\d+\.\d+/);
+    const markup = source.slice(source.indexOf('\n---', 4) + 4);
+    expect(markup, 'a licence identifier typed in the markup of Footer.astro').not.toMatch(/CC-BY|AGPL|MIT|Apache/);
     for (const route of footerRoutes()) {
       await page.goto(route);
       const footer = page.locator('footer[data-site-footer]');
@@ -238,13 +243,13 @@ test.describe('history, confusions and credits', () => {
     for (const route of THREE) {
       await page.goto(route);
       const body = (await page.locator('body').textContent()) ?? '';
-      expect(body.includes('—'), `an em-dash on ${route}`).toBe(false);
+      expect(body.includes('\u2014'), `an em-dash on ${route}`).toBe(false);
       const titles = await page.locator('main [title]').evaluateAll((els) => els.map((e) => e.getAttribute('title') ?? ''));
-      expect(titles.filter((t) => t.includes('—')), route).toEqual([]);
+      expect(titles.filter((t) => t.includes('\u2014')), route).toEqual([]);
     }
     for (const r of discoverRoutes()) {
       const footer = /<footer[^>]*data-site-footer[\s\S]*?<\/footer>/.exec(readFileSync(r.file, 'utf8'))?.[0] ?? '';
-      expect(footer.includes('—') || footer.includes('&mdash;'), `an em-dash in the footer of ${r.path}`).toBe(false);
+      expect(footer.includes('\u2014') || footer.includes('&mdash;'), `an em-dash in the footer of ${r.path}`).toBe(false);
     }
   });
 
@@ -553,7 +558,7 @@ test.describe('credits', () => {
     expect(licencesSeen.size, 'licences read, not assumed to be MIT').toBeGreaterThan(1);
     // No author string printed with an em-dash.
     const authors = await page.locator('main [data-field="author"]').allTextContents();
-    expect(authors.filter((a) => a.includes('—'))).toEqual([]);
+    expect(authors.filter((a) => a.includes('\u2014'))).toEqual([]);
   });
 
   test('credits states the oracle rule', async ({ page }) => {
