@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { boardsOffered, registry } from '../../src/tools/index';
 import { BOARDS_OFFERED } from '../../src/tools/offered';
+import type { ToolId } from '../../src/lib/state';
 
 describe('regressions', () => {
   // regression: P3-RT-07-04
@@ -23,7 +24,8 @@ describe('regressions', () => {
 
   // regression: P3-RT-07-04
   it('a tool without a registry entry offers every board, and an entries argument still decides', () => {
-    expect(boardsOffered('satake')).toBe('all');
+    // Every tool id is registered since T13 (MERGE, on P6-A3's request): an id with no entry, cast.
+    expect(boardsOffered('no-such-tool' as ToolId)).toBe('all');
     expect(boardsOffered('weyl', [])).toBe('all');
     const weyl = registry.find((e) => e.id === 'weyl')!;
     expect(boardsOffered('weyl', [weyl])).toEqual(weyl.boards);
