@@ -897,13 +897,17 @@ test('anatomy of 8.2', async ({ page }) => {
   // Instance ids in reading order; the first figure is the first thing drawn on the page.
   const ids = await page.locator('[data-tool]').evaluateAll((els) => els.map((e) => e.getAttribute('data-instance')));
   expect(ids).toEqual(TOOLS.map(({ id }) => id));
-  // The links: the Atlas page of A3, the sandbox with A3 last; no next module (M10 is not released here).
+  // The links: the Atlas page of A3, the next module M10 (released with P6-A8; MERGE, on its merge), the
+  // sandbox with A3 last.
   const base = new URL(page.url()).pathname.replace(/modules\/m9-real-forms\/$/, '');
   await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"]')).toHaveAttribute('href', `${base}atlas/A3/`);
   const links = await article.locator('[data-anatomy="links"] a').evaluateAll((els) => els.map((e) => e.getAttribute('data-link')));
   expect(links[links.length - 1]).toBe('sandbox');
   expect((await article.locator('[data-anatomy="links"] a[data-link="sandbox"]').getAttribute('href')) ?? '').toMatch(/tools\/sandbox\/\?g=A3$/);
-  await expect(article.locator('a[href*="m10"]')).toHaveCount(0);
+  const next = article.locator('[data-anatomy="links"] a[data-link="next"]');
+  await expect(next).toHaveCount(1);
+  await expect(next).toHaveAttribute('href', `${base}modules/m10-atlas/`);
+  await expect(article.locator('a[href*="m10"]')).toHaveCount(1);
   // "What we have seen" carries its provenance, and so does each statement.
   const seen = article.locator('[data-anatomy="seen"]');
   for (const p of ['Kol14', 'DK19', 'verified by computation']) await expect(seen.locator(`[data-provenance="${p}"]`), p).toHaveCount(1);
