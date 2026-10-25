@@ -11,3 +11,8 @@
 - Reviews running: P6-A2 (on da9e368), P6-A5 and P6-A6 (on e947205).
 - Carried for later stages: T2 and T10 tikz exports for the owner's G6 LaTeX compile; 'citeText' in registry outs; T16's static export import; the M10 hub slugs (history, confusions, credits) for P6-A8.
 - Merge check after P6-A5 (84960fc build): 49 pages, 337 e2e passed; npm run size FAILED: /tools/rep/ and /embed/rep/ 90.4 kB. Cause: site/src/lib/worker.ts spreads the whole engine namespace into engineApi, so every route using engineCall ships every engine module; satake.ts added about 2.3 kB to every route ('/' 48.6 to 50.9). Size repair P6-size running on f2177d7 (callers provide their functions; fallback dynamic import).
+- P6-A6 repaired and merged (518fd2b; records 9a7d7a5): the blocker (footer required on /embed/) and the eleven review points fixed.
+- P6-size merged (89e37ec with records): worker.ts provide(), engineAll fallback chunk, moduleSideEffects for the engine; every route with scripts 6.6 to 11.3 kB lighter; /tools/rep/ 84.8, /tools/sandbox/ 79.1 on its base; CONTRACTS.md 4 gains provide. Merge checks running on 89e37ec (reports/merge-p6-size-89e37ec/).
+- P6-A5 repair running on 96bfbb6 (ports 7190-7193).
+- Stage 6.2 started on 89e37ec: P6-A3 T13 (ports 7200-7203), P6-A4 T14 (ports 7210-7213), and a P6-A1 follow-up adding restrictedCoordinates(d, rb, shadow2) to satake.ts for T13's shadow picture (no browser). T13 merges the integration branch once the helper lands.
+- Still to assign: T2 and T10 latexForExport (tikz-graph, tikz-points) for the owner's G6 compile, after the P6-A5 repair merges.
