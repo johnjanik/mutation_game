@@ -61,3 +61,5 @@
 - Notes: T12 posts chevalleySerre to the worker on 103 of 163 links by the logged ruling (RELATIONS_MAIN_WORK; worker.ts header says E-9 three cases only; owner); default start omega_i against 6.6 (see P5-RT-10-03); Download data writes relations: null above the bound on configured states; stale wording in M8 MDX header, DECISIONS P5-A3 and an M8.spec comment (main-thread relation list).
 - RT-04 verdicts: 01 CONFIRMED major (unit 4 failed; browser 5 + 5 failed in two runs; not refuted).
 - RT-06 refute: 01 not refuted (7.4 every default figure of every lesson; M8's figure table makes the matrices the figure of beats 3 to 5); the server-against-hydrated comparison may catch lost matrix cells, not a lost orbit drawing. Reproduce pending.
+- RT-06 verdicts: 01 CONFIRMED minor (12 of 12 roots accepted blank; not refuted).
+- Fix clusters running (04:50): lessons (P5-RT-08-02, 08-03, 08-04, 09-04, 13-01), history (P5-RT-04-01).
