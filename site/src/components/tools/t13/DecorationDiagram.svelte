@@ -2,8 +2,9 @@
   // The decoration of T13 (SPEC.md 4 T13 Decorate; 6.3 last bullet; 2.15; 7.5 A-1 to A-7). Owner P6-A3.
   // A copy of the diagram drawn on its own, placed directly above the game board with the nodes aligned (the
   // same layout of 6.1 and the same size rule, in the same container), so that black and white never compete
-  // with the sign encoding of the game board [D]. Black nodes are filled black with an outline in the text
-  // colour (visible on the dark page too), white nodes are outlined; white nodes exchanged by tau are joined
+  // with the sign encoding of the game board [D]. Black nodes are filled with the text colour and white nodes
+  // are hollow (filled with the page colour), both outlined in the text colour, so that black means filled in
+  // the light and the dark theme alike; white nodes exchanged by tau are joined
   // by an arrow; with the toggle "show tau on black nodes" the black nodes tau exchanges are joined by a dashed
   // arrow. Each node is a real <button> (one group, one tab stop, roving tabindex, the arrow keys of A-1),
   // named "Node 2, black"; Enter, Space or a click paints it the other colour.
@@ -179,9 +180,11 @@
     stroke-width: 2.5px;
     vector-effect: non-scaling-stroke;
   }
-  /* Black: filled black, outlined in the text colour, so that it stays visible on the dark page (A-6). */
+  /* Black means filled and white means hollow, in both themes: a black node is filled with the text colour
+     (black on the light page, light on the dark page), a white node with the page colour, so that the two
+     differ by the contrast of text on the page in either theme (A-5, A-6; MERGE ruling (1) on P6-A3). */
   .node.black {
-    fill: #000;
+    fill: var(--text);
   }
   .label {
     font-family: var(--font-prose);

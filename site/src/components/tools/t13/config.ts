@@ -120,6 +120,7 @@ export const T13_OUTS = [
   'examples',
   // the data
   'data-pending',
+  'data-error',
   'real-form',
   'cartan-label',
   'restricted-type',

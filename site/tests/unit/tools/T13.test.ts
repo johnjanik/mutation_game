@@ -10,7 +10,9 @@
 // with toBe (rule 6); a meaningful null as null (rule 7). This file never calls `covers`: the keys `satake`,
 // `admissible_pairs` and `satake_examples` are registered by the engine's golden files of P6-A1 and P6-A2,
 // and a golden key is tested in exactly one file (CONTRACTS 3; a deviation reported to MERGE). The only
-// vectors typed are the worked values of Appendix A.5 and of the instruction (sections 5.7 to 5.9, 5.14).
+// golden values typed are SPEC worked values (Appendix A.5, the e6(-26) example of 2.15), each marked as such
+// where it is typed (MERGE ruling (11) on P6-A3); every other expected value is read from the golden file or
+// computed. Announcement inputs are plain test vectors, not golden values.
 //
 // Properties of T13 beyond the common ones of 4.0 Configuration (id, board, prediction, preset, caption):
 // black (labels of the black nodes), tau (images of all nodes in label order) and root (a population in
@@ -39,20 +41,27 @@ import {
   T13_CONDITIONS,
   announceComposite,
   announcePaint,
+  announceRestart,
   announceStage,
   announceTau,
   arrowsOf,
   assembleData,
   blackPairsOf,
+  captionText,
   catalogueRows,
   coordinatesInBourbaki,
   defaultRoot,
   diagramOf,
+  displayName,
   exportData,
   failureNote,
+  failureSentence,
+  fromLabelOrder,
   involutions,
+  populationsTail,
   lights,
   multiplicitiesText,
+  pairKey,
   pairsText,
   plainText,
   recordInLabels,
@@ -66,12 +75,13 @@ import {
   type Assembled,
   type RestrictedLike,
 } from '../../../src/components/tools/t13/model';
-import { computeNow, fetchData, satakeHint, type Caller } from '../../../src/components/tools/t13/load';
+import { computeNow, fetchData, islandScript, pairFromJson, pairJson, satakeHint, type Caller, type DataFns } from '../../../src/components/tools/t13/load';
 import { captionFor } from '../../../src/components/tools/t13/caption';
 import { admitLink, toolStateOf } from '../../../src/components/tools/t13/link';
 import { BOARDS_OFFERED } from '../../../src/tools/offered';
 import { LINK_NOTICE, decodeState, encodeState } from '../../../src/lib/urlCodec';
 import { whereToRun } from '../../../src/lib/worker';
+import { announceTemplates } from '../../../src/lib/a11y';
 import T13 from '../../../src/tools/registry/T13';
 import { ssrLoader, type SsrLoader } from '../_svelteSsr';
 
@@ -304,6 +314,20 @@ function listText(xs: readonly number[]): string {
   return xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
 }
 
+/** The golden (m_lambda, m_2lambda) of an orbit (labels), found in restricted_simple_orbits by orbit. */
+function goldenPair(g: GoldenSatakeRecord, orbit: readonly number[]): [number, number] {
+  const s = g.restricted_simple_orbits.findIndex((x) => x.join() === orbit.join());
+  if (s < 0) throw new Error(`${g.real_form}: no orbit ${orbit.join()}`);
+  return g.restricted_simple_multiplicities[s]!;
+}
+
+/** The golden reduced length of the composite move of an orbit (labels), found by orbit. */
+function goldenReducedLength(g: GoldenSatakeRecord, orbit: readonly number[]): number {
+  const s = g.restricted_simple_orbits.findIndex((x) => x.join() === orbit.join());
+  if (s < 0) throw new Error(`${g.real_form}: no orbit ${orbit.join()}`);
+  return g.restricted_reflection_word_lengths[s]!;
+}
+
 describe('when not admissible (SPEC 4 T13; 2.15 "What a failed condition 3 means")', () => {
   it('the failure note: always the first sentence; with conditions 1 and 2 holding, the careful sentence', () => {
     const a2 = diagramOf('A2', [1], [1, 2]);
@@ -313,6 +337,18 @@ describe('when not admissible (SPEC 4 T13; 2.15 "What a failed condition 3 means
     expect(note.join(' ')).toContain('no involution of the Lie algebra acts as this θ on the Cartan subalgebra and fixes the root vectors of the black nodes');
     const a3 = diagramOf('A3', [1, 2], [1, 2, 3]);
     expect(failureNote(admissibility(a3)).map(plainText)).toEqual([FAILURE_FIRST]);
+    // condition 3 fails together with conditions 1 and 2 (A3, black node 1, the flip): the careful sentence,
+    // which claims that conditions 1 and 2 hold, is not shown
+    const flip = admissibility(diagramOf('A3', [1], [3, 2, 1]));
+    expect([flip.condition_1, flip.condition_2, flip.condition_3]).toEqual([false, false, false]);
+    expect(failureNote(flip).map(plainText)).toEqual([FAILURE_FIRST]);
+    // on every pair of rank at most 4 the careful sentence appears exactly when conditions 1 and 2 hold and 3 fails
+    for (const type of TYPE_NAMES.filter((t) => rank(t) <= 4)) {
+      forEachPair(type, (d, adm) => {
+        const careful = adm.symmetry && adm.condition_1 && adm.condition_2 && !adm.condition_3;
+        expect(failureNote(adm).length, `${type} ${d.black.join(',')} ${d.tau.join(',')}`).toBe(careful ? 2 : 1);
+      });
+    }
   });
 
   it('where conditions 1 and 2 hold and condition 3 fails, theta permutes the roots and is an involution, as the note says (boards of rank at most 4)', () => {
@@ -361,16 +397,27 @@ describe('when not admissible (SPEC 4 T13; 2.15 "What a failed condition 3 means
           return Promise.resolve(({ satake, restrictedBoard, matchCatalogue } as Record<string, (...a: unknown[]) => unknown>)[fn]!(...(args as unknown[]))) as never;
         };
         const got = await fetchData(d, adm, spy);
+        // computeNow (the server render, a main-thread board) with the same three functions spied
+        const nowCalls: string[] = [];
+        const fns: DataFns = {
+          satake: (x) => (nowCalls.push('satake'), satake(x)),
+          restrictedBoard: (x) => (nowCalls.push('restrictedBoard'), restrictedBoard(x)),
+          matchCatalogue: (x) => (nowCalls.push('matchCatalogue'), matchCatalogue(x)),
+        };
+        const now = computeNow(d, adm, fns);
         if (adm.admissible) {
           expect(got).not.toBeNull();
+          expect(now).not.toBeNull();
           // a pair with no white node has the empty restricted board without a call
           const white = d.black.length < d.board.n;
           expect(calls.sort()).toEqual(white ? ['matchCatalogue', 'restrictedBoard', 'satake'] : ['matchCatalogue', 'satake']);
+          expect(nowCalls.sort()).toEqual(white ? ['matchCatalogue', 'restrictedBoard', 'satake'] : ['matchCatalogue', 'satake']);
         } else {
           notAdmissible++;
           expect(got).toBeNull();
           expect(calls).toEqual([]);
-          expect(computeNow(d, adm)).toBeNull();
+          expect(now).toBeNull();
+          expect(nowCalls).toEqual([]);
         }
       }
     }
@@ -501,12 +548,19 @@ describe('when admissible: names and data (SPEC 4 T13, 6.4, 6.5)', () => {
     expect(n).toBe(all.filter(({ g }) => g.real_rank > 0).length);
   });
 
-  it('multiplicities in text by drawn node, Bourbaki order; e6(-26) and e6(-14); none for a compact form', () => {
+  it('multiplicities in text by drawn node, Bourbaki order, the pair found by orbit (every record); none for a compact form', () => {
+    // SPEC 2.15 worked value (e6(-26)): restricted board A2, every restricted root of multiplicity 8, no doubled root
     const e626 = all.find(({ g }) => g.real_form === 'e6(-26)')!;
     expect(multiplicitiesText(e626.data)).toBe('1: (8, 0); 2: (8, 0)');
+    // every record, against the golden pair of the orbit drawn at each Bourbaki node
+    for (const { g, data } of all) {
+      if (g.restricted_orbits_in_bourbaki_order === null) continue;
+      expect(multiplicitiesText(data), g.real_form).toBe(g.restricted_orbits_in_bourbaki_order.map((o, k) => `${k + 1}: (${goldenPair(g, o).join(', ')})`).join('; '));
+    }
+    // e6(-14) is one of the records where drawn node 1 is not the first orbit in orbit order
     const e614 = all.find(({ g }) => g.real_form === 'e6(-14)')!;
-    expect(e614.data.drawing!.orbits.map((o) => labels(e614.d.board, o))).toEqual([[2], [1, 6]]);
-    expect(multiplicitiesText(e614.data)).toBe('1: (6, 0); 2: (8, 1)');
+    expect(e614.data.drawing!.orbits.map((o) => labels(e614.d.board, o))).toEqual(e614.g.restricted_orbits_in_bourbaki_order);
+    expect(e614.data.drawing!.orbitIndex[0]).not.toBe(0);
     const su4 = all.find(({ g }) => g.real_form === 'su(4)')!;
     expect(multiplicitiesText(su4.data)).toBe('none');
     expect(su4.data.shape).toBe('compact');
@@ -515,12 +569,17 @@ describe('when admissible: names and data (SPEC 4 T13, 6.4, 6.5)', () => {
     expect(all.find(({ g }) => g.real_form === 'su(1,3)')!.data.shape).toBeNull();
   });
 
-  it('restricted node names: e6(-26) and e6(-14), the pair found by orbit', () => {
-    const e626 = all.find(({ g }) => g.real_form === 'e6(-26)')!;
-    expect(restrictedNodeName(e626.d, e626.data, 1)).toBe('Restricted node 1, orbit 1, multiplicity 8 and 0');
-    const e614 = all.find(({ g }) => g.real_form === 'e6(-14)')!;
-    expect(restrictedNodeName(e614.d, e614.data, 1)).toBe('Restricted node 1, orbit 2, multiplicity 6 and 0');
-    expect(restrictedNodeName(e614.d, e614.data, 2)).toBe('Restricted node 2, orbit 1 and 6, multiplicity 8 and 1');
+  it('restricted node names: the orbit and the pair found by orbit (every record)', () => {
+    let n = 0;
+    for (const { g, d, data } of all) {
+      if (g.restricted_orbits_in_bourbaki_order === null) continue;
+      g.restricted_orbits_in_bourbaki_order.forEach((o, k) => {
+        const [a, b] = goldenPair(g, o);
+        expect(restrictedNodeName(d, data, k + 1), g.real_form).toBe(`Restricted node ${k + 1}, orbit ${listText(o)}, multiplicity ${a} and ${b}`);
+        n++;
+      });
+    }
+    expect(n).toBeGreaterThan(all.filter(({ g }) => g.real_rank > 0).length);
   });
 
   it('data on su(1,3) and the examples of Appendix B: real rank, restricted type, dimensions, character', () => {
@@ -632,17 +691,25 @@ describe('shadows (SPEC 4 T13 Shadows, 2.15, A.5)', () => {
 });
 
 describe('the restricted board and composite moves (SPEC 4 T13 Restricted board, 2.15)', () => {
-  it('e6(-26): w_X has 12 letters, each composite word 32 letters of reduced length 8; alpha_6 has coordinates (0, 1) and node 2 makes them (0, -1)', () => {
-    const { d, data } = all.find(({ g }) => g.real_form === 'e6(-26)')!;
+  it('e6(-26) (SPEC 2.15 worked example): w_X has 12 letters, each composite move has reduced length 8; alpha_6 is the simple restricted root of its node and that node reflects it', () => {
+    const { g, d, data } = all.find(({ g }) => g.real_form === 'e6(-26)')!;
     const e = data.entries[0]!;
+    // SPEC 2.15 worked values: the word of w_X has 12 letters, each composite move has reduced length 8
     expect(e.w_X_word.length).toBe(12);
     const root = defaultRoot(d);
-    const move = restrictedClick(d, data, 2, root);
-    expect(move.word.length).toBe(32);
-    expect(move.reducedLength).toBe(8);
-    expect(move.populations.length).toBe(32);
-    expect(coordinatesInBourbaki(d, data, shadow2(d, root))).toEqual([0, 1]);
-    expect(coordinatesInBourbaki(d, data, shadow2(d, move.populations[31]!))).toEqual([0, -1]);
+    // the drawn node whose orbit holds node 6 (golden Bourbaki order): alpha_6 is its simple restricted root
+    const k6 = g.restricted_orbits_in_bourbaki_order!.findIndex((o) => o.includes(6));
+    const unit = g.restricted_orbits_in_bourbaki_order!.map((_, k) => (k === k6 ? 1 : 0));
+    for (let k = 1; k <= 2; k++) {
+      const move = restrictedClick(d, data, k, root);
+      expect(move.reducedLength).toBe(8);
+      // the composite word: the word of w_X, then the longest word of X u O, of length l(w_X) + the reduced length
+      expect(move.word.length).toBe(2 * e.w_X_word.length + move.reducedLength);
+      expect(move.populations.length).toBe(move.word.length);
+    }
+    expect(coordinatesInBourbaki(d, data, shadow2(d, root))).toEqual(unit);
+    const move = restrictedClick(d, data, k6 + 1, root);
+    expect(coordinatesInBourbaki(d, data, shadow2(d, move.populations[move.populations.length - 1]!))).toEqual(unit.map((x) => (x === 0 ? 0 : -x)));
   });
 
   it('a click on drawn node k plays the word of the orbit drawn there, found by orbit (e6(-14): node 1 is orbit 2)', () => {
@@ -751,7 +818,7 @@ describe('state, link and presets (SPEC 6.6; 4.0; CONTRACTS 6)', () => {
     const c0 = captionFor(T13_PRESETS.default);
     expect(c0).toContain('su(1,3)');
     expect(c0).toContain(`real rank ${su13.real_rank}`);
-    expect(c0).toContain(`dim k = ${su13.dim_k}`);
+    expect(c0).toContain(`dim 𝔨 = ${su13.dim_k}`);
     const e6 = g('E6', 'e6(-26)');
     const cr = captionFor(T13_PRESETS.restricted);
     expect(cr).toContain(`fixed sequence of ${dataOf(diagramOf('E6', [2, 3, 4, 5], [1, 2, 3, 4, 5, 6])).rb.compositeWords[0]!.length} moves of E6`);
@@ -760,6 +827,7 @@ describe('state, link and presets (SPEC 6.6; 4.0; CONTRACTS 6)', () => {
     const cc = captionFor(T13_PRESETS.catalogue);
     expect(cc).toContain(`${RECORDS.filter((r) => r.dynkin_type === 'D4').length} records`);
     expect(cc).toContain('so(2,6) and so*(8)');
+    // SPEC A.5 worked value: theta of su*(4) takes (0, 1, 0) to (-1, -1, -1)
     expect(captionFor(T13_PRESETS['play-theta'])).toContain('(−1, −1, −1)');
   });
 
@@ -786,6 +854,86 @@ describe('state, link and presets (SPEC 6.6; 4.0; CONTRACTS 6)', () => {
   });
 });
 
+describe('captions (SPEC 4.0 "Starts meaningful"; 6.5 and 8.4: display spellings)', () => {
+  it('on every admissible pair and every panel: names with a true minus sign, formulas in words, dim 𝔨, "1 move"; the restricted panel pairs each drawn node with its own word and reduced length', () => {
+    // the data of each record's own pair, computed once in beforeAll (the first record of a pair, as the drawing)
+    const known = new Map<string, { g: GoldenSatakeRecord; data: Assembled }>();
+    for (const { g, d, data } of all) {
+      const key = pairKey({ board: d.board.name!, black: labels(d.board, d.black), tau: tauToLabels(d.board, d.tau) });
+      if (!known.has(key)) known.set(key, { g, data });
+    }
+    const panels = ['lights', 'data', 'theta', 'shadows', 'restricted', 'catalogue'] as const;
+    let captions = 0;
+    let nodes = 0;
+    let mixed = 0;
+    for (const type of TYPE_NAMES) {
+      for (const [black, tau] of PAIRS[type]!) {
+        const d = diagramOf(type, black, tau);
+        const adm = admissibility(d);
+        const rec = known.get(pairKey({ board: type, black, tau }));
+        const data = rec?.data ?? dataOf(d);
+        // on a record's own pair, the golden reduced length of the orbit at Bourbaki node k, found by orbit
+        const goldenL = (k: number): number | null =>
+          rec === undefined || rec.g.restricted_orbits_in_bourbaki_order === null ? null : goldenReducedLength(rec.g, rec.g.restricted_orbits_in_bourbaki_order[k]!);
+        const where = `${type} black ${black.join(',')} tau ${tau.join('.')}`;
+        for (const panel of panels) {
+          const c = captionText({ d, panel, toggle: false, adm, data, root: defaultRoot(d) });
+          captions++;
+          expect(c, `${where} ${panel}`).not.toContain('-');
+          expect(c, `${where} ${panel}`).not.toContain('_');
+          expect(c, `${where} ${panel}`).not.toMatch(/\bdim [kp]\b/);
+          expect(c, `${where} ${panel}`).not.toMatch(/\b1 moves\b/);
+          expect(c, `${where} ${panel}`).not.toContain('—');
+          if (panel !== 'catalogue') for (const e of data.entries) expect(c, `${where} ${panel}`).toContain(displayName(e.real_form));
+        }
+        if (data.drawing === null) continue;
+        // each drawn node k (Bourbaki order): its word has 2 l(w_X) + L letters, L the reduced length of the orbit drawn at k
+        const c = captionText({ d, panel: 'restricted', toggle: false, adm, data, root: defaultRoot(d) });
+        const wX = data.sat.w_X_word.length;
+        const ownL = data.drawing.orbits.map((o) => data.sat.restricted_reflection_word_lengths[data.sat.restricted_simple_orbits.findIndex((x) => x.join() === o.join())]!);
+        const uniform = /each of its moves is a fixed sequence of (\d+) moves? of [A-G]\d, of reduced length (\d+),/.exec(c);
+        const items = [...c.matchAll(/(\d+) moves? of reduced length (\d+) at node (\d+)/g)].map((m) => m.slice(1).map(Number));
+        if (uniform !== null) {
+          expect(items, where).toEqual([]);
+          expect(new Set(ownL).size, where).toBe(1);
+          expect(Number(uniform[2]), where).toBe(ownL[0]);
+          expect(Number(uniform[1]), where).toBe(2 * wX + ownL[0]!);
+          if (goldenL(0) !== null) expect(Number(uniform[2]), where).toBe(goldenL(0));
+          nodes += ownL.length;
+        } else {
+          mixed++;
+          expect(items.map(([, , k]) => k), where).toEqual(ownL.map((_, k) => k + 1));
+          for (const [n, l, k] of items) {
+            expect(l, `${where} node ${k}`).toBe(ownL[k! - 1]);
+            if (goldenL(k! - 1) !== null) expect(l, `${where} node ${k} (golden)`).toBe(goldenL(k! - 1));
+            expect(n, `${where} node ${k}`).toBe(2 * wX + l!);
+            nodes++;
+          }
+        }
+      }
+    }
+    expect(captions).toBe(6 * Object.values(PAIRS).reduce((s, p) => s + p.length, 0));
+    expect(nodes).toBeGreaterThan(all.filter(({ g }) => g.real_rank > 0).length);
+    // the pairs the review found mis-paired (their two nodes differ) are among the ones checked node by node
+    expect(mixed).toBeGreaterThanOrEqual(6);
+    // and a word of one letter is "1 move" (the split form of A1)
+    const a1 = diagramOf('A1', [], [1]);
+    expect(captionText({ d: a1, panel: 'restricted', toggle: false, adm: admissibility(a1), data: dataOf(a1), root: defaultRoot(a1) })).toContain('a fixed sequence of 1 move of A1');
+  }, 120000);
+
+  it('names in their display spelling: a true minus sign (e6(−26)); the data spelling stays in data', () => {
+    expect(displayName('e6(-26)')).toBe('e6(−26)');
+    expect(displayName('su(1,3)')).toBe('su(1,3)');
+    const e6 = diagramOf('E6', [2, 3, 4, 5], [1, 2, 3, 4, 5, 6]);
+    const data = dataOf(e6);
+    expect(data.entries[0]!.real_form).toBe('e6(-26)');
+    const c = captionText({ d: e6, panel: 'data', toggle: false, adm: admissibility(e6), data, root: defaultRoot(e6) });
+    expect(c).toContain('e6(−26)');
+    expect(c).toContain('dim 𝔨 = ');
+    expect(c).toContain('dim 𝔭 = ');
+  });
+});
+
 describe('announcements (A-4, plan wording) and stated limits (4.0)', () => {
   it('paint, tau, a stage of theta, a composite move', () => {
     const a2 = diagramOf('A2', [1], [1, 2]);
@@ -799,9 +947,28 @@ describe('announcements (A-4, plan wording) and stated limits (4.0)', () => {
     const id = diagramOf('A3', [], [1, 2, 3]);
     expect(announceTau(id.board, id.tau, lights(admissibility(id), id.board))).toMatch(/^τ is the identity\. /);
     expect(announcePaint(a3.board, 2, false, lights(admissibility(a3), a3.board))).toMatch(/^Node 2 painted white\. /);
-    expect(announceStage(2, [1, 1, 1])).toBe('Stage 2 of θ. Populations now 1, 1, 1.');
-    expect(announceComposite(2, 32, [0, -1])).toBe('Played the composite move of restricted node 2, 32 mutations. Shadow coordinates now 0, minus 1.');
-    expect(announceComposite(1, 1, null)).toBe('Played the composite move of restricted node 1, 1 mutation.');
+    // at most four nodes: every population and the step number (A-4)
+    expect(announceStage(a3.board, 2, [1, 0, 1], [1, 1, 1], 2)).toBe('Stage 2 of θ. Populations now 1, 1, 1. Move 2.');
+    expect(announceComposite(a3.board, 1, 1, null, [0, 1, 0], [0, -1, 0], 1)).toBe('Played the composite move of restricted node 1, 1 mutation. Populations now 0, minus 1, 0. Move 1.');
+    expect(announceRestart(a3.board, 'Reset.', [1, 1, 0], [0, 0, 1])).toBe('Reset. Populations now 0, 0, 1. Move 0.');
+    // above four nodes: only the changed cities, read by the site's changedOnly, and the step number (A-4)
+    const e6b = diagramOf('E6', [2, 3, 4, 5], [1, 2, 3, 4, 5, 6]).board;
+    const p = (labelled: number[]): number[] => fromLabelOrder(e6b, labelled);
+    expect(announceStage(e6b, 1, p([0, 0, 0, 0, 0, 1]), p([0, 0, 0, 0, 0, 1]), 1)).toBe('Stage 1 of θ. Move 1.');
+    expect(announceStage(e6b, 2, p([0, 0, 0, 0, 0, 1]), p([1, 1, 2, 2, 1, 1]), 2)).toBe('Stage 2 of θ. City 1 now 1, city 2 now 1, city 3 now 2, city 4 now 2, city 5 now 1. Move 2.');
+    expect(announceComposite(e6b, 2, 32, [0, -1], p([0, 0, 0, 0, 0, 1]), p([0, 0, 0, 0, 0, -1]), 3)).toBe(
+      'Played the composite move of restricted node 2, 32 mutations. Shadow coordinates now 0, minus 1. City 6 now minus 1. Move 3.',
+    );
+    expect(announceRestart(e6b, 'Root chosen.', p([0, 0, 0, 0, 0, 1]), p([1, 0, 0, 0, 0, 1]))).toBe('Root chosen. City 1 now 1. Move 0.');
+    // the same text as announceTemplates.changedOnly after its head
+    expect(populationsTail(e6b, p([0, 0, 0, 0, 0, 1]), p([0, 0, 0, 0, 0, -1]), 3)).toBe(announceTemplates.changedOnly('Mutated', 6, [[6, -1]], 3).replace(/^Mutated city 6\. /, ''));
+  });
+
+  it('the failure sentence of a worker that failed', () => {
+    expect(failureSentence('the engine worker failed: unknown error')).toBe(
+      'The data could not be computed (the engine worker failed: unknown error). The next change of the decoration or the board asks for them again.',
+    );
+    expect(failureSentence('')).toMatch(/^The data could not be computed\. /);
   });
 
   it('no text the model writes says not of finite type, stopped after or still running after', () => {
@@ -944,9 +1111,55 @@ describe('T13 registry entry and server render', () => {
     expect(() => loader.render(T13C.default, { id: 'b6', board: 'A3', root: [1, 0, 1] })).toThrow(/b6/);
   });
 
+  it('an unknown preset id fails the build with the list of presets', () => {
+    expect(() => loader.render(T13C.default, { id: 'p1', preset: 'shadow' })).toThrow(/T13 instance p1: unknown preset shadow \(presets: default, play-theta, shadows, lights, data, restricted, catalogue, tau-on-black\)/);
+    // an inherited property name is no preset either
+    expect(() => loader.render(T13C.default, { id: 'p2', preset: 'toString' })).toThrow(/unknown preset toString/);
+    for (const id of T13_PRESET_IDS) expect(() => loader.render(T13C.default, { id: 'p3', preset: id })).not.toThrow();
+  });
+
+  it('an instance configured on E7 or E8 carries the data of its pair in the island, and only those (E-9)', () => {
+    for (const [board, black, tau] of [['E7', [], [1, 2, 3, 4, 5, 6, 7]], ['E7', [2, 5, 7], [1, 2, 3, 4, 5, 6, 7]], ['E8', [], [1, 2, 3, 4, 5, 6, 7, 8]]] as const) {
+      const body = loader.render(T13C.default, { id: 'e1', board, black: [...black], tau: [...tau] });
+      const d = diagramOf(board, black, tau);
+      const now = computeNow(d, admissibility(d))!;
+      const script = islandScript('e1', pairKey({ board, black: [...black], tau: [...tau] }), pairJson(now));
+      expect(body, board).toContain(script);
+      expect(body.split('data-t13-pair=').length - 1, board).toBe(1);
+      // the JSON reads back to the same data, and the data shown at build time are those data
+      const json = /data-t13-pair="[^"]*">([^<]*)<\/script>/.exec(body)![1]!;
+      const back = pairFromJson(json)!;
+      expect(back.sat).toEqual(now.sat);
+      expect(back.records).toEqual(now.records);
+      expect(back.rb.compositeWords).toEqual(now.rb.compositeWords);
+      expect(back.rb.orbits).toEqual(now.rb.orbits);
+      expect(outText(body, 'real-rank')).toEqual([String(now.sat.real_rank)]);
+    }
+    // a board whose data are computed on the main thread carries none
+    for (const props of [{ id: 'e2' }, { id: 'e3', board: 'E6' }, { id: 'e4', board: 'D8' }, { id: 'e5', preset: 'restricted' }]) {
+      expect(loader.render(T13C.default, props), JSON.stringify(props)).not.toContain('data-t13-pair');
+    }
+    // a pair that is not admissible has no data, so the island carries none
+    expect(loader.render(T13C.default, { id: 'e6', board: 'E7', black: [1], tau: [1, 2, 3, 4, 5, 6, 7] })).not.toContain('data-t13-pair');
+    // pairJson leaves no character that could end the script element, and reads back exactly
+    const e7 = diagramOf('E7', [], [1, 2, 3, 4, 5, 6, 7]);
+    const e7now = computeNow(e7, admissibility(e7))!;
+    const odd = { ...e7now, records: [{ ...e7now.records[0]!, real_form: '</script><!-- & \u2028' }] };
+    const oddJson = pairJson(odd);
+    expect(oddJson).not.toMatch(/[<>&\u2028]/);
+    expect(pairFromJson(oddJson)!.records[0]!.real_form).toBe('</script><!-- & \u2028');
+    expect(pairFromJson('{"sat": 1}')).toBeNull();
+    expect(pairFromJson('not json')).toBeNull();
+  });
+
+  it('the figure is named with display spellings (A-10)', () => {
+    const body = loader.render(T13C.default, { id: 'f1', board: 'E6', black: [2, 3, 4, 5], tau: [1, 2, 3, 4, 5, 6] });
+    expect(body).toContain('aria-label="Satake Studio on E6 with black nodes 2, 3, 4 and 5 and τ the identity: admissible, e6(−26)."');
+  });
+
   it('an author caption stays; the preset caption follows the state', () => {
     expect(outText(loader.render(T13C.default, { id: 'c1', caption: 'An author caption.' }), 'caption')).toEqual(['An author caption.']);
-    expect(outText(loader.render(T13C.default, { id: 'c2', board: 'E6', black: [2, 3, 4, 5], tau: [1, 2, 3, 4, 5, 6] }), 'caption')[0]).toContain('e6(-26)');
+    expect(outText(loader.render(T13C.default, { id: 'c2', board: 'E6', black: [2, 3, 4, 5], tau: [1, 2, 3, 4, 5, 6] }), 'caption')[0]).toContain('e6(−26)');
   });
 
   it('every data-out name the server renders is in the outs; every control is disabled; no em-dash', () => {

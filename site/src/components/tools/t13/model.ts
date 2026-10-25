@@ -28,11 +28,25 @@ import {
   toPositions,
 } from '@two-games/engine';
 import type { Admissibility, Board, Reason, RestrictedBoard, SatakeComputed, SatakeDiagram, SatakeRecord, Word } from '@two-games/engine';
-import { speakList } from '../../../lib/a11y';
+import { CHANGED_ONLY_ABOVE, announceTemplates, speakList } from '../../../lib/a11y';
 import type { T13Panel } from './config';
 
 /** U+2212, the minus sign of values on screen (SPEC 6.3; house style 8.4). */
 export const MINUS = '−';
+
+/**
+ * The plain-text display spelling of a real form for captions, the figure's name and announcements (SPEC 6.5,
+ * 8.4): the data spelling with a true minus sign, e6(-26) as e6(−26). Data (hooks, Download data) keep the
+ * data spelling.
+ */
+export function displayName(realForm: string): string {
+  return realForm.replace(/-/g, MINUS);
+}
+
+/** "1 move", "18 moves". */
+function movesText(n: number): string {
+  return n === 1 ? '1 move' : `${n} moves`;
+}
 
 // ---------------------------------------------------------------------------------------------
 // Rich text: plain strings with subscripts and superscripts, rendered by the component
@@ -103,6 +117,11 @@ export function tauFromLabels(board: Board<number>, images: readonly number[]): 
 /** The identity in positions. */
 export function identityTau(board: Board<number>): number[] {
   return board.labels.map((_, i) => i);
+}
+
+/** The key of a pair given in labels: board, black labels sorted, tau ("E6|2.3.4.5|1.2.3.4.5.6"). */
+export function pairKey(s: { board: string; black: readonly number[]; tau: readonly number[] }): string {
+  return `${s.board}|${[...s.black].sort((a, b) => a - b).join('.')}|${s.tau.join('.')}`;
 }
 
 /** Labels to a SatakeDiagram in positions: the black labels read as a set, sorted (SPEC 5.2, E-7). */
@@ -310,15 +329,55 @@ export function announceTau(board: Board<number>, tau: readonly number[], v: Lig
   return `τ exchanges ${said}. ${verdictTail(v)}`;
 }
 
-/** After a stage of theta (A-4, plan wording). */
-export function announceStage(stage: 1 | 2 | 3, populations: readonly number[]): string {
-  return `Stage ${stage} of θ. Populations now ${speakList(populations)}.`;
+/**
+ * The game board after a step, as A-4 reads it, and the step number: every population on a board of at most
+ * four nodes ("Populations now 0, 1, 0. Move 1."); above four nodes only the changed cities, read by the site's
+ * announceTemplates.changedOnly after its head ("City 2 now 1, city 6 now minus 1. Move 2."). `before` and
+ * `after` are indexed by position.
+ */
+export function populationsTail(board: Board<number>, before: readonly number[], after: readonly number[], move: number): string {
+  const order = labelOrder(board);
+  const b = inLabelOrder(board, before);
+  const a = inLabelOrder(board, after);
+  if (order.length <= CHANGED_ONLY_ABOVE) return `Populations now ${speakList(a)}. Move ${move}.`;
+  const changes = order.flatMap((l, k) => (b[k] !== a[k] ? [[l, a[k]!] as const] : []));
+  // changedOnly names one city in its head; the rest of its sentence (the changed cities, the move) is the
+  // site's reading, kept as it is after T13's own head (as T11 does)
+  const one = announceTemplates.changedOnly('Mutated', order[0]!, changes, move);
+  const head = `Mutated city ${order[0]}. `;
+  if (!one.startsWith(head)) throw new Error(`changedOnly no longer starts with "${head}": ${one}`);
+  return one.slice(head.length);
 }
 
-/** After a composite move, one announcement for the whole word (A-4, plan wording). */
-export function announceComposite(label: number, mutations: number, coords: readonly number[] | null): string {
+/** After a stage of theta (A-4, plan wording): "Stage 2 of θ. Populations now 1, 1, 1. Move 2." */
+export function announceStage(board: Board<number>, stage: 1 | 2 | 3, before: readonly number[], after: readonly number[], move: number): string {
+  return `Stage ${stage} of θ. ${populationsTail(board, before, after, move)}`;
+}
+
+/** After a composite move, one announcement for the whole word (A-4, plan wording), then the game board. */
+export function announceComposite(
+  board: Board<number>,
+  label: number,
+  mutations: number,
+  coords: readonly number[] | null,
+  before: readonly number[],
+  after: readonly number[],
+  move: number,
+): string {
   const head = `Played the composite move of restricted node ${label}, ${mutations} ${mutations === 1 ? 'mutation' : 'mutations'}.`;
-  return coords === null ? head : `${head} Shadow coordinates now ${speakList(coords)}.`;
+  const shadow = coords === null ? '' : ` Shadow coordinates now ${speakList(coords)}.`;
+  return `${head}${shadow} ${populationsTail(board, before, after, move)}`;
+}
+
+/** After Reset or a choice of root: the play starts again at step 0. */
+export function announceRestart(board: Board<number>, what: 'Reset.' | 'Root chosen.', before: readonly number[], after: readonly number[]): string {
+  return `${what} ${populationsTail(board, before, after, 0)}`;
+}
+
+/** The sentence that ends the wait when the data could not be computed (a worker that failed; instruction 5.12). */
+export function failureSentence(message: string): string {
+  const reason = message.trim().replace(/\.$/, '');
+  return `The data could not be computed${reason === '' ? '' : ` (${reason})`}. The next change of the decoration or the board asks for them again.`;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -789,12 +848,31 @@ function classPhrase(sat: SatakeComputed): string {
   return `the multiplicity is ${listText(sat.multiplicities.map((m) => `${m.mult} on the ${m.class} restricted roots`))}`;
 }
 
-/** "(m_lambda, m_2lambda) = (4, 1)", or the pairs at the nodes of the restricted board in Bourbaki order. */
+/**
+ * The pairs of multiplicities of lambda and 2 lambda at the nodes of the restricted board, in Bourbaki order,
+ * in words (a caption is plain text: no subscripts): "multiplicities (4, 1) for λ and 2λ".
+ */
 function pairsPhrase(data: Assembled): string {
   const pairs = data.drawing === null ? [] : data.drawing.pairs.map(([a, b]) => `(${a}, ${b})`);
-  if (pairs.length === 1) return `multiplicities (m_λ, m_2λ) = ${pairs[0]}`;
-  if (new Set(pairs).size === 1) return `multiplicities (m_λ, m_2λ) = ${pairs[0]} at every node of the restricted board`;
-  return `multiplicities (m_λ, m_2λ) = ${listText(pairs.map((p, k) => `${p} at node ${k + 1}`))} of the restricted board`;
+  if (pairs.length === 1) return `multiplicities ${pairs[0]} for λ and 2λ`;
+  if (new Set(pairs).size === 1) return `multiplicities ${pairs[0]} for λ and 2λ at every node of the restricted board`;
+  return `multiplicities ${listText(pairs.map((p, k) => `${p} at node ${k + 1}`))} of the restricted board, for λ and 2λ`;
+}
+
+/**
+ * The composite moves of the drawn restricted board, each drawn node with its own word and its own reduced
+ * length, in Bourbaki order (the word of the orbit drawn there, found by orbit): "each of its moves is a fixed
+ * sequence of 32 moves of E6, of reduced length 8", or, when the nodes differ, "its moves are fixed sequences
+ * of moves of E6 (18 moves of reduced length 6 at node 1 and 21 moves of reduced length 9 at node 2)".
+ */
+function compositePhrase(data: Assembled, name: string): string {
+  const drawing = data.drawing!;
+  const lengths = drawing.orbitIndex.map((i) => data.rb.compositeWords[i]!.length);
+  const reduced = drawing.reducedLengths;
+  if (lengths.every((x) => x === lengths[0]) && reduced.every((x) => x === reduced[0])) {
+    return `each of its moves is a fixed sequence of ${movesText(lengths[0]!)} of ${name}, of reduced length ${reduced[0]}`;
+  }
+  return `its moves are fixed sequences of moves of ${name} (${listText(lengths.map((n, k) => `${movesText(n)} of reduced length ${reduced[k]} at node ${k + 1}`))})`;
 }
 
 export interface CaptionInput {
@@ -805,11 +883,14 @@ export interface CaptionInput {
   data: Assembled | null;
   /** The chosen root (positions), for the theta panel. */
   root: readonly number[];
+  /** True when the data of an admissible pair could not be computed (a worker that failed). */
+  failed?: boolean;
 }
 
 /**
  * The caption of the current state and panel (4.0: "the caption states the result"); every number is read
- * from the engine's results. Plain sentences, no em-dash (8.4).
+ * from the engine's results. Plain sentences, no em-dash (8.4); names in their display spelling (a true minus
+ * sign), formulas in words, as a caption is plain text.
  */
 export function captionText(c: CaptionInput): string {
   const board = c.d.board as Board<number>;
@@ -818,7 +899,7 @@ export function captionText(c: CaptionInput): string {
   if (c.panel === 'catalogue') {
     const rows = catalogueRows(name);
     const same = rows.filter((r) => r.sameAs.length > 0);
-    const tail = same.length >= 2 ? `; ${same[0]!.realForm} and ${same[0]!.sameAs[0]} are the same real form` : '';
+    const tail = same.length >= 2 ? `; ${displayName(same[0]!.realForm)} and ${displayName(same[0]!.sameAs[0]!)} are the same real form` : '';
     return `The catalogue of ${name} has ${rows.length} records${tail}. Loading a record paints its decoration.`;
   }
   if (!c.adm.admissible) {
@@ -826,9 +907,13 @@ export function captionText(c: CaptionInput): string {
     const what = failed.length === 0 ? 'τ is not a symmetry of the board' : `condition ${listText(failed)} ${failed.length === 1 ? 'fails' : 'fail'}`;
     return `${where}, ${what}, so the decoration is not the Satake diagram of any real form.`;
   }
-  if (c.data === null) return `${where}, all three conditions hold; the data are computed in the background.`;
+  if (c.data === null) {
+    return c.failed === true
+      ? `${where}, all three conditions hold, but the data could not be computed.`
+      : `${where}, all three conditions hold; the data are computed in the background.`;
+  }
   const data = c.data;
-  const names = listText(data.entries.map((e) => e.real_form));
+  const names = listText(data.entries.map((e) => displayName(e.real_form)));
   const e = data.entries[data.drawingEntry]!;
   const sat = data.sat;
   const toggleSentence =
@@ -838,8 +923,8 @@ export function captionText(c: CaptionInput): string {
   switch (c.panel) {
     case 'theta': {
       const t = thetaStages(c.d, c.root);
-      const w = t.word.length === 0 ? 'play w_X, which is empty here' : `play w_X = ${toLabels(board, t.word).join(' ')}`;
-      return `θ = ${MINUS}w_X∘τ for ${names} on ${name} takes the root ${vectorText(inLabelOrder(board, [...c.root]))} to ${vectorText(inLabelOrder(board, t.stage3))} in three stages: move each population along τ, ${w}, and change every sign.`;
+      const w = t.word.length === 0 ? 'play the longest word of the black nodes, which is empty here' : `play the longest word of the black nodes, ${toLabels(board, t.word).join(' ')}`;
+      return `θ for ${names} on ${name} takes the root ${vectorText(inLabelOrder(board, [...c.root]))} to ${vectorText(inLabelOrder(board, t.stage3))} in three stages: move each population along τ, ${w}, and change every sign.`;
     }
     case 'shadows': {
       if (sat.real_rank === 0) return `${where}, the decoration is the compact form ${names}: every root is fixed by θ, so no root has a shadow.`;
@@ -847,16 +932,14 @@ export function captionText(c: CaptionInput): string {
     }
     case 'restricted': {
       if (data.drawing === null) return `${where}, the decoration is the compact form ${names}, which has no restricted board.`;
-      const lens = [...new Set(data.rb.compositeWords.map((x) => x.length))];
-      const red = [...new Set(data.drawing.reducedLengths)];
-      return `For ${names} on ${name} the restricted board is ${data.drawing.name}: each of its moves is a fixed sequence of ${listText(lens)} moves of ${name}, of reduced length ${listText(red)}, and ${classPhrase(sat)}.`;
+      return `For ${names} on ${name} the restricted board is ${data.drawing.name}: ${compositePhrase(data, name)}, and ${classPhrase(sat)}.`;
     }
     case 'lights': {
       return `${where}, all three conditions hold: the decoration is the Satake diagram of ${names}. The buttons load the examples of A3 and A2 from the table of conditions.${toggleSentence}`;
     }
     default: {
-      if (sat.real_rank === 0) return `${where}, the decoration is the Satake diagram of the compact form ${names}: real rank 0, no restricted roots, dim k = ${sat.dim_k}.${toggleSentence}`;
-      return `${where}, the decoration is the Satake diagram of ${names}: real rank ${sat.real_rank}, restricted roots of type ${e.restricted_type_display} with ${pairsPhrase(data)}, dim k = ${sat.dim_k}, dim p = ${sat.dim_p}, character ${intText(sat.character)}.${toggleSentence}`;
+      if (sat.real_rank === 0) return `${where}, the decoration is the Satake diagram of the compact form ${names}: real rank 0, no restricted roots, dim 𝔨 = ${sat.dim_k}.${toggleSentence}`;
+      return `${where}, the decoration is the Satake diagram of ${names}: real rank ${sat.real_rank}, restricted roots of type ${e.restricted_type_display} with ${pairsPhrase(data)}, dim 𝔨 = ${sat.dim_k}, dim 𝔭 = ${sat.dim_p}, character ${intText(sat.character)}.${toggleSentence}`;
     }
   }
 }

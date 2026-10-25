@@ -33,13 +33,28 @@ async function pressUntil(page: Page, key: string, selector: string, max = 120):
 
 const focused = (page: Page, attr: string): Promise<string | null> => page.evaluate((a) => document.activeElement?.getAttribute(a) ?? null, attr);
 
+/** A-1: each board is a group whose node buttons hold exactly one tab stop (roving tabindex). */
+async function expectOneTabStop(page: Page, name: string): Promise<void> {
+  const group = out(page, name).locator('[role="group"]');
+  await expect(group, name).toHaveCount(1);
+  const nodes = group.locator('button[data-node]');
+  expect(await nodes.count(), name).toBeGreaterThan(1);
+  await expect(group.locator('button[data-node][tabindex="0"]'), name).toHaveCount(1);
+  await expect(group.locator('button[data-node]:not([tabindex="0"])'), name).toHaveCount((await nodes.count()) - 1);
+}
+
 test('keyboard only: paint nodes, choose tau and read the lights', async ({ page }) => {
   await open(page, 'g=A2&x=&t=1.2');
+  // the decoration and the game board each hold one tab stop
+  await expectOneTabStop(page, 'decoration');
+  await expectOneTabStop(page, 'game-board');
   // Tab into the decoration: one tab stop, the lowest label
   await pressUntil(page, 'Tab', '[data-tool="satake"] [data-out="decoration"]');
   expect(await focused(page, 'data-node')).toBe('1');
   await page.keyboard.press('ArrowRight');
   expect(await focused(page, 'data-node')).toBe('2');
+  await expectOneTabStop(page, 'decoration');
+  await expect(out(page, 'decoration').locator('button[data-node="2"]')).toHaveAttribute('tabindex', '0');
   await page.keyboard.press('ArrowLeft');
   expect(await focused(page, 'data-node')).toBe('1');
   // Enter paints node 1 black; the live region announces the three verdicts
@@ -77,14 +92,18 @@ test('keyboard only: a restricted node plays its composite move and u undoes it'
   await expect(root(page).locator('[data-panel-tab="restricted"]')).toHaveAttribute('aria-selected', 'true');
   await pressUntil(page, 'Tab', '[data-tool="satake"] [data-out="restricted-board"]');
   expect(await focused(page, 'data-node')).toBe('1');
+  await expectOneTabStop(page, 'decoration');
+  await expectOneTabStop(page, 'game-board');
+  await expectOneTabStop(page, 'restricted-board');
   await page.keyboard.press('ArrowRight');
   expect(await focused(page, 'data-node')).toBe('2');
+  await expectOneTabStop(page, 'restricted-board');
   await expect(out(page, 'shadow-coordinates')).toHaveText('(0, 1)');
   await page.keyboard.press('Enter');
   await expect(out(page, 'composite-length')).toHaveText('8');
   await expect(out(page, 'shadow-coordinates')).toHaveText(`(0, ${MINUS}1)`);
   await expect(out(page, 'moveCounter')).toHaveText('1');
-  await expect(live(page)).toHaveText('Played the composite move of restricted node 2, 32 mutations. Shadow coordinates now 0, minus 1.');
+  await expect(live(page)).toHaveText(/^Played the composite move of restricted node 2, \d+ mutations\. Shadow coordinates now 0, minus 1\. City \d+ now .*\. Move 1\.$/);
   // a second time: the reflection twice gives the shadow back
   await page.keyboard.press('Enter');
   await expect(out(page, 'shadow-coordinates')).toHaveText('(0, 1)');
@@ -94,12 +113,37 @@ test('keyboard only: a restricted node plays its composite move and u undoes it'
   await expect(out(page, 'moveCounter')).toHaveText('1');
   await expect(out(page, 'shadow-coordinates')).toHaveText(`(0, ${MINUS}1)`);
   await expect(live(page)).toHaveText(/^Undid move 2\. Populations now /);
+  // A-1: undo, redo and reset come after the board that plays the moves: the next tab stop after the
+  // restricted board is Undo, then Redo, then Reset
+  await page.keyboard.press('Tab');
+  expect(await focused(page, 'data-control')).toBe('undo');
+  await page.keyboard.press('Tab');
+  expect(await focused(page, 'data-control')).toBe('redo');
+  await page.keyboard.press('Tab');
+  expect(await focused(page, 'data-control')).toBe('reset');
   // reset, by keyboard: the root's starting population again
-  await pressUntil(page, 'Shift+Tab', '[data-tool="satake"] [data-control="reset"]');
   await page.keyboard.press('Enter');
   await expect(out(page, 'moveCounter')).toHaveText('0');
   const values: string[] = [];
   for (const b of await out(page, 'game-board').locator('button[data-node]').all()) values[Number(await b.getAttribute('data-node')) - 1] = (await b.getAttribute('data-value')) ?? '';
   expect(values).toEqual(start);
   await expect(out(page, 'shadow-coordinates')).toHaveText('(0, 1)');
+});
+
+test('keyboard only: after Play θ the next tab stops are undo, redo and reset (A-1)', async ({ page }) => {
+  await open(page, 'g=A3&x=1.3&t=1.2.3');
+  await pressUntil(page, 'Tab', '[data-tool="satake"] [role="tab"]');
+  for (let k = 0; k < 6; k++) {
+    if ((await focused(page, 'data-panel-tab')) === 'theta') break;
+    await page.keyboard.press('ArrowRight');
+  }
+  await expect(root(page).locator('[data-panel-tab="theta"]')).toHaveAttribute('aria-selected', 'true');
+  await pressUntil(page, 'Tab', '[data-tool="satake"] [data-control="theta-play"]');
+  await page.keyboard.press('Enter');
+  await expect(out(page, 'moveCounter')).toHaveText('3');
+  await page.keyboard.press('Tab');
+  expect(await focused(page, 'data-control')).toBe('undo');
+  await page.keyboard.press('Enter');
+  await expect(out(page, 'moveCounter')).toHaveText('2');
+  await expect(live(page)).toHaveText(/^Undid move 3\. Populations now /);
 });

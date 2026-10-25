@@ -31,7 +31,7 @@
 //   (History.svelte); predictResult, predictReveal (Predict.svelte);
 //   decoration, black-nodes, tau, arrows, game-board (the decoration and the game board);
 //   symmetry-reason, light-1, light-2, light-3, reason-1, reason-2, reason-3, verdict, failure-note, examples;
-//   data-pending, real-form, cartan-label, restricted-type, real-rank, multiplicities, multiplicity-classes,
+//   data-pending, data-error, real-form, cartan-label, restricted-type, real-rank, multiplicities, multiplicity-classes,
 //   dim-k, dim-p, character, shape (the data);
 //   theta-word, theta-stage, theta-stages, theta-note (theta);
 //   shadow, shadow-coordinates, shadow-picture, shadow-table, no-restricted-roots (the shadows);
@@ -43,6 +43,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { admissibility, boardFromName, positiveRoots, satake, theta, toPositions } from '../../../packages/engine/src/index';
 import type { Board, SatakeDiagram } from '../../../packages/engine/src/index';
+// the tool's own server-side functions, for the E7 island test (as registry-outs.spec.ts loads the registry)
+import { computeNow, islandScript, pairJson } from '../../src/components/tools/t13/load';
+import { diagramOf, pairKey } from '../../src/components/tools/t13/model';
 
 interface GoldenRecord {
   dynkin_type: string;
@@ -102,6 +105,19 @@ const multText = (r: GoldenRecord): string =>
     return `${k + 1}: (${a}, ${b})`;
   }).join('; ');
 
+/** A value as A-4 reads it: "minus 1". */
+const spoken = (v: string): string => (v.startsWith('-') ? `minus ${v.slice(1)}` : v);
+/**
+ * The end of a step's announcement as A-4 reads it, from the game board's values in label order before and
+ * after the step: every population up to four nodes, only the changed cities above four, then the step number.
+ */
+function populationsTail(before: string[], after: string[], move: number): string {
+  if (after.length <= 4) return `Populations now ${after.map(spoken).join(', ')}. Move ${move}.`;
+  const parts = after.flatMap((v, k) => (v !== before[k] ? [`city ${k + 1} now ${spoken(v)}`] : []));
+  const body = parts.join(', ');
+  return `${body.length > 0 ? `${body.charAt(0).toUpperCase()}${body.slice(1)}. ` : ''}Move ${move}.`;
+}
+
 const root = (page: Page): Locator => page.locator('[data-tool="satake"]');
 const out = (page: Page, name: string): Locator => root(page).locator(`[data-out="${name}"]`);
 const control = (page: Page, name: string): Locator => root(page).locator(`[data-control="${name}"]`);
@@ -141,7 +157,7 @@ function diagram(type: string, black: number[], tau: number[]): SatakeDiagram {
 
 test.use({ reducedMotion: 'reduce' });
 
-test('data on su(1,3): real rank 1, BC1, (4, 1), dim k 9, dim p 6, character −3', async ({ page }) => {
+test('data on su(1,3): real rank, restricted type, multiplicities, dim k, dim p and character as recorded', async ({ page }) => {
   await open(page);
   const r = record('A3', 'su(1,3)');
   await expect(out(page, 'caption')).not.toHaveText('');
@@ -154,11 +170,11 @@ test('data on su(1,3): real rank 1, BC1, (4, 1), dim k 9, dim p 6, character −
   await expect(out(page, 'restricted-type')).toHaveText(r.restricted_type_display!);
   await expect(out(page, 'real-rank')).toHaveText(String(r.real_rank));
   await expect(out(page, 'multiplicities')).toHaveText(multText(r));
+  // SPEC A.5 worked value: su(1,3) has type BC1 with multiplicities 4 and 1
   await expect(out(page, 'multiplicities')).toHaveText('1: (4, 1)');
   await expect(out(page, 'dim-k')).toHaveText(String(r.dim_k));
   await expect(out(page, 'dim-p')).toHaveText(String(r.dim_p));
   await expect(out(page, 'character')).toHaveText(minus(r.character));
-  await expect(out(page, 'character')).toHaveText(`${MINUS}3`);
   for (const k of [1, 2, 3]) await expect(out(page, `light-${k}`)).toHaveText('holds');
   await expect(out(page, 'verdict')).toHaveText('admissible');
   await expect(out(page, 'failure-note')).toHaveCount(0);
@@ -259,20 +275,33 @@ test('play-theta on A3 with black nodes 1 and 3 takes (0,1,0) to (−1,−1,−1
   await control(page, 'theta-next').click();
   await expect(out(page, 'theta-stage')).toHaveText('1');
   expect(await valuesOf(gameNodes(page))).toEqual(['0', '1', '0']);
-  await expect(live(page)).toHaveText('Stage 1 of θ. Populations now 0, 1, 0.');
+  await expect(live(page)).toHaveText('Stage 1 of θ. Populations now 0, 1, 0. Move 1.');
+  // data-moves on the tool root is the number of steps played (4.0 Test hooks), as History counts them
+  await expect(out(page, 'moveCounter')).toHaveText('1');
+  await expect(root(page)).toHaveAttribute('data-moves', '1');
   await control(page, 'theta-next').click();
   await expect(out(page, 'theta-stage')).toHaveText('2');
   expect(await valuesOf(gameNodes(page))).toEqual(['1', '1', '1']);
   await control(page, 'theta-next').click();
   await expect(out(page, 'theta-stage')).toHaveText('3');
   expect(await valuesOf(gameNodes(page))).toEqual(end);
+  // SPEC A.5 worked value: theta of su*(4) takes (0, 1, 0) to (-1, -1, -1)
   expect(end).toEqual(['-1', '-1', '-1']);
-  await expect(live(page)).toHaveText('Stage 3 of θ. Populations now minus 1, minus 1, minus 1.');
+  await expect(live(page)).toHaveText('Stage 3 of θ. Populations now minus 1, minus 1, minus 1. Move 3.');
   await expect(out(page, 'moveCounter')).toHaveText('3');
+  await expect(root(page)).toHaveAttribute('data-moves', '3');
   // "Play θ" runs all three stages again: theta is an involution of the roots
   await control(page, 'theta-play').click();
   expect(await valuesOf(gameNodes(page))).toEqual(['0', '1', '0']);
   await expect(out(page, 'moveCounter')).toHaveText('6');
+  await expect(root(page)).toHaveAttribute('data-moves', '6');
+  // undo: one step back, and data-moves follows
+  await control(page, 'undo').click();
+  await expect(out(page, 'moveCounter')).toHaveText('5');
+  await expect(root(page)).toHaveAttribute('data-moves', '5');
+  // the session history stays out of the link (6.6)
+  await page.waitForTimeout(700);
+  expect(new URL(page.url()).search).toBe('?g=A3&x=1.3&t=1.2.3');
 });
 
 test('E6 with black nodes 2, 3, 4, 5 shows restricted board A2 with multiplicity 8 and a composite move reflects the shadow', async ({ page }) => {
@@ -280,11 +309,13 @@ test('E6 with black nodes 2, 3, 4, 5 shows restricted board A2 with multiplicity
   const r = record('E6', 'e6(-26)');
   await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'e6(-26)');
   await expect(out(page, 'multiplicities')).toHaveText(multText(r));
+  // SPEC 2.15 worked example: every restricted root of e6(-26) has multiplicity 8 (A2, no doubled root)
   await expect(out(page, 'multiplicities')).toHaveText('1: (8, 0); 2: (8, 0)');
   await expect(out(page, 'dim-k')).toHaveText(String(r.dim_k));
   await expect(out(page, 'character')).toHaveText(minus(r.character));
   await openPanel(page, 'restricted');
   await expect(out(page, 'restricted-name')).toHaveText(r.restricted_board!);
+  // SPEC 2.15 worked example: the restricted board of e6(-26) is A2
   await expect(out(page, 'restricted-name')).toHaveText('A2');
   await expect(restrictedNode(page, 1)).toHaveAttribute('aria-label', /^Restricted node 1, orbit 1, multiplicity 8 and 0/);
   await expect(out(page, 'shadow-coordinates')).toHaveText('(0, 1)');
@@ -294,15 +325,21 @@ test('E6 with black nodes 2, 3, 4, 5 shows restricted board A2 with multiplicity
   const k = r.restricted_orbits_in_bourbaki_order![1]!;
   const s = r.restricted_simple_orbits.findIndex((o) => o.join() === k.join());
   await expect(out(page, 'composite-length')).toHaveText(String(r.restricted_reflection_word_lengths[s]));
+  // SPEC 2.15 worked example: each composite move of e6(-26) has reduced length 8
   await expect(out(page, 'composite-length')).toHaveText('8');
   const letters = (await out(page, 'composite-word').innerText()).trim().split(/\s+/);
   expect(letters.length).toBe(r.w_X_word.length + r.w_X_word.length + r.restricted_reflection_word_lengths[s]!);
-  expect(letters.length).toBe(32);
   expect(letters.slice(0, r.w_X_word.length).map(Number)).toEqual(r.w_X_word);
   await expect(out(page, 'shadow-coordinates')).toHaveText(`(0, ${MINUS}1)`);
   expect(await valuesOf(out(page, 'restricted-board').locator('button[data-node]'))).toEqual(['0', '-1']);
-  expect(await valuesOf(gameNodes(page))).not.toEqual(before);
-  await expect(live(page)).toHaveText('Played the composite move of restricted node 2, 32 mutations. Shadow coordinates now 0, minus 1.');
+  const after = await valuesOf(gameNodes(page));
+  expect(after).not.toEqual(before);
+  // A-4 above four nodes: only the changed cities, and the step number
+  await expect(live(page)).toHaveText(
+    `Played the composite move of restricted node 2, ${letters.length} mutations. Shadow coordinates now 0, minus 1. ${populationsTail(before, after, 1)}`,
+  );
+  expect(populationsTail(before, after, 1)).toMatch(/^City \d+ now .*\. Move 1\.$/);
+  await expect(root(page)).toHaveAttribute('data-moves', await out(page, 'moveCounter').innerText());
   // the population reached is a root of E6
   const roots = new Set([...positiveRoots(B('E6')), ...positiveRoots(B('E6')).map((v) => v.map((x) => (x === 0 ? 0 : -x)))].map((v) => v.join(',')));
   expect(roots.has((await valuesOf(gameNodes(page))).join(','))).toBe(true);
@@ -331,15 +368,13 @@ test('the D4 catalogue lists six records and marks so(2,6) and so*(8) as one rea
   const expected = golden.satake.filter((r) => r.dynkin_type === 'D4').map((r) => r.real_form);
   const rows = out(page, 'catalogue-row');
   await expect(rows).toHaveCount(expected.length);
-  expect(expected.length).toBe(6);
   for (const [k, form] of expected.entries()) await expect(rows.nth(k)).toHaveAttribute('data-name', form);
   await expect(out(page, 'same-form')).toHaveCount(2);
   await expect(root(page).locator('[data-out="catalogue-row"][data-name="so(2,6)"] [data-out="same-form"]')).toHaveText('same real form as so*(8)');
   await expect(root(page).locator('[data-out="catalogue-row"][data-name="so*(8)"] [data-out="same-form"]')).toHaveText('same real form as so(2,6)');
   await root(page).locator('[data-control="catalogue-load"][data-name="so*(8)"]').click();
   await expect(out(page, 'black-nodes')).toHaveText(record('D4', 'so*(8)').black_nodes.join('.'));
-  await expect(out(page, 'black-nodes')).toHaveText('1.3');
-  expect(new URL(page.url()).searchParams.get('x')).toBe('1.3');
+  expect(new URL(page.url()).searchParams.get('x')).toBe(record('D4', 'so*(8)').black_nodes.join('.'));
   await openPanel(page, 'data');
   await expect(root(page).locator('[data-out="real-form"][data-name="so*(8)"] [data-out="restricted-type"]')).toHaveText('C2');
   await openPanel(page, 'restricted');
@@ -393,11 +428,6 @@ test('B3 so(2,5) and C3 sp(1,2) show their data', async ({ page }) => {
     await expect(out(page, 'multiplicities')).toHaveText(multText(r));
     await expect(out(page, 'dim-k')).toHaveText(String(r.dim_k));
   }
-  // the instruction's values: B2 with (1, 0) and (3, 0), dim k 11; BC1 with (4, 3), dim k 13
-  expect(multText(record('B3', 'so(2,5)'))).toBe('1: (1, 0); 2: (3, 0)');
-  expect(record('B3', 'so(2,5)').dim_k).toBe(11);
-  expect(multText(record('C3', 'sp(1,2)'))).toBe('1: (4, 3)');
-  expect(record('C3', 'sp(1,2)').dim_k).toBe(13);
 });
 
 test('the compact form of G2 shows real rank 0 and no restricted board', async ({ page }) => {
@@ -419,7 +449,7 @@ test('the compact form of G2 shows real rank 0 and no restricted board', async (
 test('every node button carries data-node, data-board, data-value and data-can-act, and the root carries data-tool and data-moves', async ({ page }) => {
   await open(page, 'g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
   await expect(root(page)).toHaveAttribute('data-tool', 'satake');
-  await expect(root(page)).toHaveAttribute('data-moves', /^\d+$/);
+  await expect(root(page)).toHaveAttribute('data-moves', '0');
   await openPanel(page, 'restricted');
   const buttons = root(page).locator('button[data-node]');
   expect(await buttons.count()).toBe(6 + 6 + 2);
@@ -613,12 +643,166 @@ test('theta, undo and the root picker: the link holds g, x and t only, never the
   expect(await valuesOf(gameNodes(page))).toEqual(['-1', '-1', '0']);
   await page.waitForTimeout(700);
   expect(new URL(page.url()).search).toBe('?g=A3&x=2&t=3.2.1');
+  await expect(root(page)).toHaveAttribute('data-moves', '3');
   await control(page, 'undo').click();
   await expect(out(page, 'theta-stage')).toHaveText('2');
+  await expect(root(page)).toHaveAttribute('data-moves', '2');
+  await expect(live(page)).toHaveText('Undid move 3. Populations now 1, 1, 0.');
   await control(page, 'root').selectOption('1,0,0');
   expect(await valuesOf(gameNodes(page))).toEqual(['1', '0', '0']);
   await expect(out(page, 'moveCounter')).toHaveText('0');
+  await expect(root(page)).toHaveAttribute('data-moves', '0');
+  await expect(live(page)).toHaveText('Root chosen. Populations now 1, 0, 0. Move 0.');
   // the data come from satake on the reader's own pair, and the pair is admissible
   expect(satake(d).dim_k).toBe(record('A3', 'su(1,3)').dim_k);
   expect(admissibility(d).admissible).toBe(true);
+});
+
+// ---------------------------------------------------------------------------------------------
+// The repair after review (MERGE rulings on P6-A3, build-plan/reports/orchestrator/phase6/P6-A3-review.json)
+// ---------------------------------------------------------------------------------------------
+
+/** WCAG relative luminance of a computed colour "rgb(r, g, b)". */
+function luminance(rgb: string): number {
+  const [r, g, b] = (rgb.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map((v) => {
+    const c = Number(v) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+const contrast = (a: string, b: string): number => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi! + 0.05) / (lo! + 0.05);
+};
+
+test('black nodes are filled and white nodes hollow in both themes, a black node against a white node at least 3 to 1 (A-5, A-6)', async ({ page }) => {
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    // A3 with black node 2 (the default) and E6 with black nodes 2 to 5
+    for (const [query, blackLabels, whiteLabels] of [['', [2], [1, 3]], ['g=E6&x=2.3.4.5&t=1.2.3.4.5.6', [2, 3, 4, 5], [1, 6]]] as const) {
+      await open(page, query);
+      const fill = (label: number): Promise<string> => out(page, 'decoration').locator(`[data-colour-disc="${label}"]`).evaluate((c) => getComputedStyle(c).fill);
+      const pageColour = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+      for (const b of blackLabels) {
+        await expect(deco(page, b)).toHaveAttribute('data-colour', 'black');
+        for (const w of whiteLabels) {
+          await expect(deco(page, w)).toHaveAttribute('data-colour', 'white');
+          expect(contrast(await fill(b), await fill(w)), `${scheme} ${query} black ${b} against white ${w}`).toBeGreaterThanOrEqual(3);
+        }
+        // filled: the black node stands out from the page as well
+        expect(contrast(await fill(b), pageColour), `${scheme} ${query} black ${b} against the page`).toBeGreaterThanOrEqual(3);
+      }
+      // hollow: a white node is filled with the page colour
+      for (const w of whiteLabels) expect(contrast(await fill(w), pageColour), `${scheme} ${query} white ${w}`).toBeLessThan(1.1);
+    }
+  }
+});
+
+test('on a board above four nodes a stage of θ, a reset and a root read only the changed cities and the step number (A-4)', async ({ page }) => {
+  await open(page, 'g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+  await openPanel(page, 'theta');
+  const v0 = await valuesOf(gameNodes(page));
+  await control(page, 'theta-next').click();
+  await expect(out(page, 'theta-stage')).toHaveText('1');
+  const v1 = await valuesOf(gameNodes(page));
+  await expect(live(page)).toHaveText(`Stage 1 of θ. ${populationsTail(v0, v1, 1)}`);
+  await control(page, 'theta-next').click();
+  await expect(out(page, 'theta-stage')).toHaveText('2');
+  const v2 = await valuesOf(gameNodes(page));
+  expect(v2).not.toEqual(v1);
+  await expect(live(page)).toHaveText(`Stage 2 of θ. ${populationsTail(v1, v2, 2)}`);
+  await expect(live(page)).not.toContainText('Populations now');
+  await expect(root(page)).toHaveAttribute('data-moves', await out(page, 'moveCounter').innerText());
+  await control(page, 'reset').click();
+  await expect(out(page, 'moveCounter')).toHaveText('0');
+  await expect(live(page)).toHaveText(`Reset. ${populationsTail(v2, v0, 0)}`);
+  await expect(root(page)).toHaveAttribute('data-moves', '0');
+  await control(page, 'root').selectOption({ index: 0 });
+  const vr = await valuesOf(gameNodes(page));
+  await expect(live(page)).toHaveText(`Root chosen. ${populationsTail(v0, vr, 0)}`);
+});
+
+test('a worker that fails ends the wait with a sentence that the data could not be computed, and the next change asks again', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  const WORKER = /engine\.worker[^/]*\.js/;
+  await page.route(WORKER, (route) => route.fulfill({ status: 404, body: 'not found' }));
+  await open(page);
+  await control(page, 'picker').selectOption('E8');
+  await expect(out(page, 'verdict')).toHaveText('admissible');
+  await expect(out(page, 'data-error')).toHaveText(/^The data could not be computed \(.+\)\. The next change of the decoration or the board asks for them again\.$/);
+  await expect(out(page, 'data-pending')).toHaveCount(0);
+  await expect(out(page, 'real-form')).toHaveCount(0);
+  await expect(out(page, 'caption')).toContainText('but the data could not be computed');
+  for (const p of ['shadows', 'restricted']) {
+    await openPanel(page, p);
+    await expect(out(page, 'data-error'), p).toHaveCount(1);
+    await expect(out(page, 'data-pending'), p).toHaveCount(0);
+  }
+  await openPanel(page, 'data');
+  // the failure is handled: no unhandled rejection
+  expect(errors).toEqual([]);
+  // the next change asks again: the sentence belongs to E8, and E7 waits for its own data
+  await page.unroute(WORKER);
+  await control(page, 'picker').selectOption('E7');
+  await expect(out(page, 'verdict')).toHaveText('admissible');
+  await expect(out(page, 'data-error')).toHaveCount(0);
+  await expect(out(page, 'data-pending').or(out(page, 'real-form'))).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test('an instance configured on E7 shows the data written into the island at build time and fetches no worker before the first interaction (E-9)', async ({ page, baseURL }) => {
+  // The embed page with only its island's properties changed to { board: 'E7' } (as the review's probe), and the
+  // element an E7 instance's server render writes into the island (load.ts islandScript; site/tests/unit/tools/
+  // T13.test.ts checks that the server render writes exactly this element).
+  const html = await (await page.request.get(`${baseURL}embed/satake/`)).text();
+  const props = `props="{&quot;id&quot;:[0,&quot;&quot;],&quot;preset&quot;:[0,&quot;default&quot;],&quot;board&quot;:[0,&quot;E7&quot;]}"`;
+  const e7Props = html.replace(/props="\{&quot;id&quot;[^"]*"/, props);
+  expect(e7Props).not.toBe(html);
+  const split = { board: 'E7', black: [] as number[], tau: [1, 2, 3, 4, 5, 6, 7] };
+  const d = diagramOf(split.board, split.black, split.tau);
+  const script = islandScript('', pairKey(split), pairJson(computeNow(d, admissibility(d))!));
+  const withData = e7Props.replace(/(<astro-island\b[^>]*>)/, `$1${script}`);
+  expect(withData).not.toBe(e7Props);
+  await page.route('**/embed/satake/e7-island/', (route) => route.fulfill({ contentType: 'text/html', body: withData }));
+  await page.route('**/embed/satake/e7-no-data/', (route) => route.fulfill({ contentType: 'text/html', body: e7Props }));
+  const workers: string[] = [];
+  page.on('request', (r) => {
+    if (/engine\.worker/.test(r.url())) workers.push(r.url());
+  });
+  const splitRecord = golden.satake.find((r) => r.dynkin_type === 'E7' && r.black_nodes.length === 0 && r.tau.every((t, k) => t === k + 1))!;
+
+  await page.goto('embed/satake/e7-island/');
+  await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+  await expect(out(page, 'tau')).toHaveText(split.tau.join('.'));
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', splitRecord.real_form);
+  await expect(out(page, 'real-rank')).toHaveText(String(splitRecord.real_rank));
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1500);
+  await expect(out(page, 'data-pending')).toHaveCount(0);
+  expect(workers).toEqual([]);
+  // the first interaction may ask the worker: picking E8
+  await control(page, 'picker').selectOption('E8');
+  await expect(out(page, 'real-form')).toHaveAttribute('data-name', record('E8', 'e8(8)').real_form);
+  expect(workers.length).toBeGreaterThan(0);
+
+  // control: without the element in the island the same instance needs the worker at once
+  workers.length = 0;
+  await page.goto('embed/satake/e7-no-data/');
+  await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+  await expect.poll(() => workers.length, { timeout: 15000 }).toBeGreaterThan(0);
+});
+
+test('the catalogue row headers have text (axe empty-table-header), with the typeset names, in both themes', async ({ page }) => {
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    for (const query of ['g=E6', 'g=D4']) {
+      await open(page, query);
+      await openPanel(page, 'catalogue');
+      // the typeset names load on the first change (t13/names.ts): wait for KaTeX's markup in the row headers
+      await expect(out(page, 'catalogue-row').first().locator('th .katex')).toHaveCount(1);
+      const axe = await new AxeBuilder({ page }).withRules(['empty-table-header', 'th-has-data-cells']).include('[data-tool="satake"]').analyze();
+      expect(axe.violations.map((v) => `${v.id}: ${v.nodes.length}`), `${scheme} ${query}`).toEqual([]);
+    }
+  }
 });
