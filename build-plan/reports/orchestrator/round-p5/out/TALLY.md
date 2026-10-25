@@ -48,3 +48,4 @@
 - RT-10 verdicts: 01 CONFIRMED major (as claimed; reproducer keeps major, refuter's rubric reading noted); 02 CONFIRMED minor; 03 CONFIRMED major (refuter raised; 6.6 against 4.0 'the tool's defaults' noted for the owner).
 - RT-03 refute: 01 not refuted (4.0 'Long numbers' has no qualifier; precedent RT-FIX-P3-export-long read a count as a value). Reproduce pending.
 - RT-03 verdicts: 01 CONFIRMED major (reproduced; not refuted).
+- RT-05 refute: 01, 02, 03 not refuted (6.1 W is the viewport width below 400; A-1/2.4.3; 4.0 'announces each result'); 04 REFUTED (A-4's 'spoken as minus' governs move templates; the explanation wording is logged in P5-A2; the formula is MathML named in words). Reproduce pending.
