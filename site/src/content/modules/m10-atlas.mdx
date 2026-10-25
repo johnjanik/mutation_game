@@ -1,0 +1,69 @@
+---
+title: "Atlas, sandbox, history and sources"
+module: 10
+question: "Where are the data of every board, the free editor, and the record of who found what?"
+phase: 6
+released: true
+draft: true
+outcomes: ["LO10"]
+sources: []
+---
+import { Tex, View } from '@components/content';
+import { ModuleLinks } from '@components/lesson';
+import { joinBase, linkIfReleased } from '@lib/pages/released';
+import { ATLAS_GROUPS } from '@components/atlas/boards';
+
+export const page = (slug) => linkIfReleased({ kind: 'page', slug });
+export const sheet = (board) => linkIfReleased({ kind: 'atlas', board });
+export const texName = (board) => `${board[0]}_${board.slice(1)}`;
+export const atlasB3 = sheet('B3');
+export const atlas = atlasB3 ? joinBase(import.meta.env.BASE_URL, 'atlas/') : null;
+export const sandbox = linkIfReleased({ kind: 'tool', id: 'sandbox' });
+export const sources = linkIfReleased({ kind: 'static', name: 'sources' });
+export const history = page('history');
+export const glossary = page('glossary');
+export const credits = page('credits');
+export const openProblem = page('open-problem');
+export const confusions = page('confusions');
+export const notQuiver = page('not-quiver-mutation');
+export const about = page('about');
+export const To = ({ href, label, style, hook, children }) => (href ? <a href={href} aria-label={label} style={style} data-board-link={hook}>{children}</a> : <span style={style} data-board-link={hook}>{children}</span>);
+export const BOARD_LINK = { display: 'inline-block', minWidth: '24px', minHeight: '24px', paddingInline: '4px', textAlign: 'center' };
+
+{/* P6-A8: module M10, the reference module of SPEC.md 3 M10 (a hub, not a lesson with beats). The first
+    figure is the list of the boards that have an Atlas page, taken from the list that the Atlas index of
+    P6-A4 uses (ATLAS_GROUPS), each name a link to its sheet; no tool and no island anywhere on the page.
+    Then one item per reference page, each one sentence with a link that names its target, built through
+    linkIfReleased and the base URL, in the order of the plan: atlas, sandbox, history, sources, glossary,
+    credits, open problem, common confusions, then the two optional pages. No prediction, no challenge
+    (SPEC 9.2: M10 is reference pages and has none). The credit line of SPEC 8.4 closes the list, and
+    ModuleLinks closes the module with the sandbox (SPEC 4 T16, 8.1 P6), with the board A3 (plan).
+    No number with a golden value is printed; the years of the history item are dates of sources. */}
+
+This last module has no beats and no challenges. It gathers the reference pages of the site, each listed below with one sentence on what it holds.
+
+<figure class="atlas-boards" data-first-figure aria-labelledby="m10-figure-caption">
+<ul data-figure-boards style={{ listStyle: 'none', paddingInlineStart: 0, margin: 0 }}>
+{ATLAS_GROUPS.map((g) => (
+  <li data-group={g.letter} style={{ marginBlock: '4px' }}><span>{`Type ${g.letter}:`}</span> {g.names.map((n, k) => <>{k === 0 ? '' : ' '}<To href={sheet(n)} label={n} style={BOARD_LINK} hook={n}><Tex src={texName(n)}/></To></>)}</li>
+))}
+</ul>
+<figcaption id="m10-figure-caption">The Atlas has a data sheet for each named board of finite type with at most eight nodes, listed here by letter, and each name opens the sheet of its board.</figcaption>
+</figure>
+
+<ul class="hub" data-hub>
+<li data-hub-item="atlas"><To href={atlas}>The Atlas</To> gives each named board of finite type with at most eight nodes a data sheet, such as <To href={atlasB3} label="the sheet of B3">the sheet of <Tex src="B_3"/></To>, with a switch that prints the Cartan matrix as this site, Kac and SageMath write it or as Bourbaki and Humphreys write it, transposed, and with a link from each item to a tool that shows it on that board.</li>
+<li data-hub-item="sandbox"><To href={sandbox}>The sandbox</To> is the free editor, where you draw a board of your own, play both games on it in free play with whole numbers of any size, and import or export the board as JSON.</li>
+<li data-hub-item="history"><To href={history}>The history page</To> sets out the work on the two games in order of date and with the credit each author is owed, from Proctor's use of the firing process in 1984 to Wildberger's paper of 2020, and places beside it Kostant's game, an oral tradition attributed to Kostant, and the diagrams of Satake and Araki.</li>
+<li data-hub-item="sources"><To href={sources}>The sources page</To> is generated from the annotated bibliography kept with the site's code and lists every work the site cites, with where to read it and its status in words: read in the source, reported by a later source, checked by computation, or unverified.</li>
+<li data-hub-item="glossary"><To href={glossary}>The glossary</To> sets each word of the site beside the words of Wildberger, of the literature on the numbers game and of Lie theory, and links each word back to the module that first uses it.</li>
+<li data-hub-item="credits"><To href={credits}>The credits page</To> acknowledges Wildberger's game, story and words, states the licences of the site's text and code, and lists every library, font and linked video the site uses with its licence.</li>
+<li data-hub-item="open-problem"><To href={openProblem}>The Mutation Conjecture</To> is the open problem of the site: its page states Wildberger's question about the signs of root populations, shows that the statement fails on a board with a road in one direction only, and invites attempts at a proof that uses only the game.</li>
+<li data-hub-item="confusions"><To href={confusions}>Common confusions</To> corrects statements about the two games that are sometimes made and are not right, such as the claim that a mutation changes the board, each with the source of its correction.</li>
+<li data-hub-item="not-quiver-mutation"><To href={notQuiver}>What mutation does not mean</To> sets the two games beside chip-firing, quiver representations and the cluster mutation of Fomin and Zelevinsky, a different operation with the same name.</li>
+<li data-hub-item="about"><To href={about}>About</To> says what the site teaches, names its two views, <View v="populations"/> and <View v="numbers"/>, and lists the seven statements that the modules develop.</li>
+</ul>
+
+<p data-credit-line>Credit, as every page of the site gives it: the mutation game is Wildberger's; the numbers game is Mozes', with Proctor's earlier use of the same process and Eriksson's development acknowledged; Kostant's game is "attributed to Kostant".</p>
+
+<ModuleLinks module={10} board="A3" />

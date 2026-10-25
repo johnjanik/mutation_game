@@ -4,7 +4,24 @@ phase: 1
 released: true
 description: "The words of this site beside the words of Wildberger, of the numbers-game literature and of Lie theory."
 ---
-import { Cite } from '@components/content';
+import { Cite, View } from '@components/content';
+import { linkIfReleased, siteInventory } from '@lib/pages/released';
+
+export const INVENTORY = siteInventory();
+export const titleOf = (slug) => INVENTORY.modules.find((m) => m.slug === slug)?.title ?? null;
+export const openProblem = linkIfReleased({ kind: 'page', slug: 'open-problem' });
+export const FirstUse = ({ id, uses }) => (
+  <dd data-col="first-use"><span class="col">First use:</span> {uses.map((u, k) => {
+    const term = u.term ?? id;
+    const primary = uses.findIndex((v) => (v.term ?? id) === term) === k;
+    const page = linkIfReleased({ kind: 'module', slug: u.at });
+    const target = u.beat ? `${u.at}#beat-${u.beat}` : u.at;
+    const title = titleOf(u.at);
+    const text = `${title ?? `module ${u.n}`}${u.beat ? ` (beat ${u.beat})` : ''}`;
+    const hook = { 'data-first-use': term, 'data-target': target, ...(primary ? { 'data-primary': 'true' } : {}) };
+    return <>{k === 0 ? '' : '; '}{u.label ? `${u.label}: ` : ''}{page ? <a href={u.beat ? `${page}#beat-${u.beat}` : page} {...hook}>{text}</a> : <span {...hook}>{text}</span>}</>;
+  })}.</dd>
+);
 
 {/* P1-A4: seeded from SPEC.md Appendix C, every row in the order of the appendix, each cell as
     written there. Every term of the first column has its own anchor (glossary#<slug>); the slug
@@ -12,163 +29,681 @@ import { Cite } from '@components/content';
     published. Later agents add entries at the end. glossary.test.ts compares this file with the
     appendix. */}
 
-This page lists the words this site uses and, beside each, the words other authors use for the same thing. Each entry starts with the site's own word. Three lines follow it. The first gives N. J. Wildberger's word in his texts on the mutation game (<Cite k="W20"/>, <Cite k="W-MS"/>). The second gives the word of the literature on the numbers game. The third gives the standard name in Lie theory. A line left empty means that the source has no word for the thing.
+{/* P6-A8 (phase 6, the glossary completed for module M10): additive only. Every row of P1-A4 keeps
+    its anchors and its three columns unchanged; each gains a definition (dd data-col="definition",
+    after the term) and a line that links each of its terms to its first use (FirstUse, the last dd).
+    The terms that the modules define on first use, in bold, and that Appendix C does not list follow
+    as rows 27 and after, in the order of their first use, with the same columns (empty where no
+    counterpart is known). A first use is the place where a module defines the term, in bold or by a
+    sentence of definition; a mention of the word before that place is not one. The terms of module nine
+    link to its page once it is published; until then they name it in plain text. decisions/P6-A8.md
+    lists every anchor added. */}
+
+This page lists the words this site uses and, beside each, the words other authors use for the same thing. Each entry starts with the site's own word and a short definition. Three lines follow it. The first gives N. J. Wildberger's word in his texts on the mutation game (<Cite k="W20"/>, <Cite k="W-MS"/>). The second gives the word of the literature on the numbers game. The third gives the standard name in Lie theory. A line left empty means that the source has no word for the thing. The last line links to the module, and the beat of it, where the word is first used.
 
 <dl class="glossary">
 <div class="entry" data-row="1">
 <dt><dfn id="board">board</dfn></dt>
+<dd data-col="definition">The graph on which both games are played: nodes, and roads that run from one node to another, any number of them in each direction. No move ever changes the board.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> directed multigraph $X$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> weighted graph, Coxeter graph, "GCM graph"</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> Dynkin diagram; generalized Cartan matrix</dd>
+<FirstUse id="board" uses={[{ at: 'm0-start', n: 0, beat: 1 }]} />
 </div>
 <div class="entry" data-row="2">
 <dt><dfn id="bidirected-board">bidirected board</dfn>; <dfn id="one-way-board">one-way board</dfn></dt>
+<dd data-col="definition">A board is bidirected when every road has at least one road back, so that two joined nodes have roads both ways. A board with a road that has no road back is a one-way board: both games can still be played on it, but the results of the modules, which assume roads both ways, need not hold there.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> bidirected multigraph; a multigraph with an edge of type $(m,0)$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> generalized Cartan matrix; (no counterpart)</dd>
+<FirstUse id="bidirected-board" uses={[{ term: 'bidirected-board', label: 'bidirected board', at: 'm1-mutation', n: 1, beat: 2 }, { term: 'one-way-board', label: 'one-way board', at: 'm3-classification', n: 3, beat: 6 }]} />
 </div>
 <div class="entry" data-row="3">
 <dt><dfn id="node">node</dfn>, <dfn id="city">city</dfn></dt>
+<dd data-col="definition">A node is one of the places of a board. In the Mars story of the mutation game the nodes are cities, each holding a population; in the numbers game each node holds a number.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> vertex, city</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> node</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> simple root $\alpha_i$</dd>
+<FirstUse id="node" uses={[{ term: 'node', label: 'node', at: 'm0-start', n: 0, beat: 1 }, { term: 'city', label: 'city', at: 'm0-start', n: 0, beat: 1 }]} />
 </div>
 <div class="entry" data-row="4">
 <dt><dfn id="roads">roads</dfn>, <dfn id="counts">counts $(m,n)$</dfn></dt>
+<dd data-col="definition">A road leads from one node to another, and two nodes may be joined by several roads each way. The counts $(m,n)$ of two nodes say how many roads run each way: $m$ from the first node to the second and $n$ from the second back to the first. In a drawing a single line is one road each way, and a double or triple line with an arrowhead is two or three roads the way the arrowhead points with one road back.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> edge of type $(m,n)$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> amplitudes, weights $k_{ij}$</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> Cartan integers $-C_{ji}$, $-C_{ij}$</dd>
+<FirstUse id="roads" uses={[{ term: 'roads', label: 'roads', at: 'm0-start', n: 0, beat: 1 }, { term: 'counts', label: 'counts', at: 'm6-multiple-edges', n: 6, beat: 1 }]} />
 </div>
 <div class="entry" data-row="5">
 <dt><dfn id="population">population</dfn></dt>
+<dd data-col="definition">The whole number that a city holds, and the list of these numbers over the whole board: the record of the mutation game, shown in the <View v="populations"/> view. A positive population counts Martians and a negative one counts anti-Martians.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> population</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> (not used)</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> element of the root lattice, simple-root coordinates</dd>
+<FirstUse id="population" uses={[{ at: 'm0-start', n: 0, beat: 1 }]} />
 </div>
 <div class="entry" data-row="6">
 <dt><dfn id="numbers">numbers</dfn>, <dfn id="position">position</dfn></dt>
+<dd data-col="definition">In the <View v="numbers"/> view each node holds a whole number, called its number. The list of the numbers of all the nodes is a position of the numbers game.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> dual population; weight</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> position, configuration, labelling</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> weight, Dynkin labels</dd>
+<FirstUse id="numbers" uses={[{ term: 'numbers', label: 'numbers', at: 'm0-start', n: 0, beat: 3 }, { term: 'position', label: 'position', at: 'm0-start', n: 0, beat: 3 }]} />
 </div>
 <div class="entry" data-row="7">
 <dt><dfn id="mutate">mutate</dfn></dt>
+<dd data-col="definition">To mutate city $i$ is to change the type of its inhabitants, Martians into anti-Martians and back, and then to add one copy of the population of each other city for every road from that city into city $i$: $p_i\mapsto p_i-\sum_jC_{ij}p_j$. Every other city keeps its population, and the board stays as it is.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> mutation, reflection $s_x$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> simple reflection on roots</dd>
+<FirstUse id="mutate" uses={[{ at: 'm0-start', n: 0, beat: 1 }]} />
 </div>
 <div class="entry" data-row="8">
 <dt><dfn id="fire">fire</dfn></dt>
+<dd data-col="definition">To fire node $i$ is to add its number to each neighbour once for every road from node $i$ to that neighbour, and then to change the sign of the number on node $i$: $a_j\mapsto a_j-C_{ji}a_i$ for $j\ne i$, and $a_i\mapsto-a_i$.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> dual mutation $r_x$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> firing, a move</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> simple reflection on weights</dd>
+<FirstUse id="fire" uses={[{ at: 'm0-start', n: 0, beat: 3 }]} />
 </div>
 <div class="entry" data-row="9">
 <dt><dfn id="legal-play">legal play</dfn></dt>
+<dd data-col="definition">Play of the numbers game in which a node may fire only when its number is positive. The game is over once no number is positive.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> positive dual mutations; "increasing" mutations seen from the other side</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> legal play, positive (or negative) play</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> descent in the weak order; reduced words</dd>
+<FirstUse id="legal-play" uses={[{ at: 'm0-start', n: 0, beat: 3 }]} />
 </div>
 <div class="entry" data-row="10">
 <dt><dfn id="the-translator">the translator $a=Cp$</dfn></dt>
+<dd data-col="definition">The map that sends a population $p$ to the position $a=Cp$, where $C$ is the Cartan matrix. The number on node $i$ is the amount by which a mutation would lower city $i$. Wildberger's dual population is $q=-Cp$, the same map with the opposite sign: it records the gain that a mutation would bring, where this site records the drop.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> the map $\tau$ (with the opposite sign)</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> $\lambda\mapsto(\langle\lambda,\alpha_i^\vee\rangle)_i$</dd>
+<FirstUse id="the-translator" uses={[{ at: 'm0-start', n: 0, beat: 4 }]} />
 </div>
 <div class="entry" data-row="11">
 <dt><dfn id="root-population">root population</dfn></dt>
+<dd data-col="definition">A population that mutations reach from a simple root population.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> root population, root</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> real root</dd>
+<FirstUse id="root-population" uses={[{ at: 'm1-mutation', n: 1, beat: 2 }]} />
 </div>
 <div class="entry" data-row="12">
 <dt><dfn id="simple-root-population">simple root population</dfn></dt>
+<dd data-col="definition">One Martian in one city and nobody anywhere else; the one in city $i$ is written $e_i$.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> simple root $\delta_x$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> simple root</dd>
+<FirstUse id="simple-root-population" uses={[{ at: 'm1-mutation', n: 1, beat: 2 }]} />
 </div>
 <div class="entry" data-row="13">
 <dt><dfn id="fundamental-position">fundamental position $e_i$</dfn></dt>
+<dd data-col="definition">The position with the number $1$ on node $i$ and $0$ on every other node.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> fundamental weight $\epsilon_x$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> fundamental position</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> fundamental weight $\omega_i$</dd>
+<FirstUse id="fundamental-position" uses={[{ at: 'm4-numbers', n: 4, beat: 5 }]} />
 </div>
 <div class="entry" data-row="14">
 <dt><dfn id="balanced-board">balanced board</dfn>, <dfn id="weights">weights $d_i$</dfn></dt>
+<dd data-col="definition">A board is balanced when its cities can be given positive weights $d_i$ with $d_iA_{ji}=d_jA_{ij}$ for every pair of cities, $A_{ij}$ being the number of roads from city $i$ to city $j$. The weights fix the invariant form, in which the population $e_i$ has squared length $(e_i,e_i)=2d_i$.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> balanced multigraph, balanced weights $\alpha_i$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> symmetrizable matrix; $(\alpha_i,\alpha_i)/2$</dd>
+<FirstUse id="balanced-board" uses={[{ term: 'balanced-board', label: 'balanced board', at: 'm2-form', n: 2, beat: 3 }, { term: 'weights', label: 'weights', at: 'm6-multiple-edges', n: 6, beat: 3 }]} />
 </div>
 <div class="entry" data-row="15">
 <dt><dfn id="form-value">form value $(p,p)$</dfn></dt>
+<dd data-col="definition">The number $(p,p)=p^{\mathsf T}DCp$ attached to a population $p$, where $C$ is the Cartan matrix and $D$ the diagonal matrix of the weights $d_i$. On a board with single roads it is $2\sum_ip_i^2-2\sum p_ip_j$, the second sum running over the pairs of joined cities. Module two reads it on an energy meter.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> $Q(p)$, the Tits form</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> invariant bilinear form</dd>
+<FirstUse id="form-value" uses={[{ at: 'm2-form', n: 2, beat: 1 }]} />
 </div>
 <div class="entry" data-row="16">
 <dt><dfn id="frozen-population">frozen population</dfn></dt>
+<dd data-col="definition">A population other than zero that no mutation changes. On an affine board the site uses the population $\delta$ of positive whole numbers with no common factor for which $C\delta=0$; its entries are the marks.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> Perron-Frobenius population $\alpha_0$</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> null root $\delta$; marks</dd>
+<FirstUse id="frozen-population" uses={[{ at: 'm3-classification', n: 3, beat: 3 }]} />
 </div>
 <div class="entry" data-row="17">
 <dt><dfn id="level">level</dfn></dt>
+<dd data-col="definition">On an affine board, the sum $\ell(a)=\sum_ic_ia_i$ of the numbers of a position $a$, each weighted by its comark $c_i$.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> $\delta\cdot v$ (with their matrix)</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> level $\langle\lambda,K\rangle$; comarks</dd>
+<FirstUse id="level" uses={[{ at: 'm4-numbers', n: 4, beat: 7 }]} />
 </div>
 <div class="entry" data-row="18">
 <dt><dfn id="finite">finite</dfn>, <dfn id="affine">affine</dfn>, <dfn id="neither">neither</dfn></dt>
+<dd data-col="definition">A connected board with roads both ways is finite, or of finite type, when it is balanced and its form is positive definite; <span data-claim>Wildberger shows that these are exactly the boards $A_n$, $B_n$, $C_n$, $D_n$, $E_6$, $E_7$, $E_8$, $F_4$ and $G_2$ (<Cite k="W20"/>, Theorem 8.8)</span>. It is affine when its Cartan matrix is singular while every proper principal minor of the matrix is positive. Every other board is neither.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> List B, List A, spectral radius above 2</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> admissible, looping, divergent</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> finite, affine, indefinite type</dd>
+<FirstUse id="finite" uses={[{ term: 'finite', label: 'finite', at: 'm0-start', n: 0, beat: 4 }, { term: 'affine', label: 'affine', at: 'm3-classification', n: 3, beat: 3 }, { term: 'neither', label: 'neither', at: 'm1-mutation', n: 1, beat: 4 }]} />
 </div>
 <div class="entry" data-row="19">
 <dt><dfn id="raising-move">raising move</dfn>; <dfn id="kostants-game">Kostant's game</dfn></dt>
+<dd data-col="definition">A raising move is a mutation that increases the population of the city that mutates. Kostant's game is attributed to Kostant: it starts from one Martian and makes raising moves only, until no city can be raised.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> increasing mutation; incremental when the rise is 1</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> climbing the root poset</dd>
+<FirstUse id="raising-move" uses={[{ term: 'raising-move', label: 'raising move', at: 'm1-mutation', n: 1, beat: 3 }, { term: 'kostants-game', label: "Kostant's game", at: 'm1-mutation', n: 1, beat: 3 }]} />
 </div>
 <div class="entry" data-row="20">
 <dt><dfn id="heap">heap</dfn></dt>
+<dd data-col="definition">A play drawn as a stack of bricks with one column for each node: each move drops a brick onto the highest earlier brick in its own column or in the column of a joined node.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> frame; X-string for the class of plays</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> heap of a word; commutation class</dd>
+<FirstUse id="heap" uses={[{ at: 'm5-weyl', n: 5, beat: 4 }]} />
 </div>
 <div class="entry" data-row="21">
 <dt><dfn id="minuscule-node">minuscule node</dfn></dt>
+<dd data-col="definition">A node $i$ is minuscule when every position that free play reaches from its fundamental position $e_i$ has all its numbers among $-1$, $0$ and $1$.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span> incremental frames, minuscule heaps</dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> $\lambda$-minuscule elements</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> minuscule weight</dd>
+<FirstUse id="minuscule-node" uses={[{ at: 'm4-numbers', n: 4, beat: 5 }]} />
 </div>
 <div class="entry" data-row="22">
 <dt><dfn id="ring">ring</dfn></dt>
+<dd data-col="definition">Take a position with no negative number. A node is ringed when its number is positive, and that number is its ring.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> nonzero Dynkin label of a dominant weight</dd>
+<FirstUse id="ring" uses={[{ at: 'm7-geometry', n: 7, beat: 2 }]} />
 </div>
 <div class="entry" data-row="23">
 <dt><dfn id="black">black</dfn>, <dfn id="white">white</dfn>, <dfn id="arrows">arrows</dfn></dt>
+<dd data-col="definition">In a Satake diagram each node is painted black or white, and an arrow joins two white nodes that the symmetry $\tau$ of the diagram exchanges. Here $\tau$ is a symmetry of the board, not the map of Wildberger's named in the entry on the translator.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> compact simple roots; non-compact; the involution $\tau$</dd>
+<FirstUse id="black" uses={[{ term: 'black', label: 'black', at: 'm9-real-forms', n: 9 }, { term: 'white', label: 'white', at: 'm9-real-forms', n: 9 }, { term: 'arrows', label: 'arrows', at: 'm9-real-forms', n: 9 }]} />
 </div>
 <div class="entry" data-row="24">
 <dt><dfn id="shadow">shadow</dfn></dt>
+<dd data-col="definition">The shadow of a root population $\alpha$ under a Satake diagram is $\bar\alpha=\tfrac12(\alpha-\theta\alpha)$, where $\theta$ is the involution of the diagram.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> restricted root</dd>
+<FirstUse id="shadow" uses={[{ at: 'm9-real-forms', n: 9 }]} />
 </div>
 <div class="entry" data-row="25">
 <dt><dfn id="restricted-board">restricted board</dfn></dt>
+<dd data-col="definition">The board on which the shadows of a Satake diagram are played: one node for each orbit of $\tau$ on the white nodes, with the Cartan matrix of the shadows of the white simple root populations.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> Dynkin diagram of the restricted root system; relative Weyl group</dd>
+<FirstUse id="restricted-board" uses={[{ at: 'm9-real-forms', n: 9 }]} />
 </div>
 <div class="entry" data-row="26">
 <dt><dfn id="folded-board">folded board</dfn></dt>
+<dd data-col="definition">Take a symmetry of a board with single roads such that no orbit holds two joined nodes. The folded board has one node for each orbit, and as many roads from orbit $O'$ to orbit $O$ as run from the nodes of $O'$ into one node of $O$.</dd>
 <dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
 <dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> folding</dd>
 <dd data-col="lie-theory"><span class="col">Lie theory:</span> folding by orbit sums; orbit Lie algebra</dd>
+<FirstUse id="folded-board" uses={[{ at: 'm6-multiple-edges', n: 6, beat: 5 }]} />
+</div>
+<div class="entry" data-row="27">
+<dt><dfn id="martians">Martians</dfn>, <dfn id="anti-martians">anti-Martians</dfn></dt>
+<dd data-col="definition">In Wildberger's story the cities of a board are on Mars. A positive population counts Martians and a negative one counts anti-Martians; a mutation turns the inhabitants of the city that mutates from one kind into the other.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> Martians, anti-Martians</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> the signs of the coefficients in simple-root coordinates</dd>
+<FirstUse id="martians" uses={[{ term: 'martians', label: 'Martians', at: 'm0-start', n: 0, beat: 1 }, { term: 'anti-martians', label: 'anti-Martians', at: 'm0-start', n: 0, beat: 1 }]} />
+</div>
+<div class="entry" data-row="28">
+<dt><dfn id="numbers-game">numbers game</dfn></dt>
+<dd data-col="definition">The game played on the numbers of a board, in which a move fires one node. The numbers game is Mozes' <Cite k="Moz90"/>, with Proctor's earlier use of the same process <Cite k="Pro84"/> and Eriksson's development of it <Cite k="Eri92"/> acknowledged. This site fires positive numbers, as Proctor and Wildberger do; Eriksson fires negative numbers, and changing the sign of every number turns one convention into the other.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> dual mutation game</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> numbers game; game of numbers</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> the Weyl group acting on weights</dd>
+<FirstUse id="numbers-game" uses={[{ at: 'm0-start', n: 0, beat: 3 }]} />
+</div>
+<div class="entry" data-row="29">
+<dt><dfn id="free-play">free play</dfn></dt>
+<dd data-col="definition">Play in which any node may fire, or any city mutate, whatever the sign of its number or of its population.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> the action of the Weyl group</dd>
+<FirstUse id="free-play" uses={[{ at: 'm0-start', n: 0, beat: 3 }]} />
+</div>
+<div class="entry" data-row="30">
+<dt><dfn id="cartan-matrix">Cartan matrix</dfn></dt>
+<dd data-col="definition">The matrix $C=2I-A^{\mathsf T}$ of a board, $A_{ij}$ being the number of roads from node $i$ to node $j$. It has $2$ on its diagonal, and off the diagonal its entry $C_{ij}=-A_{ji}$ is minus the number of roads from node $j$ into node $i$.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> the adjacency matrix $A$ of the multigraph, with $C=2I-A^{\mathsf T}$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> Donnelly's matrix $M$ of amplitudes is the transpose of $C$, and so is the matrix $c$ of Gashi, Schedler and Speyer</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> generalized Cartan matrix, $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$ as in Kac and SageMath; Bourbaki and Humphreys print the transpose</dd>
+<FirstUse id="cartan-matrix" uses={[{ at: 'm0-start', n: 0, beat: 4 }]} />
+</div>
+<div class="entry" data-row="31">
+<dt><dfn id="mutation-game">mutation game</dfn></dt>
+<dd data-col="definition">The game played on the populations of a board, in which a move mutates one city. The mutation game is Wildberger's <Cite k="W20"/>.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> the mutation game</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> the Weyl group acting on the root lattice</dd>
+<FirstUse id="mutation-game" uses={[{ at: 'm1-mutation', n: 1, beat: 1 }]} />
+</div>
+<div class="entry" data-row="32">
+<dt><dfn id="positive-root-population">positive root population</dfn></dt>
+<dd data-col="definition">A root population in which no city holds anti-Martians.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> positive root populations, $R^+(X)$</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> positive root</dd>
+<FirstUse id="positive-root-population" uses={[{ at: 'm1-mutation', n: 1, beat: 2 }]} />
+</div>
+<div class="entry" data-row="33">
+<dt><dfn id="coxeter-number">Coxeter number</dfn> $h$</dt>
+<dd data-col="definition">A whole number $h$ attached to a board of finite type: the number of times that the move mutating every city once, one city after another, must be repeated before every population comes back. <span data-claim>On a board with at least two nodes the wave ends after $h$ rounds <Cite k="FZ03b"/>.</span></dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Coxeter number, the order of a Coxeter element</dd>
+<FirstUse id="coxeter-number" uses={[{ at: 'm1-mutation', n: 1, beat: 2 }]} />
+</div>
+<div class="entry" data-row="34">
+<dt><dfn id="unhappy">unhappy</dfn>, <dfn id="happy">happy</dfn>, <dfn id="manic">manic</dfn></dt>
+<dd data-col="definition">A city is unhappy when a mutation would raise its population, happy when a mutation would leave it as it is, and manic, also called excited, when a mutation would lower it; its number is then negative, zero or positive. The words come from notes on Kostant's game, which is attributed to Kostant <Cite k="Ele16"/>.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="unhappy" uses={[{ term: 'unhappy', label: 'unhappy', at: 'm1-mutation', n: 1, beat: 3 }, { term: 'happy', label: 'happy', at: 'm1-mutation', n: 1, beat: 3 }, { term: 'manic', label: 'manic', at: 'm1-mutation', n: 1, beat: 3 }]} />
+</div>
+<div class="entry" data-row="35">
+<dt><dfn id="highest-root">highest root</dfn></dt>
+<dd data-col="definition">On a board of finite type, the root population at which no mutation raises any city.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> highest root $\theta$</dd>
+<FirstUse id="highest-root" uses={[{ at: 'm1-mutation', n: 1, beat: 3 }]} />
+</div>
+<div class="entry" data-row="36">
+<dt><dfn id="root-poset">root poset</dfn></dt>
+<dd data-col="definition">The positive root populations of a board, arranged by total population, with an edge from one to another wherever a mutation raises a city.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> posets of positive roots</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> root poset</dd>
+<FirstUse id="root-poset" uses={[{ at: 'm1-mutation', n: 1, beat: 4 }]} />
+</div>
+<div class="entry" data-row="37">
+<dt><dfn id="invariant">invariant</dfn></dt>
+<dd data-col="definition">A quantity is invariant when no move of the game changes it.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> invariant form</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> invariant under the Weyl group</dd>
+<FirstUse id="invariant" uses={[{ at: 'm2-form', n: 2, beat: 1 }]} />
+</div>
+<div class="entry" data-row="38">
+<dt><dfn id="witness">witness</dfn></dt>
+<dd data-col="definition">When a candidate form fails the test of the Form Finder, a witness is a population and a city whose mutation changes the value of the form.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="witness" uses={[{ at: 'm2-form', n: 2, beat: 2 }]} />
+</div>
+<div class="entry" data-row="39">
+<dt><dfn id="closes-up">closes up</dfn></dt>
+<dd data-col="definition">A board closes up when it has only finitely many root populations.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> $R(X)$ finite</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> finite root system</dd>
+<FirstUse id="closes-up" uses={[{ at: 'm3-classification', n: 3, beat: 1 }]} />
+</div>
+<div class="entry" data-row="40">
+<dt><dfn id="star-with-four-arms">star with four arms</dfn></dt>
+<dd data-col="definition">The board with a centre city joined by single roads to four other cities, which are joined to nothing else.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> the affine diagram $\tilde D_4$</dd>
+<FirstUse id="star-with-four-arms" uses={[{ at: 'm3-classification', n: 3, beat: 1 }]} />
+</div>
+<div class="entry" data-row="41">
+<dt><dfn id="positive-definite">positive definite</dfn></dt>
+<dd data-col="definition">A form is positive definite when every population except zero has a positive value.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> $Q$ positive definite</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> positive definite form</dd>
+<FirstUse id="positive-definite" uses={[{ at: 'm3-classification', n: 3, beat: 2 }]} />
+</div>
+<div class="entry" data-row="42">
+<dt><dfn id="spectral-radius">spectral radius</dfn></dt>
+<dd data-col="definition">The largest eigenvalue of the matrix of road counts of a board.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> spectral radius of the adjacency matrix</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="spectral-radius" uses={[{ at: 'm3-classification', n: 3, beat: 2 }]} />
+</div>
+<div class="entry" data-row="43">
+<dt><dfn id="mutation-conjecture">Mutation Conjecture</dfn></dt>
+<dd data-col="definition">Wildberger's statement that every root population consists of Martians only or of anti-Martians only. <span data-claim>Read with one-way roads allowed it is false, as a board with one road in one direction shows; {openProblem ? <a href={openProblem}>the page on the conjecture</a> : 'the page on the conjecture'} says what is known for boards with roads both ways.</span></dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span> the Mutation Conjecture (<Cite k="W20"/>, page 57); the Mutation Problem (<Cite k="W-MS"/>, page 2)</dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="mutation-conjecture" uses={[{ at: 'm3-classification', n: 3, beat: 6 }]} />
+</div>
+<div class="entry" data-row="44">
+<dt><dfn id="comarks">comarks</dfn></dt>
+<dd data-col="definition">On an affine board, the positive whole numbers $c_i$, with no common factor, for which $c^{\mathsf T}C=0$.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> comarks, the weights of the level $\langle\lambda,K\rangle$</dd>
+<FirstUse id="comarks" uses={[{ at: 'm4-numbers', n: 4, beat: 7 }]} />
+</div>
+<div class="entry" data-row="45">
+<dt><dfn id="weyl-group">Weyl group</dfn></dt>
+<dd data-col="definition">The group formed by the moves of a board in free play: every sequence of moves, two sequences being counted as one when they have the same effect on every position.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span> Coxeter group</dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Weyl group $W$</dd>
+<FirstUse id="weyl-group" uses={[{ at: 'm5-weyl', n: 5, beat: 1 }]} />
+</div>
+<div class="entry" data-row="46">
+<dt><dfn id="word">word</dfn></dt>
+<dd data-col="definition">A play written as the list of the node labels in the order played. A shortest word reaches its position in as few moves as possible.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> word in the simple reflections; reduced word</dd>
+<FirstUse id="word" uses={[{ at: 'm5-weyl', n: 5, beat: 2 }]} />
+</div>
+<div class="entry" data-row="47">
+<dt><dfn id="length">length</dfn></dt>
+<dd data-col="definition">The length of a position is the least number of moves that reach it from the start.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> length $\ell(w)$ of an element of the Weyl group</dd>
+<FirstUse id="length" uses={[{ at: 'm5-weyl', n: 5, beat: 2 }]} />
+</div>
+<div class="entry" data-row="48">
+<dt><dfn id="separate">separate</dfn></dt>
+<dd data-col="definition">Each positive root population gives a mirror. A mirror separates a position from the start when the two lie on opposite sides of it.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> the separating roots form an inversion set</dd>
+<FirstUse id="separate" uses={[{ at: 'm5-weyl', n: 5, beat: 2 }]} />
+</div>
+<div class="entry" data-row="49">
+<dt><dfn id="longest-element">longest element</dfn></dt>
+<dd data-col="definition">On a board of finite type, the element of the Weyl group of greatest length.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> longest element $w_0$</dd>
+<FirstUse id="longest-element" uses={[{ at: 'm5-weyl', n: 5, beat: 2 }]} />
+</div>
+<div class="entry" data-row="50">
+<dt><dfn id="reversed-board">reversed board</dfn></dt>
+<dd data-col="definition">The board with every road turned round. Its Cartan matrix is $C^{\mathsf T}$, the transpose of the Cartan matrix of the board.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> the dual root system, of the coroots</dd>
+<FirstUse id="reversed-board" uses={[{ at: 'm5-weyl', n: 5, beat: 5 }]} />
+</div>
+<div class="entry" data-row="51">
+<dt><dfn id="coroot">coroot</dfn>, <dfn id="height">height</dfn></dt>
+<dd data-col="definition">The coroots of a board are the root populations of its reversed board. The height of a root population or of a coroot is the sum of its entries.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> coroot $\beta^\vee$; height</dd>
+<FirstUse id="coroot" uses={[{ term: 'coroot', label: 'coroot', at: 'm5-weyl', n: 5, beat: 6 }, { term: 'height', label: 'height', at: 'm5-weyl', n: 5, beat: 6 }]} />
+</div>
+<div class="entry" data-row="52">
+<dt><dfn id="tally">tally</dfn></dt>
+<dd data-col="definition">A count of how often each value is fired during a game.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="tally" uses={[{ at: 'm5-weyl', n: 5, beat: 6 }]} />
+</div>
+<div class="entry" data-row="53">
+<dt><dfn id="exponents">exponents</dfn></dt>
+<dd data-col="definition">Draw the tally of the complete legal game from $\rho$, the position with $1$ on every node, as bars, and read it sideways: on a board of finite type the lengths of the rows, in increasing order, are the exponents of the board.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> exponents $m_1\le\dots\le m_n$</dd>
+<FirstUse id="exponents" uses={[{ at: 'm5-weyl', n: 5, beat: 6 }]} />
+</div>
+<div class="entry" data-row="54">
+<dt><dfn id="colour-class">colour class</dfn></dt>
+<dd data-col="definition">Colour the nodes of a board with two colours so that joined nodes always differ; the nodes of one colour form a colour class.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> one part of the bipartition of a Dynkin diagram</dd>
+<FirstUse id="colour-class" uses={[{ at: 'm5-weyl', n: 5, beat: 7 }]} />
+</div>
+<div class="entry" data-row="55">
+<dt><dfn id="round">round</dfn></dt>
+<dd data-col="definition">In the wave, firing every node of one colour class is one round. In module six a round is one mutation at each of two cities, one after the other.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="round" uses={[{ label: 'in the wave', at: 'm5-weyl', n: 5, beat: 7 }, { label: 'at two cities', at: 'm6-multiple-edges', n: 6, beat: 2 }]} />
+</div>
+<div class="entry" data-row="56">
+<dt><dfn id="wave">wave</dfn></dt>
+<dd data-col="definition">Play from $\rho$ that fires every node of one colour class, then every node of the other, and so on in turn.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> powers of a bipartite Coxeter element</dd>
+<FirstUse id="wave" uses={[{ at: 'm5-weyl', n: 5, beat: 7 }]} />
+</div>
+<div class="entry" data-row="57">
+<dt><dfn id="representation">representation</dfn>, <dfn id="dimension">dimension</dfn></dt>
+<dd data-col="definition">A representation is a space on which the Lie algebra of a board acts by matrices. Each position $\lambda$ with no negative number labels one, written $V(\lambda)$, and its dimension is the number of vectors in a basis of that space.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> irreducible representation of highest weight $\lambda$; dimension</dd>
+<FirstUse id="representation" uses={[{ term: 'representation', label: 'representation', at: 'm5-weyl', n: 5, beat: 8 }, { term: 'dimension', label: 'dimension', at: 'm5-weyl', n: 5, beat: 8 }]} />
+</div>
+<div class="entry" data-row="58">
+<dt><dfn id="long">long</dfn>, <dfn id="short">short</dfn></dt>
+<dd data-col="definition">On a balanced board whose root populations have two different form values, the long ones are those with the larger value and the short ones those with the smaller.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> long and short roots</dd>
+<FirstUse id="long" uses={[{ term: 'long', label: 'long', at: 'm6-multiple-edges', n: 6, beat: 1 }, { term: 'short', label: 'short', at: 'm6-multiple-edges', n: 6, beat: 1 }]} />
+</div>
+<div class="entry" data-row="59">
+<dt><dfn id="symmetry">symmetry</dfn></dt>
+<dd data-col="definition">A renumbering of the nodes of a board that keeps every road.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> automorphism of the Dynkin diagram</dd>
+<FirstUse id="symmetry" uses={[{ at: 'm6-multiple-edges', n: 6, beat: 5 }]} />
+</div>
+<div class="entry" data-row="60">
+<dt><dfn id="orbit">orbit</dfn></dt>
+<dd data-col="definition">The orbits of a symmetry are the sets of nodes that it permutes among themselves. The orbit of a position is the set of positions that free play reaches from it.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> orbit of a diagram automorphism; Weyl group orbit $W\lambda$</dd>
+<FirstUse id="orbit" uses={[{ label: 'of a symmetry', at: 'm6-multiple-edges', n: 6, beat: 5 }, { label: 'of a position', at: 'm7-geometry', n: 7, beat: 2 }]} />
+</div>
+<div class="entry" data-row="61">
+<dt><dfn id="symmetric-move">symmetric move</dfn></dt>
+<dd data-col="definition">A move that fires, or mutates, every node of one orbit of a symmetry, counted as a single move.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="symmetric-move" uses={[{ at: 'm6-multiple-edges', n: 6, beat: 5 }]} />
+</div>
+<div class="entry" data-row="62">
+<dt><dfn id="restricting-the-roots">restricting the roots</dfn></dt>
+<dd data-col="definition">The second construction called folding: every root population is replaced by its average over the orbits of a symmetry.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> folding by orbit averages; restricted roots</dd>
+<FirstUse id="restricting-the-roots" uses={[{ at: 'm6-multiple-edges', n: 6, beat: 6 }]} />
+</div>
+<div class="entry" data-row="63">
+<dt><dfn id="vertices">vertices</dfn></dt>
+<dd data-col="definition">The corners of a polytope. Module seven keeps the word apart from node, a place of a board; quivers and Wildberger's texts use vertex in other senses.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> vertices of a polytope</dd>
+<FirstUse id="vertices" uses={[{ at: 'm7-geometry', n: 7, beat: 2 }]} />
+</div>
+<div class="entry" data-row="64">
+<dt><dfn id="wythoffs-construction">Wythoff's construction</dfn></dt>
+<dd data-col="definition">The construction of a polytope as the convex hull of the orbit of a position with no negative number, drawn in Euclidean coordinates. <span data-claim>Its shape depends only on which nodes are ringed (<Cite k="Cox35"/>, <Cite k="CKPS95"/>).</span></dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Wythoff's construction of uniform polytopes</dd>
+<FirstUse id="wythoffs-construction" uses={[{ at: 'm7-geometry', n: 7, beat: 2 }]} />
+</div>
+<div class="entry" data-row="65">
+<dt><dfn id="face-type">face type</dfn></dt>
+<dd data-col="definition">A set of nodes each of whose connected pieces holds a ringed node; it names one kind of face of the polytope of an orbit.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="face-type" uses={[{ at: 'm7-geometry', n: 7, beat: 3 }]} />
+</div>
+<div class="entry" data-row="66">
+<dt><dfn id="move-graph">move graph</dfn>, <dfn id="polytope-graph">polytope graph</dfn></dt>
+<dd data-col="definition">Two sets of edges on one orbit. The move graph joins each position to the positions one firing away. The polytope graph joins the vertices that are neighbours on the polytope.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span></dd>
+<FirstUse id="move-graph" uses={[{ term: 'move-graph', label: 'move graph', at: 'm7-geometry', n: 7, beat: 4 }, { term: 'polytope-graph', label: 'polytope graph', at: 'm7-geometry', n: 7, beat: 4 }]} />
+</div>
+<div class="entry" data-row="67">
+<dt><dfn id="uniform">uniform</dfn></dt>
+<dd data-col="definition">A polytope is uniform when all its edges have the same length. The option make uniform of the Geometry Studio draws such a polytope in floating point, and its picture is not an orbit of the game.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> uniform polytope</dd>
+<FirstUse id="uniform" uses={[{ at: 'm7-geometry', n: 7, beat: 5 }]} />
+</div>
+<div class="entry" data-row="68">
+<dt><dfn id="coxeter-plane">Coxeter plane</dfn></dt>
+<dd data-col="definition">On a board of finite type, the plane of the first and the last of the Euclidean coordinates that module seven builds from the form, those that belong to the smallest and to the largest eigenvalue.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Coxeter plane</dd>
+<FirstUse id="coxeter-plane" uses={[{ at: 'm7-geometry', n: 7, beat: 6 }]} />
+</div>
+<div class="entry" data-row="69">
+<dt><dfn id="root-polytope">root polytope</dfn></dt>
+<dd data-col="definition">On this site, the polytope of the orbit of the highest root of a board of finite type.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> root polytope</dd>
+<FirstUse id="root-polytope" uses={[{ at: 'm7-geometry', n: 7, beat: 6 }]} />
+</div>
+<div class="entry" data-row="70">
+<dt><dfn id="shells">shells</dfn></dt>
+<dd data-col="definition">On $E_8$, the sets of populations that share one form value, taken in increasing order of the value.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> shells of the $E_8$ lattice</dd>
+<FirstUse id="shells" uses={[{ at: 'm7-geometry', n: 7, beat: 7 }]} />
+</div>
+<div class="entry" data-row="71">
+<dt><dfn id="string">string</dfn></dt>
+<dd data-col="definition">Take a position $\mu$ whose number $\mu_i$ is not negative and subtract column $i$ of the Cartan matrix from it, $\mu_i$ times. The positions met form the string through $\mu$ at node $i$.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> part of the $\alpha_i$-string through $\mu$</dd>
+<FirstUse id="string" uses={[{ at: 'm8-lie-algebras', n: 8, beat: 1 }]} />
+</div>
+<div class="entry" data-row="72">
+<dt><dfn id="single-step">single step</dfn></dt>
+<dd data-col="definition">A move of a position by column $i$ of the Cartan matrix: the matrix $F_i$ steps down, the matrix $E_i$ steps up, and a step that would leave the orbit gives zero. The matrix $H_i$ multiplies each position by its number on node $i$.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Chevalley generators $E_i$, $F_i$, $H_i$</dd>
+<FirstUse id="single-step" uses={[{ at: 'm8-lie-algebras', n: 8, beat: 2 }]} />
+</div>
+<div class="entry" data-row="73">
+<dt><dfn id="chevalley-serre-relations">Chevalley-Serre relations</dfn></dt>
+<dd data-col="definition">The relations between the matrices $E_i$, $F_i$ and $H_i$ that define the Lie algebra of a board, among them $[E_i,F_j]=\delta_{ij}H_i$ and $[H_i,E_j]=C_{ij}E_j$.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Chevalley-Serre relations</dd>
+<FirstUse id="chevalley-serre-relations" uses={[{ at: 'm8-lie-algebras', n: 8, beat: 3 }]} />
+</div>
+<div class="entry" data-row="74">
+<dt><dfn id="signed-move">signed move</dfn></dt>
+<dd data-col="definition">On a minuscule orbit, the matrix $\exp(E_k)\exp(-F_k)\exp(E_k)$. <span data-claim>It is the move of node $k$ with one sign changed in each pair of exchanged positions, as verified by computation.</span></dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> a lift of the simple reflection $s_k$ to the group</dd>
+<FirstUse id="signed-move" uses={[{ at: 'm8-lie-algebras', n: 8, beat: 5 }]} />
+</div>
+<div class="entry" data-row="75">
+<dt><dfn id="quiver">quiver</dfn></dt>
+<dd data-col="definition">A board with single roads on which one road of each line is kept, so that every line gets a direction. The cluster mutation of Fomin and Zelevinsky acts on quivers and changes them; it is a different operation from the mutation of this site.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> quiver</dd>
+<FirstUse id="quiver" uses={[{ at: 'm8-lie-algebras', n: 8, beat: 8 }]} />
+</div>
+<div class="entry" data-row="76">
+<dt><dfn id="real-form">real form</dfn></dt>
+<dd data-col="definition">A real Lie algebra that becomes the Lie algebra of a board when its numbers are allowed to be complex.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> real form of a complex simple Lie algebra</dd>
+<FirstUse id="real-form" uses={[{ at: 'm9-real-forms', n: 9 }]} />
+</div>
+<div class="entry" data-row="77">
+<dt><dfn id="satake-diagram">Satake diagram</dfn></dt>
+<dd data-col="definition">A board with each node painted black or white, together with a symmetry $\tau$ of the board that gives back every node when applied twice and maps black nodes to black nodes; an arrow joins two white nodes that $\tau$ exchanges. <span data-claim>The admissible diagrams, up to the symmetries of the board, match the real forms of the Lie algebra of the board <Cite k="Kol14"/>.</span></dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Satake diagram (<Cite k="Sat60"/>, <Cite k="Ara62"/>)</dd>
+<FirstUse id="satake-diagram" uses={[{ at: 'm9-real-forms', n: 9 }]} />
+</div>
+<div class="entry" data-row="78">
+<dt><dfn id="involution">involution</dfn></dt>
+<dd data-col="definition">A map that gives back what it started from when it is applied twice. The involution of a Satake diagram acts on populations as $\theta=-w_X\circ\tau$: move each population along $\tau$, play the longest element $w_X$ of the board of the black nodes, then change every sign.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> the involution $\theta$ on the roots</dd>
+<FirstUse id="involution" uses={[{ at: 'm9-real-forms', n: 9 }]} />
+</div>
+<div class="entry" data-row="79">
+<dt><dfn id="admissible">admissible</dfn></dt>
+<dd data-col="definition">A Satake diagram is admissible when three conditions hold, shown as three lights in the Satake Studio: $\tau$ applied twice gives back every node and $\tau$ maps black nodes to black nodes; on the black nodes $\tau$ agrees with $-w_X$; and at every white node $j$ that $\tau$ fixes, the number $\langle\alpha_j,\rho_X^\vee\rangle$ is whole <Cite k="Kol14"/>.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> admissible pair</dd>
+<FirstUse id="admissible" uses={[{ at: 'm9-real-forms', n: 9 }]} />
+</div>
+<div class="entry" data-row="80">
+<dt><dfn id="multiplicity">multiplicity</dfn></dt>
+<dd data-col="definition">The multiplicity of a shadow is the number of root populations that cast it.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> multiplicity of a restricted root</dd>
+<FirstUse id="multiplicity" uses={[{ at: 'm9-real-forms', n: 9 }]} />
+</div>
+<div class="entry" data-row="81">
+<dt><dfn id="real-rank">real rank</dfn></dt>
+<dd data-col="definition">The number of nodes of the restricted board of a Satake diagram, one for each orbit of $\tau$ on the white nodes.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> real rank</dd>
+<FirstUse id="real-rank" uses={[{ at: 'm9-real-forms', n: 9 }]} />
+</div>
+<div class="entry" data-row="82">
+<dt><dfn id="composite-move">composite move</dfn></dt>
+<dd data-col="definition">For an orbit $O$ of $\tau$ on the white nodes, the move $\tilde s_O=w_{X\cup O}\,w_X$ of the big board: the word of $w_X$, then the word of the longest element of the board of the nodes in $X\cup O$. <span data-claim>It moves the shadows as the mutation at $O$ moves the populations of the restricted board <Cite k="DK19"/>.</span></dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> a simple reflection of the relative Weyl group</dd>
+<FirstUse id="composite-move" uses={[{ at: 'm9-real-forms', n: 9 }]} />
+</div>
+<div class="entry" data-row="83">
+<dt><dfn id="vogan-diagram">Vogan diagram</dfn></dt>
+<dd data-col="definition">Another standard picture of a real form, built from a maximally compact Cartan subalgebra where a Satake diagram is built from a maximally split one <Cite k="Kna02"/>.</dd>
+<dd data-col="wildberger"><span class="col">Wildberger:</span></dd>
+<dd data-col="numbers-game"><span class="col">Numbers-game literature:</span></dd>
+<dd data-col="lie-theory"><span class="col">Lie theory:</span> Vogan diagram</dd>
+<FirstUse id="vogan-diagram" uses={[{ at: 'm9-real-forms', n: 9 }]} />
 </div>
 </dl>
