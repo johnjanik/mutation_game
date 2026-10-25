@@ -1,5 +1,5 @@
 # Phase 5 red-team round: tally (gate commit 006f50d)
-- Lenses running (2026-10-25 04:10): RT-02, RT-03, RT-04, RT-05, RT-06. Done: RT-01, RT-08, RT-09, RT-10, RT-13. To come: RT-07, RT-11, RT-12.
+- Lenses running (2026-10-25 04:11): RT-02, RT-03, RT-04, RT-06. Done: RT-01, RT-05, RT-08, RT-09, RT-10, RT-13. To come: RT-07, RT-11, RT-12.
 ## RT-01: 1 finding (minor). Retests hold: 01-01, 01-02 (one sibling missed, below). rep.ts and T12 against the oracle: 12,624 + tool-boundary comparisons, 0 disagreements.
 - P5-RT-01-01 minor: formIsInvariant throws RangeError 'is not an integer' on an integer form entry beyond 2^53 (form.ts:104 isSafeInteger), so gram(C) of a board with such road counts cannot be tested.
 - Notes: T12 prints 'Dimension: N' on non-minuscule nodes where N is the orbit size, not dim V(omega_i) (D4 node 2: 24 vs 28; F4 node 4: 24 vs 26; E8 node 8: 240 vs 248); SafeInt checks intermediate products (E-2, documented); P3-RT-01-01 still reproduces (held).
@@ -36,3 +36,9 @@
 - Notes: SPEC 2.18 and M8 beat 4 count 18 representations, B2 node 2 and C2 node 1 are one (17; owner); SPEC 1.4 statement 6 (M0 beat 5) against M8 beat 6 on E8's smallest representation (owner); orbit-graph edge colours 3 and 4 are the view accents (6.3, owner); held classes P3-RT-13-01 and P4-RT-13-04 have new instances in M8 (not reported); history counter '50 of 50' at 51 positions.
 - RT-13 refute: 01 not refuted (P2 'Results are stated in the prose'; P3-RT-13-01 is about answers visible before commitment, a different rule). Reproduce pending.
 - RT-13 verdicts: 01 CONFIRMED major (reproduced: FAIL 2 of 2 on the release build without JavaScript; not refuted). 02 and 03 merged into P5-RT-08-01 and P5-RT-09-02.
+## RT-05: 4 findings (3 major, 1 minor). Retests hold: 05-01, 05-02, 05-03, 05-05, 05-06, 05-07. Axe 0 violations on all release routes; reflow 0 at 320.
+- P5-RT-05-01 major: T12 string viewer hit areas below 6.1 at 320 (E8 39 vs 43, A8/B8 34 vs 38) and on 8-column boards at 360: the .panel is the inline-size container.
+- P5-RT-05-02 major: a T12 island's hydration replaces the server's matrix and relation scroll boxes, so focus on one goes to body (M8 b4 first tab stop, b3 E1).
+- P5-RT-05-03 major: a relation verdict computed in the worker is drawn but never announced ('checked in the background' only).
+- P5-RT-05-04 minor: T12's relation and pick announcements read the visual formula (U+2212, caret) instead of relationSpoken and speak.
+- Notes: T12.spec 320 test asserts only >= 24; lesson-reflow.spec lists M0-M5 only; .table-wrap focus ring does not reach MDX tables (default ring visible); long values of the string line only in title.
