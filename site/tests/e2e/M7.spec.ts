@@ -760,13 +760,14 @@ test('anatomy of 8.2', async ({ page }) => {
     `verified by computation against exact convex hulls of ${GOLDEN.wythoff_hull_checks} polytopes and the recorded face counts of ${GOLDEN.wythoff.length} polytopes.`,
   );
   // SPEC 8.2 item 7, with the released flag of 7.3: M8 is released in phase 5, so the links block carries
-  // exactly one next link, to M8 under the base, and it is the only link to M8 on the page. The Atlas (phase 6)
-  // and the golden tab of T11 (phase 7) are still unreleased: no link to either, nor to T11 at all. The sandbox
-  // loads A2, the board of the first figure (RT-FIX-P4 lesson M7, P4-RT-13-01).
+  // exactly one next link, to M8 under the base, and it is the only link to M8 on the page. The golden tab of
+  // T11 (phase 7) is still unreleased: no link to T11 at all. The Atlas is released in phase 6 (P6-A4): the
+  // block carries the Atlas page of A2, the only Atlas link on the page (MERGE, on P6-A4's request). The
+  // sandbox loads A2, the board of the first figure (RT-FIX-P4 lesson M7, P4-RT-13-01).
   await expect(article.locator('a[href*="tools/fold"]')).toHaveCount(0);
-  await expect(article.locator('a[href*="atlas/"]')).toHaveCount(0);
-  await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"]')).toHaveCount(0);
   const base = new URL(page.url()).pathname.replace(/modules\/m7-geometry\/$/, '');
+  await expect(article.locator('a[href*="atlas/"]')).toHaveCount(1);
+  await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"]')).toHaveAttribute('href', `${base}atlas/A2/`);
   const next = article.locator('[data-anatomy="links"] a[data-link="next"]');
   await expect(next).toHaveCount(1);
   await expect(next).toHaveAttribute('href', `${base}modules/m8-lie-algebras/`);

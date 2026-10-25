@@ -579,10 +579,14 @@ test('anatomy of 8.2', async ({ page }) => {
   expect(plain(text7)).toContain(`the ${GOLDEN.orbit_plus_zero_representations.find((r) => r.type === 'G2')!.dimension}-dimensional representation of G_2`);
   await expect(beat7.locator('[data-tool], svg, a, [data-anatomy="figure"]')).toHaveCount(0);
   await expect(page.locator('a[href*="one-zero-weight"]')).toHaveCount(0);
-  // No link to M9, the Atlas or the confusions page (unreleased in phase 5); the sandbox loads A2, the
-  // board of the first figure (SPEC 8.2 item 7; RT-FIX-P4 lesson M7).
-  await expect(article.locator('a[href*="m9"], a[href*="atlas/"], a[href*="confusions"]')).toHaveCount(0);
-  await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"], [data-anatomy="links"] a[data-link="next"]')).toHaveCount(0);
+  // No link to M9 or the confusions page (unreleased in phase 5); the sandbox loads A2, the board of the
+  // first figure (SPEC 8.2 item 7; RT-FIX-P4 lesson M7). The Atlas is released in phase 6 (P6-A4): the
+  // block carries the Atlas page of A2, the only Atlas link on the page (MERGE, on P6-A4's request).
+  await expect(article.locator('a[href*="m9"], a[href*="confusions"]')).toHaveCount(0);
+  await expect(article.locator('[data-anatomy="links"] a[data-link="next"]')).toHaveCount(0);
+  await expect(article.locator('a[href*="atlas/"]')).toHaveCount(1);
+  const atlasBase = new URL(page.url()).pathname.replace(/modules\/m8-lie-algebras\/$/, '');
+  await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"]')).toHaveAttribute('href', `${atlasBase}atlas/A2/`);
   const sandbox = article.locator('[data-anatomy="links"] a[data-link="sandbox"]');
   await expect(sandbox).toHaveCount(1);
   expect((await sandbox.getAttribute('href')) ?? '').toMatch(/tools\/sandbox\/\?g=A2$/);
