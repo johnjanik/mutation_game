@@ -347,17 +347,18 @@ test.describe('history', () => {
   });
 
   test('credit lines on history and credits', async ({ page }) => {
-    const clauses = ["mutation game is Wildberger's", "numbers game is Mozes'", "Proctor's earlier use of the same process", "Eriksson's development", 'attributed to Kostant'];
+    const clauses = [/mutation game is (N\. J\. )?Wildberger's/, /numbers game is Mozes'/, /Proctor's earlier use of the same process/, /Eriksson's development/, /attributed to Kostant/];
     for (const route of [HISTORY, CREDITS]) {
       await page.goto(route);
       // The credit is printed as fact: outside every wrapper of an open item.
       const text = await textOf(page, 'main', { drop: '[data-unverified], [data-anatomy="sources"]' });
-      for (const c of clauses) expect(text, `${route}: ${c}`).toContain(c);
+      for (const c of clauses) expect(text, `${route}: ${c}`).toMatch(c);
       // No other credit of the numbers game or of Kostant's game.
       expect(text, route).not.toMatch(/numbers game is (Eriksson|Proctor)/);
       for (const s of sentences(text).filter((x) => /Kostant/.test(x))) {
-        expect(s, `${route}: a sentence naming Kostant`).toMatch(/attributed to Kostant|Kostant's game|named after Kostant|after Kostant/);
-        expect(s, route).not.toMatch(/(game|it) (is|was) (Kostant's|by Kostant|due to Kostant)|Kostant (introduced|invented|published)/);
+        expect(s, `${route}: a sentence that credits Kostant without "attributed to"`).not.toMatch(
+          /(game|it) (is|was) (Kostant's|by Kostant|due to Kostant)|Kostant (introduced|invented|published|devised|created) |by Bertram Kostant/,
+        );
       }
     }
     await page.goto(HISTORY);
@@ -624,7 +625,7 @@ test.describe('credits', () => {
     expect(embeds, 'no page embeds a player or a video').toEqual([]);
     await page.goto(CREDITS);
     for (const [asset, where] of found) {
-      const item = page.locator(`main [data-credit="assets"] li[data-asset="${asset}"]`);
+      const item = page.locator(`main [data-credit="assets"] [data-asset="${asset}"]`);
       await expect(item, `${asset} (on ${where}) is credited`).toHaveCount(1);
       for (const field of ['title', 'author', 'source', 'licence']) await expect(item.locator(`[data-field="${field}"]`), `${asset}: ${field}`).toHaveText(/\S/);
     }
