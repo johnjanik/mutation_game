@@ -114,7 +114,7 @@ test.describe('without JavaScript', () => {
     await expect(page.locator('astro-island')).toHaveCount(0);
     await expect(page.locator('script[src]')).toHaveCount(0);
     // No em-dash on the page (8.4).
-    expect(((await page.locator('main').textContent()) ?? '').includes('—')).toBe(false);
+    expect(((await page.locator('main').textContent()) ?? '').includes('\u2014')).toBe(false);
   });
 });
 

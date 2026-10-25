@@ -330,7 +330,7 @@ describe('tool links', () => {
     expect(b3.links['coxeter-number']!.text).toMatch(/wave/i);
     expect(b3.links['orbit-sizes']!.text).toMatch(/orbit/i);
     expect(b3.links['complete-games']!.text).toMatch(/counter/i);
-    for (const T of TYPE_NAMES) for (const l of allLinks(sheetOf(T))) expect(l.text.includes('—')).toBe(false);
+    for (const T of TYPE_NAMES) for (const l of allLinks(sheetOf(T))) expect(l.text.includes('\u2014')).toBe(false);
   });
 });
 
