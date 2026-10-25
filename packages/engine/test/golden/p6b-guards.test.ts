@@ -140,6 +140,20 @@ describe('NotAdmissible from satakeRecord', () => {
   });
 });
 
+describe('the assert of the C2 adjustment', () => {
+  it('an entry displayed C2 whose restricted board is not B2 throws EngineError (the oracle asserts it)', () => {
+    const [split, , , , compact] = satakeCatalogue('A3');
+    for (const entry of [split!, compact!]) {
+      const e = caught(() => satakeRecord('A3', { ...entry, restricted_type_display: 'C2' }));
+      expect(e, entry.real_form).toBeInstanceOf(EngineError);
+      expect((e as Error).message).toBe('restricted board of a C2 record is not B2');
+    }
+    // the same entries with their own display are fine
+    expect(satakeRecord('A3', split!).restricted_board).toBe('A3');
+    expect(satakeRecord('A3', compact!).restricted_board).toBeNull();
+  });
+});
+
 describe('malformed diagrams', () => {
   const b = boardOf('A3');
   const id = [0, 1, 2];
