@@ -41,7 +41,7 @@
 // linkTo and layers are accepted and ignored. preset: 'default' | 'string-viewer' | 'relation-checker' |
 // 'signed-move'.
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { boardFromName, chevalleySerre, fire, minusculeMatrices, play, signedMoves, stringThrough, toLabels, toPositions } from '../../../packages/engine/src/index';
@@ -909,6 +909,7 @@ test('the tables of the server stay in place when the reader acts on the string 
 // profile of 7.6. The relation list is computed on the main thread up to RELATIONS_MAIN_WORK (positions
 // times records, 2500: D6 node 1 is the largest) and in the worker above (E6 node 1 and E7 node 7 among
 // them); a pick builds the representation one engine call per task and draws the panels one piece per task.
+// The case of a link, whose state is built the same way, is in the regressions below (P5-RT-07-01).
 // ---------------------------------------------------------------------------------------------
 
 async function recordLongTasks(page: Page): Promise<void> {
@@ -1187,6 +1188,71 @@ test.describe('regressions', () => {
     await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'true');
     await expect(live(page)).toHaveText(/: the two sides are equal\.$/);
   });
+
+  // Adopted from site/tests/e2e/redteam-RT-07-t12-link-task.spec.ts (RT-07, phase 5 round, attack 22): the
+  // link case of the long-task tests above. SPEC 7.6 "Main-thread work": "No engine call on the main thread
+  // may become a long task (50 ms)"; decisions/P5-A2.md: "A pick builds the representation one engine call
+  // per task" and "above 300 positions the signed moves take one task per node". A link to a large orbit
+  // built the whole representation (minusculeMatrices and the signed moves of every node) in the task that
+  // read it, the island's hydration task, where a pick of the same node spreads it over tasks. Each case is
+  // compared with a control opened the same way, E7 node 7 (56 positions), whose build is small: three runs
+  // each, alternated; the hydration task (the long task during which the island's data-hydrated is set, 0
+  // when it is not long) of the case must stay within 50 ms, or within 15 ms of the control's when the
+  // machine makes the control's own hydration long. The waits use waitForFunction, not a retrying expect
+  // (which takes accessibility snapshots on the main thread and makes long tasks of its own). The
+  // reproducer waited for the orbit's size in data-out="dimension", which data-out="orbit-size" shows since
+  // RT-FIX P5-RT-09-02, and marked the hydration by Astro's ssr attribute; here both are read from hooks.
+  const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[xs.length >> 1]!;
+
+  async function hydrationTask(browser: Browser, baseURL: string, board: string, label: number, size: number): Promise<number> {
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, baseURL });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => {
+      const w = window as unknown as { __lt: [number, number][]; __hyd: number | null };
+      w.__lt = [];
+      w.__hyd = null;
+      new PerformanceObserver((l) => {
+        for (const e of l.getEntries()) w.__lt.push([Math.round(e.startTime), Math.round(e.duration)]);
+      }).observe({ type: 'longtask', buffered: true });
+      new MutationObserver((ms) => {
+        for (const m of ms) if ((m.target as Element).getAttribute('data-hydrated') === 'true' && w.__hyd === null) w.__hyd = performance.now();
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-hydrated'] });
+    });
+    await page.goto(`tools/rep/?g=${board}&k=${label}`);
+    await page.waitForFunction(
+      (n) => {
+        const tool = document.querySelector('[data-tool="rep"]');
+        return tool?.getAttribute('data-hydrated') === 'true' && tool.querySelector('[data-drawn]')?.getAttribute('data-drawn') === 'true' && tool.querySelector('[data-out="orbit-size"]')?.textContent === n;
+      },
+      String(size),
+      { polling: 100, timeout: 60000 },
+    );
+    await page.waitForTimeout(1000);
+    const { lt, hyd } = await page.evaluate(() => {
+      const w = window as unknown as { __lt: [number, number][]; __hyd: number };
+      return { lt: w.__lt, hyd: w.__hyd };
+    });
+    await ctx.close();
+    const task = lt.find(([s, d]) => s <= hyd && hyd <= s + d + 5);
+    return task ? task[1] : 0;
+  }
+
+  for (const [board, label, size] of [['E7', 6, 756], ['C8', 7, 1024], ['B8', 7, 1024], ['D8', 3, 448]] as const) {
+    // regression: P5-RT-07-01
+    test(`a link to ${board} node ${label} (${size} positions) hydrates without a long task, as when it is picked`, async ({ browser, baseURL }) => {
+      test.setTimeout(180000);
+      expect(golden.types[board]!.fundamental_orbit_sizes[label - 1]).toBe(size);
+      expect(golden.types.E7!.fundamental_orbit_sizes[7 - 1]).toBe(56);
+      const control: number[] = [];
+      const big: number[] = [];
+      for (let r = 0; r < 3; r++) {
+        control.push(await hydrationTask(browser, baseURL!, 'E7', 7, 56));
+        big.push(await hydrationTask(browser, baseURL!, board, label, size));
+      }
+      console.info(`T12 hydration task at 1x (0: not a long task): link to ${board} node ${label} [${big.join(', ')}] ms, median ${median(big)}; control E7 node 7 [${control.join(', ')}] ms, median ${median(control)}`);
+      expect(median(big)).toBeLessThanOrEqual(Math.max(50, median(control) + 15));
+    });
+  }
 
   /**
    * Counts in the page the computations of the engine's classify (classifyUncached, which the cache of E-11

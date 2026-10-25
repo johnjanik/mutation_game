@@ -162,16 +162,21 @@ export function ensureMatrices(rep: Representation): void {
  */
 export type Step = () => void | Step[];
 
+/** Whether every step of representationSteps is done: the matrices, the signed moves and the list it computes. */
+const stepsDone = (r: Representation): boolean => !r.built || (r.basis !== null && r.signed !== null && (r.minuscule || !listOnMain(r) || r.checks !== null));
+
 /**
  * The representation of a node as steps, each to run in a task of its own (SPEC 7.6), filling the cache
  * that representationOf reads: decide (minusculeNodes, orbitSize, legal play), enumerate (minusculeMatrices),
  * sign (signedMoves; one node per task above DRAW_MAX positions), and for a node that is not minuscule
  * whose relation list stays on the main thread that list (its default relation is its first failing one).
- * After the last step representationOf(spec, label, 'staged') computes nothing.
+ * After the last step representationOf(spec, label, 'staged') computes nothing. No step when all is done.
  */
 export function representationSteps(spec: string, nodeLabel: number): Step[] {
   const key = `${spec}|${nodeLabel}`;
   let rep: Representation | undefined;
+  const known = cache.get(key);
+  if (known !== undefined && stepsDone(known)) return [];
   const get = (): Representation => {
     rep ??= cache.get(key);
     if (rep === undefined) {
@@ -420,9 +425,10 @@ export class T12Tool {
   private at: (string[] | undefined)[];
 
   /**
-   * `need` says how much of the representation the browser computes now (representationOf): 'facts' for the
-   * configured state while it hydrates (its panels are the server's until they go live), 'staged' for a
-   * state loaded afterwards. In Node everything is computed.
+   * `need` says how much of the representation the browser computes now (representationOf): 'facts' (the
+   * default) for the configured state while it hydrates (its panels are the server's until they go live) and
+   * for a state whose representation the tool builds in tasks of their own (representationSteps). In Node
+   * everything is computed.
    */
   constructor(cfg: T12Config, opts: { defer?: boolean; need?: RepresentationNeed } = {}) {
     this.spec = cfg.board;
@@ -553,12 +559,29 @@ const OWN_KEYS: ReadonlySet<string> = new Set(['z', 'g', 'c', 's', 'w', 'k', 'q'
 const CODEC_KEYS: ReadonlySet<string> = new Set('zgvmcswxtrjeykqd'.split(''));
 
 /**
+ * The board and node of a link: its `g` when T12 offers it, its `k` when that is a label of the board, else
+ * the configured node or the board's default node. Nothing of a representation is computed (the defaults of
+ * the board named by `g` were computed even when `k` named another node).
+ */
+function targetOf(kept: URLSearchParams, pre: string, configured: ToolState): { board: string; node: number } {
+  const g = kept.get(`${pre}g`);
+  const board = g !== null && offersBoard(g) ? g : (configured.board as string);
+  const k = kept.get(`${pre}k`);
+  if (k !== null && /^\d+$/.test(k) && boardOf(board).labels.includes(Number(k))) return { board, node: Number(k) };
+  return { board, node: board === configured.board ? configured.node! : defaultNode(boardOf(board)) };
+}
+
+/**
  * Reads one instance's state from a query string: the codec (decodeState) first, then T12's own rules
  * (plan): keys of the other tools are left out before the codec reads the link; a `g` or a `k` that changes
  * the board or the node takes that board's and node's defaults for every field the link does not name (the
- * start omega_k, no moves, the default relation), as a picker does; `c=p` is refused (the string viewer
+ * start of all ones, no moves, the default relation), as a picker does; `c=p` is refused (the string viewer
  * plays the numbers game); `c` without `s` keeps the tool's start; a board T12 does not offer and a Serre
- * relation with equal nodes are refused. Any failure: the configured state and LINK_NOTICE.
+ * relation with equal nodes are refused. Any failure: the configured state and LINK_NOTICE. The state is
+ * validated with the facts of its node (and, through defaultsFor, the list within RELATIONS_MAIN_WORK whose
+ * first failing relation is a default); the tool builds the rest one engine call per task (RT-FIX
+ * P5-RT-07-01: the matrices and the signed moves of every node were computed here, in the task that reads
+ * the link).
  */
 export function admitLink(search: string, configured: ToolState, prefix: string): { state: ToolState; notice: string | null } {
   const pre = normalisePrefix(prefix);
@@ -577,10 +600,8 @@ export function admitLink(search: string, configured: ToolState, prefix: string)
   const refuse = { state: cloneState(configured), notice: LINK_NOTICE };
   let base = configured;
   try {
-    const g = kept.get(`${pre}g`);
-    if (g !== null && offersBoard(g) && g !== configured.board) base = defaultsFor(g);
-    const k = kept.get(`${pre}k`);
-    if (k !== null && /^\d+$/.test(k) && Number(k) !== base.node && boardOf(base.board as string).labels.includes(Number(k))) base = defaultsFor(base.board as string, Number(k));
+    const t = targetOf(kept, pre, configured);
+    if (t.board !== configured.board || t.node !== configured.node) base = defaultsFor(t.board, t.node);
   } catch {
     base = configured;
   }
@@ -592,7 +613,7 @@ export function admitLink(search: string, configured: ToolState, prefix: string)
     if (has.has('c') && !has.has('s')) state.start = base.start === undefined ? state.start : [...base.start];
     for (const f of ['view', 'mode', 'black', 'tau', 'rings', 'projection', 'graph', 'symmetry', 'lambda'] as const) delete state[f];
     // Validated without replaying a long list here: the component replays it where E-9 says (rule 2).
-    const tool = new T12Tool(configOf(state), { defer: true, need: 'staged' });
+    const tool = new T12Tool(configOf(state), { defer: true });
     return { state: tool.state(), notice: null };
   } catch {
     return refuse;

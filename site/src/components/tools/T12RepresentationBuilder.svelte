@@ -402,11 +402,16 @@
     ];
   }
 
-  function stage(g: number): void {
+  /**
+   * Draws every panel from the state, one piece per task. `build` (representationSteps) runs first when the
+   * representation is not built yet (a link, the back button), the panels waiting meanwhile, so that no task
+   * does what a pick spreads over tasks (SPEC 7.6; RT-FIX P5-RT-07-01).
+   */
+  function stage(g: number, build: Step[] = []): void {
     adoptables = {};
     for (const p of PARTS) live[p] = true;
     for (const p of ALL_PIECES) ready[p] = false;
-    const steps: Step[] = [];
+    const steps: Step[] = build.length === 0 ? [] : [...build, touch];
     for (const panel of panels) {
       for (const p of PIECES[panel]) {
         if (p === 'orbit') {
@@ -565,21 +570,33 @@
     });
   }
 
-  /** Builds the tool of a state; a long list of moves from a link is replayed where E-9 says (rule 2). */
+  /**
+   * Builds the tool of a state; a long list of moves from a link is replayed where E-9 says (rule 2). The
+   * tool reads the facts of its node only: what its panels need beyond them is built afterwards, one engine
+   * call per task as after a pick (representationSteps; SPEC 7.6; RT-FIX P5-RT-07-01: a link, on hydration
+   * in the island's task, built all of it in one task).
+   */
   function load(s: ToolState): void {
     const g = ++generation;
-    const t = new T12Tool(configOf(s), { defer: true, need: 'staged' });
+    const t = new T12Tool(configOf(s), { defer: true });
     const nodeChanged = t.spec !== tool.spec || t.node !== tool.node;
     tool = t;
     if (nodeChanged) matrixNode = t.node;
     // A relation that the server's digest does not hold needs the list (in the worker above the bound).
     if (t.rep.checks === null && !(digestHolds(t.rep) && digest!.code === t.relation)) needList = true;
-    if (nodeChanged || ALL_PIECES.some((p) => !ready[p])) stage(g);
+    if (nodeChanged || ALL_PIECES.some((p) => !ready[p])) stage(g, representationSteps(t.spec, t.node));
     else {
       // The same node: the orbit, the matrices and the signed move are unchanged (and may stay the server's);
-      // the relation, the string viewer and its table follow the state, drawn from it now.
-      if (t.rep.built && t.rep.checks === null && listOnMain(t.rep)) relationsNow(t.rep);
-      for (const p of ['relations', 'string', 'table-board'] as Part[]) if (!live[p] && (p !== 'relations' || t.rep.built)) live[p] = true;
+      // the relation, the string viewer and its table follow the state, drawn from it now, the relation once
+      // the matrices are built (a link read on hydration: the configured state has the facts only).
+      for (const p of ['string', 'table-board'] as Part[]) live[p] = true;
+      const relations = (): void => {
+        if (t.rep.built && t.rep.checks === null && listOnMain(t.rep)) relationsNow(t.rep);
+        if (t.rep.built) live.relations = true;
+        touch();
+      };
+      if (t.rep.built && t.rep.basis === null) runSteps(g, [() => addMatrices(t.rep, { route: mainRoute }), relations]);
+      else relations();
     }
     startFields = [...t.start];
     startMessage = '';

@@ -1759,4 +1759,47 @@ describe('regressions', () => {
     const e2e = lines('../../e2e/T12.spec.ts').filter((l) => /toHaveText\('(8|24|56)'\)|'data-rows', '(27|56)'\)|toHaveCount\(27\)|\['E6', 1, 27\], \['E7', 7, 56\]/.test(l));
     expect(e2e.filter((l) => !l.endsWith(`toHaveText('${d4}');`))).toEqual([]);
   });
+
+  // RT-07, phase 5 round, attack 22 (the browser test is in T12.spec.ts, "a link to E7 node 6 ... hydrates
+  // without a long task"): SPEC 7.6 "Main-thread work" and decisions/P5-A2.md ("A pick builds the
+  // representation one engine call per task"). A link was validated with the representation built in full,
+  // minusculeMatrices and the signed moves of every node at once, in the task that read it (on hydration the
+  // island's); a lesson instance's prefixed keys took the same path. In the browser a link is now read with
+  // the facts of its node only, and the tool builds the rest one engine call per task (representationSteps)
+  // before it draws the panels.
+  // regression: P5-RT-07-01
+  it('a link to a large orbit is read in the browser with the facts of its node only: no minusculeMatrices, signedMoves or chevalleySerre', () => {
+    const keep = { ...REP_ENGINE };
+    const calls: Record<string, number> = {};
+    const counted = <K extends keyof RepEngine>(name: K): RepEngine[K] =>
+      ((...a: never[]) => {
+        calls[name] = (calls[name] ?? 0) + 1;
+        return (keep[name] as (...b: never[]) => unknown)(...a);
+      }) as RepEngine[K];
+    REP_ENGINE.minusculeMatrices = counted('minusculeMatrices');
+    REP_ENGINE.signedMoves = counted('signedMoves');
+    REP_ENGINE.chevalleySerre = counted('chevalleySerre');
+    try {
+      inBrowser(() => {
+        forgetRepresentations();
+        const configured = configuredState({ preset: 'default' });
+        const lesson = configuredState({ board: 'E7', node: 7 });
+        for (const [query, from, prefix, board, node] of [
+          ['?g=E7&k=6', configured, '', 'E7', 6],
+          ['?g=C8&k=7', configured, '', 'C8', 7],
+          ['?g=B8&k=7', configured, '', 'B8', 7],
+          ['?g=D8&k=3', configured, '', 'D8', 3],
+          ['?g=E8&k=8', configured, '', 'E8', 8],
+          ['?b6.k=6', lesson, 'b6', 'E7', 6],
+        ] as const) {
+          const { state, notice } = admitLink(query, from, prefix);
+          expect(calls, `engine calls while ${query} is read`).toEqual({});
+          expect(notice, query).toBeNull();
+          expect(state, query).toMatchObject({ board, node });
+        }
+      });
+    } finally {
+      Object.assign(REP_ENGINE, keep);
+    }
+  });
 });
