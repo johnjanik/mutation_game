@@ -17,7 +17,7 @@ export const FirstUse = ({ id, uses }) => (
     const page = linkIfReleased({ kind: 'module', slug: u.at });
     const target = u.beat ? `${u.at}#beat-${u.beat}` : u.at;
     const title = titleOf(u.at);
-    const text = `${title ?? `module ${u.n}`}${u.beat ? `, beat ${u.beat}` : ''}`;
+    const text = `${title ?? `module ${u.n}`}${u.beat ? ` (beat ${u.beat})` : ''}`;
     const hook = { 'data-first-use': term, 'data-target': target, ...(primary ? { 'data-primary': 'true' } : {}) };
     return <>{k === 0 ? '' : '; '}{u.label ? `${u.label}: ` : ''}{page ? <a href={u.beat ? `${page}#beat-${u.beat}` : page} {...hook}>{text}</a> : <span {...hook}>{text}</span>}</>;
   })}.</dd>
