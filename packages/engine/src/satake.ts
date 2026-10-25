@@ -15,15 +15,16 @@
 // Order of checks in every function (P2-A1's order, kept by every engine module since): the shape of the
 // diagram and of the population (RangeError), then requireGcm (NeedsTwoWayRoads) and requireFinite
 // (NotFiniteType) through guards.ts (E-11), before any computation; satake and restrictedBoard then throw
-// NotAdmissible, carrying the Admissibility record, on a pair that fails any item. The oracle's asserts
-// become EngineError with the oracle's text; none is reachable with an admissible pair.
+// NotAdmissible, carrying the Admissibility record, on a pair that fails any item; satake then throws
+// NeedsConnectedBoard on a restricted root system in several pieces (MERGE ruling (1) on P6-A1). The oracle's
+// asserts become EngineError with the oracle's text; none is reachable with an admissible pair.
 import { SafeInt } from './arith';
 import type { Vec } from './arith';
 import type { Board } from './board';
 import { boardKind, cartanNumbers, components, subBoard } from './board';
 import { CAPS } from './caps';
 import { gram, identify } from './classify';
-import { EngineError, EngineOverflow, NotAdmissible, NotFiniteType } from './errors';
+import { EngineError, EngineOverflow, NeedsConnectedBoard, NotAdmissible, NotFiniteType } from './errors';
 import type { Admissibility, Reason } from './errors';
 import { longestWord as longestWordUnguarded } from './finite';
 import type { Symmetry } from './fold';
@@ -111,22 +112,29 @@ function checkDiagram(d: SatakeDiagram): number[] {
   return [...black].sort((a, b) => a - b);
 }
 
-/** A population of the board's length with integer entries, as plain numbers (SafeInt rule of E-2). */
+/**
+ * A population of the board's length with integer entries, as plain numbers (SafeInt rule of E-2). Read with an
+ * index loop, not map: map skips the holes of a sparse array, and a hole must reach the integer check (RangeError).
+ */
 function checkPopulation(n: number, p: Vec<number>, what: string): number[] {
   if (!Array.isArray(p) || p.length !== n) {
     throw new RangeError(`the ${what} has ${Array.isArray(p) ? p.length : 'no'} entries, but the board has ${n} nodes`);
   }
-  return p.map((x: number | bigint) => {
+  const out: number[] = [];
+  for (let k = 0; k < n; k++) {
+    const x: number | bigint | undefined = p[k];
     if (typeof x === 'bigint') {
       if (x > BigInt(Number.MAX_SAFE_INTEGER) || x < BigInt(Number.MIN_SAFE_INTEGER)) {
         throw new EngineOverflow(`the entry ${x.toString()} of the ${what} is not a safe integer`);
       }
-      return Number(x);
+      out.push(Number(x));
+      continue;
     }
     if (!Number.isInteger(x)) throw new RangeError(`the entry ${String(x)} of the ${what} is not an integer`);
     if (!Number.isSafeInteger(x)) throw new EngineOverflow(`the entry ${String(x)} of the ${what} is not a safe integer`);
-    return x === 0 ? 0 : x;
-  });
+    out.push(x === 0 ? 0 : (x as number));
+  }
+  return out;
 }
 
 /** NeedsTwoWayRoads on a one-way board, NotFiniteType off the finite types (SPEC.md 5.6, through guards.ts). */
@@ -461,7 +469,9 @@ export function restrictedBoard(d: SatakeDiagram): RestrictedBoard {
  * Every computed field of SPEC.md 6.4 for an admissible pair, from rank to restricted_reflection_word_lengths,
  * with the golden field names and nodes as positions (oracle satake). restricted_type is B2 for every rank 2
  * system with two lengths and restricted_board is identify's name (the C2 display adjustment is satakeRecord's,
- * SPEC.md 6.4). Throws NotAdmissible on a pair that is not admissible, before any shadow is classified.
+ * SPEC.md 6.4). Throws NotAdmissible on a pair that is not admissible, before any shadow is classified, and
+ * NeedsConnectedBoard (E-10) on an admissible pair whose restricted root system is in several pieces (possible
+ * only on a board in several pieces, such as the split form of A2 + A2), where the oracle cannot name it.
  */
 export function satake(d: SatakeDiagram): SatakeComputed {
   const P = prepare(d);
@@ -506,6 +516,16 @@ export function satake(d: SatakeDiagram): SatakeComputed {
     }
   }
   const r = tauOrbits(P.tau, whiteOf(P)).length;
+  // the restricted board: one node per tau-orbit of white nodes. A restricted root system in several pieces is
+  // refused here, where the oracle's classify_restricted fails on it (MERGE ruling (1) on P6-A1, E-10: the class
+  // identify throws on a board in several pieces); restrictedBoard still returns that board (labels 1..m, no name)
+  const rb = restrictedWith(P);
+  const pieces = r > 0 ? components(rb.board).length : 1;
+  if (pieces > 1) {
+    throw new NeedsConnectedBoard(
+      `satake needs a restricted root system in one piece; the restricted board of this pair is in ${pieces} pieces`,
+    );
+  }
   const S = [...restr.values()];
   let name: string | null = null;
   const mult: { class: string; roots: number; mult: number }[] = [];
@@ -530,8 +550,6 @@ export function satake(d: SatakeDiagram): SatakeComputed {
   const nphi = R.length;
   const dimK = n - r + (nphi + phiX) / 2;
   const dimP = r + (nphi - phiX) / 2;
-  // the restricted board: one node per tau-orbit of white nodes
-  const rb = restrictedWith(P);
   const count = (v: readonly number[]): number => restr.get(keyOf(v))?.count ?? 0;
   const simpleMult: [number, number][] = rb.simple.map((s) => [count(s), count(s.map((x) => 2 * x))]);
   rb.simple.forEach((s, k) => {
