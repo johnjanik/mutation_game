@@ -56,6 +56,7 @@
   import { exactText, vertexText } from './t02/numbers';
   import { pickedState, pickerGroups, presetOf } from './t02/presets';
   import { drawGarden } from './t02/drawing';
+  import { gardenLatex } from './t02/latex';
   import GardenGraph, { type GraphEdge, type GraphVertex } from './t02/GardenGraph.svelte';
   import LayerChart from './t02/LayerChart.svelte';
   // Phase 2 (P2-A7): the finite test from classify's verdict (5.6), the verdict text beside the stop message.
@@ -538,6 +539,10 @@
     };
   }
 
+  // Export LaTeX (SPEC 6.7; P6-tikz): the garden as drawn now, its vertices and the edges shown, as a
+  // tikz-graph (t02/latex.ts); read at the click, so it follows the growth, the view and the labels toggle.
+  const latexForExport = () => gardenLatex({ cx: layout.cx, cy: layout.cy, width: layout.width, entries, edges: shownEdges, labelled });
+
   const groups = $derived(pickerGroups(config.boardChoices));
   const boardName = $derived(typeof boardSpec === 'string' ? boardSpec : 'custom');
   const figureLabel = $derived(
@@ -553,6 +558,7 @@
   state={toolState}
   defaults={config.defaults}
   {derivedForExport}
+  {latexForExport}
   {notice}
   {figureLabel}
   {onPopState}

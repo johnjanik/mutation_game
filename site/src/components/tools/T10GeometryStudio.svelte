@@ -90,6 +90,7 @@
   import { buildPicture, drawPicture, projectionOf, rotateInPlane, type Picture, type PictureColours } from './t10/drawing';
   import { snapshotOf, ssrNames } from './t10/snapshot';
   import { boardNameHtml, polytopeNameHtml, type NameLookup } from './t10/names';
+  import { projectionLatex } from './t10/latex';
 
   // The engine functions this tool calls by name through engineCall.
   provide({ orbitGraph, wythoffEdges });
@@ -1002,6 +1003,10 @@
   // Export data (6.6 Data export: the derived tables shown on screen)
   // ------------------------------------------------------------------------------------------
 
+  // Export LaTeX (SPEC 6.7; P6-tikz): the picture the canvas drew last, its points and the edges drawn at
+  // rest, as tikz-points (t10/latex.ts); null before the first drawing, so ToolFrame shows its notice.
+  const latexForExport = () => projectionLatex(lastPicture, CAPS.edgesAtRest);
+
   function exportData(): Record<string, unknown> {
     const d = data;
     const num = (x: bigint): number | string => (x <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(x) : x.toString());
@@ -1384,6 +1389,7 @@
   {notice}
   boardName={current.board}
   derivedForExport={exportData}
+  {latexForExport}
   onUndo={() => undo(announceFn)}
   onRedo={() => redo(announceFn)}
   onReset={() => reset(announceFn)}
