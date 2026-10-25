@@ -18,6 +18,7 @@
 // through satake on an entry that is not admissible. canonicalPair and matchCatalogue never throw NotAdmissible.
 import type { Board } from './board';
 import { boardFromName, cartan, cartanNumbers } from './board';
+import { CAPS } from './caps';
 import { EngineError, NotABoard } from './errors';
 import type { Symmetry } from './fold';
 import { symmetries } from './fold';
@@ -359,16 +360,34 @@ function canonicalWith(X: readonly number[], tau: readonly number[], auts: reado
 }
 
 /**
+ * Every symmetry of the board, or RangeError when there are more than CAPS.relabellingsDefault of them. symmetries
+ * stops at its limit without saying so, and a least image over part of the group is not a class invariant (two
+ * pairs of one class could get different representatives), so the limit asked for is one more than the cap and a
+ * larger group puts the board outside the domain of the class functions (MERGE's ruling on P6-A2's review: a
+ * refusal, not a truncated result). Only a custom board can be refused: a named finite board has at most 6
+ * symmetries, while for example 8 isolated nodes have 8! = 40320.
+ */
+function allSymmetries(board: Board, fn: string): Symmetry[] {
+  const cap = CAPS.relabellingsDefault;
+  const auts = symmetries(board, cap + 1);
+  if (auts.length > cap) {
+    throw new RangeError(`${fn}: the board has more than CAPS.relabellingsDefault = ${cap} symmetries, so the class of a pair is not computed`);
+  }
+  return auts;
+}
+
+/**
  * A representative of the class of the pair (black, tau) under the symmetries of the board (SPEC.md 5.5): over
  * every symmetry g (the order-3 ones of D4 included), the pair (g(X), g tau g^-1), keeping the least in the order
  * "sorted black set, then the images under tau". Two pairs describe the same real form exactly when their
  * representatives are equal. Defined for every well-formed pair, admissible or not; positions in and out.
- * RangeError on a malformed diagram; NeedsTwoWayRoads, NotFiniteType as SPEC.md 5.6.
+ * RangeError on a malformed diagram, and on a board with more than CAPS.relabellingsDefault symmetries (a custom
+ * board of 8 or more nodes, for example 8 isolated nodes); NeedsTwoWayRoads, NotFiniteType as SPEC.md 5.6.
  */
 export function canonicalPair(d: SatakeDiagram): { black: number[]; tau: number[] } {
   const X = checkDiagram(d);
   guard(d.board);
-  return canonicalWith(X, d.tau, symmetries(d.board));
+  return canonicalWith(X, d.tau, allSymmetries(d.board, 'canonicalPair'));
 }
 
 /**
@@ -385,8 +404,9 @@ export function matchCatalogue(d: SatakeDiagram): SatakeRecord[] {
   if (name === undefined || !sameMatrix(cartanNumbers(d.board), finiteCartan(name))) {
     throw new RangeError('matchCatalogue needs a board built by boardFromName');
   }
-  // the symmetries once per call, shared by every canonical pair of this call (E-5)
-  const auts = symmetries(d.board);
+  // the symmetries once per call, shared by every canonical pair of this call (E-5); a named board has at most 6,
+  // so the cap of allSymmetries is never reached here
+  const auts = allSymmetries(d.board, 'matchCatalogue');
   const key = canonicalWith(X, d.tau, auts);
   const { L, n } = familyOf(name);
   const out: SatakeRecord[] = [];

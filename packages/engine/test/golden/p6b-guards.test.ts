@@ -8,7 +8,9 @@
 import { describe, expect, it } from 'vitest';
 import type { AnyBoard, Board } from '../../src/board';
 import { boardFromName, fromAdjacency, subBoard } from '../../src/board';
+import { CAPS } from '../../src/caps';
 import { EngineError, NeedsTwoWayRoads, NotABoard, NotAdmissible, NotFiniteType } from '../../src/errors';
+import { symmetries } from '../../src/fold';
 import type { SatakeDiagram } from '../../src/satake';
 import { admissibility } from '../../src/satake';
 import type { SatakeCatalogueEntry } from '../../src/satakeCatalogue';
@@ -221,6 +223,43 @@ describe('unnamed board', () => {
     const fake = Object.freeze({ ...boardOf('C3'), name: 'A3' }) as Board;
     expect(caught(() => matchCatalogue({ board: fake, black: [], tau: [0, 1, 2] }))).toBeInstanceOf(RangeError);
     expect(matchCatalogue({ board: a3, black: [], tau: [0, 1, 2] }).map((r) => r.real_form)).toEqual(['sl(4,R)']);
+  });
+});
+
+describe('a board with more symmetries than the cap (repair after review)', () => {
+  /** k isolated nodes: a finite board (A1 taken k times) whose symmetries are all k! permutations. */
+  const isolated = (k: number): Board => fromAdjacency(Array.from({ length: k }, () => new Array<number>(k).fill(0))) as Board;
+  const id = (k: number): number[] => Array.from({ length: k }, (_, i) => i);
+
+  it('8 isolated nodes (8! = 40320 symmetries): canonicalPair throws RangeError naming CAPS.relabellingsDefault', () => {
+    const b = isolated(8);
+    expect(b.kind).toBe('gcm');
+    // symmetries stops at its limit without a flag: asked for one more than the cap, it fills the limit
+    expect(symmetries(b, CAPS.relabellingsDefault + 1).length).toBe(CAPS.relabellingsDefault + 1);
+    // two pairs of one class: before the repair they got the different representatives [0, 2] and [0, 1]
+    for (const black of [[6, 7], [0, 1]]) {
+      const e = caught(() => canonicalPair({ board: b, black, tau: id(8) }));
+      expect(e, JSON.stringify(black)).toBeInstanceOf(RangeError);
+      expect((e as Error).message).toContain('CAPS.relabellingsDefault');
+      expect((e as Error).message).toContain(String(CAPS.relabellingsDefault));
+    }
+    // and with a tau that exchanges two nodes (the review's 9-node case, here on 8 nodes)
+    const t = id(8);
+    t[0] = 7;
+    t[7] = 0;
+    expect(caught(() => canonicalPair({ board: b, black: [6], tau: t }))).toBeInstanceOf(RangeError);
+    // a malformed pair is still refused first by its shape (the order of checks)
+    expect(caught(() => canonicalPair({ board: b, black: [8], tau: id(8) }))).toBeInstanceOf(RangeError);
+  });
+
+  it('7 isolated nodes (7! = 5040 symmetries, under the cap): the least image over the whole group', () => {
+    const b = isolated(7);
+    expect(symmetries(b, CAPS.relabellingsDefault + 1).length).toBe(5040);
+    // values checked against the oracle's canonical_pair with automorphisms(C) (scratch script, not committed)
+    expect(canonicalPair({ board: b, black: [5, 6], tau: id(7) })).toEqual({ black: [0, 1], tau: id(7) });
+    expect(canonicalPair({ board: b, black: [0, 1], tau: id(7) })).toEqual({ black: [0, 1], tau: id(7) });
+    expect(canonicalPair({ board: b, black: [5], tau: [6, 1, 2, 3, 4, 5, 0] })).toEqual({ black: [0], tau: [0, 1, 2, 3, 4, 6, 5] });
+    expect(canonicalPair({ board: b, black: [3, 6], tau: [1, 2, 0, 4, 3, 6, 5] })).toEqual({ black: [0, 1], tau: [2, 3, 0, 1, 5, 6, 4] });
   });
 });
 
