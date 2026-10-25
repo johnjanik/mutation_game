@@ -92,6 +92,7 @@ import {
   relationsNow,
   relationsOnMain,
   repCaption,
+  representationDimension,
   representationOf,
   representationSteps,
   routedCalls,
@@ -1279,7 +1280,7 @@ describe('T12 server render', () => {
 
   it('above 2000 positions the server renders the explanation alone with more than 2000, no orbit and no matrix', () => {
     const body = loader.render(T12C.default, { id: 'b2', board: 'E8', node: 1 });
-    expect(outText(body, 'dimension')).toEqual([String(golden.types.E8!.fundamental_orbit_sizes[0])]);
+    expect(outText(body, 'orbit-size')).toEqual([String(golden.types.E8!.fundamental_orbit_sizes[0])]);
     expect(outText(body, 'limit')[0]).toContain('more than 2000');
     expect(body).not.toContain('data-out="orbit-graph"');
     expect(body).not.toContain('data-format=');
@@ -1566,6 +1567,55 @@ describe('regressions', () => {
           square: e.moveIsEFP && e.squareIsSign,
           noLonger: false,
         });
+      }
+    });
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-p5-t12-claims.test.ts (RT-09, phase 5 round, attack 26); the
+  // same cause as P5-RT-13-03 (RT-13 attack 9, site/tests/e2e/redteam-RT-13-p5-dimension.spec.ts, adopted in
+  // site/tests/e2e/T12.spec.ts). The readout "Dimension:" (data-out="dimension") showed the size of the
+  // orbit of e_i on a node that is not minuscule, which is not the dimension of the representation of that
+  // node: golden weyl_dimension gives 28 for D4 node 2 (orbit 24), 248 for E8 node 8 (orbit 240), and on
+  // E8's default node 1 3875 (orbit 2160). E8 and F4 open on node 1.
+  describe('P5-RT-09-02: T12 shows the size of the orbit as the dimension on a node that is not minuscule', () => {
+    const GOLDEN = JSON.parse(readFileSync(new URL('../../../../reference/golden_data.json', import.meta.url), 'utf8')) as {
+      weyl_dimension: { type: string; highest_weight: number[]; dimension: number }[];
+    };
+    const goldenDim = (type: string, label: number, n: number): number => {
+      const hw = Array.from({ length: n }, (_, k) => (k === label - 1 ? 1 : 0)).join(',');
+      const r = GOLDEN.weyl_dimension.find((x) => x.type === type && x.highest_weight.join(',') === hw);
+      if (r === undefined) throw new Error(`no golden weyl_dimension for ${type} omega_${label}`);
+      return r.dimension;
+    };
+    const firstOut = (body: string, name: string): string => {
+      const m = new RegExp(`data-out="${name}"[^>]*>([^]*?)</(?:p|span|div)>`).exec(body);
+      return m === null ? '' : m[1]!.replace(/<!--[^]*?-->/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    };
+    for (const [name, label, n] of [['D4', 2, 4], ['G2', 1, 2], ['F4', 4, 4], ['E8', 8, 8], ['B3', 1, 3], ['E8', 1, 8], ['F4', 1, 4]] as const) {
+      // regression: P5-RT-09-02
+      it(`${name} node ${label}: "Dimension:" against golden weyl_dimension`, () => {
+        const body = loader.render(T12C.default, { id: 'r3', board: name, node: label });
+        const shown = Number(firstOut(body, 'dimension'));
+        expect(firstOut(body, 'state-board')).toBe(name);
+        expect(firstOut(body, 'minuscule')).toBe('no');
+        expect(shown, `T12 shows "Board ${name}, node ${label} · Dimension: ${shown}"; golden weyl_dimension[type=${name};highest_weight=omega_${label}].dimension = ${goldenDim(name, label, n)}`).toBe(goldenDim(name, label, n));
+        // The number the readout showed is labelled by what it counts: the positions of the orbit.
+        expect(firstOut(body, 'orbit-size'), `${name} node ${label}`).toBe(String(golden.types[name]!.fundamental_orbit_sizes[label - 1]));
+        expect(body.replace(/<!--[^]*?-->/g, '')).toMatch(/Positions in the orbit: <span[^>]*data-out="orbit-size"/);
+      });
+    }
+    // regression: P5-RT-09-02
+    it('on every minuscule node the dimension is the orbit size and the golden dimension; Download data carries the dimension and the orbit size', () => {
+      for (const rec of RECORDS) {
+        const rep = buildRepresentation(named(rec.type), rec.node, { relations: 'later' });
+        expect(representationDimension(rep), `${rec.type} node ${rec.node}`).toBe(BigInt(rec.dimension));
+        expect(representationDimension(rep)).toBe(BigInt(rep.orbitSize));
+      }
+      for (const [name, label, n] of [['D4', 2, 4], ['E8', 8, 8], ['E8', 1, 8]] as const) {
+        const tool = new T12Tool(configOf(defaultsFor(name, label)));
+        const d = exportData(tool);
+        expect(d.dimension, `${name} node ${label}`).toBe(goldenDim(name, label, n));
+        expect(d.orbitSize, `${name} node ${label}`).toBe(golden.types[name]!.fundamental_orbit_sizes[label - 1]);
       }
     });
   });

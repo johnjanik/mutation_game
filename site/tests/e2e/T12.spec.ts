@@ -25,7 +25,9 @@
 // data-out names (every one T12 renders; the registry's `outs`):
 //   caption, notice, noscript, exportNotice (ToolFrame); moveCounter, historyStrip, historyCounter
 //   (History.svelte); predictResult, predictReveal (Predict.svelte);
-//   state-board, state-node (the board and the node of the state shown, labels), dimension, minuscule,
+//   state-board, state-node (the board and the node of the state shown, labels), dimension (the dimension
+//   of the representation, weylDimension), orbit-size (the positions of the orbit: the size of the
+//   matrices), minuscule,
 //   explanation, no-minuscule, limit, orbit-graph, matrix-e, matrix-f, matrix-h, relation-formula,
 //   relation-verdict, relation-left, relation-right, all-relations (with data-total, data-failing),
 //   move-matrix, signed-move, string-position, string-length, string-note, start-message
@@ -135,7 +137,7 @@ test('acceptance: choosing node 2 of D4 shows a failing relation and the explana
   await open(page, 'g=D4');
   await expect(out(page, 'dimension')).toHaveText('8');
   await control(page, 'node').selectOption('2');
-  await expect(out(page, 'dimension')).toHaveText('24');
+  await expect(out(page, 'orbit-size')).toHaveText('24');
   await settled(page);
   await expect(out(page, 'minuscule')).toHaveAttribute('data-minuscule', 'false');
   await expect(out(page, 'minuscule')).toHaveText('no');
@@ -192,7 +194,7 @@ test('above 300 positions the orbit is given as layer counts: E7 nodes 2 and 6',
     const counts = (await graph.locator('[data-layer-count]').evaluateAll((li) => li.map((l) => Number(l.getAttribute('data-layer-count'))))) as number[];
     expect(counts[0]).toBe(1);
     expect(counts.reduce((a, b) => a + b, 0)).toBe(size);
-    await expect(out(page, 'dimension')).toHaveText(String(size));
+    await expect(out(page, 'orbit-size')).toHaveText(String(size));
     await expect(out(page, 'matrix-e')).toHaveAttribute('data-format', 'list');
     await expect(out(page, 'all-relations')).toHaveText(/^\d+ of 280 relations fails?\.$/, { timeout: 20000 });
   }
@@ -305,7 +307,7 @@ test('G2 node 2 fails with some number in the orbit is 3, and F4 and G2, without
   expect(golden.types.F4!.minuscule_nodes).toEqual([]);
   await open(page, 'g=F4');
   await expect(control(page, 'node')).toHaveValue('1');
-  await expect(out(page, 'dimension')).toHaveText(String(golden.types.F4!.fundamental_orbit_sizes[0]));
+  await expect(out(page, 'orbit-size')).toHaveText(String(golden.types.F4!.fundamental_orbit_sizes[0]));
   await expect(out(page, 'no-minuscule')).toHaveCount(1);
   await expect(out(page, 'minuscule')).toHaveAttribute('data-minuscule', 'false');
   await expect(out(page, 'all-relations')).toHaveText(/^\d+ of 88 relations fails?\.$/);
@@ -315,7 +317,7 @@ test('above 2000 positions the tool shows the explanation alone: E8 node 1', asy
   const size = golden.types.E8!.fundamental_orbit_sizes[0]!;
   expect(size).toBeGreaterThan(2000);
   await open(page, 'g=E8');
-  await expect(out(page, 'dimension')).toHaveText(String(size));
+  await expect(out(page, 'orbit-size')).toHaveText(String(size));
   await expect(out(page, 'limit')).toHaveText(`The orbit of ω1 has ${size} positions, more than 2000, so the matrices are not built here.`);
   await expect(out(page, 'explanation')).toContainText('some number in the orbit is');
   await expect(out(page, 'orbit-graph')).toHaveCount(0);
@@ -471,7 +473,7 @@ test('Copy link gives the link of the current state, and opening it restores it'
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   expect(await valuesOf(page)).toEqual(values);
   await expect(control(page, 'relation-j')).toHaveValue('2');
-  await expect(out(page, 'dimension')).toHaveText('24');
+  await expect(out(page, 'orbit-size')).toHaveText('24');
   // The verdict and the string viewer's line come back with the link (review P5-A2, finding 5).
   await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', verdict!);
   expect(await lineKeys(page)).toEqual(lineBefore);
@@ -934,3 +936,37 @@ for (const [board, label, size] of [['E6', 1, 27], ['E7', 7, 56]] as const) {
     await expect(control(page, 'node')).toHaveValue(String(label));
   });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 5 red-team round (build-plan/red-team/RT-FIX.md 5.3)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from site/tests/e2e/redteam-RT-13-p5-dimension.spec.ts (RT-13, phase 5 round, attack 9); the
+  // same cause as P5-RT-09-02 (site/tests/unit/tools/T12.test.ts). On a node that is not minuscule T12
+  // printed the orbit size under the label "Dimension", which is the size of the representation only on a
+  // minuscule node. M8 beat 6 gives 248 for E8 and 26 for F4, beat 7 the 7 of G2. Oracle
+  // (lie_games.weyl_dimension and orbit_size): E8 node 8 orbit 240, representation 248; F4 node 4 orbit
+  // 24, representation 26; G2 node 1 orbit 6, representation 7; D4 node 2 orbit 24, representation 28.
+  const CASES: [string, number, number, number][] = [
+    // board, node, orbit size, dimension of the representation (oracle)
+    ['E8', 8, 240, 248], ['F4', 4, 24, 26], ['G2', 1, 6, 7], ['D4', 2, 24, 28],
+  ];
+  for (const [g, k, orbit, dim] of CASES) {
+    // regression: P5-RT-13-03
+    test(`attack 9: T12 on ${g} node ${k} does not print "Dimension: ${orbit}" for the ${dim}-dimensional representation`, async ({ page }) => {
+      await page.goto(`tools/rep/?g=${g}&k=${k}`);
+      const t = page.locator('[data-tool="rep"]').first();
+      await expect(t).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      await expect(t.locator('[data-out="state-node"]').first()).toHaveText(String(k), { timeout: 30000 });
+      const shown = (await t.locator('[data-out="dimension"]').first().textContent())?.trim();
+      const minuscule = (await t.locator('[data-out="minuscule"]').first().textContent())?.trim();
+      expect(minuscule).toBe('no');
+      expect(shown, `${g} node ${k}: the tool labels the orbit size ${shown} "Dimension", the representation has dimension ${dim}`).not.toBe(String(orbit));
+      // The fix: the representation's dimension under "Dimension", the orbit's positions under their own name.
+      expect(shown).toBe(String(dim));
+      expect(golden.types[g]!.fundamental_orbit_sizes[k - 1]).toBe(orbit);
+      await expect(t.locator('[data-out="orbit-size"]').first()).toHaveText(String(orbit));
+    });
+  }
+});

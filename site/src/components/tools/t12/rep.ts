@@ -21,6 +21,7 @@ import {
   stringThrough,
   toLabels,
   toPositions,
+  weylDimension,
 } from '@two-games/engine';
 import type { AnyBoard, Board, RelationCheck, SparseMatrix } from '@two-games/engine';
 import { layeredLayout } from '../../draw/layeredLayout';
@@ -408,9 +409,23 @@ export function largestAt(rep: Representation, k: number): number {
   return m;
 }
 
-/** The dimension shown (data-out="dimension"): the size of the basis, which equals the orbit's size. */
+/**
+ * The size of the matrices: the size of the basis, which equals the orbit's size (data-out="orbit-size").
+ * It is the representation's dimension on a minuscule node only (representationDimension).
+ */
 export function dimensionOf(rep: Representation): number {
   return rep.basis?.length ?? rep.orbitSize;
+}
+
+/**
+ * The dimension of the representation whose highest weight is the fundamental position of the node
+ * (weylDimension, F9; data-out="dimension"): the size of the orbit on a minuscule node (F11), more on any
+ * other (28 on node 2 of D4, whose orbit has 24 positions). RT-FIX P5-RT-09-02: the readout "Dimension"
+ * showed the orbit's size on every node.
+ */
+export function representationDimension(rep: Representation, route: Route = noRoute): bigint {
+  route('play', playHint(rep.board));
+  return weylDimension(rep.board, omega(rep.board, rep.position));
 }
 
 const minusculeByName = new Map<string, number[]>();

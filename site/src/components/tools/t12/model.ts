@@ -36,6 +36,7 @@ import {
   relationParts,
   relationText,
   repCaption,
+  representationDimension,
   shownCheck,
   signedCaption,
   stringCaption,
@@ -670,7 +671,8 @@ export function exportData(tool: T12Tool, digest: RelationDigest | null = null):
     minuscule: rep.minuscule,
     orbitSize: rep.orbitSize,
     built: rep.built,
-    dimension: rep.basis?.length ?? null,
+    // The representation's dimension (RT-FIX P5-RT-09-02); the size of the matrices is orbitSize.
+    dimension: out(representationDimension(rep, mainRoute)),
     explanation: explanation(rep),
     basis: rep.basis === null ? null : rep.basis.map((v) => inLabelOrder(tool.board, v)),
     E: lists(rep.E),

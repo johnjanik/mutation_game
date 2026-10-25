@@ -65,6 +65,7 @@ export const T12_OUTS = [
   'state-board',
   'state-node',
   'dimension',
+  'orbit-size',
   'minuscule',
   'explanation',
   'no-minuscule',

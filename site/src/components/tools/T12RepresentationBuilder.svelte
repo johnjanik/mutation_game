@@ -94,6 +94,7 @@
     relationTally,
     relationsHint,
     relationsNow,
+    representationDimension,
     representationSteps,
     shownCheck,
     signed,
@@ -190,6 +191,8 @@
   const labels = $derived(labelOrder(anyBoard));
   const minusculeSet = $derived(new Set(minusculeLabels(anyBoard)));
   const dim = $derived(dimensionOf(rep));
+  /** The representation's dimension (data-out="dimension"); dim, the size of the matrices, is the orbit's size. */
+  const repDimension = $derived(String(representationDimension(rep, mainRoute)));
   /** The basis headers, read only by drawn matrices (after the matrices are computed). */
   const headers = $derived.by(() => {
     void version;
@@ -1083,7 +1086,8 @@
     {#if building !== null}<p class="line building">{building}</p>{/if}
     <p class="facts">
       <span>Board <span data-out="state-board">{spec}</span>, node <span class="numeral" data-out="state-node">{nodeLabel}</span></span>
-      <span>Dimension: <span class="numeral" data-out="dimension">{dim}</span></span>
+      <span>Dimension: <span class="numeral" data-out="dimension">{shown(repDimension)}</span></span>
+      <span>Positions in the orbit: <span class="numeral" data-out="orbit-size">{rep.orbitSize}</span></span>
       <span>Minuscule: <span data-out="minuscule" data-minuscule={rep.minuscule ? 'true' : 'false'}>{rep.minuscule ? 'yes' : 'no'}</span></span>
     </p>
     <p class="line" data-out="explanation">{explanation(rep)}</p>

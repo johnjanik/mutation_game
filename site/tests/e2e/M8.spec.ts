@@ -8,7 +8,7 @@
 // Hooks read, and where they come from:
 //   tool roots (P1-A2 ToolFrame): data-tool ("rep"), data-instance (b1 to b12), data-hydrated="true";
 //     data-out caption, noscript, notice; the "Show as table" tables data-table="orbit" and "board"
-//   T12, the data-out names listed in site/tests/e2e/T12.spec.ts (decisions/P5-A2.md): dimension,
+//   T12, the data-out names listed in site/tests/e2e/T12.spec.ts (decisions/P5-A2.md): dimension, orbit-size,
 //     minuscule (data-minuscule), explanation, all-relations, relation-verdict (data-holds), relation-left,
 //     relation-right, matrix-e, matrix-f, matrix-h, move-matrix, signed-move (MatrixView: data-format,
 //     data-rows, data-cols, and data-row, data-col, data-value on its cells, 1-based), string-position
@@ -1060,7 +1060,7 @@ test('challenges report success on their goal and not before', async ({ page }) 
       await settled(page, c.id);
     }
     await expect(tool(page, c.id).locator('table[data-table="orbit"] caption')).toHaveText(`The orbit of ω${c.node} on ${c.board}: ${orbitOf(c.board, c.node)} positions`);
-    await expect(out(page, c.id, 'dimension')).toHaveText(String(orbitOf(c.board, c.node)));
+    await expect(out(page, c.id, 'orbit-size')).toHaveText(String(orbitOf(c.board, c.node)));
     await expect(challenge.locator('[data-challenge-result]'), c.id).toHaveText('Goal reached.', { timeout: 20000 });
   }
   // The E6 node: not minuscule, a failing relation, and the smallest orbit among the failing nodes of E6;
