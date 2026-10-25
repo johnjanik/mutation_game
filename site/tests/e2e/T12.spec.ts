@@ -7,7 +7,9 @@
 // against the engine or the golden file first.
 //
 // Hooks read:
-//   root:      data-tool="rep", data-moves, data-hydrated="true"
+//   root:      data-tool="rep", data-moves, data-hydrated="true"; on the figure (.t12) data-drawn ("true"
+//              when no panel is being drawn: after hydration the panels are drawn from the state, one
+//              task each, the server's markup standing for them meanwhile)
 //   buttons:   data-node, data-board ("numbers"), data-value, data-can-act (the string viewer's board)
 //   panels:    data-panel ("orbit" | "matrices" | "relations" | "signed" | "string")
 //   orbit:     data-drawn, data-positions on data-out="orbit-graph"; data-vertex, data-layer, data-value;
@@ -23,9 +25,10 @@
 // data-out names (every one T12 renders; the registry's `outs`):
 //   caption, notice, noscript, exportNotice (ToolFrame); moveCounter, historyStrip, historyCounter
 //   (History.svelte); predictResult, predictReveal (Predict.svelte);
-//   dimension, minuscule, explanation, no-minuscule, limit, orbit-graph, matrix-e, matrix-f, matrix-h,
-//   relation-formula, relation-verdict, relation-left, relation-right, all-relations, move-matrix,
-//   signed-move, string-position, string-length, string-note, start-message
+//   state-board, state-node (the board and the node of the state shown, labels), dimension, minuscule,
+//   explanation, no-minuscule, limit, orbit-graph, matrix-e, matrix-f, matrix-h, relation-formula,
+//   relation-verdict, relation-left, relation-right, all-relations (with data-total, data-failing),
+//   move-matrix, signed-move, string-position, string-length, string-note, start-message
 // data-control names: picker, node, matrix-node, relation, relation-i, relation-j, start-entry (with
 //   data-entry), set-start; undo, redo, reset, historySlider (History.svelte); copyLink, downloadData
 //   (ToolFrame); data-export="svg" | "png" (ToolFrame)
@@ -38,14 +41,16 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { boardFromName, fire, toPositions } from '../../../packages/engine/src/index';
-import type { Board } from '../../../packages/engine/src/index';
+import { boardFromName, chevalleySerre, fire, minusculeMatrices, play, stringThrough, toLabels, toPositions } from '../../../packages/engine/src/index';
+import type { AnyBoard, Board } from '../../../packages/engine/src/index';
+import { bigBoard } from '../../src/lib/state';
 import { copiedLink, downloadData, openForExport, unsafeNumbers } from './exportIntegers';
 
 interface MinusculeRecord {
   type: string;
   node: number;
   dimension: number;
+  weights_dynkin_labels: number[][] | null;
 }
 const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../../reference/golden_data.json', import.meta.url)), 'utf8')) as {
   minuscule_representations: MinusculeRecord[];
@@ -70,6 +75,8 @@ const line = (page: Page): Locator => out(page, 'string-position');
 async function settled(page: Page): Promise<void> {
   await expect(root(page).locator('[data-table="board"]')).toBeAttached({ timeout: 20000 });
   await expect(root(page).locator('.waiting')).toHaveCount(0);
+  // After hydration the panels are drawn from the state one task each (data-drawn="false" meanwhile).
+  await expect(root(page).locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 20000 });
 }
 
 async function open(page: Page, query = ''): Promise<void> {
@@ -435,7 +442,8 @@ test('the table view lists the orbit and has a button per node that fires it', a
   await expect(button).toHaveAttribute('aria-label', 'Node 1, value 1: fire it');
   await button.click();
   await expect(root(page)).toHaveAttribute('data-moves', '1');
-  await expect(button).toHaveText('-1');
+  // A true minus sign (SPEC 6.3; review P5-A2, finding 7).
+  await expect(button).toHaveText('−1');
   expect(await valuesOf(page)).toEqual(['-1', '1']);
 });
 
@@ -449,6 +457,10 @@ test('Copy link gives the link of the current state, and opening it restores it'
   await node(page, 2).click();
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   const values = await valuesOf(page);
+  const verdict = await out(page, 'relation-verdict').getAttribute('data-holds');
+  expect(verdict).not.toBeNull();
+  const lineBefore = await lineKeys(page);
+  const inOrbitBefore = await line(page).evaluateAll((lis) => lis.map((li) => li.getAttribute('data-in-orbit')));
   const params = await copiedLink(page);
   expect(params.get('g')).toBe('D4');
   expect(params.get('k')).toBe('2');
@@ -460,6 +472,10 @@ test('Copy link gives the link of the current state, and opening it restores it'
   expect(await valuesOf(page)).toEqual(values);
   await expect(control(page, 'relation-j')).toHaveValue('2');
   await expect(out(page, 'dimension')).toHaveText('24');
+  // The verdict and the string viewer's line come back with the link (review P5-A2, finding 5).
+  await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', verdict!);
+  expect(await lineKeys(page)).toEqual(lineBefore);
+  expect(await line(page).evaluateAll((lis) => lis.map((li) => li.getAttribute('data-in-orbit')))).toEqual(inOrbitBefore);
 });
 
 test('Download data gives the basis, the matrices, the relations and the string, integers as numbers when safe', async ({ page }) => {
@@ -473,6 +489,19 @@ test('Download data gives the basis, the matrices, the relations and the string,
   expect(doc.derived.basis).toEqual([[1, 0], [0, -1], [-1, 1]]);
   expect(doc.derived.E[0]).toEqual([[1, 3, 1]]);
   expect(doc.derived.relations).toHaveLength(relationCount(2));
+  // Every record is the engine's, in its order, its positions mapped through toLabels (E-7; review finding 5).
+  const A2 = B('A2');
+  const m = minusculeMatrices(A2, 0)!;
+  expect(doc.derived.relations).toEqual(chevalleySerre(A2, m.E, m.F, m.H).map((c) => ({ relation: c.relation, i: toLabels(A2, [c.i])[0], j: toLabels(A2, [c.j])[0], holds: c.holds })));
+  // The orbit with its layers, its edges and the two sides of the relation shown (6.6; review finding 8).
+  expect(doc.derived.orbit).toEqual([
+    { row: 1, position: [1, 0], layer: 0 },
+    { row: 2, position: [0, -1], layer: 2 },
+    { row: 3, position: [-1, 1], layer: 1 },
+  ]);
+  expect(doc.derived.edges).toHaveLength(2);
+  expect(doc.derived.edges).toContainEqual([1, 3, 1]);
+  expect(doc.derived.relationSides).toEqual({ relation: 'ef:1,1', holds: true, left: [[1, 1, 1], [3, 3, -1]], right: [[1, 1, 1], [3, 3, -1]] });
   expect(doc.derived.positions).toEqual([[1, 0], [-1, 1]]);
   expect(unsafeNumbers(raw)).toEqual([]);
   // A start beyond the safe integers keeps its digits as text (6.6), in the state and the derived tables.
@@ -504,6 +533,12 @@ test('a long number is shown shortened with its digits in the tooltip and the ho
   await expect(line(page).first()).toContainText('x 10^19 (20 digits)');
   await expect(line(page).first()).toHaveAttribute('title', `(${big}, 0)`);
   await expect(out(page, 'string-length')).toHaveText(String(BigInt(big) + 1n));
+  // The line of more than 2000 positions is given by its ends, with the stated limit (5.9; review finding 5).
+  await expect(line(page)).toHaveCount(2);
+  await expect(out(page, 'string-note')).toContainText('more than 2000');
+  // The table view holds the exact digits.
+  await root(page).locator('summary').click();
+  await expect(root(page).locator('[data-table-board="numbers"][data-table-node="1"]')).toHaveText(big);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -607,6 +642,18 @@ test('at 320 pixels the page has no horizontal scroll and the targets are large 
       expect(r.width, query).toBeGreaterThanOrEqual(24);
       expect(r.height, query).toBeGreaterThanOrEqual(24);
     }
+    // No two node hit boxes of the string viewer overlap (A-7; review P5-A2, finding 5).
+    const boxes = (await Promise.all((await nodes(page).all()).map((b) => b.boundingBox()))).filter((r) => r !== null);
+    expect(boxes.length, query).toBeGreaterThan(0);
+    for (let a = 0; a < boxes.length; a++) {
+      for (let b = a + 1; b < boxes.length; b++) {
+        const p = boxes[a]!;
+        const q = boxes[b]!;
+        const w = Math.min(p.x + p.width, q.x + q.width) - Math.max(p.x, q.x);
+        const h = Math.min(p.y + p.height, q.y + q.height) - Math.max(p.y, q.y);
+        expect(w > 0.5 && h > 0.5, `${query}: node hit boxes ${a + 1} and ${b + 1} overlap`).toBe(false);
+      }
+    }
     // Undo, redo and reset reach 44 by 44 (A-7).
     for (const name of ['undo', 'redo', 'reset']) {
       const r = (await control(page, name).boundingBox())!;
@@ -616,10 +663,232 @@ test('at 320 pixels the page has no horizontal scroll and the targets are large 
 });
 
 // ---------------------------------------------------------------------------------------------
+// The repair after review (P5-A2-review.json): numbers near 2^53, hooks, keyboard, links
+// ---------------------------------------------------------------------------------------------
+
+/** A position given in label order on the Big copy of a board (exact), and back as decimal text in label order. */
+function bigInLabels(name: string): { board: AnyBoard; byPos: (v: readonly bigint[]) => bigint[]; key: (v: readonly bigint[]) => string } {
+  const board = B(name);
+  const order = toPositions(board, [...board.labels].sort((a, b) => a - b));
+  const byPos = (v: readonly bigint[]): bigint[] => {
+    const out: bigint[] = new Array<bigint>(board.n);
+    order.forEach((p, k) => (out[p] = v[k]!));
+    return out;
+  };
+  return { board, byPos, key: (v) => order.map((p) => String(v[p])).join(',') };
+}
+
+test('a safe start whose line, ends or legal play pass 2^53 hydrates and shows its line exactly, and can be played (review finding 1)', async ({ page }) => {
+  test.setTimeout(120000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const cases: { name: string; label: number; start: bigint[] }[] = [
+    { name: 'A2', label: 1, start: [5n, 9007199254740990n] },
+    { name: 'A2', label: 1, start: [1n, 9007199254740991n] },
+    { name: 'G2', label: 1, start: [3n, 3002399751580330n] },
+    { name: 'A2', label: 2, start: [9007199254740991n, 1n] },
+  ];
+  for (const c of cases) {
+    const q = `g=${c.name}&k=${c.label}&c=n&s=${c.start.join(',')}`;
+    const { board, byPos, key } = bigInLabels(c.name);
+    const big = bigBoard(board);
+    const mu = byPos(c.start);
+    const i = toPositions(board, [c.label])[0]!;
+    // The expected line: stringThrough on numbers when every entry of it is safe, else its two ends (fire).
+    let expected: bigint[][];
+    try {
+      expected = stringThrough(board, mu.map(Number), i).map((v) => v.map(BigInt));
+    } catch {
+      expected = [mu, fire(big, mu, i)];
+    }
+    const end = (v: readonly bigint[]): string => play(big, v).position.join(',');
+    await open(page, q);
+    await expect(out(page, 'notice'), q).toHaveCount(0);
+    expect(await lineKeys(page), q).toEqual(expected.map(key));
+    expect(await line(page).evaluateAll((lis) => lis.map((li) => li.getAttribute('data-in-orbit'))), q).toEqual(expected.map((v) => String(end(v) === end(mu))));
+    await expect(node(page, 1), q).toBeEnabled();
+    const other = c.label === 1 ? 2 : 1;
+    await node(page, other).click();
+    await expect(root(page), q).toHaveAttribute('data-moves', '1');
+    const after = fire(big, mu, toPositions(board, [other])[0]!);
+    expect(await valuesOf(page), q).toEqual(key(after).split(','));
+  }
+  // A start typed into the fields takes the same path.
+  await open(page);
+  await control(page, 'start-entry').nth(0).fill('5');
+  await control(page, 'start-entry').nth(1).fill('9007199254740990');
+  await control(page, 'set-start').click();
+  await expect.poll(() => lineKeys(page)).toEqual(['5,9007199254740990', '-5,9007199254740995']);
+  await expect(out(page, 'string-note')).toContainText('2^53');
+  await node(page, 2).click();
+  await expect(root(page)).toHaveAttribute('data-moves', '1');
+  expect(await valuesOf(page)).toEqual(['9007199254740995', '-9007199254740990']);
+  expect(errors).toEqual([]);
+});
+
+test('the row headers of a matrix are the golden weights_dynkin_labels in order (review finding 5)', async ({ page }) => {
+  await open(page);
+  const weights = golden.minuscule_representations.find((r) => r.type === 'A2' && r.node === 1)!.weights_dynkin_labels!;
+  const text = (w: number[]): string => `(${w.map((x) => (x < 0 ? `−${-x}` : String(x))).join(', ')})`;
+  for (const name of ['matrix-e', 'matrix-h', 'relation-left', 'move-matrix']) {
+    expect(await out(page, name).locator('tbody th[scope="row"]').allTextContents(), name).toEqual(weights.map((w, r) => `${r + 1}: ${text(w)}`));
+  }
+});
+
+test('the focused control shows the focus ring and no sticky element hides it (A-2)', async ({ page }) => {
+  await open(page);
+  const ring = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.color = 'var(--focus-ring)';
+    document.body.append(probe);
+    const c = getComputedStyle(probe).color;
+    probe.remove();
+    return c;
+  });
+  // In the order of the page: the picker, the relation checker, the string viewer's board, then History.
+  const targets: [string, string][] = [
+    ['the board picker', '[data-control="picker"]'],
+    ['a relation control', '[data-control="relation"]'],
+    ['a node of the string viewer', '[data-panel="string"] button[data-node]'],
+    ['a History button', '[data-control="undo"], [data-control="redo"], [data-control="reset"]'],
+  ];
+  for (const [what, selector] of targets) {
+    let reached = false;
+    for (let k = 0; k < 300 && !reached; k++) {
+      await page.keyboard.press('Tab');
+      reached = await page.evaluate((sel) => document.activeElement?.matches(`[data-tool="rep"] :is(${sel})`) === true, selector);
+    }
+    expect(reached, what).toBe(true);
+    const seen = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      const s = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { style: s.outlineStyle, colour: s.outlineColor, width: s.outlineWidth, hit: hit !== null && (hit === el || el.contains(hit)) };
+    });
+    expect(seen.style, what).not.toBe('none');
+    expect(seen.colour, what).toBe(ring);
+    expect(seen.hit, what).toBe(true);
+  }
+});
+
+test('every action works without a drag: pickers, relations, firing, the strip by buttons and the slider by keys (A-8)', async ({ page }) => {
+  await open(page);
+  expect(await root(page).locator('[draggable="true"]').count()).toBe(0);
+  await control(page, 'relation-j').selectOption('2');
+  await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'true');
+  await node(page, 1).click();
+  await node(page, 2).click();
+  await expect(root(page)).toHaveAttribute('data-moves', '2');
+  await root(page).locator('[data-step="1"]').click();
+  await expect(root(page)).toHaveAttribute('data-moves', '1');
+  // A position of the strip is also reached with the keyboard (a button: Enter).
+  await root(page).locator('[data-step="2"]').focus();
+  await page.keyboard.press('Enter');
+  await expect(root(page)).toHaveAttribute('data-moves', '2');
+  // A strip of more than 50 positions is a slider, scrubbed by its keys.
+  const moves = Array.from({ length: 51 }, () => '1').join('.');
+  await open(page, `g=A2&k=1&w=${moves}`);
+  const slider = control(page, 'historySlider');
+  await slider.focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(root(page)).toHaveAttribute('data-moves', '50');
+  await page.keyboard.press('Home');
+  await expect(root(page)).toHaveAttribute('data-moves', '0');
+  expect(await valuesOf(page)).toEqual(['1', '0']);
+  await page.keyboard.press('End');
+  await expect(root(page)).toHaveAttribute('data-moves', '51');
+  expect(await root(page).locator('[draggable="true"]').count()).toBe(0);
+});
+
+test('acting from a scrubbed position discards the later moves (4.0 History)', async ({ page }) => {
+  await open(page, 'g=A2&k=1&c=n&s=2,0');
+  for (const l of [1, 2, 1]) await node(page, l).click();
+  await expect(root(page)).toHaveAttribute('data-moves', '3');
+  await root(page).locator('[data-step="1"]').click();
+  await expect(root(page)).toHaveAttribute('data-moves', '1');
+  await node(page, 2).click();
+  await expect(root(page)).toHaveAttribute('data-moves', '2');
+  expect(await valuesOf(page)).toEqual(fired('A2', fired('A2', [2, 0], 1).map(Number), 2));
+  await control(page, 'redo').click();
+  await expect(root(page)).toHaveAttribute('data-moves', '2');
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(location.search).get('w'))).toBe('1.2');
+});
+
+test('the Serre relation is MathML with msub and msup, outside any .katex element', async ({ page }) => {
+  await open(page, 'g=A2&k=1&q=serre-e:1,2');
+  const math = out(page, 'relation-formula').locator('math');
+  await expect(math).toHaveCount(1);
+  expect(await math.locator('msub').count()).toBeGreaterThanOrEqual(2);
+  await expect(math.locator('msup')).toHaveCount(1);
+  await expect(math).toHaveAttribute('aria-label', 'ad E 1 to the power 2 applied to E 2 equals 0');
+  expect(await math.evaluate((m) => m.closest('.katex') === null)).toBe(true);
+  await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'true');
+});
+
+test('a node that is not minuscule moves to its first failing relation when the list arrives from the worker, unless the link chose one (review finding 6)', async ({ page }) => {
+  // C5 node 5: 32 positions and 140 records, a list of the worker; [E5, F5] = H5 holds there.
+  const C5 = B('C5');
+  const m = minusculeMatrices(C5, toPositions(C5, [5])[0]!)!;
+  const list = chevalleySerre(C5, m.E, m.F, m.H);
+  const own = list.find((c) => c.relation === 'ef' && c.i === toPositions(C5, [5])[0] && c.j === c.i)!;
+  expect(own.holds).toBe(true);
+  const first = list.find((c) => !c.holds)!;
+  const [fi, fj] = toLabels(C5, [first.i, first.j]);
+  await open(page, 'g=C5&k=5');
+  await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false', { timeout: 20000 });
+  await expect(control(page, 'relation')).toHaveValue(first.relation);
+  await expect(control(page, 'relation-i')).toHaveValue(String(fi));
+  await expect(control(page, 'relation-j')).toHaveValue(String(fj));
+  await expect(out(page, 'all-relations')).toHaveText(new RegExp(`^${list.filter((c) => !c.holds).length} of ${list.length} relations fail\\.$`));
+  // A link that names the relation keeps it.
+  await open(page, 'g=C5&k=5&q=ef:5,5');
+  await expect(out(page, 'all-relations')).toHaveText(/relations fail\./, { timeout: 20000 });
+  await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'true');
+  await expect(control(page, 'relation-i')).toHaveValue('5');
+});
+
+test('data-out="state-board" and "state-node" name the board and the node of the state shown (request of P5-A3)', async ({ page }) => {
+  await open(page);
+  await expect(out(page, 'state-board')).toHaveText('A2');
+  await expect(out(page, 'state-node')).toHaveText('1');
+  await control(page, 'picker').selectOption('E6');
+  await expect(out(page, 'state-board')).toHaveText('E6');
+  await expect(out(page, 'state-node')).toHaveText('1');
+  await settled(page);
+  await control(page, 'node').selectOption('6');
+  await expect(out(page, 'state-node')).toHaveText('6');
+  await expect(out(page, 'state-board')).toHaveText('E6');
+});
+
+test('the tables of the server stay in place when the reader acts on the string viewer or picks a relation', async ({ page }) => {
+  await open(page);
+  await settled(page);
+  // Each drawn MatrixView took over the table of the server's markup; mark those elements.
+  const marked = await page.evaluate(() => {
+    const tool = document.querySelector('[data-tool="rep"]')!;
+    const tables = [...tool.querySelectorAll('[data-out^="matrix-"] .box table, [data-out^="relation-"] .box table')];
+    tables.forEach((t) => t.setAttribute('data-test-kept', 'true'));
+    return tables.length;
+  });
+  expect(marked).toBe(5);
+  expect(await valuesOf(page)).toEqual(['1', '0']);
+  await node(page, 1).click();
+  await expect.poll(() => valuesOf(page)).toEqual(fired('A2', [1, 0], 1));
+  await page.waitForTimeout(300);
+  // Firing changes the state (and the tool's version): the five tables are still the server's elements.
+  await expect(root(page).locator('[data-test-kept="true"]')).toHaveCount(5);
+  await control(page, 'relation').selectOption('he');
+  await expect(root(page).locator('[data-out="relation-verdict"]')).toHaveText('equal');
+  // A new relation draws its two sides; the matrices E, F and H keep the server's tables.
+  await expect(root(page).locator('[data-out^="matrix-"] [data-test-kept="true"]')).toHaveCount(3);
+});
+
+// ---------------------------------------------------------------------------------------------
 // Main-thread work (SPEC 7.6; E-9; decisions/P5-A2.md): the processor slowed four times, as the lab
-// profile of 7.6. The relation list is computed on the main thread up to 27 positions (E6 node 1 is the
-// largest) and in the worker above (E7 node 7, the largest listed representation); a pick builds the
-// representation one engine call per task and draws the panels one piece per task.
+// profile of 7.6. The relation list is computed on the main thread up to RELATIONS_MAIN_WORK (positions
+// times records, 2500: D6 node 1 is the largest) and in the worker above (E6 node 1 and E7 node 7 among
+// them); a pick builds the representation one engine call per task and draws the panels one piece per task.
 // ---------------------------------------------------------------------------------------------
 
 async function recordLongTasks(page: Page): Promise<void> {

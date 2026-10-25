@@ -8,6 +8,7 @@
 // links and the routing of E-9 (each call's hint goes through whereToRun before the call is made).
 import {
   CAPS,
+  EngineOverflow,
   cartanNumbers,
   chevalleySerre,
   fire,
@@ -45,22 +46,33 @@ export const DRAW_MAX = CAPS.gardenDrawEverything;
 /** At most this many positions of a string are listed; above, the first and last six with a count (plan). */
 export const STRING_SHOWN_MAX = 12;
 
-/**
- * The largest orbit whose whole list of relations (chevalleySerre) is computed on the main thread (plan,
- * measured; decisions/P5-A2.md). chevalleySerre is not an enumeration of E-9 rule 1, and its work grows
- * with the square of the rank times the size (B8 node 5, 1792 positions, 368 records: about 420 ms in
- * Node here), so SPEC 7.6 ("No engine call on the main thread may become a long task") bounds it, not the
- * 2000 items of E-9. Measured in Chromium on its first call after a pick (cold code, which a reader meets):
- * the 280 records of E7 node 7 (56 positions) take about 14 ms at full speed, so about 56 ms with the
- * processor slowed four times, over the budget; the orbits drawn as grids (at most CAPS.matrixGridDim = 27
- * positions, E6 nodes 1 and 6 the largest) stay under it. So the list is computed on the main thread up
- * to 27 positions and in the worker above, where the matrices are shown as lists. minusculeMatrices,
- * signedMoves and orbitGraph stay on the main thread up to 2000 positions, as E-9 rule 1 says.
- */
-export const RELATIONS_MAIN_MAX = CAPS.matrixGridDim;
+/** The number of records of the relation list on a board of rank n: 6n^2 - 2n (the engine's list, SPEC 2.18). */
+export const relationCount = (n: number): number => 6 * n * n - 2 * n;
 
-/** Whether the relation list of an orbit of this size is computed on the main thread. */
-export const relationsOnMain = (orbitSize: number): boolean => orbitSize <= RELATIONS_MAIN_MAX;
+/**
+ * The largest work, positions times relation records, of a relation list (chevalleySerre) computed on the
+ * main thread (plan, measured; decisions/P5-A2.md). chevalleySerre is not an enumeration of E-9 rule 1, and
+ * its work grows with the size of the orbit times the number of records (B8 node 5, 1792 positions, 368
+ * records: about 420 ms in Node here), so SPEC 7.6 ("No engine call on the main thread may become a long
+ * task") bounds it, not the 2000 items of E-9. Measured in Chromium with the processor slowed four times, on
+ * the first call after a pick (the step that computes the list and redraws its verdict): about 6 µs a unit
+ * of work plus 10 ms, so E6 node 1 (27 positions, 204 records, 5508 units) took 37 to 55 ms and A8 node 1
+ * (9 positions, 368 records, 3312 units) 27 to 50 ms, at or over the budget of 50 ms. The bound 2500 sends
+ * E6 nodes 1 and 6 and every list of rank 8 to the worker and keeps every list of at most 2500 units, the
+ * largest D6 node 1 (12 by 204 = 2448), on the main thread, about 25 ms at four times slower.
+ * minusculeMatrices, signedMoves and orbitGraph stay on the main thread up to 2000 positions, as E-9 rule 1
+ * says.
+ */
+export const RELATIONS_MAIN_WORK = 2500;
+
+/** The work of the relation list of an orbit: its positions times the number of records. */
+export const relationWork = (orbitSize: number, n: number): number => orbitSize * relationCount(n);
+
+/** Whether the relation list of an orbit of this size on a board of rank n is computed on the main thread. */
+export const relationsOnMain = (orbitSize: number, n: number): boolean => relationWork(orbitSize, n) <= RELATIONS_MAIN_WORK;
+
+/** relationsOnMain for a representation. */
+export const listOnMain = (rep: Representation): boolean => relationsOnMain(rep.orbitSize, rep.board.n);
 
 // ---------------------------------------------------------------------------------------------
 // E-9: every enumeration and play is announced with its hint before it is made
@@ -194,11 +206,76 @@ export interface Representation {
   /** The firing moves as permutation matrices, and their signed versions E_k - F_k + P_k^0. */
   moves: SparseMatrix[] | null;
   signed: SparseMatrix[] | null;
+  /** The signed moves computed so far, one node per task (addSignedMoves with a node), until all are. */
+  signedPart: (SparseMatrix | null)[] | null;
   /**
    * Every Chevalley-Serre relation with both sides, in the engine's order (looked up by fields only); null
    * until computed when the list is computed later, in the worker (relations: 'later').
    */
   checks: RelationCheck[] | null;
+}
+
+/**
+ * The relation list of a configured state as the server computed it, shipped in the page so that hydration
+ * computes no relation list (SPEC 7.6; decisions/P5-A2.md): the number of records and of failing ones, and
+ * the relation shown with its verdict and its two sides as [row, column, value] (0-based, decimal text).
+ */
+export interface RelationDigest {
+  board: string;
+  node: number;
+  code: string;
+  holds: boolean;
+  total: number;
+  failing: number;
+  left: [number, number, string][];
+  right: [number, number, string][];
+}
+
+/** The digest of the relation `code` of a representation whose list is computed (null otherwise). */
+export function relationDigest(rep: Representation, code: string): RelationDigest | null {
+  if (rep.checks === null) return null;
+  const c = findRelation(rep.checks, rep.board, code);
+  if (c === null) return null;
+  const side = (m: SparseMatrix): [number, number, string][] => entryList(m).map(([r, k, v]) => [r - 1, k - 1, v.toString()]);
+  return { board: rep.name, node: rep.node, code, holds: c.holds, total: rep.checks.length, failing: rep.checks.filter((x) => !x.holds).length, left: side(c.left), right: side(c.right) };
+}
+
+/** A sparse matrix from the [row, column, value] list of a digest. */
+function digestMatrix(entries: readonly [number, number, string][]): SparseMatrix {
+  return new Map(entries.map(([r, c, v]) => [`${r},${c}`, BigInt(v)]));
+}
+
+/** The relation shown and its two sides: from the list when computed, else from the digest of the same relation. */
+export interface ShownCheck {
+  holds: boolean;
+  left: SparseMatrix;
+  right: SparseMatrix;
+}
+
+const digestChecks = new WeakMap<RelationDigest, ShownCheck>();
+
+/** The digest when it describes this representation (its board and node), else null. */
+const digestOf = (rep: Representation, digest: RelationDigest | null): RelationDigest | null =>
+  digest !== null && digest.board === rep.name && digest.node === rep.node ? digest : null;
+
+/** The relation `code` with its sides, from the list when it is computed, else from a digest of that relation. */
+export function shownCheck(rep: Representation, code: string, digest: RelationDigest | null = null): ShownCheck | null {
+  if (rep.checks !== null) return findRelation(rep.checks, rep.board, code);
+  const d = digestOf(rep, digest);
+  if (d === null || d.code !== code) return null;
+  let c = digestChecks.get(d);
+  if (c === undefined) {
+    c = { holds: d.holds, left: digestMatrix(d.left), right: digestMatrix(d.right) };
+    digestChecks.set(d, c);
+  }
+  return c;
+}
+
+/** The number of relation records and of failing ones: from the list, else from a digest, else null. */
+export function relationTally(rep: Representation, digest: RelationDigest | null = null): { total: number; failing: number } | null {
+  if (rep.checks !== null) return { total: rep.checks.length, failing: rep.checks.filter((c) => !c.holds).length };
+  const d = digestOf(rep, digest);
+  return d === null ? null : { total: d.total, failing: d.failing };
 }
 
 /**
@@ -208,7 +285,7 @@ export interface Representation {
  * (F11's third condition, no enumeration); then, only when the size is at most CAPS.repOrbit,
  * minusculeMatrices (with that cap), signedMoves and, with `relations: 'now'` (the default), chevalleySerre.
  * Above the cap nothing is enumerated: "the tool shows the explanation alone" (SPEC 4 T12). With
- * `relations: 'later'` the caller computes the relation list itself (in the worker, RELATIONS_MAIN_MAX).
+ * `relations: 'later'` the caller computes the relation list itself (in the worker, RELATIONS_MAIN_WORK).
  */
 export function buildRepresentation(
   board: AnyBoard,
@@ -220,7 +297,7 @@ export function buildRepresentation(
   addMatrices(rep, opts);
   addSignedMoves(rep, opts);
   const when = opts.relations ?? 'now';
-  if (when === 'now' || (when === 'auto' && relationsOnMain(rep.orbitSize))) addRelations(rep, opts);
+  if (when === 'now' || (when === 'auto' && listOnMain(rep))) addRelations(rep, opts);
   return rep;
 }
 
@@ -261,6 +338,7 @@ export function startRepresentation(board: AnyBoard, nodeLabel: number, opts: { 
     H: null,
     moves: null,
     signed: null,
+    signedPart: null,
     checks: null,
   };
   return rep;
@@ -282,12 +360,30 @@ export function addMatrices(rep: Representation, opts: { engine?: RepEngine; rou
   rep.moves = m.moves;
 }
 
-/** Step 3: the signed moves E_k - F_k + P_k^0 (signedMoves). */
-export function addSignedMoves(rep: Representation, opts: { engine?: RepEngine; route?: Route } = {}): void {
+/**
+ * Step 3: the signed moves E_k - F_k + P_k^0 (signedMoves), for every node at once, or with `only` (a
+ * position) for that node alone, so that a large orbit spends one task per node (SPEC 7.6; decisions/P5-A2.md).
+ * For one node the engine is called with E_k and F_k alone and each basis vector cut to its entry at k,
+ * which is all that P_k^0 reads (signedMoves of the engine takes the k-th matrices with the k-th entries).
+ */
+export function addSignedMoves(rep: Representation, opts: { engine?: RepEngine; route?: Route } = {}, only?: number): void {
   if (rep.basis === null || rep.signed !== null) return;
   const engine = opts.engine ?? REP_ENGINE;
   (opts.route ?? noRoute)('signedMoves', enumerationHint(rep.board, rep.orbitSize));
-  rep.signed = engine.signedMoves(rep.basis, rep.E!, rep.F!);
+  if (only === undefined) {
+    rep.signed = engine.signedMoves(rep.basis, rep.E!, rep.F!);
+    rep.signedPart = null;
+    return;
+  }
+  const part = (rep.signedPart ??= Array.from({ length: rep.board.n }, () => null));
+  if (part[only] === null) {
+    const column = rep.basis.map((v) => [v[only]!]);
+    part[only] = engine.signedMoves(column, [rep.E![only]!], [rep.F![only]!])[0]!;
+  }
+  if (part.every((m) => m !== null)) {
+    rep.signed = part as SparseMatrix[];
+    rep.signedPart = null;
+  }
 }
 
 /** Step 4: every relation with both sides (chevalleySerre), on the thread the caller is on. */
@@ -368,9 +464,16 @@ const CODE = /^(hh|he|hf|ef|serre-e|serre-f):(\d+),(\d+)$/;
 
 export const isSerre = (r: RelationCode): boolean => r === 'serre-e' || r === 'serre-f';
 
+/** The labels of a relation's two nodes (E-7: positions in RelationRef, labels on screen; toLabels only). */
+export function relationLabels(board: AnyBoard, r: { i: number; j: number }): readonly [number, number] {
+  const [i, j] = toLabels(board, [r.i, r.j]) as [number, number];
+  return [i, j];
+}
+
 /** The 6.6 code of a relation: "ef:1,2", labels always both written (plan). */
 export function relationCode(board: AnyBoard, r: RelationRef): string {
-  return `${r.relation}:${labelOf(board, r.i)},${labelOf(board, r.j)}`;
+  const [i, j] = relationLabels(board, r);
+  return `${r.relation}:${i},${j}`;
 }
 
 /**
@@ -401,26 +504,41 @@ export function firstFailing(checks: readonly RelationCheck[]): RelationCheck | 
   return checks.find((c) => !c.holds) ?? null;
 }
 
+/** The relation [E_i, F_i] = H_i of the representation's own node, the default before any list is known. */
+export const ownRelation = (rep: Representation): string => `ef:${rep.node},${rep.node}`;
+
 /**
  * The default relation of a representation (plan): [E_i, F_i] = H_i for a minuscule node, for a node whose
- * matrices are not built, and for an orbit whose relation list is computed in the worker (more than
- * RELATIONS_MAIN_MAX positions, so that the default never waits for the worker); otherwise, for a node that
- * is not minuscule, the first failing check in the engine's order, so that the tool shows a failing
+ * matrices are not built, and for an orbit whose relation list is computed in the worker (work above
+ * RELATIONS_MAIN_WORK, so that the default never waits for the worker; when that list arrives and the reader
+ * has picked no relation, the tool moves to the first failing check, failingDefault); otherwise, for a node
+ * that is not minuscule, the first failing check in the engine's order, so that the tool shows a failing
  * relation on load (ef:1,1 on node 2 of D4).
  */
 export function defaultRelation(rep: Representation): string {
-  const own = `ef:${rep.node},${rep.node}`;
-  if (rep.minuscule || !rep.built || !relationsOnMain(rep.orbitSize)) return own;
-  if (rep.checks === null) throw new Error('the relations of an orbit of at most RELATIONS_MAIN_MAX positions are computed with it');
+  const own = ownRelation(rep);
+  if (rep.minuscule || !rep.built || !listOnMain(rep)) return own;
+  if (rep.checks === null) throw new Error('the relations of a list within RELATIONS_MAIN_WORK are computed with it');
   const f = firstFailing(rep.checks);
   return f === null ? own : relationCode(rep.board, f);
 }
 
+/**
+ * The relation to move to when a list computed later (in the worker) arrives while the default [E_i, F_i] =
+ * H_i of a node that is not minuscule is shown and the reader has picked none: the first failing check, so
+ * that the tool shows the failure (SPEC 4 T12); null when nothing should move.
+ */
+export function failingDefault(rep: Representation, shown: string): string | null {
+  if (rep.minuscule || rep.checks === null || shown !== ownRelation(rep)) return null;
+  const f = firstFailing(rep.checks);
+  return f === null ? null : relationCode(rep.board, f);
+}
+
 /** The summary line (data-out="all-relations", plan): "All 20 relations hold." or "10 of 88 relations fail." */
-export function relationSummary(checks: readonly RelationCheck[]): string {
-  const failing = checks.filter((c) => !c.holds).length;
-  if (failing === 0) return `All ${checks.length} relations hold.`;
-  return `${failing} of ${checks.length} relations ${failing === 1 ? 'fails' : 'fail'}.`;
+export function relationSummary(checks: readonly RelationCheck[] | { total: number; failing: number }): string {
+  const { total, failing } = Array.isArray(checks) ? { total: checks.length, failing: checks.filter((c) => !c.holds).length } : (checks as { total: number; failing: number });
+  if (failing === 0) return `All ${total} relations hold.`;
+  return `${failing} of ${total} relations ${failing === 1 ? 'fails' : 'fail'}.`;
 }
 
 /** The parts of a relation's formula: labels for the subscripts, C_ij and the exponent 1 - C_ij evaluated. */
@@ -531,9 +649,22 @@ export function matrixFormat(dim: number): 'grid' | 'list' {
   return dim <= CAPS.matrixGridDim ? 'grid' : 'list';
 }
 
-/** The row and column headers of a matrix: the basis positions written with true minus signs. */
-export function basisHeaders(rep: Representation): string[] {
-  return (rep.basis ?? []).map((v) => positionText(inLabelOrder(rep.board, v)));
+const NO_HEADERS: readonly string[] = Object.freeze([]);
+const headersOf = new WeakMap<object, readonly string[]>();
+
+/**
+ * The row and column headers of a matrix: the basis positions written with true minus signs. The same
+ * array for the same basis, so that a drawn MatrixView keeps its table (and the one it took over from the
+ * server) when the tool's state changes elsewhere: new headers would write every table again.
+ */
+export function basisHeaders(rep: Representation): readonly string[] {
+  if (rep.basis === null) return NO_HEADERS;
+  let h = headersOf.get(rep.basis);
+  if (h === undefined) {
+    h = Object.freeze(rep.basis.map((v) => positionText(inLabelOrder(rep.board, v))));
+    headersOf.set(rep.basis, h);
+  }
+  return h;
 }
 
 /** A sparse matrix as [row, column, value] with 1-based basis indices, row-major (Download data, plan). */
@@ -682,29 +813,47 @@ function playEnd(board: Board<unknown>, v: AnyVec, route: Route): string {
   return r.position.map((x) => board.arith.show(x)).join(',');
 }
 
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const absBig = (x: bigint): bigint => (x < 0n ? -x : x);
+
 /**
  * The line of positions through mu at the node with label `nodeLabel` (2.18 Strings): for mu_i >= 0,
  * stringThrough(board, mu, i), that is mu, mu - alpha_i, ..., mu - mu_i alpha_i; for mu_i < 0 the same
  * line read from the other end, stringThrough(board, fire(board, mu, i), i) reversed, which starts at mu
  * and climbs by alpha_i (the oracle asserts mu_i >= 0, so stringThrough is never called with mu_i < 0);
  * for mu_i = 0 the line is mu alone. stringThrough is called only when the line has at most
- * CAPS.mainThreadItems positions and its entries are safe integers; otherwise the two ends, mu and R_i mu
+ * CAPS.mainThreadItems positions and no entry of it can pass 2^53 (each entry j of the line lies within
+ * |mu_j| + mu_i |C_ji| of 0, read off the start and the board); otherwise the two ends, mu and R_i mu
  * (fire), stand for it, with the count. Each position listed is marked in or out of the orbit of mu by
  * comparing the ends of legal play from it and from mu (F3; on a finite-type board two positions are in one
  * orbit exactly when legal play from each ends at the same position). `board` carries the arithmetic of
  * `mu` (a SafeInt board, or its Big copy for a start beyond the safe range); `mu` is indexed by position.
+ * On a SafeInt board a number that passes 2^53 on the way (in a firing or in legal play, EngineOverflow)
+ * makes the whole view be computed again on `opts.big(board)`, the Big copy, as fireText does (SPEC 4.0
+ * Long numbers; CLAUDE.md Numbers); without `opts.big` the EngineOverflow is thrown.
  */
-export function stringView(board: Board<unknown>, mu: AnyVec, nodeLabel: number, opts: { route?: Route } = {}): StringView {
+export function stringView(board: Board<unknown>, mu: AnyVec, nodeLabel: number, opts: { route?: Route; big?: (board: AnyBoard) => Board<unknown> } = {}): StringView {
   const route = opts.route ?? noRoute;
+  try {
+    return lineView(board, mu, nodeLabel, route);
+  } catch (e) {
+    if (!(e instanceof EngineOverflow) || opts.big === undefined || typeof board.arith.zero === 'bigint') throw e;
+    const big = opts.big(board as AnyBoard);
+    return lineView(big, mu.map((x) => board.arith.toBig(x)), nodeLabel, route);
+  }
+}
+
+function lineView(board: Board<unknown>, mu: AnyVec, nodeLabel: number, route: Route): StringView {
   const any = board as AnyBoard;
   const i = positionOf(any, nodeLabel);
   const a = board.arith;
   const sign = a.sign(mu[i]!);
   const show = (v: AnyVec): string[] => inLabelOrder(any, v.map((x) => a.show(x)));
   const top: AnyVec = sign >= 0 ? mu : fire(board, mu as readonly unknown[], i);
-  const length = (a.toBig(top[i]!) < 0n ? -a.toBig(top[i]!) : a.toBig(top[i]!)) + 1n;
+  const reach = absBig(a.toBig(top[i]!));
+  const length = reach + 1n;
   const tooLong = length > BigInt(CAPS.mainThreadItems);
-  const safe = top.every((x) => Number.isSafeInteger(Number(a.toBig(x))) && BigInt(Number(a.toBig(x))) === a.toBig(x));
+  const safe = top.every((x, j) => absBig(a.toBig(x)) + reach * absBig(a.toBig(board.cartan[j]![i]!)) <= MAX_SAFE);
   let line: AnyVec[] | null = null;
   if (sign === 0) line = [mu];
   else if (!tooLong && safe) {
@@ -760,7 +909,7 @@ export function stringNote(view: StringView): string {
   else if (view.direction === 'down') parts.push(`The number on node ${i} is positive: the line runs down from this position by α${i}, and firing node ${i} turns it end over end.`);
   else parts.push(`The number on node ${i} is negative: the line is read from this position upward by α${i}, and firing node ${i} turns it end over end.`);
   if (view.tooLong) parts.push(`It has more than ${CAPS.mainThreadItems} positions, so only its two ends are shown.`);
-  else if (view.unsafe) parts.push(`Its entries pass 2^53, so only its two ends are computed here.`);
+  else if (view.unsafe && view.elided > 0n) parts.push(`Its entries pass 2^53, so only its two ends are computed here.`);
   else if (view.elided > 0n) parts.push(`The ${view.elided} positions between the first six and the last six are not listed.`);
   return parts.join(' ');
 }
@@ -773,36 +922,39 @@ function joinAnd(items: readonly string[]): string {
   return items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
-/** The caption of a representation (plan): what the figure shows for this board and node. */
-export function repCaption(rep: Representation): string {
+/**
+ * The caption of a representation (plan): what the figure shows for this board and node. The counts of the
+ * relations come from the list, or from the digest the server shipped while the list is not computed.
+ */
+export function repCaption(rep: Representation, digest: RelationDigest | null = null): string {
   const i = rep.node;
   const d = dimensionOf(rep);
   if (!rep.built) {
     return `On ${rep.name}, node ${i} is not minuscule: ${someNumberPhrase(rep.firstLarge!.value)}. The orbit of ${omegaName(i)} has ${rep.orbitSize} positions, more than ${CAPS.repOrbit}, so the matrices are not built here.`;
   }
-  const checks = rep.checks;
-  if (checks === null) {
+  const tally = relationTally(rep, digest);
+  if (tally === null) {
     return `On ${rep.name}, node ${i}${rep.minuscule ? ' is minuscule' : ` is not minuscule: ${someNumberPhrase(rep.firstLarge!.value)}`}. The orbit of ${omegaName(i)} gives ${d} by ${d} matrices E, F and H, whose Chevalley-Serre relations are checked in the background.`;
   }
   if (rep.minuscule) {
-    return `On ${rep.name} the ${d} positions of the orbit of ${omegaName(i)} give ${d} by ${d} matrices E, F and H that satisfy all ${checks.length} Chevalley-Serre relations.`;
+    return `On ${rep.name} the ${d} positions of the orbit of ${omegaName(i)} give ${d} by ${d} matrices E, F and H that satisfy all ${tally.total} Chevalley-Serre relations.`;
   }
-  const failing = checks.filter((c) => !c.holds).length;
-  return `On ${rep.name}, node ${i} is not minuscule: ${someNumberPhrase(rep.firstLarge!.value)}, and ${failing} of the ${checks.length} Chevalley-Serre relations fail for the ${d} by ${d} matrices read off the game.`;
+  return `On ${rep.name}, node ${i} is not minuscule: ${someNumberPhrase(rep.firstLarge!.value)}, and ${tally.failing} of the ${tally.total} Chevalley-Serre relations fail for the ${d} by ${d} matrices read off the game.`;
 }
 
 /** The caption of the relation checker (plan): the chosen relation, its verdict, and the count. */
-export function relationCaption(rep: Representation, code: string): string {
-  const check = rep.checks === null ? null : findRelation(rep.checks, rep.board, code);
+export function relationCaption(rep: Representation, code: string, digest: RelationDigest | null = null): string {
+  const check = shownCheck(rep, code, digest);
+  const tally = relationTally(rep, digest);
   const parts = relationParts(rep.board, code);
-  if (check === null || parts === null) return repCaption(rep);
+  if (check === null || tally === null || parts === null) return repCaption(rep, digest);
   const d = dimensionOf(rep);
-  return `On ${rep.name}, node ${rep.node}: the two sides of ${relationText(parts)} are ${check.holds ? 'equal' : 'not equal'} for the ${d} by ${d} matrices read off the game. ${relationSummary(rep.checks!)}`;
+  return `On ${rep.name}, node ${rep.node}: the two sides of ${relationText(parts)} are ${check.holds ? 'equal' : 'not equal'} for the ${d} by ${d} matrices read off the game. ${relationSummary(tally)}`;
 }
 
 /** The caption of the move beside its signed version (plan). */
-export function signedCaption(rep: Representation, k: number): string {
-  if (!rep.built || !rep.minuscule) return repCaption(rep);
+export function signedCaption(rep: Representation, k: number, digest: RelationDigest | null = null): string {
+  if (!rep.built || !rep.minuscule) return repCaption(rep, digest);
   return `On ${rep.name}, node ${rep.node}: firing node ${k} is a permutation matrix of zeros and ones, and exp(E${k}) exp(${MINUS}F${k}) exp(E${k}) = E${k} ${MINUS} F${k} + P${k} is the same matrix with one sign changed in each pair.`;
 }
 
