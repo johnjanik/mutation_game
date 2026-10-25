@@ -20,3 +20,4 @@
 - P6-A1 follow-up merged (c029e25): restrictedCoordinates; T13 told to merge the integration branch.
 - P6-A5 repair merged (c027f67). Targeted merge checks running on c027f67 (reports/merge-p6-a5r-c027f67/).
 - Running: P6-A3 T13, P6-A4 T14 (base 89e37ec); a review of P6-size (on c027f67, ports 7160-7163); P6-tikz (T2 tikz-graph and T10 tikz-points via latexForExport, LaTeX samples for G6 under LATEX_SAMPLES_DIR, 'citeText' in every registry's outs; base c027f67, ports 7220-7223).
+- Targeted merge checks on c027f67 green: npm test 183 files, 3733 passed; typecheck and build; 252 e2e passed (embed, export, T16, toolframe-hydration, registry-outs, registry-weight, engine-weight, engine-fallback, pages-6); size 51 routes, 0 over (/tools/sandbox/ 72.5, /tools/rep/ 84.7 kB).
