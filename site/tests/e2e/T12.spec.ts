@@ -7,7 +7,7 @@
 // against the engine or the golden file first.
 //
 // Hooks read:
-//   root:      data-tool="rep", data-moves, data-hydrated="true"; on the figure (.t12) data-drawn ("true"
+//   root:      data-tool="rep", data-instance (the islands of M8), data-moves, data-hydrated="true"; on the figure (.t12) data-drawn ("true"
 //              when no panel is being drawn: after hydration the panels are drawn from the state, one
 //              task each, the server's markup standing for them meanwhile)
 //   buttons:   data-node, data-board ("numbers"), data-value, data-can-act (the string viewer's board)
@@ -16,7 +16,7 @@
 //              data-edge with data-edge-node, data-edge-from, data-edge-to, data-step; data-edge-label;
 //              data-layer-count (the layer sizes above 300 positions)
 //   matrices:  data-format ("grid" | "list"), data-rows, data-cols on a MatrixView root; data-row,
-//              data-col, data-value on its cells (1-based)
+//              data-col, data-value on its cells (1-based); its scroll box, role="group" with tabindex="0"
 //   relation:  data-holds on data-out="relation-verdict"; data-minuscule on data-out="minuscule"
 //   string:    data-value (comma-joined), data-in-orbit, data-step on data-out="string-position";
 //              data-flips on the line
@@ -979,6 +979,32 @@ test.describe('regressions', () => {
         expect(Math.abs(s.w - expected), `/${route} at ${c.width} x 800: node ${s.node} hit area ${s.w} x ${s.h}, expected ${expected} x ${expected}`).toBeLessThanOrEqual(0.5);
         expect(Math.abs(s.h - expected), `/${route} at ${c.width} x 800: node ${s.node} hit area ${s.w} x ${s.h}, expected ${expected} x ${expected}`).toBeLessThanOrEqual(0.5);
       }
+    });
+  }
+
+  // SPEC 7.5 A-1 and WCAG 2.4.3: the server's scroll boxes are tab stops before hydration (the selects are
+  // disabled until then); when the island hydrates and its panels are drawn from the state, the focus stays
+  // on the box or moves to its drawn replacement, never to <body>. On M8 every island after b1 is
+  // client:visible, so a Tab onto such a box (a focus, then a scroll into view; done here in two steps so
+  // that the island cannot hydrate before the focus arrives) is what makes the island hydrate.
+  for (const [inst, outName] of [['b4', 'relation-left'], ['b3', 'matrix-e']] as const) {
+    // regression: P5-RT-05-02
+    test(`M8 ${inst}: the focus on the server box "${outName}" survives the island's hydration`, async ({ page }) => {
+      await page.goto('modules/m8-lie-algebras/');
+      const tool = page.locator(`[data-tool="rep"][data-instance="${inst}"]`);
+      const box = tool.locator(`[data-out="${outName}"] [role="group"][tabindex="0"]`);
+      await expect(tool).not.toHaveAttribute('data-hydrated', 'true');
+      await box.evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }));
+      await expect(box, 'the server box has the focus before hydration').toBeFocused();
+      await box.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await expect(tool).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      await expect(tool.locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 30000 });
+      await page.waitForTimeout(1000);
+      const where = await page.evaluate(() => {
+        const e = document.activeElement as HTMLElement;
+        return e === document.body ? 'BODY' : `${e.tagName.toLowerCase()} in ${e.closest('[data-tool]')?.getAttribute('data-instance') ?? 'page'} (${e.closest('[data-out]')?.getAttribute('data-out') ?? ''})`;
+      });
+      expect(where, `/modules/m8-lie-algebras/ ${inst}: document.activeElement after the island hydrated, the focus having been on the box "${outName}"`).toBe(`div in ${inst} (${outName})`);
     });
   }
 });

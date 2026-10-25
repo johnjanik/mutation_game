@@ -23,7 +23,7 @@
   // ('numbers' only), start, moves, prediction, preset ('default' | 'string-viewer' | 'relation-checker' |
   // 'signed-move': the state fields and the panel put first), caption; linkTo and layers are accepted and
   // ignored (no set of positions grows off the finite types).
-  import { untrack, type Snippet } from 'svelte';
+  import { tick, untrack, type Snippet } from 'svelte';
   import type { AnyBoard, RelationCheck } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -327,6 +327,17 @@
   const isSoon = (step: Step | undefined): boolean => step !== undefined && (step as Step & { soon?: boolean }).soon === true;
 
   /**
+   * The scroll box of the figure that has the focus, as a selector by its data-out, or ''. A step that
+   * replaces the box's panel or table (the server's boxes are taken over after hydration) gives the focus
+   * to the box drawn in its place, never to <body> (SPEC 7.5 A-1, WCAG 2.4.3).
+   */
+  const BOX = '[role="group"][tabindex="0"]';
+  function focusedBox(): string {
+    const a = document.activeElement;
+    return a?.matches(BOX) && figureEl?.contains(a) ? `[data-out="${a.closest('[data-out]')?.getAttribute('data-out')}"] ${BOX}` : '';
+  }
+
+  /**
    * Runs the steps one per task, each after a frame (a step marked soon in the next task), while the
    * generation is unchanged; a step may return steps, which run next.
    */
@@ -345,7 +356,9 @@
           done?.();
           return;
         }
+        const box = focusedBox();
         const more = step();
+        if (box) void tick().then(() => document.activeElement === document.body && figureEl?.querySelector<HTMLElement>(box)?.focus());
         if (Array.isArray(more)) queue.unshift(...more);
         next();
       };
