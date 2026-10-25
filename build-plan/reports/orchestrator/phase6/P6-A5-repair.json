@@ -1,0 +1,150 @@
+{
+ "agent": "P6-A5",
+ "status": "done",
+ "branch": "worktree-agent-a23bbe22a77a1b9c9 (toplevel /home/user/mutation_game/.claude/worktrees/agent-a23bbe22a77a1b9c9)",
+ "base": "96bfbb6",
+ "commits": [
+  "fe3fcd6 P6-A5 repair: T16 loads export.ts with a dynamic import(), out of /tools/sandbox/'s first fetch",
+  "8f12eb0 P6-A5 repair: Export LaTeX announces its result in the live region",
+  "a8ab8b4 P6-A5 repair: the embed page imports ToolIsland.astro statically and builds every route",
+  "b1d6df9 P6-A5 repair: latex.test.ts reads every real-form input from the golden records; local date in far time zones",
+  "f555331 P6-A5 repair: embed.spec.ts tests the repairs (first fetch, announcements, Cite after a move, time zone, every embed route)",
+  "ece9d6b P6-A5 repair: embed.spec.ts header names the hooks the new tests read",
+  "7f70b41 P6-A5 repair: decisions fragment, entries of the repair after review"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/T16Sandbox.svelte",
+  "site/tests/unit/tools/T16.test.ts",
+  "site/src/components/board/ToolFrame.svelte",
+  "site/src/pages/embed/[tool].astro",
+  "site/tests/unit/latex.test.ts",
+  "site/tests/e2e/embed.spec.ts",
+  "decisions/P6-A5.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 96bfbb6; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "HEAD 96bfbb6 MERGE: P6-A5 reviewed (1 major, 5 minors); rulings; installed"
+  },
+  {
+   "cmd": "npm run build (96bfbb6, before any change)",
+   "exit": 0,
+   "summary": "51 pages; links: 1570 internal links on 51 pages, 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7191 (96bfbb6)",
+   "exit": 1,
+   "summary": "51 routes, 4 over budget: /tools/sandbox/ and /embed/sandbox/ 90392 B, /tools/rep/ and /embed/rep/ 92377 B"
+  },
+  {
+   "cmd": "npx vitest run latex.test.ts tools/T16.test.ts toolframe.test.ts export.test.ts export-svg.test.ts (TMPDIR in scratch)",
+   "exit": 0,
+   "summary": "5 files, 45 passed"
+  },
+  {
+   "cmd": "python3 mutate_unit.py (the reviewer's 20 unit mutants against the new latex.test.ts, TZ unset)",
+   "exit": 0,
+   "summary": "19 of 20 killed, U8 (date in UTC) included; U15 (commit typed as 'unknown') survives because GIT_COMMIT is 'unknown' in unit tests, so the mutant is equivalent there"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings, 1 hint (old); svelte-check 0 errors, 1 warning (old t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm run build (after the changes)",
+   "exit": 0,
+   "summary": "51 pages; links: 1570 on 51 pages, 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7191 (after)",
+   "exit": 1,
+   "summary": "51 routes, 2 over budget: only /tools/rep/ and /embed/rep/ at 92383 B (P6-size owns these); /tools/sandbox/ and /embed/sandbox/ 83989 B ok; every other tool route and lesson +5 to +10 B (the announce calls)"
+  },
+  {
+   "cmd": "playwright test embed.spec.ts (scratch config, port 7190)",
+   "exit": 0,
+   "summary": "87 passed (1.7m)"
+  },
+  {
+   "cmd": "build-mutants.sh M1 M2 A A1 A2 C C2 (OUT_DIR in scratch, worktree restored after each)",
+   "exit": 0,
+   "summary": "M1, M2, A, A1, A2 and C2 built; C (reviewer's mutant C) build failed: UNRESOLVED_IMPORT ../../tools/ToolIsland.astro in src/pages/embed/[tool].astro; C2 (old glob page plus moved table) built 37 pages with no /embed/"
+  },
+  {
+   "cmd": "run-mutants.sh: embed.spec.ts against each mutant build (port 7192)",
+   "exit": 1,
+   "summary": "M1 (T16 static import): 1 failed (export module not fetched before first interaction: sandbox). M2 (no announce): 2 failed (Export LaTeX downloads..., notice and announces it). A (reviewer's mutant A): 3 failed (Cite after a move on lesson and on /embed/board/, time-zone date). A1 (link from location.href only): 2 failed. A2 (UTC date only): 1 failed. C2: 2 failed (every registered tool has an embed route; notice on /embed/sandbox/)"
+  },
+  {
+   "cmd": "npm test (whole, TMPDIR in scratch), run 1",
+   "exit": 1,
+   "summary": "3706 passed, 3 failed: 5000 ms timeouts under load average 15 in T03.test.ts, T15.test.ts and repo-ci-playwright-report.test.ts, none touched here; those 3 files rerun alone: 44 passed"
+  },
+  {
+   "cmd": "npm test (whole), run 2",
+   "exit": 1,
+   "summary": "3708 passed, 1 failed: 5000 ms timeout in engine p6a-restricted.test.ts 'composite words reflect the shadows' (not touched); rerun alone: 7 passed"
+  },
+  {
+   "cmd": "playwright test embed export T16 toolframe-hydration history-popstate registry-outs registry-weight (scratch ESM config, port 7190)",
+   "exit": 0,
+   "summary": "178 passed (2.5m): embed 87, T16 26, export 18, registry-outs 31, history-popstate 9, registry-weight 4, toolframe-hydration 3"
+  },
+  {
+   "cmd": "playwright test nojs.spec.ts a11y.spec.ts (port 7190)",
+   "exit": 0,
+   "summary": "168 passed (7.1m)"
+  },
+  {
+   "cmd": "cleanup",
+   "exit": 0,
+   "summary": "ports 7190-7193 free; node_modules, site/node_modules, packages/engine/node_modules and site/dist deleted; git status --porcelain empty"
+  }
+ ],
+ "findings": [
+  {
+   "finding": "Major: /tools/sandbox/ and /embed/sandbox/ over 90 kB because T16Sandbox.svelte imported export.ts (with the LaTeX and Cite code) statically",
+   "status": "fixed",
+   "test": "npm run size; embed.spec.ts > the export module is not fetched before the first interaction: <id> (all 14 embed routes), plus 'the export module is fetched at the first click of Export LaTeX (board)' to show the check is not vacuous",
+   "evidence": "red before: size OVER at 90392 B, and with T16 as at 96bfbb6 the sandbox first-fetch test fails; green after: 83989 B ok, test passes, T16.spec.ts 26 passed. exportOf (only T16.test.ts calls it) is now async with the dynamic import(), so the two calls in P2-A5's T16.test.ts await it. No assertion changed."
+  },
+  {
+   "finding": "Export LaTeX announced nothing: no download message and no 'nothing to export as LaTeX' notice in the live region",
+   "status": "fixed",
+   "test": "embed.spec.ts > Export LaTeX downloads the diagram of the board ([data-live] 'Downloaded board-E6.tex.'); Export LaTeX on a board with no form of SPEC 6.7 shows the notice and announces it (/tools/affine/ and /embed/sandbox/, after Cite)",
+   "evidence": "red before: mutant M2 fails both tests (the live region still held 'Link copied.' and 'Citation copied.'); green after"
+  },
+  {
+   "finding": "No test pinned that the cited link comes from linkFor rather than the address bar",
+   "status": "fixed",
+   "test": "embed.spec.ts > Cite right after a move on a lesson instance cites the link Copy link gives (two instances of m0-start); Cite right after a move cites the new state, as Copy link does (board) on /embed/board/",
+   "evidence": "red before: the reviewer's mutant A fails both tests, and so does its link half alone (A1). Example: cited .../m0-start/ but copied ...?b1.z=1&...&b1.w=1. Green after."
+  },
+  {
+   "finding": "The local-date reading of the Cite text was untested where local and UTC dates differ",
+   "status": "fixed",
+   "test": "embed.spec.ts > in a time zone far from UTC > Cite gives the page title, the commit, the date and the link (timezoneId Pacific/Kiritimati, instant 2026-11-02T12:30Z, expects 2026-11-03); latex.test.ts sets process.env.TZ to Pacific/Kiritimati and Pacific/Pago_Pago for localIsoDate and citation",
+   "evidence": "red before: the UTC-date mutant survived both suites (review); now unit U8 fails 2 tests with TZ unset, and e2e mutants A2 and A fail the time-zone test; green after"
+  },
+  {
+   "finding": "The embed page's import.meta.glob fallback could silently drop every /embed route; the comments were stale",
+   "status": "fixed",
+   "test": "Static import of ToolIsland.astro and getStaticPaths returning toolRoutes() unconditionally; embed.spec.ts > every registered tool has an embed route (EMBED_IDS equal TOOL_IDS, no existsSync condition); page comment and spec header updated",
+   "evidence": "red before: the reviewer's mutant C built 37 pages and the old spec passed. Now mutant C fails the build (UNRESOLVED_IMPORT), and the old glob page with the table moved (C2) fails the new first test. Green after: 14 embed routes."
+  },
+  {
+   "finding": "Golden values were typed into latex.test.ts (lines 61, 63, 100, 140)",
+   "status": "fixed",
+   "test": "latex.test.ts: inputs and expected marks for e6(-14), e7(-5), so(1,7), su(4), sp(1,1) and the decorated default export (first record with black nodes and arrows) now come from the records' black_nodes and tau; only the three SPEC 6.7 strings stay typed",
+   "evidence": "Review: typed values. After: grep finds none; the rerun of the 20 unit mutants still kills 19 of 20, and U15 is equivalent in unit tests"
+  }
+ ],
+ "sizes": {
+  "sandbox before": "/tools/sandbox/ 90392 B gzip (OVER), /embed/sandbox/ 90392 B (OVER) at 96bfbb6",
+  "sandbox after": "/tools/sandbox/ 83989 B (ok), /embed/sandbox/ 83989 B (ok); /tools/rep/ and /embed/rep/ still 92383 B OVER (P6-size)"
+ },
+ "decisionsFragment": "decisions/P6-A5.md",
+ "handoff": "All six rulings are carried out, and for each one a test or the build fails on the reviewer's mutant or a scratch revert and passes after the fix. Three points for MERGE. (1) T16's exportOf is now async, and P2-A5's site/tests/unit/tools/T16.test.ts was changed only so its two exportOf calls await it; this is disclosed as a deviation. (2) The new e2e test 'the export module is not fetched before the first interaction: <id>' finds export.ts in the built scripts by the string 'nothing to export as LaTeX'. If that constant is renamed, update the marker in embed.spec.ts. (3) Full npm test failed twice, only on 5000 ms timeouts under a load average of 13 to 15 in files this repair does not touch. Each of those files passes alone. A scratch Playwright config needs a package.json with \"type\": \"module\" in its directory, or the specs that import astro.config.mjs fail. Scripts, logs and mutant builds are in /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a5-repair/."
+}
