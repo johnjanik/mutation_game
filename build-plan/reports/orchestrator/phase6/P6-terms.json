@@ -1,0 +1,403 @@
+{
+ "agent": "P6-terms",
+ "status": "partial",
+ "branch": "worktree-agent-a6e1e5b7962ecadff",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a6e1e5b7962ecadff",
+ "base": "2d9ff51",
+ "commits": [
+  "5f1c396 P6-terms: tie M9 into the glossary",
+  "c3353bf P6-terms: link later uses of glossary terms on M0 to M9 and the reference pages",
+  "b214fd1 P6-terms: leave mutation game unlinked on confusions while pages-6 forbids the href",
+  "dc4e42b P6-terms: keep the M6 and M7 sentences that content unit tests read intact",
+  "4ebbb33 P6-terms: decisions fragment"
+ ],
+ "filesChanged": [
+  "decisions/P6-terms.md",
+  "site/src/content/modules/m0-start.mdx",
+  "site/src/content/modules/m1-mutation.mdx",
+  "site/src/content/modules/m2-form.mdx",
+  "site/src/content/modules/m3-classification.mdx",
+  "site/src/content/modules/m4-numbers.mdx",
+  "site/src/content/modules/m5-weyl.mdx",
+  "site/src/content/modules/m6-multiple-edges.mdx",
+  "site/src/content/modules/m7-geometry.mdx",
+  "site/src/content/modules/m8-lie-algebras.mdx",
+  "site/src/content/modules/m9-real-forms.mdx",
+  "site/src/content/pages/about.mdx",
+  "site/src/content/pages/confusions.mdx",
+  "site/src/content/pages/glossary.mdx",
+  "site/src/content/pages/history.mdx",
+  "site/src/content/pages/not-quiver-mutation.mdx",
+  "site/src/content/pages/open-problem.mdx",
+  "site/tests/e2e/M10.spec.ts",
+  "site/tests/e2e/M8.spec.ts",
+  "site/tests/e2e/glossary-later-uses.spec.ts"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git -C <worktree> reset --hard 2d9ff51",
+   "exit": 0,
+   "summary": "HEAD is now at 2d9ff51"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed from the lockfile"
+  },
+  {
+   "cmd": "npm run build (at 2d9ff51)",
+   "exit": 0,
+   "summary": "links: 3496 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "playwright test glossary-later-uses (at 2d9ff51 build)",
+   "exit": 1,
+   "summary": "red before: 237 term-page pairs missing a later link on all 15 routes"
+  },
+  {
+   "cmd": "playwright test M10.spec.ts M9.spec.ts (at 2d9ff51 build)",
+   "exit": 1,
+   "summary": "51 passed, 2 failed: M10 'glossary covers every term' (M9 bold words compact, character, split form, quasi-split form unmapped); M9 'anatomy of 8.2' (a[href*=m10] count 1)"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-base npm run build with 2d9ff51 content and M8.spec.ts checked out, then playwright M8.spec.ts -g 'later uses of a term'",
+   "exit": 1,
+   "summary": "red before on M8: length, representation, dimension, orbit, Coxeter plane, string, single step, Chevalley-Serre relations, signed move, quiver; files restored with git checkout HEAD"
+  },
+  {
+   "cmd": "npm run build (final)",
+   "exit": 0,
+   "summary": "links: 3707 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "playwright test glossary-later-uses M0..M10.spec.ts pages.spec.ts pages-6.spec.ts module-links.spec.ts nojs.spec.ts (final build)",
+   "exit": 1,
+   "summary": "558 passed, 1 failed: M9.spec.ts 'anatomy of 8.2' (fails identically at 2d9ff51: M10's release gives M9 a next link)"
+  },
+  {
+   "cmd": "playwright test a11y.spec.ts -g '<15 changed routes, glossary, about and credits>'",
+   "exit": 0,
+   "summary": "17 passed"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 0,
+   "summary": "Test Files 187 passed, Tests 3925 passed (glossary.test.ts included); an earlier run failed 4 content tests, fixed by dc4e42b"
+  },
+  {
+   "cmd": "node scripts/numbers-in-prose.mjs",
+   "exit": 0,
+   "summary": "2 numbers in 1 file (m10-atlas.mdx, not touched), 5 in fallbacks; none in the files changed"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 376 files 0 errors 0 warnings; svelte-check 0 errors, 1 pre-existing warning (LayerChart.svelte)"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath npm run build",
+   "exit": 0,
+   "summary": "links: 3707 internal links, 0 problems"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath playwright test basepath.spec.ts glossary-later-uses M10.spec.ts (port 7273)",
+   "exit": 0,
+   "summary": "112 passed"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-mutant build with the Term on 'tally' removed from m5-weyl.mdx, then playwright glossary-later-uses (port 7272)",
+   "exit": 1,
+   "summary": "fails as intended: 'modules/m5-weyl/: tally -> #tally (5 uses ...)'; the same build also fails each BLOCKED pair as 'now linked'"
+  }
+ ],
+ "linksAdded": {
+  "m0-start": [
+   "city -> city",
+   "population -> population",
+   "roads -> roads",
+   "Mutate -> mutate",
+   "node -> node",
+   "position -> position",
+   "fire -> fire",
+   "Legal play -> legal-play",
+   "the translator -> the-translator",
+   "counts -> counts",
+   "Weyl group -> weyl-group",
+   "real form -> real-form",
+   "Satake diagram -> satake-diagram",
+   "involution -> involution",
+   "Cartan matrix -> cartan-matrix"
+  ],
+  "m1-mutation": [
+   "city -> city",
+   "roads -> roads",
+   "board -> board",
+   "Mutate -> mutate",
+   "simple root population -> simple-root-population",
+   "root population -> root-population",
+   "anti-Martians -> anti-martians",
+   "Martians -> martians",
+   "unhappy -> unhappy",
+   "raising move -> raising-move",
+   "highest root -> highest-root",
+   "Coxeter number -> coxeter-number",
+   "happy -> happy",
+   "root poset -> root-poset"
+  ],
+  "m2-form": [
+   "board -> board",
+   "city -> city",
+   "form value -> form-value",
+   "population -> population",
+   "invariant -> invariant",
+   "roads -> roads",
+   "root population -> root-population",
+   "weights -> weights",
+   "anti-Martians -> anti-martians",
+   "finite -> finite",
+   "Martians -> martians",
+   "highest root -> highest-root",
+   "balanced board -> balanced-board",
+   "Cartan matrix -> cartan-matrix"
+  ],
+  "m3-classification": [
+   "city -> city",
+   "population -> population",
+   "closes up -> closes-up",
+   "positive definite -> positive-definite",
+   "spectral radius -> spectral-radius",
+   "roads -> roads",
+   "root population -> root-population",
+   "numbers game -> numbers-game",
+   "balanced board -> balanced-board",
+   "Martians -> martians",
+   "anti-Martians -> anti-martians"
+  ],
+  "m4-numbers": [
+   "node -> node",
+   "board -> board",
+   "position -> position",
+   "finite -> finite",
+   "population -> population",
+   "Cartan matrix -> cartan-matrix",
+   "city -> city",
+   "numbers game -> numbers-game",
+   "comarks -> comarks",
+   "affine -> affine",
+   "roads -> roads"
+  ],
+  "m5-weyl": [
+   "node -> node",
+   "position -> position",
+   "numbers -> numbers",
+   "length -> length",
+   "legal play -> legal-play",
+   "word -> word",
+   "fire -> fire",
+   "board -> board",
+   "reversed board -> reversed-board",
+   "coroot -> coroot",
+   "height -> height",
+   "roads -> roads",
+   "tally -> tally",
+   "exponents -> exponents",
+   "Weyl group -> weyl-group",
+   "finite -> finite",
+   "wave -> wave",
+   "dimension -> dimension",
+   "longest element -> longest-element"
+  ],
+  "m6-multiple-edges": [
+   "roads -> roads",
+   "city -> city",
+   "long -> long",
+   "short -> short",
+   "round -> round",
+   "weights -> weights",
+   "board -> board",
+   "height -> height",
+   "orbit -> orbit",
+   "node -> node",
+   "folded board -> folded-board",
+   "numbers -> numbers",
+   "Restricting the roots -> restricting-the-roots",
+   "symmetry -> symmetry"
+  ],
+  "m7-geometry": [
+   "population -> population",
+   "position -> position",
+   "board of finite type -> finite",
+   "orbit -> orbit",
+   "vertices -> vertices",
+   "node -> node",
+   "ring -> ring",
+   "board -> board",
+   "move graph -> move-graph",
+   "polytope graph -> polytope-graph",
+   "weights -> weights",
+   "uniform -> uniform",
+   "wave -> wave",
+   "form value -> form-value",
+   "shells -> shells",
+   "Coxeter plane -> coxeter-plane",
+   "fundamental position -> fundamental-position",
+   "colour class -> colour-class",
+   "exponents -> exponents"
+  ],
+  "m8-lie-algebras": [
+   "string -> string",
+   "orbit -> orbit",
+   "single step -> single-step",
+   "representation -> representation",
+   "Coxeter plane -> coxeter-plane",
+   "quiver -> quiver",
+   "signed move -> signed-move",
+   "Chevalley-Serre relations -> chevalley-serre-relations"
+  ],
+  "m9-real-forms": [
+   "node -> node",
+   "real form -> real-form",
+   "board -> board",
+   "involution -> involution",
+   "population -> population",
+   "numbers game -> numbers-game",
+   "word -> word",
+   "city -> city",
+   "shadow -> shadow",
+   "multiplicity -> multiplicity",
+   "admissible -> admissible",
+   "compact -> compact",
+   "Satake diagram -> satake-diagram",
+   "character -> character",
+   "longest element -> longest-element",
+   "real rank -> real-rank",
+   "composite move -> composite-move",
+   "restricted board -> restricted-board",
+   "orbit -> orbit",
+   "length -> length",
+   "symmetry -> symmetry",
+   "arrows -> arrows",
+   "split form -> split-form",
+   "Vogan diagram -> vogan-diagram"
+  ],
+  "about": [
+   "board -> board",
+   "mutation game -> mutation-game",
+   "numbers game -> numbers-game",
+   "node -> node",
+   "roads -> roads",
+   "numbers -> numbers",
+   "black -> black",
+   "arrows -> arrows"
+  ],
+  "confusions": [
+   "city -> city",
+   "node -> node",
+   "roads -> roads",
+   "numbers game -> numbers-game",
+   "Cartan matrix -> cartan-matrix",
+   "reversed board -> reversed-board",
+   "Weyl group -> weyl-group",
+   "Martians -> martians",
+   "anti-Martians -> anti-martians",
+   "one-way board -> one-way-board",
+   "root population -> root-population",
+   "invariant -> invariant",
+   "positive definite -> positive-definite"
+  ],
+  "history": [
+   "city -> city",
+   "population -> population",
+   "node -> node",
+   "mutation game -> mutation-game",
+   "numbers game -> numbers-game",
+   "fire -> fire",
+   "numbers -> numbers",
+   "legal play -> legal-play",
+   "board -> board",
+   "Weyl group -> weyl-group",
+   "position -> position",
+   "Cartan matrix -> cartan-matrix",
+   "counts -> counts",
+   "finite -> finite",
+   "affine -> affine",
+   "level -> level",
+   "Martians -> martians",
+   "roads -> roads"
+  ],
+  "not-quiver-mutation": [
+   "numbers game -> numbers-game",
+   "mutation game -> mutation-game",
+   "positive root population -> positive-root-population",
+   "quiver -> quiver",
+   "Cartan matrix -> cartan-matrix"
+  ],
+  "open-problem": [
+   "Martians -> martians",
+   "anti-Martians -> anti-martians",
+   "city -> city",
+   "population -> population",
+   "board -> board",
+   "roads -> roads",
+   "root population -> root-population",
+   "Cartan matrix -> cartan-matrix",
+   "invariant -> invariant",
+   "finite -> finite",
+   "affine -> affine",
+   "bidirected board -> bidirected-board",
+   "mutation game -> mutation-game"
+  ]
+ },
+ "otherSense": [
+  "M8.spec.ts length: the length of a root ('differ in length') and the idiom 'at length'",
+  "M8.spec.ts round: 'turn round', reversed in direction",
+  "M8.spec.ts representation: a representation of a quiver (not-quiver page and M8's quiver sidebar); because the table is keyed by term, M8's Lie-sense uses are skipped there too and checked phrase by phrase in the shared spec",
+  "M8.spec.ts dimension: the dimension at a vertex of a quiver representation (same note)",
+  "shared board: 'Game Board', the name of tool T1",
+  "shared orbit: 'Orbit Garden', the name of tool T2",
+  "shared population: 'dual population', Wildberger's word for a position",
+  "shared counts: the verb and counts of other things (every 'counts' not after 'road' or 'one-way')",
+  "shared numbers: numbers of roads or vertices, whole numbers, real numbers; 'numbers D and E graphs' (the verb); 'Numbers view' (the view's name)",
+  "shared weights: the weights of Lie theory (fundamental weights, 'are weights', 'on/of/about weights', 'roots, weights', 'the root system, the weights', the title 'weights and quarks'); 'real weights' of roads and 'positive weights with' for comarks",
+  "shared arrows: quiver arrows ('vertices and arrows', 'arrows at the vertex', 'arrows from', 'turn arrows', 'remove arrows') and populations drawn as arrows ('arrows of (that same) length')",
+  "shared word: 'word for word'",
+  "shared length: Euclidean length (squared length, square of the length, same length, arrows of length, differ in length, of one length, length of the shadow) and 'at length'",
+  "shared round: 'turn ... round'",
+  "shared short: 'for short'",
+  "shared representation: of a quiver, indecomposable representation",
+  "shared dimension: 'dimension (one) there' of a quiver representation",
+  "shared compact: 'maximally compact' Cartan subalgebra, 'compact simple roots'"
+ ],
+ "glossaryEntriesAdded": [
+  "row 84: compact (#compact), first use M9 beat 1",
+  "row 85: character (#character), first use M9 beat 5",
+  "row 86: split form (#split-form) and quasi-split form (#quasi-split-form), first use M9 beat 7"
+ ],
+ "tests": [
+  "glossary-later-uses.spec.ts > later uses of a glossary term link to the glossary on every lesson and reference page: red before (237 pairs on all 15 routes) / green after",
+  "M8.spec.ts > later uses of a term link to the glossary: red before (base build, base spec) / green after",
+  "M10.spec.ts > the glossary covers every term defined in M0 to M9: red before (compact, character, split form, quasi-split form unmapped) / green after",
+  "M10.spec.ts > glossary back-links resolve: green before (M9 links without fragments) / green after, now also requiring that every first-use link names a beat and every named module is built",
+  "M9.spec.ts: 32 of 33 green before and after; 'anatomy of 8.2' red before and after (expects no link to m10; M10's release added M9's next link; not in my files)",
+  "M8.spec.ts and M9.spec.ts > numbers in prose: green before / red mid-way (links next to typed numbers) / green after the links were moved",
+  "unit content-m6-donnelly-convention, content-m6-root-lengths, content-m7-finite-type: green before / red mid-way / green after",
+  "mutant: removing the Term on 'tally' in M5 makes the shared spec fail naming that pair"
+ ],
+ "deviations": [
+  "The shared spec refines M8's rule in three ways: a hyphen joins words on both sides; a use inside a longer term's use belongs to the longer term; the text of a non-glossary link is not a use (links cannot nest). Recorded in the spec header and decisions/P6-terms.md.",
+  "BLOCKED table in the shared spec, 4 pairs left unlinked because other specs forbid the link: confusions 'mutation game' (pages-6 refuses any href containing 'mutation-game'); M6 'reversed board', 'finite', 'form value' (their only later uses are sentences that content-m6-donnelly-convention.test.ts and content-m6-root-lengths.test.ts match word for word in the source). Each entry fails once the link is added or no longer needed.",
+  "M8.spec.ts OTHER_SENSE is keyed by term, so 'representation' and 'dimension' also skip M8's Lie-sense uses there. Those uses stay covered by the shared spec, and M8 carries a later 'representation' link.",
+  "M2: 'highest root' sits inside the constant SEEN_NORM_TWO, so the Seen statement now prints the constant split around a Term link. The rendered text is identical (checked in the built HTML).",
+  "M7 links the phrase 'board of finite type' to #finite as one link, so content-m7-finite-type's regex still matches the source.",
+  "Three links are not on the preferred kind of later use. M8 'Coxeter plane' and M9 'Vogan diagram' are in figure captions; history 'Weyl group' is inside the E2 Unverified wrap, whose release fallback does not use the term. In each case it was the only later use.",
+  "M9.spec.ts is not fully green (anatomy of 8.2, unchanged from the base); M9.spec.ts is outside the files I may change."
+ ],
+ "requests": [
+  "MERGE (M9.spec.ts, P6-A7's area): 'anatomy of 8.2' asserts article a[href*=\"m10\"] count 0, but M10 is released and M9's ModuleLinks now carries the next link. Accept exactly one next link to modules/m10-atlas/ under the base, as MERGE did for M8.",
+  "Owner of pages-6.spec.ts (P6-A6): in 'confusions makes no reference to the note', apply the href regex only to links that leave the site, so glossary/#mutation-game is allowed. Then link one later 'mutation game' on confusions and delete its BLOCKED entry in glossary-later-uses.spec.ts.",
+  "Owners of site/tests/unit/content-m6-donnelly-convention.test.ts and content-m6-root-lengths.test.ts: strip <Term a=\"...\"> and </Term> from the MDX source before matching. Then link later uses of reversed board, finite and form value on M6 and delete their BLOCKED entries.",
+  "Lesson owners, through MERGE (repeats P6-A8): mark a defined term at its first use with one markup distinct from emphasis."
+ ],
+ "decisionsFragment": "decisions/P6-terms.md",
+ "handoff": "Every lesson M0 to M9 and the five reference pages now link a later use of each glossary term used twice. That is 206 Term links on existing words; with the Term markup removed the text is unchanged, apart from the Term helper added to about and open-problem and M2's split constant, which renders the same text. The new site/tests/e2e/glossary-later-uses.spec.ts enforces this with one phrase-level OTHER_SENSE table, and a BLOCKED table holds 4 pairs that other specs forbid, each with a request. Glossary rows 84 to 86 (compact, character, split form, quasi-split form) tie M9 in, and every M9 back-link now names its beat. M8.spec, M10.spec, M0 to M7, pages, pages-6, module-links, nojs, a11y, npm test, check and the base-path run are green. The one failure is M9.spec 'anatomy of 8.2', which already failed at 2d9ff51 because M10 is released; it needs MERGE's one-line change. node_modules and site/dist are deleted and no preview server is running."
+}

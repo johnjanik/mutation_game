@@ -21,7 +21,8 @@ import { boardFromName, formValue, ratToString, symmetrizer, toPositions } from 
 import type { Board } from '@engine';
 import { lengthSentence, lengthsReport } from '../../src/components/tools/t01/phase2';
 
-const M6 = readFileSync(fileURLToPath(new URL('../../src/content/modules/m6-multiple-edges.mdx', import.meta.url)), 'utf8');
+// The glossary links' markup (<Term a="...">, </Term>; P6-terms) is taken out, so that the sentences read as written.
+const M6 = readFileSync(fileURLToPath(new URL('../../src/content/modules/m6-multiple-edges.mdx', import.meta.url)), 'utf8').replace(/<Term a="[^"]*">|<\/Term>/g, '');
 const LENGTHS = 'short roots have form value <Tex src="2"/>, long ones <Tex src="4"/> or <Tex src="6"/>';
 const LEAD = 'Exactly the balanced boards have a form with positive city weights that no mutation changes';
 

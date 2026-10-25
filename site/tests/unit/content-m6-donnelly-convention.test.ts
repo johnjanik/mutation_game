@@ -14,7 +14,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const read = (f: string): string => readFileSync(fileURLToPath(new URL(`../../src/content/modules/${f}`, import.meta.url)), 'utf8');
+// The glossary links' markup (<Term a="...">, </Term>; P6-terms) is taken out, so that the sentences read as written.
+const read = (f: string): string =>
+  readFileSync(fileURLToPath(new URL(`../../src/content/modules/${f}`, import.meta.url)), 'utf8').replace(/<Term a="[^"]*">|<\/Term>/g, '');
 const M5 = read('m5-weyl.mdx');
 const M6 = read('m6-multiple-edges.mdx');
 

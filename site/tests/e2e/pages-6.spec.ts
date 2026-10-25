@@ -603,7 +603,11 @@ test.describe('confusions', () => {
     ];
     for (const s of POINTERS) expect(text.includes(s), `"${s}" on the confusions page`).toBe(false);
     const hrefs = await page.locator('main a[href]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
-    expect(hrefs.filter((h) => /pypi|readthedocs|andreacortis|mutation_game|mutation-game/.test(h))).toEqual([]);
+    // Only links that leave the site point at the note or its package: an internal link may carry the glossary
+    // anchor #mutation-game, and on the Pages address every internal link starts with /mutation_game/
+    // (MERGE, on P6-terms' request).
+    const leaving = hrefs.filter((h) => /^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(h));
+    expect(leaving.filter((h) => /pypi|readthedocs|andreacortis|mutation_game|mutation-game/.test(h))).toEqual([]);
   });
 
   test('golden number and E17 on confusions', async ({ page }) => {
