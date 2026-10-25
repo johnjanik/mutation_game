@@ -51,6 +51,13 @@ const ROUTES = [
  * allowed and added, the pair fails here until it is taken out of this table.
  */
 const BLOCKED: Record<string, Record<string, string>> = {
+  'modules/m6-multiple-edges/': {
+    'reversed-board':
+      'its two later uses are sentences that site/tests/unit/content-m6-donnelly-convention.test.ts reads word for word in the source ("the positive roots of the reversed board <Cite .../>", "Firing is mutation on the reversed board, transposed."), so a Term inside them fails it; requested of its owner (P6-terms): strip the Term markup before matching',
+    finite:
+      'its later use is the Seen sentence that site/tests/unit/content-m6-root-lengths.test.ts reads in the source ("on a board of finite type, short roots have form value <Tex .../>"); requested of its owner (P6-terms): strip the Term markup before matching',
+    'form-value': 'its later use is the same Seen sentence (content-m6-root-lengths.test.ts); the same request',
+  },
   'confusions/': {
     'mutation-game':
       'pages-6.spec.ts > "confusions makes no reference to the note" refuses every href of the page that contains "mutation-game", the glossary anchor included (D16 guards against links to the project note and its package); requested of its owner (P6-terms): apply that check to links that leave the site',

@@ -62,7 +62,7 @@ On <Tex src="A_2"/>, <Tex src="A_3"/> and <Tex src="D_4"/> the <Term a="root-pop
 
 <Beat n={2}>
 
-Start from a <Term a="position">position</Term> with no negative number. A node is **ringed** when its number is positive, that number being its <Term a="ring">ring</Term>. On a <Term a="board">board</Term> of <Term a="finite">finite</Term> type, free play from the position reaches finitely many positions, its **orbit**, whose convex hull is a polytope; its shape depends only on which nodes are ringed. This is Wythoff's construction <Cite k="Cox35"/>, <Cite k="CKPS95"/>, told here in the language of the game. The corners of a polytope are its **vertices**, the places of a board are its nodes, and the two words never name the same thing. Rings are numbers, so this module uses the <View v="numbers"/> view.
+Start from a <Term a="position">position</Term> with no negative number. A node is **ringed** when its number is positive, that number being its <Term a="ring">ring</Term>. On a <Term a="finite">board of finite type</Term>, free play from the position reaches finitely many positions, its **orbit**, whose convex hull is a polytope; its shape depends only on which nodes are ringed. This is Wythoff's construction <Cite k="Cox35"/>, <Cite k="CKPS95"/>, told here in the language of the game. The corners of a polytope are its **vertices**, the places of a board are its nodes, and the two words never name the same thing. Rings are numbers, so this module uses the <View v="numbers"/> view.
 
 The <Term a="orbit">orbit</Term> has <Tex src="|W|/|W_U|"/> <Term a="vertices">vertices</Term>, $W$ being the Weyl group of module five and <Tex src="W_U"/> that of the unringed nodes $U$. Clicking a <Term a="node">node</Term> rings it or clears its <Term a="ring">ring</Term>; the table under the studio lists what the rings give.
 
@@ -80,7 +80,7 @@ The <Term a="orbit">orbit</Term> has <Tex src="|W|/|W_U|"/> <Term a="vertices">v
 
 <Beat n={3}>
 
-Faces can be counted from the board alone. A **face type** is a set $K$ of nodes each of whose connected pieces holds a ringed node. Its faces have as many dimensions as $K$ has nodes, each is the orbit polytope of the sub-board $K$, and there are
+Faces can be counted from the <Term a="board">board</Term> alone. A **face type** is a set $K$ of nodes each of whose connected pieces holds a ringed node. Its faces have as many dimensions as $K$ has nodes, each is the orbit polytope of the sub-board $K$, and there are
 
 <Tex display src="\frac{|W|}{|W_K|\,|W_{K'}|}"/>
 
