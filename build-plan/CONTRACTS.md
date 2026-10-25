@@ -325,6 +325,7 @@ export function decodeStateWith(search: string, tool: ToolId, defaults: ToolStat
 export type CallHint = { board: AnyBoard; kind: 'enumeration'|'play'|'count'|'satake'|'other'; expectedItems?: number; moves?: number; finiteKnown?: boolean };
 export function whereToRun(hint: CallHint): 'main' | 'worker';    // pure; unit-tested against the three rules of E-9
 export function engineCall<F extends keyof EngineApi>(fn: F, args: Parameters<EngineApi[F]>, hint: CallHint): Promise<Awaited<ReturnType<EngineApi[F]>>>;
+export function provide(fns: Partial<EngineApi>): void;   // (plan, P6-size) the main-thread table: every module that calls engineCall provides the engine functions it calls by name (playFate excepted); a name not provided runs from the whole engine loaded on demand
 // Worker message: { id, fn, args: Serialized[], board: BoardSpec } → { id, ok: true, result } | { id, ok: false, error: { name, message, data? } }.
 // Serialization: bigint as { "$big": "decimal" }; Map as { "$map": [[k, v], ...] }; Board as its BoardSpec (rebuilt with resolveBoard); errors re-thrown on the main side as the same class.
 
