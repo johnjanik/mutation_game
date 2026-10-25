@@ -85,6 +85,7 @@ import {
   relationDigest,
   relationLabels,
   relationParts,
+  relationSentence,
   relationSpoken,
   relationSummary,
   relationTally,
@@ -233,8 +234,8 @@ describe('T12 acceptance over minuscule_representations', () => {
         }
       });
     }
-    expect(buildRepresentation(named('B3'), 3).basis!.length).toBe(8);
-    expect(buildRepresentation(named('C3'), 1).basis!.length).toBe(6);
+    expect(buildRepresentation(named('B3'), 3).basis!.length).toBe(matchRecord(RECORDS, { type: 'B3', node: 3 }).dimension);
+    expect(buildRepresentation(named('C3'), 1).basis!.length).toBe(matchRecord(RECORDS, { type: 'C3', node: 1 }).dimension);
   });
 
   it('G2 node 2 fails with some number in the orbit is 3; boards with no minuscule node say so', () => {
@@ -470,14 +471,14 @@ describe('T12 orbit in layers', () => {
     expect(DRAW_MAX).toBe(CAPS.gardenDrawEverything);
     expect(DRAW_MAX).toBe(300);
     const e8 = orbitLayers(buildRepresentation(named('E8'), 8, { relations: 'later' }));
-    expect(e8.vertices.length).toBe(240);
+    expect(e8.vertices.length).toBe(golden.types.E8!.fundamental_orbit_sizes[pos(named('E8'), 8)]);
     expect(e8.drawn).toBe(true);
     expect(e8.edges.length).toBeGreaterThan(0);
     const e7 = orbitLayers(buildRepresentation(named('E7'), 2, { relations: 'later' }));
     expect(e7.vertices.length).toBe(golden.types.E7!.fundamental_orbit_sizes[1]);
     expect(e7.drawn).toBe(false);
     expect(e7.edges).toEqual([]);
-    expect(e7.layerSizes.reduce((a, b) => a + b, 0)).toBe(576);
+    expect(e7.layerSizes.reduce((a, b) => a + b, 0)).toBe(golden.types.E7!.fundamental_orbit_sizes[pos(named('E7'), 2)]);
   });
 });
 
@@ -635,7 +636,7 @@ describe('T12 relations', () => {
       expect(Array.isArray(more)).toBe(true);
       expect(more as Step[]).toHaveLength(8);
       const b8 = representationOf('B8', 5, 'facts');
-      expect(b8.basis).toHaveLength(1792);
+      expect(b8.basis).toHaveLength(golden.types.B8!.fundamental_orbit_sizes[pos(named('B8'), 5)]!);
       expect(b8.signed).toBeNull();
       (more as Step[]).forEach((s, k) => {
         s();
@@ -930,12 +931,12 @@ describe('T12 state and links', () => {
     // Above 300 positions the graph is not drawn: the orbit is listed, the edges are null.
     const e7two = new T12Tool(configOf(defaultsFor('E7', 2)));
     const big = JSON.parse(exportJSON(e7two.state(), exportData(e7two)));
-    expect(big.derived.orbit).toHaveLength(576);
+    expect(big.derived.orbit).toHaveLength(golden.types.E7!.fundamental_orbit_sizes[pos(named('E7'), 2)]!);
     expect(big.derived.edges).toBeNull();
     expect(doc.derived.string.positions.map((p: { position: number[] }) => p.position)).toEqual([[1, 1], [-1, 2]]);
     const e7 = new T12Tool(configOf(defaultsFor('E7')));
     const d = JSON.parse(exportJSON(e7.state(), exportData(e7)));
-    expect(d.derived.dimension).toBe(56);
+    expect(d.derived.dimension).toBe(matchRecord(RECORDS, { type: 'E7', node: 7 }).dimension);
     expect(d.derived.relations.every((r: { holds: boolean }) => r.holds)).toBe(true);
   });
 
@@ -987,7 +988,7 @@ describe('T12 state and links', () => {
     // the worker (above RELATIONS_MAIN_WORK); E6 node 1 (27 positions, 204 records): the list in the worker too, the rest on the main thread.
     const e7 = routedCalls('E7', 7);
     expect(e7.filter((c) => c.where === 'worker').map((c) => c.fn)).toEqual(['chevalleySerre']);
-    expect(e7.find((c) => c.fn === 'minusculeMatrices')!.hint).toMatchObject({ expectedItems: 56 });
+    expect(e7.find((c) => c.fn === 'minusculeMatrices')!.hint).toMatchObject({ expectedItems: matchRecord(RECORDS, { type: 'E7', node: 7 }).dimension });
     expect(routedCalls('E6', 1).filter((c) => c.where === 'worker').map((c) => c.fn)).toEqual(['chevalleySerre']);
     expect(routedCalls('D4', 2).every((c) => c.where === 'main')).toBe(true);
     // The largest orbit T12 builds: the matrices on the main thread (E-9 rule 1), the relation list in the worker.
@@ -1217,13 +1218,14 @@ describe('OrbitLayers', () => {
     expect(OL.EDGE_CHUNK).toBe(40);
     const o = orbitLayers(buildRepresentation(named('E7'), 7, { relations: 'later' }));
     const svg = OL.orbitSvg(o, orbitDrawing(o), o.vertices.map((v) => v.values.join(',')), 'E7', 't4');
-    expect(svg.vertexLayers).toHaveLength(Math.ceil(56 / 16));
+    const e7 = matchRecord(RECORDS, { type: 'E7', node: 7 }).dimension;
+    expect(svg.vertexLayers).toHaveLength(Math.ceil(e7 / 16));
     expect(svg.edgeLayers).toHaveLength(Math.ceil(o.edges.length / 40));
     expect(OL.layerCounts(o)).toEqual({ vertices: svg.vertexLayers.length, edges: svg.edgeLayers.length });
     const count = (s: string, re: RegExp): number => (s.match(re) ?? []).length;
     for (const l of svg.vertexLayers) expect(count(l, /data-vertex="/g)).toBeLessThanOrEqual(16);
     for (const l of svg.edgeLayers) expect(count(l, /data-edge="/g)).toBeLessThanOrEqual(40);
-    expect(svg.vertexLayers.reduce((s, l) => s + count(l, /data-vertex="/g), 0)).toBe(56);
+    expect(svg.vertexLayers.reduce((s, l) => s + count(l, /data-vertex="/g), 0)).toBe(e7);
     expect(svg.edgeLayers.reduce((s, l) => s + count(l, /data-edge="/g), 0)).toBe(o.edges.length);
     const size = `width="${svg.width}" height="${svg.height}"`;
     for (const l of [...svg.edgeLayers, ...svg.vertexLayers]) expect(l).toContain(size);
@@ -1727,5 +1729,77 @@ describe('regressions', () => {
       expect(configuredState({ preset: 'string-viewer', board: 'A2', node: 1, start: [2, 0] }).start).toEqual([2, 0]);
       expect(configuredState({ board: 'D4', node: 1, start: [0, 0, 1, 0] }).start).toEqual([0, 0, 1, 0]);
     });
+  });
+
+  // SPEC 4.0 "a polite live region announces each result": the sentence of a picked relation says
+  // "not equal" where the relation fails (ef:1,2 on node 2 of D4) and "equal" where it holds (hh:1,2).
+  // regression: P5-RT-11-02
+  it('relationSentence says not equal for a picked relation that fails and equal for one that holds', () => {
+    const D4 = named('D4');
+    const tool = new T12Tool(configOf(defaultsFor('D4', 2)));
+    for (const [code, holds] of [['ef:1,2', false], ['hh:1,2', true]] as const) {
+      tool.relation = code;
+      const check = shownCheck(tool.rep, code);
+      expect(check!.holds, code).toBe(holds);
+      expect(findRelation(chevalleySerre(D4, tool.rep.E!, tool.rep.F!, tool.rep.H!), D4, code)!.holds, code).toBe(holds);
+      expect(relationSentence(tool, check), code).toBe(`${relationText(relationParts(D4, code)!)}: the two sides are ${holds ? 'equal' : 'not equal'}.`);
+    }
+  });
+
+  // COMMON 4.4 (no golden value typed into source) and the headers of this file and of T12.spec.ts: the
+  // two greps of the finding may find only D4 node 2's worked value, its 24 positions (read from the golden
+  // file first in each test that types it), and a count of zeros in a hand-made 3 by 3 grid.
+  // regression: P5-RT-11-03
+  it('T12.test.ts and T12.spec.ts read the golden orbit sizes and dimensions instead of typing them', () => {
+    const lines = (rel: string): string[] => readFileSync(new URL(rel, import.meta.url), 'utf8').split('\n').map((l) => l.trim());
+    const d4 = golden.types.D4!.fundamental_orbit_sizes[1];
+    // (5[6] is 56, written so that this line does not find itself)
+    const unit = lines('./T12.test.ts').filter((l) => /toBe\((24|8|6|240|576|56)\)|toHaveLength\((1792|576)\)|expectedItems: 5[6]/.test(l));
+    expect(unit.filter((l) => !l.endsWith(`toBe(${d4});`) && !l.includes('class="zero"'))).toEqual([]);
+    const e2e = lines('../../e2e/T12.spec.ts').filter((l) => /toHaveText\('(8|24|56)'\)|'data-rows', '(27|56)'\)|toHaveCount\(27\)|\['E6', 1, 27\], \['E7', 7, 56\]/.test(l));
+    expect(e2e.filter((l) => !l.endsWith(`toHaveText('${d4}');`))).toEqual([]);
+  });
+
+  // RT-07, phase 5 round, attack 22 (the browser test is in T12.spec.ts, "a link to E7 node 6 ... hydrates
+  // without a long task"): SPEC 7.6 "Main-thread work" and decisions/P5-A2.md ("A pick builds the
+  // representation one engine call per task"). A link was validated with the representation built in full,
+  // minusculeMatrices and the signed moves of every node at once, in the task that read it (on hydration the
+  // island's); a lesson instance's prefixed keys took the same path. In the browser a link is now read with
+  // the facts of its node only, and the tool builds the rest one engine call per task (representationSteps)
+  // before it draws the panels.
+  // regression: P5-RT-07-01
+  it('a link to a large orbit is read in the browser with the facts of its node only: no minusculeMatrices, signedMoves or chevalleySerre', () => {
+    const keep = { ...REP_ENGINE };
+    const calls: Record<string, number> = {};
+    const counted = <K extends keyof RepEngine>(name: K): RepEngine[K] =>
+      ((...a: never[]) => {
+        calls[name] = (calls[name] ?? 0) + 1;
+        return (keep[name] as (...b: never[]) => unknown)(...a);
+      }) as RepEngine[K];
+    REP_ENGINE.minusculeMatrices = counted('minusculeMatrices');
+    REP_ENGINE.signedMoves = counted('signedMoves');
+    REP_ENGINE.chevalleySerre = counted('chevalleySerre');
+    try {
+      inBrowser(() => {
+        forgetRepresentations();
+        const configured = configuredState({ preset: 'default' });
+        const lesson = configuredState({ board: 'E7', node: 7 });
+        for (const [query, from, prefix, board, node] of [
+          ['?g=E7&k=6', configured, '', 'E7', 6],
+          ['?g=C8&k=7', configured, '', 'C8', 7],
+          ['?g=B8&k=7', configured, '', 'B8', 7],
+          ['?g=D8&k=3', configured, '', 'D8', 3],
+          ['?g=E8&k=8', configured, '', 'E8', 8],
+          ['?b6.k=6', lesson, 'b6', 'E7', 6],
+        ] as const) {
+          const { state, notice } = admitLink(query, from, prefix);
+          expect(calls, `engine calls while ${query} is read`).toEqual({});
+          expect(notice, query).toBeNull();
+          expect(state, query).toMatchObject({ board, node });
+        }
+      });
+    } finally {
+      Object.assign(REP_ENGINE, keep);
+    }
   });
 });

@@ -23,7 +23,7 @@
   // ('numbers' only), start, moves, prediction, preset ('default' | 'string-viewer' | 'relation-checker' |
   // 'signed-move': the state fields and the panel put first), caption; linkTo and layers are accepted and
   // ignored (no set of positions grows off the finite types).
-  import { untrack, type Snippet } from 'svelte';
+  import { tick, untrack, type Snippet } from 'svelte';
   import type { AnyBoard, RelationCheck } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
@@ -38,7 +38,7 @@
   import { encodeState } from '../../lib/urlCodec';
   import { speak } from '../../lib/a11y';
   import { engineCall } from '../../lib/worker';
-  import { resolveBoard, type ToolState } from '../../lib/state';
+  import type { ToolState } from '../../lib/state';
   import { NUMBERS_ICON } from '../draw/palette';
   import { isLong, shortValue } from './t01/longNumber';
   import type { Prediction } from '../../tools/types';
@@ -54,6 +54,7 @@
     addSignedMoves,
     admitLink,
     basisHeaders,
+    boardOf,
     captionOf,
     configOf,
     configuredState,
@@ -334,6 +335,17 @@
   const isSoon = (step: Step | undefined): boolean => step !== undefined && (step as Step & { soon?: boolean }).soon === true;
 
   /**
+   * The scroll box of the figure that has the focus (the only focusable role="group" of the figure, the
+   * child of a MatrixView's or the orbit drawing's root), as a selector by that root's data-out, or ''. A
+   * step that replaces the box's panel or table (the server's boxes are taken over after hydration) gives
+   * the focus to the box drawn in its place, never to <body> (SPEC 7.5 A-1, WCAG 2.4.3).
+   */
+  function focusedBox(): string {
+    const a = document.activeElement;
+    return a?.matches('[role=group]') && figureEl?.contains(a) ? `[data-out="${a.parentElement?.dataset.out}"] [role=group]` : '';
+  }
+
+  /**
    * Runs the steps one per task, each after a frame (a step marked soon in the next task), while the
    * generation is unchanged; a step may return steps, which run next.
    */
@@ -352,7 +364,9 @@
           done?.();
           return;
         }
+        const box = focusedBox();
         const more = step();
+        if (box) void tick().then(() => document.activeElement === document.body && figureEl?.querySelector<HTMLElement>(box)?.focus());
         if (Array.isArray(more)) queue.unshift(...more);
         next();
       };
@@ -388,11 +402,16 @@
     ];
   }
 
-  function stage(g: number): void {
+  /**
+   * Draws every panel from the state, one piece per task. `build` (representationSteps) runs first when the
+   * representation is not built yet (a link, the back button), the panels waiting meanwhile, so that no task
+   * does what a pick spreads over tasks (SPEC 7.6; RT-FIX P5-RT-07-01).
+   */
+  function stage(g: number, build: Step[] = []): void {
     adoptables = {};
     for (const p of PARTS) live[p] = true;
     for (const p of ALL_PIECES) ready[p] = false;
-    const steps: Step[] = [];
+    const steps: Step[] = build.length === 0 ? [] : [...build, touch];
     for (const panel of panels) {
       for (const p of PIECES[panel]) {
         if (p === 'orbit') {
@@ -538,7 +557,7 @@
     ];
     if (node === null) {
       steps.push(() => {
-        label = defaultNode(resolveBoard(spec));
+        label = defaultNode(boardOf(spec));
         return representationSteps(spec, label);
       });
     } else steps.push(...representationSteps(spec, node));
@@ -551,21 +570,33 @@
     });
   }
 
-  /** Builds the tool of a state; a long list of moves from a link is replayed where E-9 says (rule 2). */
+  /**
+   * Builds the tool of a state; a long list of moves from a link is replayed where E-9 says (rule 2). The
+   * tool reads the facts of its node only: what its panels need beyond them is built afterwards, one engine
+   * call per task as after a pick (representationSteps; SPEC 7.6; RT-FIX P5-RT-07-01: a link, on hydration
+   * in the island's task, built all of it in one task).
+   */
   function load(s: ToolState): void {
     const g = ++generation;
-    const t = new T12Tool(configOf(s), { defer: true, need: 'staged' });
+    const t = new T12Tool(configOf(s), { defer: true });
     const nodeChanged = t.spec !== tool.spec || t.node !== tool.node;
     tool = t;
     if (nodeChanged) matrixNode = t.node;
     // A relation that the server's digest does not hold needs the list (in the worker above the bound).
     if (t.rep.checks === null && !(digestHolds(t.rep) && digest!.code === t.relation)) needList = true;
-    if (nodeChanged || ALL_PIECES.some((p) => !ready[p])) stage(g);
+    if (nodeChanged || ALL_PIECES.some((p) => !ready[p])) stage(g, representationSteps(t.spec, t.node));
     else {
       // The same node: the orbit, the matrices and the signed move are unchanged (and may stay the server's);
-      // the relation, the string viewer and its table follow the state, drawn from it now.
-      if (t.rep.built && t.rep.checks === null && listOnMain(t.rep)) relationsNow(t.rep);
-      for (const p of ['relations', 'string', 'table-board'] as Part[]) if (!live[p] && (p !== 'relations' || t.rep.built)) live[p] = true;
+      // the relation, the string viewer and its table follow the state, drawn from it now, the relation once
+      // the matrices are built (a link read on hydration: the configured state has the facts only).
+      for (const p of ['string', 'table-board'] as Part[]) live[p] = true;
+      const relations = (): void => {
+        if (t.rep.built && t.rep.checks === null && listOnMain(t.rep)) relationsNow(t.rep);
+        if (t.rep.built) live.relations = true;
+        touch();
+      };
+      if (t.rep.built && t.rep.basis === null) runSteps(g, [() => addMatrices(t.rep, { route: mainRoute }), relations]);
+      else relations();
     }
     startFields = [...t.start];
     startMessage = '';
@@ -614,7 +645,8 @@
    * A relation list from the worker: stored with its representation, and, when that is the one shown, its
    * two sides drawn one per task (the reply was read in a task of its own, SPEC 7.6). A node that is not
    * minuscule moves from its default [E_i, F_i] = H_i to its first failing relation when the reader picked
-   * none (failingDefault).
+   * none (failingDefault). A verdict the reader was told is being checked in the background is announced
+   * (owed; SPEC 4.0: each result).
    */
   function acceptFromWorker(r: Representation, list: RelationCheck[]): void {
     if (!acceptRelations(r, list) || r !== tool.rep) return;
@@ -629,6 +661,7 @@
     // The server's tables of these sides were taken over when they were drawn: the waiting line stands for them now.
     if (again.some((p) => adoptables[p] !== undefined)) adoptables = Object.fromEntries(Object.entries(adoptables).filter(([p]) => !again.includes(p as Piece))) as typeof adoptables;
     touch();
+    if (owed === r) say(relationSentence(tool, shownCheck(r, tool.relation, digest)));
     runSteps(
       generation,
       again.map((p): Step => () => {
@@ -636,6 +669,14 @@
       }),
     );
   }
+
+  /**
+   * The representation whose verdict the reader was told is being checked in the background (a relation
+   * pick), with the announcer of that pick: the verdict is announced when the worker's list arrives (SPEC
+   * 4.0: each result is announced).
+   */
+  let owed: Representation | null = null;
+  let say = (_t: string): void => {};
 
   /** The digest stands for the list of this representation (the configured state, above the bound). */
   const digestHolds = (r: Representation): boolean => digest !== null && digest.board === r.name && digest.node === r.node;
@@ -766,7 +807,10 @@
       else needList = true;
     }
     touch();
-    announce(relationSentence(tool, shownCheck(rep, code, digest)));
+    const c = shownCheck(rep, code, digest);
+    owed = c === null ? rep : null;
+    say = announce;
+    announce(relationSentence(tool, c));
   }
 
   function setStart(announce: (t: string) => void): void {
@@ -1284,8 +1328,13 @@
   .verdict {
     font-weight: bold;
   }
+  /* The board's box of SPEC 6.1 is as wide as the figure (edge to edge below 400 pixels): it runs over the
+     panel's padding and border (12 and 1 pixels each side), and the grid unit of Board.svelte is read from
+     it, the nearest inline-size container, not from the panel (A-7). */
   .board-host {
     position: relative;
+    margin-inline: -13px;
+    container-type: inline-size;
   }
   .string-line {
     margin: 0;
