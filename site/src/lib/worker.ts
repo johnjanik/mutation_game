@@ -34,11 +34,14 @@ export type EngineApi = { [K in keyof Api as Api[K] extends AnyFunction ? K : ne
 
 type Callable = (...args: unknown[]) => unknown;
 
-/** The functions the main thread runs by name: the two site replay functions and what callers provide. */
-const provided = new Map<string, Callable>([
+/** What the main-thread table holds before any provide: the two site replay functions (__testing.reset restores it). */
+const INITIAL: ReadonlyArray<readonly [string, Callable]> = [
   ['positionsOf', positionsOf as Callable],
   ['firstForbiddenMove', firstForbiddenMove as Callable],
-]);
+];
+
+/** The functions the main thread runs by name: the two site replay functions and what callers provide. */
+const provided = new Map<string, Callable>(INITIAL);
 
 /**
  * Hands engine functions to the main-thread table of engineCall, by name (P6-size). Every module that
@@ -204,6 +207,7 @@ export const __testing = {
   setRuntime(partial: Partial<Runtime>): void {
     runtime = { ...runtime, ...partial };
   },
+  /** Back to the state at import: no worker, the default runtime, and the main-thread table as it was before any provide. */
   reset(): void {
     if (worker !== null) worker.terminate?.();
     worker = null;
@@ -211,6 +215,8 @@ export const __testing = {
     runtime = defaultRuntime;
     nextId = 1;
     fellBack.clear();
+    provided.clear();
+    for (const [name, f] of INITIAL) provided.set(name, f);
   },
   workerCreated(): boolean {
     return worker !== null;
