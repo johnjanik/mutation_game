@@ -447,6 +447,12 @@
 
   const uid = $props.id();
 
+  /** Opens a panel; the reader's first action also fetches the typeset names (t13/names.ts). */
+  function openPanel(id: T13Panel): void {
+    panel = id;
+    void loadNames().then(() => namesVersion++);
+  }
+
   function onTabKey(event: KeyboardEvent): void {
     const order = T13_PANELS.map((p) => p.id);
     const at = order.indexOf(panel);
@@ -457,7 +463,7 @@
     else if (event.key === 'End') next = order.length - 1;
     if (next === null) return;
     event.preventDefault();
-    panel = order[next]!;
+    openPanel(order[next]!);
     const list = (event.currentTarget as HTMLElement).closest('[role="tablist"]');
     (list?.querySelector(`[data-panel-tab="${order[next]}"]`) as HTMLElement | null)?.focus();
   }
@@ -631,7 +637,7 @@
           tabindex={panel === p.id ? 0 : -1}
           data-panel-tab={p.id}
           disabled={!api.hydrated}
-          onclick={() => (panel = p.id)}
+          onclick={() => openPanel(p.id)}
           onkeydown={onTabKey}>{p.label}</button
         >
       {/each}

@@ -23,6 +23,7 @@ import {
   mutate,
   positiveRoots,
   restrictedBoard,
+  restrictedCoordinates,
   satake,
   shadow2,
   symmetries,
@@ -68,7 +69,6 @@ import {
 import { computeNow, fetchData, satakeHint, type Caller } from '../../../src/components/tools/t13/load';
 import { captionFor } from '../../../src/components/tools/t13/caption';
 import { admitLink, toolStateOf } from '../../../src/components/tools/t13/link';
-import { restrictedCoordinatesFn } from '../../../src/components/tools/t13/coords';
 import { BOARDS_OFFERED } from '../../../src/tools/offered';
 import { LINK_NOTICE, decodeState, encodeState } from '../../../src/lib/urlCodec';
 import { whereToRun } from '../../../src/lib/worker';
@@ -613,7 +613,6 @@ describe('shadows (SPEC 4 T13 Shadows, 2.15, A.5)', () => {
   });
 
   it('shadows on su(1,2): lambda with multiplicity 2 and 2 lambda with multiplicity 1, on one ray at distances 1 and 2', () => {
-    expect(restrictedCoordinatesFn, 'the engine helper restrictedCoordinates (request to P6-A1)').not.toBeNull();
     const d = diagramOf('A2', [], [2, 1]);
     const data = dataOf(d);
     const pts = shadowPoints(d, data, shadowRows(d))!;
@@ -640,7 +639,6 @@ describe('the restricted board and composite moves (SPEC 4 T13 Restricted board,
     expect(move.word.length).toBe(32);
     expect(move.reducedLength).toBe(8);
     expect(move.populations.length).toBe(32);
-    expect(restrictedCoordinatesFn, 'the engine helper restrictedCoordinates (request to P6-A1)').not.toBeNull();
     expect(coordinatesInBourbaki(d, data, shadow2(d, root))).toEqual([0, 1]);
     expect(coordinatesInBourbaki(d, data, shadow2(d, move.populations[31]!))).toEqual([0, -1]);
   });
@@ -655,7 +653,6 @@ describe('the restricted board and composite moves (SPEC 4 T13 Restricted board,
   });
 
   it('each composite word acts on shadows as the reflection of restricted_cartan (every record of positive real rank, every root, every orbit)', () => {
-    expect(restrictedCoordinatesFn, 'the engine helper restrictedCoordinates (request to P6-A1)').not.toBeNull();
     let checks = 0;
     for (const { g, d, data } of all) {
       if (g.real_rank === 0) continue;
@@ -680,9 +677,9 @@ describe('the restricted board and composite moves (SPEC 4 T13 Restricted board,
   }, 300000);
 });
 
-/** The engine's coordinates in orbit order (the helper through coords.ts). */
+/** The engine's coordinates in orbit order (restrictedCoordinates, P6-A1's follow-up). */
 function coordinatesInOrbitOrder(d: SatakeDiagram, rb: RestrictedLike, s2: number[]): number[] {
-  return restrictedCoordinatesFn!(d, rb as never, s2);
+  return restrictedCoordinates(d, rb as never, s2);
 }
 
 describe('where the computation runs (E-9; 7.6)', () => {

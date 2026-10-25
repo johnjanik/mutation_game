@@ -8,10 +8,10 @@
 // applied to the reader's own pair, the Bourbaki order of the drawn restricted board found by orbit, the
 // three stages of theta (stage 1 moves entries along tau, stage 3 changes signs, stage 2 is the engine's
 // word played with mutate), and the sentences the Studio writes. The coordinates of a shadow in the simple
-// restricted roots come from the engine helper of t13/coords.ts; no linear system is solved here.
+// restricted roots come from the engine's restrictedCoordinates (P6-A1's follow-up); no linear system is solved here.
 //
 // This module is loaded in plain Node by the registry entry (registry-outs.spec.ts): it imports only the
-// engine by its package name, the config, coords.ts and lib/a11y.ts (which imports nothing).
+// engine by its package name, the config and lib/a11y.ts (which imports nothing).
 import {
   boardFromName,
   canonicalPair,
@@ -19,6 +19,7 @@ import {
   longestWord,
   mutate,
   positiveRoots,
+  restrictedCoordinates,
   satakeCatalogue,
   shadow2,
   symmetries,
@@ -28,7 +29,6 @@ import {
 } from '@two-games/engine';
 import type { Admissibility, Board, Reason, RestrictedBoard, SatakeComputed, SatakeDiagram, SatakeRecord, Word } from '@two-games/engine';
 import { speakList } from '../../../lib/a11y';
-import { restrictedCoordinatesFn } from './coords';
 import type { T13Panel } from './config';
 
 /** U+2212, the minus sign of values on screen (SPEC 6.3; house style 8.4). */
@@ -582,15 +582,15 @@ export function shadowRows(d: SatakeDiagram): ShadowRow[] {
 
 /**
  * The coordinates of a doubled shadow in the simple restricted roots, in the Bourbaki order of the drawn
- * restricted board: the engine's coordinates (orbit order, t13/coords.ts) read by orbit. Null when there is
- * no restricted board, when the engine helper is not available, or when the engine refuses the vector.
+ * restricted board: the engine's restrictedCoordinates (one integer per orbit, in the order of rb.orbits), read
+ * by orbit (on the four C2 records the drawn board lists the orbits reversed). Null when there is no restricted
+ * board, or when the engine refuses the vector (RangeError: not a combination of the simple restricted roots).
  */
 export function coordinatesInBourbaki(d: SatakeDiagram, data: Assembled, s2: readonly number[]): number[] | null {
-  const fn = restrictedCoordinatesFn;
-  if (fn === null || data.drawing === null) return null;
+  if (data.drawing === null) return null;
   let c: number[];
   try {
-    c = fn(d, data.rb as RestrictedBoard, s2);
+    c = restrictedCoordinates(d, data.rb as RestrictedBoard, s2);
   } catch (e) {
     if (e instanceof RangeError) return null;
     throw e;
@@ -620,7 +620,7 @@ export interface ShadowPoints {
  * coordinates in the simple restricted roots (from the engine), mapped through the triangular basis
  * choleskyBasis of the drawn restricted board, with its multiplicity (the number of roots above it); the
  * negative restricted roots have the multiplicities of the positive ones (theta(-a) = -theta(a)). Null above
- * real rank 2, for the compact form, or when the coordinates are not available.
+ * real rank 2, for the compact form, or when the engine refuses a vector.
  */
 export function shadowPoints(d: SatakeDiagram, data: Assembled, rows: readonly ShadowRow[]): ShadowPoints | null {
   const drawing = data.drawing;
@@ -789,6 +789,14 @@ function classPhrase(sat: SatakeComputed): string {
   return `the multiplicity is ${listText(sat.multiplicities.map((m) => `${m.mult} on the ${m.class} restricted roots`))}`;
 }
 
+/** "(m_lambda, m_2lambda) = (4, 1)", or the pairs at the nodes of the restricted board in Bourbaki order. */
+function pairsPhrase(data: Assembled): string {
+  const pairs = data.drawing === null ? [] : data.drawing.pairs.map(([a, b]) => `(${a}, ${b})`);
+  if (pairs.length === 1) return `multiplicities (m_λ, m_2λ) = ${pairs[0]}`;
+  if (new Set(pairs).size === 1) return `multiplicities (m_λ, m_2λ) = ${pairs[0]} at every node of the restricted board`;
+  return `multiplicities (m_λ, m_2λ) = ${listText(pairs.map((p, k) => `${p} at node ${k + 1}`))} of the restricted board`;
+}
+
 export interface CaptionInput {
   d: SatakeDiagram;
   panel: T13Panel;
@@ -848,7 +856,7 @@ export function captionText(c: CaptionInput): string {
     }
     default: {
       if (sat.real_rank === 0) return `${where}, the decoration is the Satake diagram of the compact form ${names}: real rank 0, no restricted roots, dim k = ${sat.dim_k}.${toggleSentence}`;
-      return `${where}, the decoration is the Satake diagram of ${names}: real rank ${sat.real_rank}, restricted roots of type ${e.restricted_type_display} with multiplicities ${multiplicitiesText(data)}, dim k = ${sat.dim_k}, dim p = ${sat.dim_p}, character ${intText(sat.character)}.${toggleSentence}`;
+      return `${where}, the decoration is the Satake diagram of ${names}: real rank ${sat.real_rank}, restricted roots of type ${e.restricted_type_display} with ${pairsPhrase(data)}, dim k = ${sat.dim_k}, dim p = ${sat.dim_p}, character ${intText(sat.character)}.${toggleSentence}`;
     }
   }
 }
