@@ -1,0 +1,25 @@
+---
+// The Atlas page of one board, /atlas/<board>/ (SPEC.md 4 T14 "One static page per board, generated at build
+// time by calling the engine"; 7.3 pages/atlas/[board].astro, released in phase 6). Owner P6-A4. One route
+// for each of the 32 named finite types, named exactly as in data (A1, B3, E8). The sheet is computed here,
+// in Node, by atlasData (E-9 does not apply at build time) and rendered by AtlasSheet.astro inside the page
+// shell Base.astro (the site's header, navigation and footer); the h1 is the sheet's own, with the board's
+// typeset name. No island and no client directive anywhere on the page (7.6: a page with no tool, 15 kB).
+// The released mechanism of P1-A4 counts the Atlas as released as soon as this file exists
+// (lib/pages/released.ts), so the lessons' "The Atlas page of ..." links appear with it.
+import Base from '../../layouts/Base.astro';
+import AtlasSheet from '@components/atlas/AtlasSheet.astro';
+import { ATLAS_BOARDS, atlasData } from '@components/atlas/atlasData';
+
+export function getStaticPaths(): { params: { board: string } }[] {
+  return ATLAS_BOARDS.map((board) => ({ params: { board } }));
+}
+
+const { board } = Astro.params as { board: string };
+const sheet = atlasData(board);
+const pageUrl = new URL(`${import.meta.env.BASE_URL}atlas/${board}/`, Astro.site ?? Astro.url).href;
+---
+
+<Base title={`${board} in the Atlas: Two Games on a Dynkin Diagram`} description={`The data sheet of the board ${board}: Cartan matrix in two conventions, roads, weights, roots, highest roots, exponents, Weyl group, affine board and real forms, computed by the engine.`}>
+  <AtlasSheet sheet={sheet} pageUrl={pageUrl} />
+</Base>

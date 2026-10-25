@@ -2,7 +2,7 @@
 //
 // "One static page per board, generated at build time by calling the engine": every value below comes
 // from an engine function, called in Node when Astro builds the page (E-9 does not apply at build time).
-// Nothing here reads reference/golden_data.json, which is the test oracle only (site/tests/unit/atlas.test.ts
+// Nothing here reads the golden file of reference/, which is the test oracle only (site/tests/unit/atlas.test.ts
 // compares every value with it for all 32 types). Values leave this module as labels, never positions
 // (E-7: toLabels, and vectors put in label order), with integers as number or bigint (E-4).
 //
