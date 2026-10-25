@@ -139,6 +139,10 @@ function theWorker(): Worker {
   };
   w.onerror = (event: ErrorEvent) => {
     event.preventDefault?.();
+    // A worker that failed (it could not load, or it threw) is dropped, so that the next call starts a
+    // new one instead of waiting on it (MERGE, on P6-A3's request after its repair).
+    w.terminate?.();
+    if (worker === w) worker = null;
     failAll(new Error(`the engine worker failed: ${event.message ?? 'unknown error'}`));
   };
   worker = w;
