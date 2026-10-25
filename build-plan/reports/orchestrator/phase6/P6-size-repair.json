@@ -1,0 +1,125 @@
+{
+ "agent": "P6-size",
+ "status": "done",
+ "branch": "worktree-agent-a30bc781ae1c37c00 (toplevel /home/user/mutation_game/.claude/worktrees/agent-a30bc781ae1c37c00)",
+ "base": "eed623c",
+ "commits": [
+  "5efa442 P6-size repair: the provide scan reads names with the TypeScript checker; reset restores the table",
+  "3c497f5 P6-size repair: engine-fallback.spec watches reader actions for the engineAll chunk",
+  "869a488 P6-size repair: decisions fragment entries (repair after review)"
+ ],
+ "filesChanged": [
+  "site/src/lib/worker.ts (only __testing.reset: it puts back the INITIAL table, positionsOf and firstForbiddenMove)",
+  "site/tests/unit/worker-provide.test.ts",
+  "site/tests/e2e/engine-fallback.spec.ts",
+  "decisions/P6-size.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard eed623c; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "base eed623c, Node v22.22.0"
+  },
+  {
+   "cmd": "git merge --no-edit claude/session-6a181f60-hzzoud (MERGE's request)",
+   "exit": 0,
+   "summary": "fast-forward to d2d54df, which adds T13. None of my four files was touched, so my three commits sit on top of d2d54df"
+  },
+  {
+   "cmd": "python3 scratchpad/p6-size-repair/mutants.py (each mutant applied to the real files, vitest worker-provide.test.ts run, then git checkout)",
+   "exit": 1,
+   "summary": "every mutant fails the test as it should. Review's five: M1 T10 with engineCall(\"wythoffEdges\") and only orbitGraph provided: 1 failed. M2 T01 providing only raisingPlay: 1 failed. M3 import { engineCall as run } with run('weylOrder') and no provide: 1 failed. M4 .astro <script> importing the engine namespace and calling engineCall: 2 failed (the provide scan and the whole-engine rule). M5 export * as wholeEngine: 1 failed. Controls: C1 wythoffEdges dropped from T10's provide: 1 failed. C2 the same call split over two lines: 1 failed. T13 load.ts without matchCatalogue: 1 failed. Reset lines removed from worker.ts: the reset test failed. git status was clean afterwards"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/worker-provide.test.ts",
+   "exit": 0,
+   "summary": "23 passed. The scan builds one TypeScript program (about 3 s) and reads 8 calling files: T01 (play, raisingPlay, playFate), T04, t09/playOn, T10, T11, T12, T15 and t13/load (satake, restrictedBoard, matchCatalogue through engineCall as Caller). No missing provide was found"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "0 errors, 0 warnings, 1 hint that was already there (T06.spec.ts). svelte-check: 0 errors, 1 warning that was already there (LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 1,
+   "summary": "first run under load average 16 to 22: 4 tests timed out at 5 s, none in my files (history, repo-ci-playwright-report, scripts-plain-node, T08). All four passed when rerun alone"
+  },
+  {
+   "cmd": "npm test (rerun)",
+   "exit": 0,
+   "summary": "186 files, 3805 tests passed"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-g1 npm run build -w site (T10 without the wythoffEdges provide, t13/load.ts without the matchCatalogue provide; both edits reverted afterwards)",
+   "exit": 0,
+   "summary": "mutant build, 53 pages"
+  },
+  {
+   "cmd": "engine-fallback.spec.ts on the mutant build (port 7170)",
+   "exit": 1,
+   "summary": "red before: 2 failed, 8 passed. The A3 ring-click row and the T13 so(3,5) row each requested _astro/engineAll.BZFayx8f.js. The default-state sweep of the same routes and the E8 worker row passed"
+  },
+  {
+   "cmd": "engine-fallback.spec.ts -g 'whole engine: T10' on the review's own dist-g1",
+   "exit": 1,
+   "summary": "the ring row failed on a request for engineAll.kg_rWpDC.js; the E8 row passed"
+  },
+  {
+   "cmd": "npm run build (final, clean dist)",
+   "exit": 0,
+   "summary": "53 pages; 1642 links checked, 0 problems"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=... npm run size -- --port 7171",
+   "exit": 0,
+   "summary": "53 routes measured, 0 over budget. /tools/satake/ is 85.0 kB, /tools/rep/ 84.8 kB, /tools/geometry/ 79.8 kB"
+  },
+  {
+   "cmd": "playwright (scratch config, port 7170): engine-fallback, engine-weight, worker-on-demand",
+   "exit": 0,
+   "summary": "124 passed: engine-fallback 58 (2 checks, 53 routes, 3 action rows), engine-weight 4, worker-on-demand 62"
+  },
+  {
+   "cmd": "playwright: T10.spec.ts -g ring|E8|1_42|showpiece plus T01.spec.ts",
+   "exit": 1,
+   "summary": "92 passed, 2 failed. Both failures were long-task timing tests (T10:523, T10:562) at load average about 11"
+  },
+  {
+   "cmd": "rerun alone: T10 'no long task' tests",
+   "exit": 0,
+   "summary": "T10:523 passed on the first rerun. T10:562 failed once more (one 81 ms task), then passed alone with no long tasks (B6, 240 vertices, 1920 edges)"
+  },
+  {
+   "cmd": "playwright: T01.spec.ts unfiltered",
+   "exit": 0,
+   "summary": "49 passed"
+  },
+  {
+   "cmd": "cleanup: rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "status is empty; nothing listens on ports 7170 to 7173"
+  }
+ ],
+ "findings": [
+  {
+   "finding": "Holes in the worker-provide.test.ts scan: names were read only in single quotes; a computed name passed with any provide at all; an aliased engineCall was missed; .astro scripts were skipped; `export * as` of the engine was missed",
+   "status": "fixed",
+   "test": "site/tests/unit/worker-provide.test.ts: 'every module that calls engineCall provides the engine functions it calls by name', 'no client module imports the whole engine at run time...', and 12 fixture tests ('the scan reports ...') that keep the five holes, the two controls and a clean case inside the test. The scan uses the TypeScript checker: names in any quotes; every literal a computed name can take; aliases and namespace members found by symbol; a reference that is not a direct call counts by the names its type allows (T13's engineCall as Caller) or is refused; re-exports, the string 'engineCall' and Svelte markup are refused; the READ_BY_HAND allow-list is empty",
+   "evidence": "Red before: the review found all five mutants passing the old scan (8 passed each). With the new scan each of the five fails, and so do both controls and T13 without matchCatalogue (mutants.log). Green after: 23 passed. MERGE (a): the scan reads t13/load.ts as satake, restrictedBoard and matchCatalogue, all three provided. It flags no missing provide anywhere in site/src, so no source module changed"
+  },
+  {
+   "finding": "No browser test watched for an engineAll fetch during an interaction",
+   "status": "fixed",
+   "test": "site/tests/e2e/engine-fallback.spec.ts: 'a reader action loads no whole engine: <row>', driven by the INTERACTIONS table. Rows: T10 ring click on /tools/geometry/?g=A3 taking the vertex count from 12 to 24 (main thread, no worker request); T10 drawing 1_42 on E8 (needs a worker request); T13 loading so(3,5) from /tools/satake/?g=D4 (main thread; the data panel shows so(3,5) with real rank 3). MERGE (b): T13's row is added",
+   "evidence": "Red before: on a build where T10 does not provide wythoffEdges and t13/load.ts does not provide matchCatalogue, the ring row and the T13 row fail on an engineAll request, while the default-state sweep stays green. The ring row also fails on the review's own G1 build. Green after: all 3 rows pass on the final build"
+  },
+  {
+   "finding": "(note) __testing.reset() did not restore the provided table, so the tests depended on their order",
+   "status": "fixed",
+   "test": "worker-provide.test.ts: '__testing.reset() puts the table back as it was at import, so that no test depends on the order of the tests'",
+   "evidence": "Red before: the test fails with the two reset lines removed. Green after"
+  }
+ ],
+ "handoff": "For T13: its row is already in the INTERACTIONS table of site/tests/e2e/engine-fallback.spec.ts (load so(3,5) from the D4 catalogue, runs 'main'), so T13 needs nothing more. For T14 and later tools whose reader action makes an engineCall: add one object to INTERACTIONS with name, path (route plus query, relative to baseURL), runs ('main' if whereToRun keeps the action on the main thread, otherwise 'worker'), an optional timeout, and act(page). act waits for data-hydrated (and the first draw if there is one), drives the action, then checks a data-out result. The test itself fails on any engineAll request; a 'main' row also fails on any worker request, and a 'worker' row fails if there is none. For the scan: call engineCall with the name in quotes, or with a value whose type is a union of names. Only pass engineCall on with a type whose first parameter is such a union (as t13/load.ts does with Caller). Provide every one of those names in the same file with provide({ ... }) taking an object literal."
+}
