@@ -1,10 +1,12 @@
-// Typesets the names with a fixed spelling and writes site/src/generated/names.json (SPEC.md 7.3).
-// Phase 0 skeleton (P0-A3): the 32 finite type names of reference/golden_data.json, in file order.
-// Phase 6 (P6-A2), beside `names`: `realForms` (every real form of the Satake catalogue in the plain-text
-// spelling of SPEC.md 6.5, su*(2m) with its other name sl(m,H) under `alt`), `cartanLabels` (Cartan's labels)
-// and `restrictedTypes` (every restricted type, display and board of the catalogue, BC_r included), read
-// from the key `satake` of reference/golden_data.json in first-appearance order. The KaTeX call has the
-// four options of renderTex in site/src/lib/katex.ts, with the same KaTeX resolved from site/.
+// Typesets the names with a fixed spelling (SPEC.md 7.3) and writes two files to site/src/generated/:
+// names.json (phase 0, P0-A3): `names`, the 32 finite type names of reference/golden_data.json, in file order;
+// satake-names.json (phase 6, P6-A2; its own file since the repair after review, so that T10, which imports the
+// whole of names.json, does not load the catalogue): `realForms` (every real form of the Satake catalogue in the
+// plain-text spelling of SPEC.md 6.5, su*(2m) with its other name sl(m,H) under `alt`), `cartanLabels` (Cartan's
+// labels) and `restrictedTypes` (every restricted type, display and board of the catalogue, BC_r included), read
+// from the key `satake` of reference/golden_data.json in first-appearance order. Each file carries `katex`, the
+// version that typeset it. The KaTeX call has the four options of renderTex in site/src/lib/katex.ts, with the
+// same KaTeX resolved from site/.
 // Run from any directory: node scripts/names.mjs
 import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -115,20 +117,34 @@ function satakeSpellings() {
 }
 
 /**
- * Write { katex, names, realForms, cartanLabels, restrictedTypes } to outFile, each section mapping a
- * spelling to { text, tex, html } (a real form su*(2m) also carries alt: { text, tex, html }).
+ * Write { katex, names } to outFile (P0-A3's file, unchanged since phase 0): the 32 type names, each
+ * { text, tex, html }. T10 imports this whole file (typesetNames.ts), so nothing else goes in it.
  * @param {string} outFile
- * @returns {{ count: number; version: string; realForms: number; cartanLabels: number; restrictedTypes: number }}
+ * @returns {{ count: number; version: string }}
  */
 export function writeNames(outFile) {
   const { version, katex } = installedKatex();
-  /** @type {(text: string, tex: string) => { text: string; tex: string; html: string }} */
-  const entry = (text, tex) => ({ text, tex, html: typeset(katex, tex) });
   const names = {};
   for (const name of catalogueNames()) {
     const tex = texOfName(name);
     names[name] = { text: name, tex, html: typeset(katex, tex) };
   }
+  mkdirSync(dirname(outFile), { recursive: true });
+  writeFileSync(outFile, JSON.stringify({ katex: version, names }, null, 2) + '\n');
+  return { count: Object.keys(names).length, version };
+}
+
+/**
+ * Write { katex, realForms, cartanLabels, restrictedTypes } to outFile (P6-A2; satake-names.json, a file of its
+ * own since the repair after review, so that a tool importing names.json does not load the catalogue): each
+ * section maps a spelling to { text, tex, html }, and a real form su*(2m) also carries alt: { text, tex, html }.
+ * @param {string} outFile
+ * @returns {{ version: string; realForms: number; cartanLabels: number; restrictedTypes: number }}
+ */
+export function writeSatakeNames(outFile) {
+  const { version, katex } = installedKatex();
+  /** @type {(text: string, tex: string) => { text: string; tex: string; html: string }} */
+  const entry = (text, tex) => ({ text, tex, html: typeset(katex, tex) });
   const spellings = satakeSpellings();
   /** @type {Record<string, { text: string; tex: string; html: string; alt?: { text: string; tex: string; html: string } }>} */
   const realForms = {};
@@ -144,9 +160,8 @@ export function writeNames(outFile) {
   const restrictedTypes = {};
   for (const text of spellings.restrictedTypes) restrictedTypes[text] = entry(text, texOfName(text));
   mkdirSync(dirname(outFile), { recursive: true });
-  writeFileSync(outFile, JSON.stringify({ katex: version, names, realForms, cartanLabels, restrictedTypes }, null, 2) + '\n');
+  writeFileSync(outFile, JSON.stringify({ katex: version, realForms, cartanLabels, restrictedTypes }, null, 2) + '\n');
   return {
-    count: Object.keys(names).length,
     version,
     realForms: Object.keys(realForms).length,
     cartanLabels: Object.keys(cartanLabels).length,
@@ -154,12 +169,22 @@ export function writeNames(outFile) {
   };
 }
 
+/**
+ * The two generated files of this script in one directory: names.json (writeNames) and satake-names.json
+ * (writeSatakeNames). The build calls it with site/src/generated.
+ * @param {string} dir
+ * @returns {{ names: { count: number; version: string }; satake: { version: string; realForms: number; cartanLabels: number; restrictedTypes: number } }}
+ */
+export function writeGenerated(dir) {
+  return { names: writeNames(join(dir, 'names.json')), satake: writeSatakeNames(join(dir, 'satake-names.json')) };
+}
+
 const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (isMain) {
   try {
-    const { count, version, realForms, cartanLabels, restrictedTypes } = writeNames(join(siteDir, 'src', 'generated', 'names.json'));
+    const { names, satake } = writeGenerated(join(siteDir, 'src', 'generated'));
     process.stdout.write(
-      `names: ${count} types, ${realForms} real forms, ${cartanLabels} Cartan labels, ${restrictedTypes} restricted types typeset with katex ${version}\n`,
+      `names: ${names.count} types (names.json); ${satake.realForms} real forms, ${satake.cartanLabels} Cartan labels, ${satake.restrictedTypes} restricted types (satake-names.json); typeset with katex ${names.version}\n`,
     );
   } catch (error) {
     process.stderr.write(`names: ${(error instanceof Error ? error.message : String(error)).split('\n')[0]}\n`);
