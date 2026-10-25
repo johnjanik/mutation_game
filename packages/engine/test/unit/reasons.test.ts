@@ -73,6 +73,14 @@ describe('every reason code', () => {
     expect(adm('A3', [], [1, 0, 2]).reasons).toEqual({ symmetry: { code: 'not-a-symmetry', nodes: [0, 1, 2] } });
   });
 
+  it('not-a-symmetry reads rows, not columns: the flip of B3 and of C3 (repair after review)', () => {
+    // on a board that is not symmetric the rows i and the columns j where C[tau i][tau j] != C[i][j] differ:
+    // the flip of B3 breaks rows 0 and 2 but only column 1, the flip of C3 row 1 but columns 0 and 2
+    // (the oracle judges both pairs not a symmetry and nothing else)
+    expect(adm('B3', [], [2, 1, 0]).reasons).toEqual({ symmetry: { code: 'not-a-symmetry', nodes: [0, 2] } });
+    expect(adm('C3', [], [2, 1, 0]).reasons).toEqual({ symmetry: { code: 'not-a-symmetry', nodes: [1] } });
+  });
+
   it('not-an-involution: the positions i with tau(tau(i)) != i, and it takes precedence over moves-black-set', () => {
     // D4, the rotation 1 -> 3 -> 4 -> 1 (positions 0 -> 2 -> 3 -> 0), a symmetry of order 3
     const a = adm('D4', [], [2, 1, 3, 0]);
@@ -83,6 +91,15 @@ describe('every reason code', () => {
     expect(b.reasons.condition_1).toEqual({ code: 'not-an-involution', nodes: [0, 2, 3] });
     expect(b.reasons.condition_2).toEqual({ code: 'differs-from-minus-wX', nodes: [0] });
     expect(b.reasons.condition_3).toEqual({ code: 'not-an-integer', nodes: [1], value: '-1/2' });
+  });
+
+  it('not-an-involution names the positions tau(tau(i)) != i, not every position tau moves (repair after review)', () => {
+    // A5, tau a 3-cycle on positions 0, 1, 2 and the exchange of 3 and 4: tau moves all five positions, but
+    // applied twice it fixes 3 and 4. Not a symmetry either (every row breaks); the oracle reports both items.
+    expect(adm('A5', [], [1, 2, 0, 4, 3]).reasons).toEqual({
+      symmetry: { code: 'not-a-symmetry', nodes: [0, 1, 2, 3, 4] },
+      condition_1: { code: 'not-an-involution', nodes: [0, 1, 2] },
+    });
   });
 
   it('moves-black-set: the black positions whose image is white', () => {
