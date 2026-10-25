@@ -32,7 +32,8 @@
 // Word-counting rule (as M5.spec.ts and M6.spec.ts): the words of the <article> after removing every tool
 // root ([data-tool]), every <details>, every live or status region, the draft mark and the list of sources
 // entries; each KaTeX formula counts as one word; a word is a run of non-space characters. The static
-// tables of beats 2 and 7 are counted.
+// tables of beats 2 and 7 are counted, and so is the links block of ModuleLinks, as in M6.spec.ts (1803
+// words at de46828 once the next link to M8 appeared; the lesson was trimmed to make room, decisions/P4-A6.md).
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -758,11 +759,19 @@ test('anatomy of 8.2', async ({ page }) => {
   expect(plain(await statements.nth(2).textContent())).toContain(
     `verified by computation against exact convex hulls of ${GOLDEN.wythoff_hull_checks} polytopes and the recorded face counts of ${GOLDEN.wythoff.length} polytopes.`,
   );
-  // No link to the golden tab of T11, to M8 or to the Atlas (unreleased in phase 4); the sandbox loads A2, the
-  // board of the first figure (SPEC 8.2 item 7; RT-FIX-P4 lesson M7, P4-RT-13-01).
+  // SPEC 8.2 item 7, with the released flag of 7.3: M8 is released in phase 5, so the links block carries
+  // exactly one next link, to M8 under the base, and it is the only link to M8 on the page. The Atlas (phase 6)
+  // and the golden tab of T11 (phase 7) are still unreleased: no link to either, nor to T11 at all. The sandbox
+  // loads A2, the board of the first figure (RT-FIX-P4 lesson M7, P4-RT-13-01).
   await expect(article.locator('a[href*="tools/fold"]')).toHaveCount(0);
-  await expect(article.locator('a[href*="m8"], a[href*="atlas/"]')).toHaveCount(0);
-  await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"], [data-anatomy="links"] a[data-link="next"]')).toHaveCount(0);
+  await expect(article.locator('a[href*="atlas/"]')).toHaveCount(0);
+  await expect(article.locator('[data-anatomy="links"] a[data-link="atlas"]')).toHaveCount(0);
+  const base = new URL(page.url()).pathname.replace(/modules\/m7-geometry\/$/, '');
+  const next = article.locator('[data-anatomy="links"] a[data-link="next"]');
+  await expect(next).toHaveCount(1);
+  await expect(next).toHaveAttribute('href', `${base}modules/m8-lie-algebras/`);
+  await expect(article.locator('a[href*="m8"]')).toHaveCount(1);
+  expect((await page.request.get(new URL((await next.getAttribute('href'))!, page.url()).toString())).status(), 'the next module is built').toBe(200);
   const sandbox = article.locator('[data-anatomy="links"] a[data-link="sandbox"]');
   await expect(sandbox).toHaveCount(1);
   expect((await sandbox.getAttribute('href')) ?? '').toMatch(/tools\/sandbox\/\?g=A2$/);
