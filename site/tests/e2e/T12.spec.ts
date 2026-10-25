@@ -1122,4 +1122,21 @@ test.describe('regressions', () => {
     const colours = [...byNode.values()].map((s) => [...s][0]);
     expect(new Set(colours).size, 'different nodes, different colours').toBe(byNode.size);
   });
+
+  // SPEC 4.0 "a polite live region announces each result": a picked relation that fails is announced as
+  // not equal, one that holds as equal (on node 2 of D4 ef:1,2 fails and hh:1,2 holds).
+  // regression: P5-RT-11-02
+  test('a failing relation picked on D4 node 2 is announced as not equal, a holding one as equal', async ({ page }) => {
+    await open(page, 'g=D4&k=2');
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
+    // ef:1,2 fails on this orbit: the verdict and the announcement agree
+    await control(page, 'relation-j').selectOption('2');
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
+    await expect(out(page, 'relation-verdict')).toHaveText('not equal');
+    await expect(live(page)).toHaveText(/: the two sides are not equal\.$/);
+    // hh:1,2 holds: the announcement says so
+    await control(page, 'relation').selectOption('hh');
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'true');
+    await expect(live(page)).toHaveText(/: the two sides are equal\.$/);
+  });
 });

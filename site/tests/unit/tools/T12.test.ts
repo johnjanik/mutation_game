@@ -82,6 +82,7 @@ import {
   relationDigest,
   relationLabels,
   relationParts,
+  relationSentence,
   relationSpoken,
   relationSummary,
   relationTally,
@@ -1438,5 +1439,26 @@ describe('T12 hooks and texts (review P5-A2, findings 5, 7, 9 and request 11)', 
     expect(outText(body, 'state-node')).toEqual(['4']);
     expect(T12.outs).toContain('state-board');
     expect(T12.outs).toContain('state-node');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red-team round of phase 5)
+// ---------------------------------------------------------------------------------------------
+
+describe('regressions', () => {
+  // SPEC 4.0 "a polite live region announces each result": the sentence of a picked relation says
+  // "not equal" where the relation fails (ef:1,2 on node 2 of D4) and "equal" where it holds (hh:1,2).
+  // regression: P5-RT-11-02
+  it('relationSentence says not equal for a picked relation that fails and equal for one that holds', () => {
+    const D4 = named('D4');
+    const tool = new T12Tool(configOf(defaultsFor('D4', 2)));
+    for (const [code, holds] of [['ef:1,2', false], ['hh:1,2', true]] as const) {
+      tool.relation = code;
+      const check = shownCheck(tool.rep, code);
+      expect(check!.holds, code).toBe(holds);
+      expect(findRelation(chevalleySerre(D4, tool.rep.E!, tool.rep.F!, tool.rep.H!), D4, code)!.holds, code).toBe(holds);
+      expect(relationSentence(tool, check), code).toBe(`${relationText(relationParts(D4, code)!)}: the two sides are ${holds ? 'equal' : 'not equal'}.`);
+    }
   });
 });
