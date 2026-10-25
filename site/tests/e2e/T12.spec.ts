@@ -388,7 +388,8 @@ test('redo, reset and the strip of past positions', async ({ page }) => {
   await node(page, 1).click();
   await expect(root(page)).toHaveAttribute('data-moves', '3');
   const third = await valuesOf(page);
-  await root(page).locator('[data-step="1"]').click();
+  // The strip's button (from the start all ones the string line has a position at step 1 too).
+  await out(page, 'historyStrip').locator('[data-step="1"]').click();
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   expect(await valuesOf(page)).toEqual(fired('A2', [1, 1], 1));
   await control(page, 'redo').click();
@@ -785,10 +786,10 @@ test('every action works without a drag: pickers, relations, firing, the strip b
   await node(page, 1).click();
   await node(page, 2).click();
   await expect(root(page)).toHaveAttribute('data-moves', '2');
-  await root(page).locator('[data-step="1"]').click();
+  await out(page, 'historyStrip').locator('[data-step="1"]').click();
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   // A position of the strip is also reached with the keyboard (a button: Enter).
-  await root(page).locator('[data-step="2"]').focus();
+  await out(page, 'historyStrip').locator('[data-step="2"]').focus();
   await page.keyboard.press('Enter');
   await expect(root(page)).toHaveAttribute('data-moves', '2');
   // A strip of more than 50 positions is a slider, scrubbed by its keys.
