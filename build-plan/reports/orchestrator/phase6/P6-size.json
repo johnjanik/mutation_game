@@ -1,0 +1,172 @@
+{
+ "agent": "P6-size",
+ "status": "done",
+ "branch": "worktree-agent-a80a7ec144cad9518",
+ "base": "f2177d7 (Phase 6: stage 6.1 and 6.1b merged; reviews running)",
+ "commits": [
+  "c0e64da P6-size: each route ships only the engine modules its own code uses",
+  "0df781c P6-size: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/lib/worker.ts",
+  "site/src/lib/engineAll.ts (new)",
+  "site/astro.config.mjs",
+  "site/src/components/lesson/Challenge.svelte",
+  "site/src/components/tools/T01GameBoard.svelte",
+  "site/src/components/tools/T04ClassificationLab.svelte",
+  "site/src/components/tools/t09/playOn.ts",
+  "site/src/components/tools/T10GeometryStudio.svelte",
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/src/components/tools/T15AffinePlayground.svelte",
+  "site/tests/unit/worker-provide.test.ts (new)",
+  "site/tests/e2e/engine-weight.spec.ts (new)",
+  "site/tests/e2e/engine-fallback.spec.ts (new)",
+  "site/tests/e2e/engineChunks.ts (new helper)",
+  "site/tests/e2e/T12.spec.ts",
+  "site/tests/e2e/board-load.spec.ts",
+  "decisions/P6-size.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard f2177d7; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "base f2177d7; node v22.22.0"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "all three match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm run build (base)",
+   "exit": 0,
+   "summary": "51 pages; one engine chunk _astro/src.C5nUAu7a.js, 71.7 kB raw"
+  },
+  {
+   "cmd": "npm run size -- --port 7171 (base)",
+   "exit": 1,
+   "summary": "51 routes, 4 over: /tools/rep/ and /embed/rep/ 92.2, /tools/sandbox/ and /embed/sandbox/ 90.2"
+  },
+  {
+   "cmd": "experiment builds and size runs (scratch)",
+   "exit": 0,
+   "summary": "worker.ts alone changed nothing (src chunk byte-identical); the third cause was Challenge.svelte's await import('@engine'); per-module splitting needs moduleSideEffects false too; the fallback costs 0.2 to 3.0 kB per route"
+  },
+  {
+   "cmd": "vitest worker-provide.test.ts against base sources (scratch copy of f2177d7)",
+   "exit": 1,
+   "summary": "red before: 7 failed, 1 passed"
+  },
+  {
+   "cmd": "npx playwright test engine-weight.spec.ts with OUT_DIR=<base build>",
+   "exit": 1,
+   "summary": "red before: 3 failed, 1 passed (/, board, M0 carry rep/satake/satakeCatalogue in _astro/src.C5nUAu7a.js)"
+  },
+  {
+   "cmd": "npx playwright test engine-fallback.spec.ts -g 'fallback chunk' with OUT_DIR=<base build>",
+   "exit": 1,
+   "summary": "red before: 2 failed (no engineAll chunk)"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 0,
+   "summary": "181 files, 3672 passed (twice; final from a clean tree)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "0 errors, 0 warnings, 1 hint (T06.spec.ts, already there); svelte-check 0 errors, 1 warning (LayerChart.svelte, already there)"
+  },
+  {
+   "cmd": "npm run build (final, clean dist)",
+   "exit": 0,
+   "summary": "51 pages; links: 1570 links checked, 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7171 (final)",
+   "exit": 0,
+   "summary": "51 routes measured, 0 over budget; /tools/rep/ 84.8 kB"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7170> T01 T04 T09 T10 T11 T12 T15 M0-M8 nojs worker-on-demand registry-weight embed a11y engine-weight engine-fallback credits-bundled",
+   "exit": 1,
+   "summary": "871 passed, 3 failed (20.8 min, load average 13 at peak)"
+  },
+  {
+   "cmd": "rerun alone: T10 'no long task on E8 loads and the graph switch'",
+   "exit": 0,
+   "summary": "1 passed: load timing only"
+  },
+  {
+   "cmd": "rerun alone: T12 'a link to D8 node 3 ... without a long task' + 'classifies the same board once'",
+   "exit": 1,
+   "summary": "the D8 test passed (load timing only); the classify-count test timed out again: my change caused it (the spec looked for the chunk named src.*.js), so I fixed the spec"
+  },
+  {
+   "cmd": "T12.spec.ts -g 'classifies the same board once on a pick' (after the spec fix)",
+   "exit": 0,
+   "summary": "1 passed"
+  },
+  {
+   "cmd": "board-load.spec.ts (final build and base build)",
+   "exit": 0,
+   "summary": "3 passed on each; engine self time lab 32.7/34.8 ms here vs 25.1 on base, sandbox 18.0/9.7 vs 13.6 (shared machine, bound 50)"
+  },
+  {
+   "cmd": "engine-fallback.spec.ts against a scratch build where every name falls back",
+   "exit": 0,
+   "summary": "52 passed: no default state calls engineCall at all"
+  },
+  {
+   "cmd": "final rerun: engine-weight, registry-weight, engine-fallback on the final build",
+   "exit": 0,
+   "summary": "61 passed"
+  },
+  {
+   "cmd": "grep of the diff for em-dash, .only, .skip, xit, console.log, : any, astro dev, export let, $:, on:click",
+   "exit": 0,
+   "summary": "nothing found"
+  },
+  {
+   "cmd": "cleanup: rm node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "empty; no preview on 7170 or 7171"
+  }
+ ],
+ "design": "Three causes put every engine module into one shared chunk, not one. (1) worker.ts spread the engine namespace. (2) Challenge.svelte called await import('@engine'), and Rolldown then put every engine module into that dynamic entry's chunk _astro/src.*.js. This is why RT-FIX-P3-perf-b saw no change on '/'. (3) The bundler treated the engine's modules as having side effects, so an import through index.ts reached them all. Fixes: worker.ts imports the engine only as a type (import type * as Engine), so EngineApi is the same type. engineCall's signature and its E-9 routing (ALWAYS_IN_WORKER, whereToRun) are unchanged, and the engineApi value export is gone. A new export, provide(fns: Partial<EngineApi>), fills the main-thread Map, which starts with positionsOf and firstForbiddenMove. I chose it over an optional argument because RT-FIX 5.5 counts an added optional parameter as a contract change. A name nobody provided still runs from the whole engine, loaded on demand through loadEngine: () => import('./engineAll') (export * from the engine, its own chunk engineAll.<hash>.js). A TypeError still rejects a name the engine lacks. When E-9 keeps such a call on the main thread, the name is recorded in __testing.fallbacks() and a development build warns in the console (the warning is not in the production build). In Node, a call routed to the worker is not reported. Callers provide in their own script with named imports: T1 play (as enginePlay) and raisingPlay; T4 orbitGraph; t09/playOn.ts raisingPlay; T10 orbitGraph and wythoffEdges; T12 chevalleySerre; T15 applyWord. playFate is never provided because E-9 always runs it in the worker. T11 calls only positionsOf, so it is unchanged, as are counter.ts, studio.ts, scene.ts, t11/model.ts and t12/model.ts (types and whereToRun only). Challenge.svelte now imports boardFromName and mutate by name. A lazy small module was measured too and cost about 0.6 kB per route. astro.config.mjs exports moduleSideEffects(id), false only for packages/engine/src/*.ts, and passes it as vite.build.rolldownOptions.treeshake.moduleSideEffects. The engine now splits into board (core), weyl, geometry, fold, wythoff, heaps and rep chunks. satake.ts and satakeCatalogue.ts are only in engineAll and the worker.",
+ "sizes": {
+  "before": "/ 52653; /about/ 0; /confusions/ 0; /credits/ 0; /dev/draw-time/ 47131; /dev/lesson-check/ 0; /dev/math-check/ 0; /embed/affine/ 77875; /embed/board/ 78921; /embed/fold/ 77055; /embed/form/ 79032; /embed/garden/ 75032; /embed/geometry/ 86255; /embed/kostant/ 77836; /embed/lab/ 74736; /embed/mirror/ 77189; /embed/numbers/ 81599; /embed/rep/ 92212 OVER; /embed/sandbox/ 90221 OVER; /embed/symbolic/ 78226; /embed/weyl/ 84807; /glossary/ 0; /history/ 0; /modules/ 0; /modules/m0-start/ 78921; /modules/m1-mutation/ 78921; /modules/m2-form/ 78921; /modules/m3-classification/ 74736; /modules/m4-numbers/ 78921; /modules/m5-weyl/ 78921; /modules/m6-multiple-edges/ 78921; /modules/m7-geometry/ 86255; /modules/m8-lie-algebras/ 92212; /not-quiver-mutation/ 0; /open-items/ 0; /open-problem/ 0; /sources/ 0; /tools/affine/ 77875; /tools/board/ 78921; /tools/fold/ 77055; /tools/form/ 79032; /tools/garden/ 75032; /tools/geometry/ 86255; /tools/kostant/ 77836; /tools/lab/ 74736; /tools/mirror/ 77189; /tools/numbers/ 81599; /tools/rep/ 92212 OVER; /tools/sandbox/ 90221 OVER; /tools/symbolic/ 78226; /tools/weyl/ 84807 (bytes gzip; 4 over budget)",
+  "after": "/ 41414; /about/ 0; /confusions/ 0; /credits/ 0; /dev/draw-time/ 39237; /dev/lesson-check/ 0; /dev/math-check/ 0; /embed/affine/ 66791; /embed/board/ 69548; /embed/fold/ 68109; /embed/form/ 67910; /embed/garden/ 65502; /embed/geometry/ 79615; /embed/kostant/ 66681; /embed/lab/ 63483; /embed/mirror/ 69325; /embed/numbers/ 72224; /embed/rep/ 84792; /embed/sandbox/ 79073; /embed/symbolic/ 68196; /embed/weyl/ 76477; /glossary/ 0; /history/ 0; /modules/ 0; /modules/m0-start/ 69548; /modules/m1-mutation/ 69548; /modules/m2-form/ 69548; /modules/m3-classification/ 63483; /modules/m4-numbers/ 69548; /modules/m5-weyl/ 69548; /modules/m6-multiple-edges/ 69548; /modules/m7-geometry/ 79615; /modules/m8-lie-algebras/ 84792; /not-quiver-mutation/ 0; /open-items/ 0; /open-problem/ 0; /sources/ 0; /tools/affine/ 66791; /tools/board/ 69548; /tools/fold/ 68109; /tools/form/ 67910; /tools/garden/ 65502; /tools/geometry/ 79615; /tools/kostant/ 66681; /tools/lab/ 63483; /tools/mirror/ 69325; /tools/numbers/ 72224; /tools/rep/ 84792; /tools/sandbox/ 79073; /tools/symbolic/ 68196; /tools/weyl/ 76477 (bytes gzip; 0 over; every route with scripts is 6.6 to 11.3 kB lighter)"
+ },
+ "tests": [
+  "site/tests/unit/worker-provide.test.ts (8 tests: the provide table, the fallback reported on the main thread and silent for a worker call in Node, the TypeError for an unknown name, a scan that every engineCall by name in site/src has its provide, a scan that no client module imports the whole engine except engine.worker.ts and engineAll.ts, and the moduleSideEffects rule wired into the config): red before on a scratch copy of f2177d7 (7 failed, 1 passed; the TypeError test is a preservation check), green after",
+  "site/tests/e2e/engine-weight.spec.ts (4 tests: the marks of rep.ts, satake.ts and satakeCatalogue.ts are in the engine source and in the worker bundle; the first fetch of /, /tools/board/ and M0 carries none of them; /tools/rep/ carries rep.ts and no Satake module; no route without data-tool satake or atlas carries a Satake module): red before on the base build (3 failed; every route carried all three in _astro/src.C5nUAu7a.js), green after",
+  "site/tests/e2e/engine-fallback.spec.ts (the fallback chunk exists under the watched name; a positive control that the listener sees a fetch of it; every route's default state, hydrated by scrolling and not by interaction, fetches no engineAll chunk): the controls are red on base (no chunk), the sweep is green after. A scratch build that forces every name to fall back is still green: today no default state calls engineCall, so the sweep guards later tools",
+  "site/tests/e2e/T12.spec.ts > T12 classifies the same board once on a pick: red after my first change (timed out at 180 s looking for _astro/src.*.js), green after the spec finds the script by classify's message",
+  "site/tests/e2e/board-load.spec.ts: it would have measured 0 ms and passed on nothing. It now sums the engine chunks that engineChunks.ts finds, requires a measure above 0, and has a new test that the chunk holding classify is found; green on the base build and after"
+ ],
+ "deviations": [
+  {
+   "spec": "CONTRACTS.md 4 (worker.ts)",
+   "what": "New export provide(fns: Partial<EngineApi>): void; the engineApi value export (not in CONTRACTS) is removed",
+   "why": "A route can only hold the engine functions its code imports. The request to add the provide line to CONTRACTS.md 4 is in the fragment"
+  },
+  {
+   "spec": "the orchestrator's caller list",
+   "what": "Also changed: Challenge.svelte (P1-A4), site/astro.config.mjs (moduleSideEffects), and two other agents' specs (T12.spec.ts countClassify, board-load.spec.ts), adjusted without weakening and with added checks",
+   "why": "Challenge's dynamic import and the side-effect assumption were the other two causes; without them the chunk did not change. The two specs found the engine by the old chunk name"
+  },
+  {
+   "spec": "brief: callers provide every function they call by name",
+   "what": "playFate is not provided (T1, T15)",
+   "why": "E-9 always runs it in the worker by name, so the main-thread table never runs it in a browser; in Node it runs from the whole engine, unreported"
+  },
+  {
+   "spec": "brief: a missing provide is reported in tests",
+   "what": "Vitest does not show the development warning (its import.meta.env.DEV is false), so tests catch a missing provide through __testing.fallbacks() and the source scan",
+   "why": "measured"
+  }
+ ],
+ "decisionsFragment": "decisions/P6-size.md",
+ "handoff": "T13, T14 and later tools: import every engine function by name from '@two-games/engine' or '@engine'. Never use import * as, import('@engine') or export * of the engine in site/src; worker-provide.test.ts fails on them. A module that calls engineCall('<name>', ...) also calls provide({ <name> }) in its own script with that function imported by name, even when the hint sends the call to the worker; only playFate, positionsOf and firstForbiddenMove need no provide, and a call by a computed name provides every name it can take. Kind 'satake' runs on the main thread except on E7 and E8 or with expectedItems, so T13 must provide satake, satakeRecord and the rest of what it calls; otherwise its route falls back to the whole engine chunk and engine-fallback.spec.ts fails if that happens in a default state. engine-weight.spec.ts already lets routes with data-tool 'satake' or 'atlas' carry satake.ts and satakeCatalogue.ts. A new engine module must declare only, with no side effects at its top level. Specs must find engine code by content (site/tests/e2e/engineChunks.ts), never by a chunk name. For MERGE: the moduleSideEffects rule could move to \"sideEffects\": false in packages/engine/package.json (the owner's choice; I did not edit the engine). Keeping the fallback costs 0.2 to 3.0 kB per route (measured, recorded in the fragment)."
+}

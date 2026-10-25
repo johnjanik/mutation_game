@@ -1,0 +1,160 @@
+{
+ "agent": "P6-A6",
+ "status": "done",
+ "branch": "worktree-agent-a0ee402731088d963 (worktree /home/user/mutation_game/.claude/worktrees/agent-a0ee402731088d963)",
+ "base": "7938f48",
+ "commits": [
+  "690e0ce P6-A6 repair: history and credits corrected against SOURCES; licence names read from the files",
+  "c1b8b16 P6-A6 repair: footer test skips the embed routes; tests catch the review's mutants",
+  "427607f P6-A6 repair: decisions fragment, the repair after review and its checks"
+ ],
+ "filesChanged": [
+  "site/src/components/Footer.astro",
+  "site/src/content/pages/history.mdx",
+  "site/src/content/pages/credits.mdx",
+  "site/tests/e2e/pages-6.spec.ts",
+  "decisions/P6-A6.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 7938f48",
+   "exit": 0,
+   "summary": "HEAD at 7938f48 MERGE: P6-A6 reviewed (1 blocker, 1 major, minors); rulings"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed; Node v22.22.0"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-base npm run build (unchanged 7938f48), then the unchanged pages-6.spec.ts on it (port 7180)",
+   "exit": 1,
+   "summary": "blocker reproduced: 1 failed ('Error: embed/affine/ renders the footer'), 21 passed"
+  },
+  {
+   "cmd": "the new pages-6.spec.ts on the 7938f48 build",
+   "exit": 1,
+   "summary": "'history reports its sources' (W20 'Near its end'), 'credits states the oracle rule' and 'credits lists borrowed prior art' fail on the old content. A fourth failure was a false positive of my own D16 word 'written for', which matched 'S_i written for the matrix C^T'. I narrowed it to 'written for this site'."
+  },
+  {
+   "cmd": "npm run check -w site (final tree)",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings, 1 hint (existing T06.spec.ts). svelte-check: 0 errors, 1 warning (existing t02/LayerChart.svelte)."
+  },
+  {
+   "cmd": "npm run build (final, site/dist)",
+   "exit": 0,
+   "summary": "51 pages; 1574 internal links, 0 problems; data-commit c1b8b16"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/dist-release npm run build",
+   "exit": 0,
+   "summary": "50 pages, 1464 links, 0 problems. Report: mode release, complete, no unknown item. Lines for my pages: E2 /history/, E5 /credits/, E5 /history/, E13 /history/, E17 /confusions/, each with its fallback shown. YouTube links: history 0, credits 0, sources 4."
+  },
+  {
+   "cmd": "pages-6.spec.ts -g 'says truly which pages link the videos' on the release build, then on a release copy with the old sentence put back",
+   "exit": 1,
+   "summary": "repaired release: 1 passed. Old sentence: 1 failed ('the credits page names the history page as linking videos, and it links 0')."
+  },
+  {
+   "cmd": "mutants.sh: 17 mutants, each alone on a fresh copy of the repaired build, full pages-6.spec.ts (26 tests)",
+   "exit": 0,
+   "summary": "Every mutant was caught. MU1, MU2, MU3, MU4, MU5, MU7 and the controls MU6 and C1: each 1 failed / 25 passed, in its target test. The reverted sentences R-W20, R-DON08, R-ARAKI, R-CORELG, R-ORACLE, R-SAGE, R-DM22, R-SIMPLIE, R-DYNKIN: each 1 failed. R-DON08-MOZES: 2 failed."
+  },
+  {
+   "cmd": "srcmutants.sh: test 'licences are read, not typed' on F-TYPED (reviewer's Footer.astro mutant), C-TYPED (export const codeId = '<id>'), and Footer.astro and credits.mdx as they stood at 7938f48",
+   "exit": 0,
+   "summary": "all 4 failed ('a licence typed in Footer.astro' / 'in credits.mdx'); files restored byte for byte"
+  },
+  {
+   "cmd": "pages-6, nojs, a11y, credits-bundled, pages specs against the preview of the final build (port 7180)",
+   "exit": 0,
+   "summary": "216 passed (8.4m)"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath npm run build; basepath.spec.ts and pages-6.spec.ts with BASE_PATH",
+   "exit": 0,
+   "summary": "build 51 pages, 0 link problems; 78 passed"
+  },
+  {
+   "cmd": "npm run size -- --port 7181",
+   "exit": 1,
+   "summary": "51 routes. /history/, /confusions/, /credits/ 0.0 kB of 15. 4 over budget: /tools/rep/ 92.3, /tools/sandbox/ 90.3 and their /embed/ twins, which belong to the size repair. Measuring the 7938f48 build (--dist, port 7182) gives the same figure on every parsed route."
+  },
+  {
+   "cmd": "pkill preview servers; rm -rf node_modules site/node_modules packages/engine/node_modules site/dist",
+   "exit": 0,
+   "summary": "no server on 7180-7183; git status --porcelain empty"
+  }
+ ],
+ "findings": [
+  {
+   "finding": "Blocker: pages-6 required the site footer on the /embed/* routes of P6-A5, which render none",
+   "status": "fixed",
+   "test": "pages-6 > the three pages load no tool script (embed/ routes are now optional like 404.html, any footer found there is still checked for a script, and the test requires more footers than the three pages)",
+   "evidence": "red before: unchanged spec on the 7938f48 build, 1 failed 'embed/affine/ renders the footer'; green after: 26 passed, and 78 passed under /sub/path/"
+  },
+  {
+   "finding": "Major: /history/ said [W20] states the Mutation Conjecture 'near its end' (it is section 2, p. 57)",
+   "status": "fixed",
+   "test": "pages-6 > history reports its sources as SOURCES.md does",
+   "evidence": "red on the 7938f48 build and with R-WtWtW20; green after ('Its section 2 also states the Mutation Conjecture, on page 57')"
+  },
+  {
+   "finding": "Donnelly 'proves' strong convergence (Theorem 2.1)",
+   "status": "fixed",
+   "test": "pages-6 > history reports its sources as SOURCES.md does (+ open items are wrapped on history)",
+   "evidence": "now 'states ... as its Theorem 2.1, a theorem that later authors attribute to Mozes and Eriksson', with the Mozes attribution in an E2 wrapper (fallback '... to Eriksson, among others'); red with R-DON08 and R-DON08-MOZES, green after"
+  },
+  {
+   "finding": "Release build: the credits sentence 'It links the videos below, from the history page and the sources page' is false",
+   "status": "fixed",
+   "test": "pages-6 > the credits page says truly which pages link the videos",
+   "evidence": "sentence now in an E5 wrapper ('The sources page links the videos below, and the history page links the first two.'; fallback 'The sources page links the videos below.'). Release with the old sentence: red; repaired release and preview: green."
+  },
+  {
+   "finding": "Oracle section overstated and miscounted the outside checks ('Two outside works', Sage on all finite-type matrices)",
+   "status": "fixed",
+   "test": "pages-6 > credits states the oracle rule",
+   "evidence": "now SageMath on the four reference matrices (B2, C2, G2, F4) and the node numbering; Satake black nodes and arrows against [DM22] and dynkin-diagrams; other sources on the sources page. Red on 7938f48 and with R-SAGE and R-DM22; green after."
+  },
+  {
+   "finding": "CoReLG's licence stated unwrapped (Appendix E item 17)",
+   "status": "fixed",
+   "test": "pages-6 > credits states the oracle rule (no sentence naming CoReLG names a licence outside E17)",
+   "evidence": "red with R-ORACLE (P1-A4's GPL sentence) and R-CORELG; green after"
+  },
+  {
+   "finding": "Prior art of Export LaTeX not credited (SimpLie's LaTeX export, dynkin-diagrams as target)",
+   "status": "fixed",
+   "test": "pages-6 > credits lists borrowed prior art (enforced whenever a built tool has data-control=\"latex\")",
+   "evidence": "red on 7938f48 and with R-SIMPLIE and R-DYNKIN; green after"
+  },
+  {
+   "finding": "Araki's table stated as fact although not read ([S2])",
+   "status": "fixed",
+   "test": "pages-6 > history reports its sources as SOURCES.md does",
+   "evidence": "now 'is reported by later papers to have a table ...; they cite the table as pages 32 and 33'; red with R-ARAKI, green after"
+  },
+  {
+   "finding": "History tests let MU1, MU2 and MU7 through",
+   "status": "fixed",
+   "test": "pages-6 > open items are wrapped on history (MU1); the manuscript is undated (MU2); each entry says which sign its source fires (MU7, new)",
+   "evidence": "each mutant alone gives 1 failed / 25 passed in its target test; all green without mutants"
+  },
+  {
+   "finding": "Footer and credits tests accepted data-commit 'unknown' (MU3) and a licence typed in the frontmatter",
+   "status": "fixed",
+   "test": "pages-6 > footer shows the versions and the commit (MU3); licences are read, not typed (new)",
+   "evidence": "MU3: 1 failed ('data-commit in a git checkout'). F-TYPED, C-TYPED, F-OLD and C-OLD all failed. To make this testable, the licence-name tables were removed: both files now read the names from LICENSE-content and LICENSE."
+  },
+  {
+   "finding": "D16 and E17 guards relied on fixed string lists (MU4, MU5 survived)",
+   "status": "fixed",
+   "test": "pages-6 > confusions makes no reference to the note (MU4); credits lists borrowed prior art (MU5)",
+   "evidence": "MU4: 1 failed ('\"write-up\" on the confusions page'); MU5: 1 failed (applet state outside E17); green after"
+  }
+ ],
+ "decisionsFragment": "decisions/P6-A6.md",
+ "handoff": "All 11 review points are fixed, each with a test that fails on the reviewer's mutant or on the old sentence put back, and passes after the fix. Two visible changes go beyond the review's text. First, the footer now reads 'Code: GNU Affero General Public License, version 3 (SPDX: AGPL-3.0-only)': licence names are read from LICENSE-content and LICENSE, so that no identifier or licence name is typed in Footer.astro or credits.mdx. Second, the oracle hook 'dynkin-diagrams' is now data-oracle=\"satake-catalogue\". Still open: npm run size reports /tools/rep/, /tools/sandbox/ and their /embed/ twins over budget, unchanged from 7938f48 and belonging to the size repair. Running npm run size outside CI needs PLAYWRIGHT_BROWSERS_PATH set. The open MERGE requests in the fragment stand: a shared licence module, a draft field in the schema, and the title 'Credits and licences'."
+}
