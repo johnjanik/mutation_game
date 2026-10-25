@@ -58,7 +58,7 @@ interface SandboxModule {
   withBoard(state: ToolState, spec: BoardSpec): ToolState;
   normaliseView(state: ToolState): ToolState;
   viewChoices(state: ToolState): Record<'populations' | 'numbers' | 'linked', boolean>;
-  exportOf(state: ToolState): string;
+  exportOf(state: ToolState): Promise<string>;
   sameMatrix(a: BoardSpec, b: BoardSpec): boolean;
 }
 interface BoardIOModule {
@@ -178,12 +178,12 @@ describe('long numbers (SPEC 4.0)', () => {
     expect(shortValue(G.population_end[0]!.slice(0, 13))).toBe(expected(G.population_end[0]!.slice(0, 13)));
   });
 
-  it('the data export of the 200-move states holds the exact digits', () => {
+  it('the data export of the 200-move states holds the exact digits', async () => {
     for (const [state, end] of [
       [mutationState(), G.population_end],
       [firingState(), G.numbers_end],
     ] as const) {
-      const text = S.exportOf(state);
+      const text = await S.exportOf(state);
       expect(text).not.toContain('...');
       expect(text).not.toContain('x 10^');
       const doc = JSON.parse(text) as { tool: string; state: ToolState; derived: { positions: Record<string, (number | string)[]>[]; verdict: { class: string }[] } };
@@ -239,7 +239,7 @@ describe('fractions and the view fallback (SPEC 4 T1)', () => {
 });
 
 describe('board import and export (SPEC 4 T16)', () => {
-  it('board import and export round trip', () => {
+  it('board import and export round trip', async () => {
     const exported = JSON.parse(IO.boardJsonText(S.DEFAULT_BOARD)) as { cartan: number[][]; xy: number[][] };
     expect(exported).toEqual({ cartan: S.DEFAULT_BOARD.cartan, xy: S.DEFAULT_BOARD.xy });
     const back = IO.parseBoardImport(IO.boardJsonText(S.DEFAULT_BOARD));
@@ -248,7 +248,7 @@ describe('board import and export (SPEC 4 T16)', () => {
     expect(IO.parseBoardImport('"A3"')).toEqual({ ok: true, spec: 'A3', nodes: 3 });
     expect(IO.parseBoardImport('{"cartan": [[2, -3], [-3, 2]]}')).toEqual({ ok: true, spec: { cartan: G.cartan }, nodes: 2 });
     expect(IO.parseBoardImport(JSON.stringify(mutationState()))).toMatchObject({ ok: true, spec: { cartan: G.cartan } });
-    const dataExport = S.exportOf(mutationState());
+    const dataExport = await S.exportOf(mutationState());
     expect(IO.parseBoardImport(dataExport)).toMatchObject({ ok: true, spec: { cartan: G.cartan }, nodes: 2 });
     // A named board exports as its matrix with whole grid points.
     const a3 = IO.boardObject('A3');

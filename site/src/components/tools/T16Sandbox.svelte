@@ -24,7 +24,6 @@
   import type { Board as EngineBoard } from '@two-games/engine';
   import { decodeState, LINK_NOTICE } from '../../lib/urlCodec';
   import { cloneState, defaultStart, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
-  import { exportJSON } from '../../lib/export';
   import { T1Game, boardForStart, effectiveView, startVector, type Coords, type View } from './t01/model';
   import { verdictCore, type ComponentView } from './t04/verdict';
 
@@ -166,8 +165,13 @@
     return { ...game.derived(), verdict: components.map((c) => ({ ...c.record, verdict: c.classText })) };
   }
 
-  /** The text "Download data" saves for a state (used by the tests; the island calls the same parts). */
-  export function exportOf(state: ToolState): string {
+  /**
+   * The text "Download data" saves for a state (used by the tests; the island calls the same parts).
+   * export.ts is fetched when this is called, as ToolFrame fetches it on a click, so that it stays out
+   * of the first fetch of /tools/sandbox/ (SPEC 7.6; P6-A5 repair).
+   */
+  export async function exportOf(state: ToolState): Promise<string> {
+    const { exportJSON } = await import('../../lib/export');
     const game = gameOf(state);
     return exportJSON(stateOf(game), derivedOf(game, verdictCore(resolveBoard(state.board)).components));
   }
