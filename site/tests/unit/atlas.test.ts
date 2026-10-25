@@ -41,15 +41,13 @@ interface GoldenAffine {
 const SATAKE = golden.satake as GoldenSatake[];
 const AFFINE = golden.affine as Record<string, GoldenAffine>;
 
-/** Every sheet once (atlasData is pure; the slow types are computed once per run). */
+/** Every sheet once (atlasData is pure; the slow types are computed once per run). No clock is read here:
+ *  the build-time cost of atlasData is measured outside the parallel suite (decisions/P6-A4.md). */
 const sheets = new Map<string, AtlasSheet>();
-const times = new Map<string, number>();
 function sheetOf(T: string): AtlasSheet {
   let s = sheets.get(T);
   if (s === undefined) {
-    const t0 = performance.now();
     s = atlasData(T);
-    times.set(T, performance.now() - t0);
     sheets.set(T, s);
   }
   return s;
@@ -169,20 +167,19 @@ describe('golden values', () => {
     });
   }
 
-  it('the examples of the instruction (B3, D4, the affine boards of rank 2)', () => {
-    const b3 = sheetOf('B3');
-    expect(b3.realForms.map((r) => [r.cartanLabel, r.realForm])).toEqual(
-      expect.arrayContaining([['B II', 'so(1,6)'], ['B I', 'so(2,5)'], ['B I', 'so(3,4)'], ['compact', 'so(7)']]),
-    );
-    expect(b3.realForms).toHaveLength(4);
-    const d4 = sheetOf('D4').realForms.map((r) => r.realForm);
-    expect(d4).toHaveLength(6);
-    expect(d4).toEqual(expect.arrayContaining(['so(2,6)', 'so*(8)']));
-    // Trap 3: both rank-2 pages show C2~, with their own numbering of the marks.
-    expect(sheetOf('B2').affine).toMatchObject({ name: 'C2~', constructorName: 'B2~' });
-    expect(sheetOf('C2').affine).toMatchObject({ name: 'C2~', constructorName: 'C2~' });
-    expect(SATAKE).toHaveLength(167);
-    expect(TYPE_NAMES.reduce((sum, T) => sum + sheetOf(T).realForms.length, 0)).toBe(167);
+  it('the rank-2 pages: one affine name recognised from the shape, two numberings (trap 3); every record once', () => {
+    const b2 = sheetOf('B2').affine;
+    const c2 = sheetOf('C2').affine;
+    // Both pages name the affine board alike (recognised from its shape) and build it under their own name.
+    expect(b2.name).toBe(c2.name);
+    expect(b2.constructorName).not.toBe(c2.constructorName);
+    expect(b2.constructorName.startsWith('B2')).toBe(true);
+    expect(c2.constructorName.startsWith('C2')).toBe(true);
+    // The marks follow the numbering of the page, so they differ.
+    expect(b2.marks).not.toEqual(c2.marks);
+    // Every record of the catalogue is on exactly one page, the coincidence of D4 included (6.4).
+    expect(TYPE_NAMES.reduce((sum, T) => sum + sheetOf(T).realForms.length, 0)).toBe(SATAKE.length);
+    expect(sheetOf('D4').realForms).toHaveLength(SATAKE.filter((r) => r.dynkin_type === 'D4').length);
   });
 
   it(`the list of positive roots is capped at ${ROOT_LIST_CAP} and no type reaches beyond it`, () => {
@@ -192,7 +189,7 @@ describe('golden values', () => {
       expect(s.positiveRoots.length).toBe(Math.min(ROOT_LIST_CAP, s.nPositiveRoots));
       expect(s.nPositiveRoots).toBeLessThanOrEqual(ROOT_LIST_CAP);
     }
-    expect(sheetOf('E8').positiveRoots).toHaveLength(120);
+    expect(sheetOf('E8').positiveRoots).toHaveLength(golden.types['E8']!.n_positive_roots);
   });
 });
 
@@ -228,7 +225,9 @@ describe('absent fields', () => {
         expect(s.completeGames, T).not.toBeNull();
       }
     }
-    expect(above).toEqual(['A8', 'B7', 'B8', 'C7', 'C8', 'D7', 'D8', 'E7', 'E8']);
+    // The nine types of the instruction: those whose record has no n_reduced_words_w0 (rule 7).
+    expect(above).toEqual(TYPE_NAMES.filter((T) => golden.types[T]!.n_reduced_words_w0 === undefined));
+    expect(above).toHaveLength(9);
     expect(sheetOf('A1').coxeterPlaneRings).toBeNull();
     expect(sheetOf('A1').links['coxeter-plane']).toBeNull();
     expect(CAPS.countGamesGroup).toBe(60000);
@@ -291,11 +290,11 @@ describe('tool links', () => {
     expect(decoded(b3.links['minus-w0'])).toMatchObject({ board: 'B3', view: 'numbers', mode: 'legal', coords: 'numbers', start: [1, 0, 0] });
     expect(decoded(b3.links['orbit-sizes'])).toMatchObject({ board: 'B3', coords: 'numbers', start: [1, 0, 0] });
     expect(b3.links['orbit-sizes']!.tool).toBe('garden');
-    expect(decoded(b3.links['minuscule-nodes'])).toMatchObject({ board: 'B3', node: 3 });
+    expect(decoded(b3.links['minuscule-nodes'])).toMatchObject({ board: 'B3', node: golden.types['B3']!.minuscule_nodes[0] });
     expect(b3.links['minuscule-nodes']!.tool).toBe('rep');
-    expect(decoded(b3.links['coxeter-plane'])).toMatchObject({ board: 'B3', rings: [0, 1, 0], projection: 'coxeter' });
+    expect(decoded(b3.links['coxeter-plane'])).toMatchObject({ board: 'B3', rings: golden.types['B3']!.numbers_of_highest_root, projection: 'coxeter' });
     expect(b3.links['coxeter-plane']!.tool).toBe('geometry');
-    expect(decoded(b3.links.affine)).toMatchObject({ board: 'B3~' });
+    expect(decoded(b3.links.affine)).toMatchObject({ board: AFFINE['B3']!.constructor_name });
     expect(b3.links.affine!.tool).toBe('affine');
     expect(b3.links['complete-games']!.tool).toBe('weyl');
     // 6.6: x = black labels joined by dots (empty for none), t = the full tau in label order.
@@ -307,7 +306,9 @@ describe('tool links', () => {
       expect(line.link.query).toContain(`&x=${line.black.join('.')}`);
       expect(line.link.query).toContain(`&t=${line.tau.join('.')}`);
     }
-    expect(b3.realForms.find((r) => r.realForm === 'so(3,4)')!.link.query).toBe('z=1&g=B3&x=&t=1.2.3');
+    // A form with no black node writes x empty (6.6).
+    const white = SATAKE.find((r) => r.dynkin_type === 'B3' && r.black_nodes.length === 0)!;
+    expect(b3.realForms.find((r) => r.realForm === white.real_form)!.link.query).toBe(`z=1&g=B3&x=&t=${white.tau.join('.')}`);
     // E8: no minuscule node, so T12 opens with no k; the count is not offered, so T1 from all ones.
     const e8 = sheetOf('E8');
     expect(decoded(e8.links['minuscule-nodes']).node).toBeUndefined();
@@ -316,10 +317,10 @@ describe('tool links', () => {
     expect(e8.links['weyl-order']!.tool).toBe('numbers');
     // E6: the flip appears in tau of the forms that need it.
     const e6 = sheetOf('E6');
-    expect(e6.realForms.some((r) => r.link.query.endsWith('&t=6.2.5.4.3.1'))).toBe(true);
+    expect(e6.realForms.some((r) => r.link.query.endsWith(`&t=${golden.types['E6']!.minus_w0.join('.')}`))).toBe(true);
     // B2 and C2: T15 is opened under the constructor's name.
-    expect(sheetOf('B2').links.affine!.query).toBe('z=1&g=B2~');
-    expect(sheetOf('C2').links.affine!.query).toBe('z=1&g=C2~');
+    expect(sheetOf('B2').links.affine!.query).toBe(`z=1&g=${AFFINE['B2']!.constructor_name}`);
+    expect(sheetOf('C2').links.affine!.query).toBe(`z=1&g=${AFFINE['C2']!.constructor_name}`);
     expect(sheetOf('A1').links['coxeter-plane']).toBeNull();
   });
 
@@ -452,15 +453,32 @@ describe('downloads', () => {
   });
 });
 
-describe('build time', () => {
-  it('atlasData for every type (timings for the report)', () => {
-    sheets.clear();
-    times.clear();
-    const t0 = performance.now();
-    for (const T of TYPE_NAMES) sheetOf(T);
-    const total = performance.now() - t0;
-    console.info(`atlasData timings (ms): ${TYPE_NAMES.map((T) => `${T} ${times.get(T)!.toFixed(1)}`).join(', ')}; all 32: ${total.toFixed(0)}`);
-    console.info(`B3 tool links: ${JSON.stringify(allLinks(sheetOf('B3')).map((l) => `${l.tool}?${l.query}`))}`);
-    expect(total).toBeGreaterThan(0);
+describe('the links of B3', () => {
+  it('the item-to-tool map of B3 (the report of the instruction, section 10)', () => {
+    // The values in the queries are read from the golden file, never typed (COMMON 4.4).
+    const rec = golden.types['B3']!;
+    const map = allLinks(sheetOf('B3')).map((l) => `${l.tool}?${l.query}`);
+    expect(map.slice(0, 15)).toEqual([
+      'board?z=1&g=B3',
+      'board?z=1&g=B3',
+      'form?z=1&g=B3',
+      'garden?z=1&g=B3',
+      'kostant?z=1&g=B3',
+      'numbers?z=1&g=B3',
+      'numbers?z=1&g=B3',
+      'weyl?z=1&g=B3',
+      'board?z=1&g=B3&v=l',
+      `rep?z=1&g=B3&k=${rec.minuscule_nodes[0]}`,
+      'board?z=1&g=B3&v=n&m=l&c=n&s=1,0,0',
+      'garden?z=1&g=B3&c=n&s=1,0,0',
+      'weyl?z=1&g=B3',
+      `geometry?z=1&g=B3&r=${rec.numbers_of_highest_root.join('.')}&j=coxeter`,
+      `affine?z=1&g=${AFFINE['B3']!.constructor_name}`,
+    ]);
+    expect(map.slice(15).sort()).toEqual(
+      SATAKE.filter((r) => r.dynkin_type === 'B3')
+        .map((r) => `satake?z=1&g=B3&x=${r.black_nodes.join('.')}&t=${r.tau.join('.')}`)
+        .sort(),
+    );
   });
 });

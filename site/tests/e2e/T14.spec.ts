@@ -63,6 +63,8 @@ async function downloadOf(page: Page, kind: string): Promise<{ file: string; tex
 }
 
 const transpose = (m: number[][]): number[][] => m.map((row, i) => row.map((_, j) => m[j]![i]!));
+/** An integer as the pages show it: a true minus sign (SPEC 6.3). */
+const signed = (x: number): string => (x < 0 ? `\u2212${-x}` : String(x));
 
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
@@ -80,24 +82,30 @@ test.describe('without JavaScript', () => {
     await expect(root).toHaveAttribute('data-instance', '');
     const drawing = root.locator('svg[role="img"]');
     await expect(drawing).toBeVisible();
-    expect(await drawing.getAttribute('aria-label')).toContain('Two roads from node 2 to node 3 and one back');
+    const rec = golden.types['B3']!;
+    // The text alternative names every pair of joined nodes with its roads each way (2.1); on B3 more roads run
+    // from node 2 to node 3 than back (the golden adjacency), and the label says so.
+    expect(rec.adjacency[1]![2]!).toBeGreaterThan(rec.adjacency[2]![1]!);
+    expect(await drawing.getAttribute('aria-label')).toContain('roads from node 2 to node 3 and one back');
     await expect(root.locator('[data-out="caption"]')).toContainText('The data sheet of the board B3');
     await expect(root.locator('[data-out="noscript"]')).toBeVisible();
     // Every section, an h2 each, in the order of the T14 entry.
     expect(await page.locator('main section[data-item]').evaluateAll((ss) => ss.map((s) => s.getAttribute('data-item')))).toEqual(ITEMS);
     for (const id of ITEMS) await expect(page.locator(`#${id} > h2`), id).toBeVisible();
     // The values are there as text, with a true minus sign (6.3).
-    await expect(page.locator('[data-out="coxeter-number"]')).toHaveText('6');
-    await expect(page.locator('[data-out="weyl-order"]')).toHaveText('48');
-    await expect(page.locator('[data-out="exponents"]')).toHaveText('1, 3, 5');
-    await expect(page.locator('[data-out="minus-w0"]')).toHaveText('(1, 2, 3)');
-    await expect(page.locator('#minus-w0')).toContainText('(1, 2, 3), the identity');
-    await expect(page.locator('[data-out="minuscule-nodes"]')).toHaveText('3');
-    await expect(page.locator('[data-out="positive-roots"] li')).toHaveCount(9);
-    await expect(page.locator('[data-out="positive-roots"] li').last()).toHaveText('(1, 2, 2)');
-    await expect(page.locator('[data-out="cartan"] td[data-row="3"][data-col="2"]')).toHaveText('−2');
-    await expect(page.locator('[data-out="complete-games"]')).toHaveText('42');
-    await expect(page.locator('[data-out="real-forms"] li')).toHaveCount(4);
+    const tuple = (v: readonly number[]): string => `(${v.map(signed).join(', ')})`;
+    await expect(page.locator('[data-out="coxeter-number"]')).toHaveText(String(rec.coxeter_number));
+    await expect(page.locator('[data-out="weyl-order"]')).toHaveText(String(rec.weyl_order));
+    await expect(page.locator('[data-out="exponents"]')).toHaveText(rec.exponents.join(', '));
+    await expect(page.locator('[data-out="minus-w0"]')).toHaveText(tuple(rec.minus_w0));
+    expect(rec.minus_w0).toEqual(rec.minus_w0.map((_, k) => k + 1)); // -w0 is the identity on B3
+    await expect(page.locator('#minus-w0')).toContainText(`${tuple(rec.minus_w0)}, the identity`);
+    await expect(page.locator('[data-out="minuscule-nodes"]')).toHaveText(rec.minuscule_nodes.join(', '));
+    await expect(page.locator('[data-out="positive-roots"] li')).toHaveCount(rec.n_positive_roots);
+    await expect(page.locator('[data-out="positive-roots"] li').last()).toHaveText(tuple(rec.positive_roots!.at(-1)!));
+    await expect(page.locator('[data-out="cartan"] td[data-row="3"][data-col="2"]')).toHaveText(signed(rec.cartan[2]![1]!));
+    await expect(page.locator('[data-out="complete-games"]')).toHaveText(String(rec.n_reduced_words_w0));
+    await expect(page.locator('[data-out="real-forms"] li')).toHaveCount(SATAKE.filter((r) => r.dynkin_type === 'B3').length);
     // A static sheet: no node buttons (4.0's node hooks; the only data-value hooks are MatrixView's on its
     // matrix cells), no button at all in the sheet, no island, no script file.
     await expect(page.locator('[data-node], [data-board], [data-can-act]')).toHaveCount(0);
@@ -132,9 +140,10 @@ test.describe('convention switch', () => {
         await expect(page.locator('[data-convention-choice="bourbaki"]')).toBeChecked();
         await expect(bourbaki).toBeVisible();
         await expect(site).toBeHidden();
-        // The matrix shown is the transpose: row 2, column 3 of C^T is C_32 = -2.
-        await expect(bourbaki.locator('td[data-row="2"][data-col="3"]')).toHaveText('−2');
-        await expect(bourbaki.locator('td[data-row="3"][data-col="2"]')).toHaveText('−1');
+        // The matrix shown is the transpose: row 2, column 3 of C^T is C_32, and row 3, column 2 is C_23.
+        await expect(bourbaki.locator('td[data-row="2"][data-col="3"]')).toHaveText(signed(C[2]![1]!));
+        await expect(bourbaki.locator('td[data-row="3"][data-col="2"]')).toHaveText(signed(C[1]![2]!));
+        expect(C[2]![1]).not.toBe(C[1]![2]);
         await page.keyboard.press('ArrowUp');
         await expect(page.locator('[data-convention-choice="site"]')).toBeChecked();
         await expect(site).toBeVisible();
@@ -232,7 +241,7 @@ test.describe('downloads', () => {
     const rows = csv.text.split('\n');
     expect(rows[0]).toBe('item,label,value');
     expect(rows.filter((r) => r.startsWith('positive_root,'))).toHaveLength(rec.n_positive_roots);
-    expect(rows).toContain('positive_root,9,"1,2,2"');
+    expect(rows).toContain(`positive_root,${rec.n_positive_roots},"${rec.positive_roots!.at(-1)!.join(',')}"`);
     expect(rows).toContain(`complete_games,,${rec.n_reduced_words_w0}`);
 
     const tex = await downloadOf(page, 'latex');
@@ -421,7 +430,8 @@ test.describe('pages', () => {
       expect(await texIn(page, '[data-rank2-note]')).toEqual(['B_{2}', 'C_{2}', 'B_{2}', 'C_{2}']);
       await expect(note.locator(`a[data-other-page="${other}"]`)).toHaveAttribute('href', `${base}atlas/${other}/`);
       // The affine board is recognised from its shape: C2~ on both pages, marked B2=C2.
-      await expect(page.locator('[data-out="affine-name"]')).toHaveText('C2~');
+      await expect(page.locator('[data-out="affine-name"]')).toHaveText(AFFINE[T]!.name);
+      expect(AFFINE[T]!.name).toBe(AFFINE[other]!.name);
       expect(await texIn(page, '#affine p')).toEqual(expect.arrayContaining(['B_{2}', 'C_{2}']));
     }
     await page.goto('atlas/B3/');
