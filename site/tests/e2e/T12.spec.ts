@@ -1187,4 +1187,66 @@ test.describe('regressions', () => {
     await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'true');
     await expect(live(page)).toHaveText(/: the two sides are equal\.$/);
   });
+
+  /**
+   * Counts in the page the computations of the engine's classify (classifyUncached, which the cache of E-11
+   * calls once per board object): a DevTools breakpoint that counts and never pauses, on the statement of
+   * classifyUncached that checks the board, found in the engine's chunk (_astro/src.*.js) by the message it
+   * throws, set by URL so that it holds for every page of the context. Resolves once it is set.
+   */
+  function countClassify(page: Page): Promise<void> {
+    return new Promise((resolve, reject) => {
+      void page
+        .context()
+        .newCDPSession(page)
+        .then(async (cdp) => {
+          let found = false;
+          cdp.on('Debugger.scriptParsed', (e) => {
+            if (found || !/\/_astro\/src\.[^/]+\.js$/.test(e.url)) return;
+            found = true;
+            void (async () => {
+              const { scriptSource } = await cdp.send('Debugger.getScriptSource', { scriptId: e.scriptId });
+              const at = scriptSource.indexOf('not a board: the diagonal must be 2');
+              let stmt = -1;
+              for (const m of scriptSource.slice(0, at).matchAll(/\bif\s*\(/g)) stmt = m.index;
+              if (at < 0 || stmt < 0) return reject(new Error('classifyUncached was not found in the engine chunk'));
+              const lines = scriptSource.slice(0, stmt).split('\n');
+              await cdp.send('Debugger.setBreakpointByUrl', {
+                url: e.url,
+                lineNumber: lines.length - 1,
+                columnNumber: lines[lines.length - 1]!.length,
+                condition: '(globalThis.__classified = (globalThis.__classified || 0) + 1), false',
+              });
+              resolve();
+            })().catch(reject);
+          });
+          await cdp.send('Debugger.enable');
+        }, reject);
+    });
+  }
+  const classified = (page: Page): Promise<number> => page.evaluate(() => (globalThis as { __classified?: number }).__classified ?? 0);
+
+  // Adopted from redteam/redteam-RT-07-classify-count-p5.mjs (RT-07, phase 5 round, attack 24). SPEC 5.6, last
+  // sentence: "A tool decides whether a board is of finite type by calling classify once when the board is
+  // loaded"; E-11 caches the verdict per board object. A pick spreads its work over tasks (SPEC 7.6), and T12
+  // resolved the board in three of them (the default node, the representation, the state loaded after it),
+  // each time a new object: 3 computations per pick, also of C8 after a link. The script counted with a
+  // logpoint through a source-map build; the breakpoint here is found in the engine's chunk (countClassify).
+  // regression: P5-RT-07-02
+  test('T12 classifies the same board once on a pick, though the steps of a pick run in three tasks', async ({ page }) => {
+    test.setTimeout(180000);
+    const set = countClassify(page);
+    for (const [query, picks] of [['', ['E6', 'E7', 'D4', 'B8', 'G2']], ['g=E7&k=6', ['C8']]] as const) {
+      await open(page, query);
+      await set;
+      for (const g of picks) {
+        const before = await classified(page);
+        await control(page, 'picker').selectOption(g);
+        await expect(out(page, 'state-board')).toHaveText(g, { timeout: 30000 });
+        await settled(page);
+        await page.waitForTimeout(500);
+        expect((await classified(page)) - before, `classify computed on the pick of ${g} (/${ROUTE}${query ? `?${query}` : ''})`).toBe(1);
+      }
+    }
+  });
 });

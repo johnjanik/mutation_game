@@ -38,7 +38,7 @@
   import { encodeState } from '../../lib/urlCodec';
   import { speak } from '../../lib/a11y';
   import { engineCall } from '../../lib/worker';
-  import { resolveBoard, type ToolState } from '../../lib/state';
+  import type { ToolState } from '../../lib/state';
   import { NUMBERS_ICON } from '../draw/palette';
   import { isLong, shortValue } from './t01/longNumber';
   import type { Prediction } from '../../tools/types';
@@ -54,6 +54,7 @@
     addSignedMoves,
     admitLink,
     basisHeaders,
+    boardOf,
     captionOf,
     configOf,
     configuredState,
@@ -551,7 +552,7 @@
     ];
     if (node === null) {
       steps.push(() => {
-        label = defaultNode(resolveBoard(spec));
+        label = defaultNode(boardOf(spec));
         return representationSteps(spec, label);
       });
     } else steps.push(...representationSteps(spec, node));
