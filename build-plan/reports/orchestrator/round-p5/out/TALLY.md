@@ -1,5 +1,5 @@
 # Phase 5 red-team round: tally (gate commit 006f50d)
-- Lenses running (2026-10-25 05:35): RT-07. Done: the other 12.
+- All 13 lenses reported (07:12).
 ## RT-01: 1 finding (minor). Retests hold: 01-01, 01-02 (one sibling missed, below). rep.ts and T12 against the oracle: 12,624 + tool-boundary comparisons, 0 disagreements.
 - P5-RT-01-01 minor: formIsInvariant throws RangeError 'is not an integer' on an integer form entry beyond 2^53 (form.ts:104 isSafeInteger), so gram(C) of a board with such road counts cannot be tested.
 - Notes: T12 prints 'Dimension: N' on non-minuscule nodes where N is the orbit size, not dim V(omega_i) (D4 node 2: 24 vs 28; F4 node 4: 24 vs 26; E8 node 8: 240 vs 248); SafeInt checks intermediate products (E-2, documented); P3-RT-01-01 still reproduces (held).
@@ -78,3 +78,7 @@
 - MERGED cfbdbc5: lessons (5 of 5 confirmed). Confirmer's note: the cut 'Taking one for the other gives wrong answers;' leaves 'the table sets them side by side' (M8 'what mutation is not' sidebar) with a loose antecedent (caption resolves it). MERGE to note at folding: the P5-A3 entry's 'the 26 of F4' is superseded by P5-RT-08-02.
 - MERGED: toolchain (P5-RT-12-01 confirmed). Wording note: after a prebuild failure the refusal describes the later failed build, the report keeps the earlier build's generatedAt (tests assert 'did not finish').
 - MERGED: history (P5-RT-04-01 confirmed, also after Back). Separate cause, for the owner or a later round: a replaceState burst still pending when popstate fires (a move, then Back within 500 ms) rewrites the entry returned to and loses the move, on every tool (the burst timer is not cancelled or flushed on popstate); the confirmer agrees it is not this finding's cause.
+## RT-07: 2 findings (1 major, 1 minor). Retests hold: 07-01, 07-02, 07-03, 07-05. Sizes on four builds agree with npm run size (/tools/rep/ 89758 of 90000; 89776 at /mutation_game/); fonts preloaded on all 35 routes; CLS 0 on M8.
+- P5-RT-07-01 major: a link to a large T12 orbit runs the whole representation build in the hydration task (51 to 103 ms at 1x, 197 to 352 ms at 4x), where a pick splits it one engine call per task.
+- P5-RT-07-02 minor: T12 classifies the same board three times on every pick (resolveBoard reuse is per microtask; the pick spans three tasks).
+- Notes: /tools/rep/ margin 224 B in the served build; Predict.svelte and t01/model.ts (6013 B) ship on /tools/rep/ unused by the default; rep.ts adds about 1391 B gzip to the shared engine chunk on every route (held P3-RT-07-03); minusculeMatrices on C8 node 7, B8 node 7, E7 node 6 also become long at 4x (beyond the held 1120/1792 set; E-9 owner); M8 LCP 1.98 to 2.34 s at 4x (G6 note).
