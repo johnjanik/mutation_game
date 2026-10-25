@@ -1,0 +1,533 @@
+{
+ "agent": "P6-A8",
+ "status": "done",
+ "branch": "worktree-agent-ae904fbd426092717",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-ae904fbd426092717",
+ "commits": [
+  "5fac9d8 P6-A8: M10 hub page and its browser spec",
+  "6e2da9c P6-A8: glossary completed for M0 to M9",
+  "0b47ade P6-A8: first-use link text with the beat in brackets; decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/content/modules/m10-atlas.mdx",
+  "site/src/content/pages/glossary.mdx",
+  "site/tests/e2e/M10.spec.ts",
+  "decisions/P6-A8.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 149eee2",
+   "exit": 0,
+   "summary": "HEAD is now at 149eee2 MERGE: fold P6-A4's entries; released, M7 and M8 tests on its request; record the merge of T14"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 374 files: 0 errors, 0 warnings, 1 hint (existing, T06.spec.ts); svelte-check 1203 files: 0 errors, 1 warning (existing, t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "clean"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 0,
+   "summary": "Test Files 187 passed (187); Tests 3908 passed (3908)"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "89 page(s) built; links: 3382 internal links on 89 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/glossary.test.ts site/tests/unit/content-glossary-fire.test.ts",
+   "exit": 0,
+   "summary": "2 files, 8 tests passed"
+  },
+  {
+   "cmd": "playwright (scratch config, port 7260) site/tests/e2e/M10.spec.ts",
+   "exit": 0,
+   "summary": "20 passed (1.1m)"
+  },
+  {
+   "cmd": "playwright nojs.spec.ts a11y.spec.ts -g 'm10-atlas|glossary|about and credits|routes are discovered'",
+   "exit": 0,
+   "summary": "8 passed"
+  },
+  {
+   "cmd": "playwright module-links.spec.ts pages.spec.ts pages-6.spec.ts",
+   "exit": 1,
+   "summary": "46 passed, 1 failed: pages.spec.ts > glossary: one anchor per term (expects 26 entries, received 83; see requests)"
+  },
+  {
+   "cmd": "playwright M8.spec.ts -g 'later uses of a term'",
+   "exit": 1,
+   "summary": "1 failed: M8 and the not-quiver page do not yet link later uses of the new glossary terms (see requests)"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/dist-release npm run build",
+   "exit": 0,
+   "summary": "88 pages, 3232 links, 0 problems; the open-items report lists no item on /modules/m10-atlas/ or /glossary/; no open-items link on either page"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath npm run build",
+   "exit": 0,
+   "summary": "89 pages, 3382 links, 0 problems"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ playwright (port 7262) basepath.spec.ts M10.spec.ts",
+   "exit": 0,
+   "summary": "110 passed (1.6m)"
+  },
+  {
+   "cmd": "npm run size -- --port 7261",
+   "exit": 0,
+   "summary": "size: 89 routes measured, 0 over budget; /modules/m10-atlas/ 0.0 kB of 120, /glossary/ 0.0 kB of 15"
+  },
+  {
+   "cmd": "node scripts/numbers-in-prose.mjs",
+   "exit": 0,
+   "summary": "m10-atlas.mdx: line 57, 1984 and 2020 (years in the history item)"
+  },
+  {
+   "cmd": "mutation runs of M10.spec.ts against mutated copies of site/dist (port 7262)",
+   "exit": 1,
+   "summary": "batch 1: 12 mutants, each target test failed; batch 2: 4 mutants, each target test failed"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "Every link on the hub resolves (page 200, fragment present, under the base)",
+   "status": "pass",
+   "test": "site/tests/e2e/M10.spec.ts > M10 > every link on the hub resolves (also passes against the BASE_PATH=/sub/path/ build)"
+  },
+  {
+   "item": "The hub has one item for atlas, sandbox, history, sources, glossary, credits, open-problem, confusions, each with a link to its target and one sentence",
+   "status": "pass",
+   "test": "M10 > the hub links every reference page with one sentence each"
+  },
+  {
+   "item": "No link to open-items on the hub",
+   "status": "pass",
+   "test": "M10 > no link to preview-only pages"
+  },
+  {
+   "item": "The glossary covers every term the lessons define (first-use markup: bold)",
+   "status": "pass",
+   "test": "M10 > the glossary covers every term defined in M0 to M9 (M9's own bold words are checked once M9 is built; on this branch M0 to M8 and the reference pages)"
+  },
+  {
+   "item": "Every glossary entry links back to its first use, and every link resolves",
+   "status": "pass",
+   "test": "M10 > glossary back-links resolve (M9 terms: linked exactly when M9 is in the build)"
+  },
+  {
+   "item": "Every Appendix C row still present",
+   "status": "pass",
+   "test": "site/tests/unit/glossary.test.ts (unchanged)"
+  },
+  {
+   "item": "M10 has no prediction, no challenge, no tool",
+   "status": "pass",
+   "test": "M10 > reference page: no prediction, no challenge, no tool"
+  },
+  {
+   "item": "Anatomy of 8.2 as far as it applies: title, question, first figure with caption and text alternative, hub list, draft mark",
+   "status": "pass",
+   "test": "M10 > anatomy of a reference page"
+  },
+  {
+   "item": "Both pages render without JavaScript",
+   "status": "pass",
+   "test": "M10 > without JavaScript > hub and glossary render without JavaScript; nojs.spec.ts on both routes"
+  },
+  {
+   "item": "axe: no serious or critical violation, light and dark themes",
+   "status": "pass",
+   "test": "M10 > hub and glossary pass axe (light theme), (dark theme); a11y.spec.ts on both routes"
+  },
+  {
+   "item": "Size: no script beyond the shell",
+   "status": "pass",
+   "test": "M10 > hub and glossary load no tool script; npm run size: both 0.0 kB"
+  },
+  {
+   "item": "No em-dash in built text, attributes, sources, test, fragment",
+   "status": "pass",
+   "test": "M10 > no em-dash"
+  },
+  {
+   "item": "Credit wording (Kostant attributed; Mozes with Proctor and Eriksson)",
+   "status": "pass",
+   "test": "M10 > credit wording"
+  },
+  {
+   "item": "No claim of novelty",
+   "status": "pass",
+   "test": "M10 > no novelty claim"
+  },
+  {
+   "item": "Plain declarative sentences (one sentence per item, none ending in ? or !)",
+   "status": "pass",
+   "test": "M10 > the hub links every reference page with one sentence each"
+  },
+  {
+   "item": "Site's words: no hub sentence names both node and city",
+   "status": "pass",
+   "test": "M10 > site's words"
+  },
+  {
+   "item": "Conventions stated where another author's convention is named",
+   "status": "pass",
+   "test": "M10 > conventions stated"
+  },
+  {
+   "item": "No stock contrasts or filler (RT-08 attack 40 list)",
+   "status": "pass",
+   "test": "M10 > no stock contrasts or filler"
+  },
+  {
+   "item": "No copied sentence of eight words or more from SPEC.md or SOURCES.md",
+   "status": "pass",
+   "test": "M10 > no copied sentence"
+  },
+  {
+   "item": "Every [U] statement wrapped (none used on either page; release report lists neither page)",
+   "status": "pass",
+   "test": "M10 > open items are wrapped; RELEASE=1 build report"
+  },
+  {
+   "item": "Internal links honour BASE_URL",
+   "status": "pass",
+   "test": "basepath.spec.ts and M10.spec.ts against the BASE_PATH=/sub/path/ build: 110 passed"
+  },
+  {
+   "item": "Every golden number written with <G>",
+   "status": "pass",
+   "test": "numbers-in-prose: only the years 1984 and 2020 on the hub; glossary read by hand (typedNumbers)"
+  },
+  {
+   "item": "Theorem-like statements carry provenance",
+   "status": "pass",
+   "test": "M10 > theorem-like statements carry provenance (7 data-claim elements, all with a Cite, a computation phrase or an internal link)"
+  },
+  {
+   "item": "The build fails on no Cite key or G path of this agent",
+   "status": "pass",
+   "test": "npm run build: 0 problems"
+  },
+  {
+   "item": "Type checks pass",
+   "status": "pass",
+   "test": "npm run check -w site; npx tsc --noEmit -p packages/engine"
+  },
+  {
+   "item": "Owner's part: approval of the text of M10, read aloud, P3 to P8, A-13",
+   "status": "not-automated",
+   "test": "gate G6, owner"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "9.2, 8.4",
+   "what": "manual reading of: plain declarative sentences beyond the one-sentence check; the site's words against Appendix C; whether every quoted result states its convention; the specific in place of the grand; copying from papers or lectures; whether every theorem-like statement carries data-claim",
+   "why": "no automated check decides them; listed in writingRules and provenance"
+  },
+  {
+   "spec": "instruction 6, conventions stated",
+   "what": "the symbol tau is checked only where it is Wildberger's map (the Wildberger column); elsewhere on the glossary tau is the symmetry of a Satake diagram, and row 23 says so",
+   "why": "the Satake tau has no convention to translate; a literal check would demand 'transpose' or 'opposite sign' in the Satake entries"
+  },
+  {
+   "spec": "instruction 5.2 item 7",
+   "what": "ModuleLinks is used with the board A3 although it requires a board",
+   "why": "SPEC 4 T16 and 8.1 P6 make the sandbox the last link of every module; the links carry A3 and are not a copy of the hub's"
+  },
+  {
+   "spec": "instruction 5.6",
+   "what": "M9 back-links point to modules/m9-real-forms/ without a beat fragment",
+   "why": "P6-A7's beats are not on this branch; a guessed fragment could fail at merge"
+  },
+  {
+   "spec": "instruction 5.6 additive protocol",
+   "what": "P1-A4's glossary introduction gained a definition clause and a sentence on the first-use line; old rows gained a definition and a first-use line",
+   "why": "keeps the introduction true; anchors, dt and the three columns are unchanged and glossary.test.ts passes"
+  },
+  {
+   "spec": "8.2",
+   "what": "the hub has 575 words, below 800",
+   "why": "plan reading for a reference page; not padded"
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE (owner P1-A4)",
+   "what": "site/tests/e2e/pages.spec.ts > glossary: one anchor per term asserts dl.glossary > div.entry toHaveCount(26); the glossary now has 83 entries. Change it to at least 26 (P1-A4's own glossary comment and glossary.test.ts allow entries after the Appendix C rows)."
+  },
+  {
+   "to": "MERGE (owner P5-A3)",
+   "what": "site/tests/e2e/M8.spec.ts > later uses of a term link to the glossary now requires links for the new entries. On M8: Term links on a later use of representation, orbit, string, single step, Chevalley-Serre relations, signed move, quiver, Coxeter plane, dimension; add 'length' to OTHER_SENSE ('differ in length', 'at length'). On not-quiver-mutation: links for numbers game, mutation game, Cartan matrix, positive root population, quiver, representation and dimension (quiver sense: link or OTHER_SENSE); add 'round' to OTHER_SENSE ('turn round')."
+  },
+  {
+   "to": "MERGE",
+   "what": "Rerun site/tests/e2e/M10.spec.ts after P6-A7's M9 merges. A bold word of M9 not in STRONG_TO_ANCHOR fails 'the glossary covers every term defined in M0 to M9' with the word named; add the mapping (and an entry if new). M9's first-use links then link modules/m9-real-forms/ and are checked against the built page."
+  },
+  {
+   "to": "MERGE (lesson owners)",
+   "what": "Mark a defined term at its first use with one markup distinct from emphasis; bold is also used for tool names, the bridge sentence and corrections, so the terms list is kept by hand in M10.spec.ts."
+  },
+  {
+   "to": "P1-A4",
+   "what": "The pages schema has no draft field (P6-A6's request stands), so the glossary's new definitions carry no D17 draft mark."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P6-A8.md",
+ "openQuestions": [
+  "The plan's question for M10 is used ('Where are the data of every board, the free editor, and the record of who found what?'), because the modules schema requires one. The owner may reword it at G6."
+ ],
+ "handoff": "M10 (/modules/m10-atlas/) is a static hub. Its first figure lists the 32 Atlas boards, taken from P6-A4's ATLAS_GROUPS. Below it are ten one-sentence items, the 8.4 credit line and ModuleLinks(A3). The glossary keeps every Appendix C row and adds a definition and a first-use link to each, plus 57 new rows (64 anchors), including M9's terms, which link to M9 once it is built. Two assertions owned by others now fail as a direct result of the additions and need the small fixes under requests: pages.spec's exact count of 26, and M8.spec's later-use links. Rerun M10.spec.ts after M9 merges.",
+ "hubItems": [
+  {
+   "id": "atlas",
+   "target": "atlas/ (example atlas/B3/)",
+   "sentence": "The Atlas gives each named board of finite type with at most eight nodes a data sheet, such as the sheet of B3, with a switch that prints the Cartan matrix as this site, Kac and SageMath write it or as Bourbaki and Humphreys write it, transposed, and with a link from each item to a tool that shows it on that board."
+  },
+  {
+   "id": "sandbox",
+   "target": "tools/sandbox/",
+   "sentence": "The sandbox is the free editor, where you draw a board of your own, play both games on it in free play with whole numbers of any size, and import or export the board as JSON."
+  },
+  {
+   "id": "history",
+   "target": "history/",
+   "sentence": "The history page sets out the work on the two games in order of date and with the credit each author is owed, from Proctor's use of the firing process in 1984 to Wildberger's paper of 2020, and places beside it Kostant's game, an oral tradition attributed to Kostant, and the diagrams of Satake and Araki."
+  },
+  {
+   "id": "sources",
+   "target": "sources/",
+   "sentence": "The sources page is generated from the annotated bibliography kept with the site's code and lists every work the site cites, with where to read it and its status in words: read in the source, reported by a later source, checked by computation, or unverified."
+  },
+  {
+   "id": "glossary",
+   "target": "glossary/",
+   "sentence": "The glossary sets each word of the site beside the words of Wildberger, of the literature on the numbers game and of Lie theory, and links each word back to the module that first uses it."
+  },
+  {
+   "id": "credits",
+   "target": "credits/",
+   "sentence": "The credits page acknowledges Wildberger's game, story and words, states the licences of the site's text and code, and lists every library, font and linked video the site uses with its licence."
+  },
+  {
+   "id": "open-problem",
+   "target": "open-problem/",
+   "sentence": "The Mutation Conjecture is the open problem of the site: its page states Wildberger's question about the signs of root populations, shows that the statement fails on a board with a road in one direction only, and invites attempts at a proof that uses only the game."
+  },
+  {
+   "id": "confusions",
+   "target": "confusions/",
+   "sentence": "Common confusions corrects statements about the two games that are sometimes made and are not right, such as the claim that a mutation changes the board, each with the source of its correction."
+  },
+  {
+   "id": "not-quiver-mutation",
+   "target": "not-quiver-mutation/",
+   "sentence": "What mutation does not mean sets the two games beside chip-firing, quiver representations and the cluster mutation of Fomin and Zelevinsky, a different operation with the same name."
+  },
+  {
+   "id": "about",
+   "target": "about/",
+   "sentence": "About says what the site teaches, names its two views, Populations and Numbers, and lists the seven statements that the modules develop."
+  }
+ ],
+ "glossaryTerms": {
+  "method": "The lessons mark a first use in bold (decisions P1-A8, P1-A9, P2-A9, P5-A3). M10.spec.ts reads every <strong> of the built lessons M0 to M9 and of the reference pages (history, confusions, open-problem, not-quiver-mutation, about) and maps it to an anchor with STRONG_TO_ANCHOR. Whole-sentence bold runs are skipped as emphasis, and three tool or table words are listed in NOT_TERMS. An unmapped bold word fails the test. Every glossary link of those pages must resolve. Back-links are checked against Beat fragments and against the earliest bold use.",
+  "termsCovered": "79 distinct anchors from the bold runs of M0 to M8 and the reference pages; with M9's anticipated terms, 90 anchors on the page (26 Appendix C rows with 36 anchors, plus rows 27 to 83 with 64 anchors)",
+  "anchorsAdded": [
+   "martians",
+   "anti-martians",
+   "numbers-game",
+   "free-play",
+   "cartan-matrix",
+   "mutation-game",
+   "positive-root-population",
+   "coxeter-number",
+   "unhappy",
+   "happy",
+   "manic",
+   "highest-root",
+   "root-poset",
+   "invariant",
+   "witness",
+   "closes-up",
+   "star-with-four-arms",
+   "positive-definite",
+   "spectral-radius",
+   "mutation-conjecture",
+   "comarks",
+   "weyl-group",
+   "word",
+   "length",
+   "separate",
+   "longest-element",
+   "reversed-board",
+   "coroot",
+   "height",
+   "tally",
+   "exponents",
+   "colour-class",
+   "round",
+   "wave",
+   "representation",
+   "dimension",
+   "long",
+   "short",
+   "symmetry",
+   "orbit",
+   "symmetric-move",
+   "restricting-the-roots",
+   "vertices",
+   "wythoffs-construction",
+   "face-type",
+   "move-graph",
+   "polytope-graph",
+   "uniform",
+   "coxeter-plane",
+   "root-polytope",
+   "shells",
+   "string",
+   "single-step",
+   "chevalley-serre-relations",
+   "signed-move",
+   "quiver",
+   "real-form",
+   "satake-diagram",
+   "involution",
+   "admissible",
+   "multiplicity",
+   "real-rank",
+   "composite-move",
+   "vogan-diagram"
+  ],
+  "dependOnM9": [
+   "black",
+   "white",
+   "arrows",
+   "shadow",
+   "restricted-board",
+   "real-form",
+   "satake-diagram",
+   "involution",
+   "admissible",
+   "multiplicity",
+   "real-rank",
+   "composite-move",
+   "vogan-diagram"
+  ],
+  "lessonsCovered": "M0 to M8 from the built lessons and the reference pages; M9 from SPEC 3 M9, 2.15 and P6-A7's instruction 5.6"
+ },
+ "unverifiedUsed": [],
+ "typedNumbers": [
+  {
+   "page": "m10-atlas.mdx",
+   "number": "1984, 2020",
+   "reason": "years of sources in the history item (dates, no golden value)",
+   "numbersInProse": "| 57 | 1984 | ...roctor's use of the firing process in 1984 to Wildberger's paper of 2020, and pl... |; | 57 | 2020 | ...cess in 1984 to Wildberger's paper of 2020, and places beside it Kostant's game,... |"
+  },
+  {
+   "page": "glossary.mdx",
+   "number": "57, 2",
+   "reason": "page locators of [W20] and [W-MS] in the Mutation Conjecture row"
+  },
+  {
+   "page": "glossary.mdx",
+   "number": "beat numbers and 'module 9'",
+   "reason": "locators in the first-use lines"
+  },
+  {
+   "page": "glossary.mdx",
+   "number": "2, 1, 0, -1 inside formulas",
+   "reason": "parts of definitions: the diagonal of C, the entries of a fundamental position, the numbers of a minuscule orbit, the factor of the form value, rho = all ones; no golden path"
+  }
+ ],
+ "provenance": [
+  {
+   "page": "glossary",
+   "statement": "finite boards with roads both ways are exactly A_n, B_n, C_n, D_n, E6, E7, E8, F4, G2",
+   "provenance": "[W20], Theorem 8.8"
+  },
+  {
+   "page": "glossary",
+   "statement": "on a board with at least two nodes the wave ends after h rounds",
+   "provenance": "[FZ03b]"
+  },
+  {
+   "page": "glossary",
+   "statement": "the Mutation Conjecture read with one-way roads is false",
+   "provenance": "internal link to the open-problem page"
+  },
+  {
+   "page": "glossary",
+   "statement": "the shape of a Wythoff polytope depends only on which nodes are ringed",
+   "provenance": "[Cox35], [CKPS95]"
+  },
+  {
+   "page": "glossary",
+   "statement": "the signed move is the move with one sign changed in each exchanged pair",
+   "provenance": "verified by computation"
+  },
+  {
+   "page": "glossary",
+   "statement": "admissible Satake diagrams up to board symmetries match the real forms",
+   "provenance": "[Kol14]"
+  },
+  {
+   "page": "glossary",
+   "statement": "a composite move acts on shadows as the mutation of the restricted board",
+   "provenance": "[DK19]"
+  },
+  {
+   "page": "hub",
+   "statement": "none: the hub describes pages and states no theorem",
+   "provenance": "n/a"
+  }
+ ],
+ "writingRules": [
+  {
+   "rule": "plain declarative sentences",
+   "checked": "every hub item is one sentence ending in a full stop (tested); both pages read by hand, no imperative except the hub's 'where you draw'",
+   "changed": "the hub intro reworded so it does not contradict the draft mark"
+  },
+  {
+   "rule": "the site's words",
+   "checked": "hub and glossary compared with 8.4 and Appendix C; node and city never in one hub sentence (tested); the views named with the View component",
+   "changed": "glossary anchor for the relations named chevalley-serre-relations by the slug rule"
+  },
+  {
+   "rule": "conventions stated",
+   "checked": "places that name another convention: hub atlas item (Kac, SageMath, Bourbaki, Humphreys: 'transposed'); glossary row 10 (Wildberger: 'opposite sign', q=-Cp); Cartan matrix entry (Donnelly, Gashi Schedler Speyer, Kac, Bourbaki, Humphreys: 'transpose'); numbers game entry (Eriksson: 'fires negative numbers'; no sign stated for Mozes, E2)",
+   "changed": "none"
+  },
+  {
+   "rule": "no stock contrasts or filler",
+   "checked": "tested list of RT-08 attack 40, 'not only ... but' and the 'It's not X. It's Y.' shape",
+   "changed": "none needed",
+   "noveltyTest": "M10 > no novelty claim: passed"
+  },
+  {
+   "rule": "no copied sentence",
+   "checked": "tested: no sentence of 8 words or more of the hub or of the added glossary text appears in SPEC.md or SOURCES.md; verbatim quotations kept: the bridge sentence of 2.4(a) (row 10) and the credit line of 8.4 (hub)",
+   "changed": "legal play definition reworded ('The game is over once no number is positive') after the test found a SPEC clause word for word"
+  }
+ ],
+ "sizes": {
+  "/modules/m10-atlas/": "0.0 kB of 120 (no script fetched)",
+  "/glossary/": "0.0 kB of 15 (no script fetched)",
+  "all routes": "89 measured, 0 over budget"
+ }
+}
