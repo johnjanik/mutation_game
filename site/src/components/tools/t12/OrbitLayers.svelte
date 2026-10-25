@@ -116,7 +116,7 @@
     texts: readonly string[];
     /** The title of the picture (its text alternative). */
     title: string;
-    /** omega_i written as "ω1". */
+    /** The fundamental position written as the site writes it, "e1" (omegaName). */
     omegaText: string;
     /**
      * How many layers are drawn (a tool draws the vertex layers first and the edge layers after, one per

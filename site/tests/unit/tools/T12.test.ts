@@ -77,6 +77,7 @@ import {
   orbitDrawing,
   orbitLayers,
   parseRelationCode,
+  pickSentence,
   positionText,
   relationCaption,
   relationCode,
@@ -181,7 +182,7 @@ describe('T12 acceptance over minuscule_representations', () => {
         expect(spEq(c.left, c.right)).toBe(true);
       }
       expect(relationSummary(rep.checks!)).toBe(`All ${6 * n * n - 2 * n} relations hold.`);
-      expect(explanation(rep)).toBe(`Node ${rec.node} is minuscule: every number in the orbit of ω${rec.node} is −1, 0 or 1, and all the relations hold.`);
+      expect(explanation(rep)).toBe(`Node ${rec.node} is minuscule: every number in the orbit of e${rec.node} is −1, 0 or 1, and all the relations hold.`);
     }
   });
 
@@ -209,7 +210,7 @@ describe('T12 acceptance over minuscule_representations', () => {
     expect(explanation(rep)).toContain(someNumberPhrase(2));
     expect(explanation(rep)).toContain('some number in the orbit is 2');
     expect(explanation(rep)).toBe(
-      `Node 2 is not minuscule: some number in the orbit is 2 (legal play from ω2 fires a 2 at move ${rep.firstLarge!.move}), so the steps E and F of the recipe miss some moves and the relations fail.`,
+      `Node 2 is not minuscule: some number in the orbit is 2 (legal play from e2 fires a 2 at move ${rep.firstLarge!.move}), so the steps E and F of the recipe miss some moves and the relations fail.`,
     );
     expect(someNumberPhrase(2)).toBe('some number in the orbit is 2');
     expect(repCaption(rep)).toContain('some number in the orbit is 2');
@@ -291,7 +292,7 @@ describe('T12 cap and verdict', () => {
       expect(calls.signedMoves ?? 0).toBe(0);
       expect(rep.basis).toBeNull();
       expect(rep.checks).toBeNull();
-      expect(limitSentence(rep)).toBe(`The orbit of ω${node} has ${size} positions, more than 2000, so the matrices are not built here.`);
+      expect(limitSentence(rep)).toBe(`The orbit of e${node} has ${size} positions, more than 2000, so the matrices are not built here.`);
       expect(explanation(rep)).toContain(someNumberPhrase(rep.firstLarge!.value));
       expect(() => orbitLayers(rep)).toThrow(RangeError);
     }
@@ -889,7 +890,7 @@ describe('T12 state and links', () => {
     );
     const rep = representationOf('A2', 1);
     expect(T12.presets.default.caption).toBe(
-      `On A2 the ${rep.basis!.length} positions of the orbit of ω1 give ${rep.basis!.length} by ${rep.basis!.length} matrices E, F and H that satisfy all ${rep.checks!.length} Chevalley-Serre relations.`,
+      `On A2 the ${rep.basis!.length} positions of the orbit of e1 give ${rep.basis!.length} by ${rep.basis!.length} matrices E, F and H that satisfy all ${rep.checks!.length} Chevalley-Serre relations.`,
     );
   });
 
@@ -1617,6 +1618,34 @@ describe('regressions', () => {
         expect(d.dimension, `${name} node ${label}`).toBe(goldenDim(name, label, n));
         expect(d.orbitSize, `${name} node ${label}`).toBe(golden.types[name]!.fundamental_orbit_sizes[label - 1]);
       }
+    });
+  });
+
+  // P5-RT-08-01 and P5-RT-13-02 (the same cause): T12 wrote the Lie theory symbol omega_i for the
+  // fundamental position in every text it shows, where the site's term is e_i (SPEC Appendix C, 8.4). The
+  // browser check of M8 is in site/tests/e2e/M8.spec.ts (describe regressions); here every sentence T12
+  // writes, on every node of every board it offers, and its server markup.
+  describe('P5-RT-08-01: T12 writes the Lie theory symbol omega_i for the fundamental position', () => {
+    // regression: P5-RT-08-01
+    it('no sentence T12 writes holds omega, on every node of the 32 boards; the fundamental position is written e_i', () => {
+      for (const type of TYPE_NAMES) {
+        const board = named(type);
+        for (const label of board.labels) {
+          const rep = startRepresentation(board, label);
+          const texts = [explanation(rep), limitSentence(rep) ?? '', noMinusculeSentence(rep) ?? '', repCaption(rep)];
+          for (const t of texts) expect(t, `${type} node ${label}`).not.toContain('ω');
+          expect(repCaption(rep), `${type} node ${label}`).toContain(`orbit of e${label}`);
+        }
+      }
+      // The announcement after a pick, and the server's markup of the tool (the orbit panel's title, the
+      // drawing's name and its legend, the orbit table's caption, the figure's name).
+      const tool = new T12Tool(configOf(configuredState({ board: 'D4', node: 2 })));
+      expect(pickSentence(tool)).toBe(`D4, node 2: the orbit of e2 has 24 positions. ${explanation(tool.rep)}`);
+      for (const props of [{ id: '' }, { id: 'o1', board: 'D4', node: 2 }, { id: 'o2', board: 'E8', node: 1 }, { id: 'o3', board: 'E7', node: 2 }]) {
+        const body = loader.render(T12C.default, props);
+        expect(body.includes('ω'), JSON.stringify(props)).toBe(false);
+      }
+      expect(loader.render(T12C.default, { id: '' })).toContain('The orbit of e1 in layers');
     });
   });
 });

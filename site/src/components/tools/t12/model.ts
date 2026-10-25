@@ -30,6 +30,7 @@ import {
   orbitDrawing,
   orbitLayers,
   listOnMain,
+  omegaName,
   parseRelationCode,
   positionOf,
   relationCaption,
@@ -619,7 +620,7 @@ export function startSentence(tool: T12Tool): string {
 /** The announcement after a board or a node was picked (plan). */
 export function pickSentence(tool: T12Tool): string {
   const rep = tool.rep;
-  return `${tool.spec}, node ${tool.node}: the orbit of ω${tool.node} has ${rep.orbitSize} positions. ${explanation(rep)}`;
+  return `${tool.spec}, node ${tool.node}: the orbit of ${omegaName(tool.node)} has ${rep.orbitSize} positions. ${explanation(rep)}`;
 }
 
 /** The announcement after a relation was picked (plan): the formula and the verdict. */

@@ -126,7 +126,7 @@ test('acceptance: every listed representation shows its golden dimension, is min
     // Above 27 positions the list comes from the worker (decisions/P5-A2.md); the sentence is the same.
     await expect(out(page, 'all-relations'), what).toHaveText(`All ${relationCount(B(rec.type).n)} relations hold.`, { timeout: 20000 });
     await expect(out(page, 'relation-verdict'), what).toHaveAttribute('data-holds', 'true');
-    await expect(out(page, 'explanation'), what).toHaveText(`Node ${rec.node} is minuscule: every number in the orbit of ω${rec.node} is −1, 0 or 1, and all the relations hold.`);
+    await expect(out(page, 'explanation'), what).toHaveText(`Node ${rec.node} is minuscule: every number in the orbit of e${rec.node} is −1, 0 or 1, and all the relations hold.`);
     await expect(out(page, 'orbit-graph'), what).toHaveAttribute('data-positions', String(rec.dimension));
   }
 });
@@ -151,7 +151,7 @@ test('acceptance: choosing node 2 of D4 shows a failing relation and the explana
   await expect(out(page, 'all-relations')).toHaveText(`10 of ${relationCount(4)} relations fail.`);
   // The edges of a number 2 are no entry of E or F: dashed, with data-step="false".
   await expect(out(page, 'orbit-graph').locator('[data-edge][data-step="false"]').first()).toBeAttached();
-  await expect(live(page)).toContainText('D4, node 2: the orbit of ω2 has 24 positions. Node 2 is not minuscule: some number in the orbit is 2');
+  await expect(live(page)).toContainText('D4, node 2: the orbit of e2 has 24 positions. Node 2 is not minuscule: some number in the orbit is 2');
   // The link of the state names the node; the matrices are 24 by 24 grids.
   await expect.poll(() => page.evaluate(() => new URLSearchParams(location.search).get('k'))).toBe('2');
   await expect(out(page, 'matrix-e')).toHaveAttribute('data-format', 'grid');
@@ -318,7 +318,7 @@ test('above 2000 positions the tool shows the explanation alone: E8 node 1', asy
   expect(size).toBeGreaterThan(2000);
   await open(page, 'g=E8');
   await expect(out(page, 'orbit-size')).toHaveText(String(size));
-  await expect(out(page, 'limit')).toHaveText(`The orbit of ω1 has ${size} positions, more than 2000, so the matrices are not built here.`);
+  await expect(out(page, 'limit')).toHaveText(`The orbit of e1 has ${size} positions, more than 2000, so the matrices are not built here.`);
   await expect(out(page, 'explanation')).toContainText('some number in the orbit is');
   await expect(out(page, 'orbit-graph')).toHaveCount(0);
   await expect(root(page).locator('[data-format]')).toHaveCount(0);
@@ -355,7 +355,7 @@ test('nothing is written to the address bar before the reader acts, and changing
   expect(await valuesOf(page)).toEqual(['1', '0', '0']);
   await expect(control(page, 'node')).toHaveValue('1');
   await expect(control(page, 'relation')).toHaveValue('ef');
-  await expect(live(page)).toHaveText('A3, node 1: the orbit of ω1 has 4 positions. Node 1 is minuscule: every number in the orbit of ω1 is −1, 0 or 1, and all the relations hold.');
+  await expect(live(page)).toHaveText('A3, node 1: the orbit of e1 has 4 positions. Node 1 is minuscule: every number in the orbit of e1 is −1, 0 or 1, and all the relations hold.');
   await expect.poll(() => page.evaluate(() => new URLSearchParams(location.search).get('g'))).toBe('A3');
   // The picker marks the minuscule nodes in text (A-5).
   expect(await control(page, 'node').locator('option').allTextContents()).toEqual(['1 (minuscule)', '2 (minuscule)', '3 (minuscule)']);

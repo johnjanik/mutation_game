@@ -452,8 +452,12 @@ export function defaultNode(board: AnyBoard): number {
 // The explanation (SPEC 4 T12 acceptance; 2.18; F11's third condition)
 // ---------------------------------------------------------------------------------------------
 
-/** "ω1": the fundamental weight of a node label. */
-export const omegaName = (label: number): string => `ω${label}`;
+/**
+ * "e1": the site's name of the fundamental position of a node label (SPEC Appendix C, 8.4: the Lie theory
+ * name, the fundamental weight omega_i, is given once, in a lesson's Lie theory paragraph; RT-FIX
+ * P5-RT-08-01).
+ */
+export const omegaName = (label: number): string => `e${label}`;
 
 /**
  * The sentence of data-out="explanation" (plan wording): for a node that is not minuscule it carries the
