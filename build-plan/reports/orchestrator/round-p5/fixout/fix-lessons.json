@@ -1,0 +1,252 @@
+{
+ "agent": "rtfix-p5-lessons",
+ "status": "done",
+ "branch": "worktree-agent-a5f4efb27c2994198",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a5f4efb27c2994198",
+ "base": "10fe1f32c2b0f0e5fbc2a33c509c3b928fa43e00",
+ "commits": [
+  "e2a6c95 RT-FIX P5-RT-08-02: M8 prints the 26 of F4 with <G>",
+  "5bd3c92 RT-FIX P5-RT-08-03: M8 prints each number from its own record",
+  "937948d RT-FIX P5-RT-09-04: M8 credits [W03a] for simply laced boards only",
+  "5ec4ee9 RT-FIX P5-RT-08-04: M5 to M8 link fire, population and mutate to the glossary",
+  "a7d80cd RT-FIX P5-RT-13-01: M8 states the answers of b1 and b5 after their predictions",
+  "02d3d60 RT-FIX P5-RT-13-01 P5-RT-08-02 P5-RT-08-03 P5-RT-08-04 P5-RT-09-04: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/content/modules/m8-lie-algebras.mdx",
+  "site/src/content/modules/m5-weyl.mdx",
+  "site/src/content/modules/m6-multiple-edges.mdx",
+  "site/src/content/modules/m7-geometry.mdx",
+  "site/tests/e2e/M8.spec.ts",
+  "site/tests/unit/content-m8-typed-26.test.ts",
+  "site/tests/unit/content-m8-golden-paths.test.ts",
+  "site/tests/unit/content-glossary-fire.test.ts",
+  "site/tests/unit/content-m8-wildberger-scope.test.ts",
+  "decisions/RT-FIX-P5-lessons.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 10fe1f3; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "HEAD at 10fe1f3; dependencies installed"
+  },
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "worktree agent-a5f4efb27c2994198, branch worktree-agent-a5f4efb27c2994198, base 10fe1f32c2b0f0e5fbc2a33c509c3b928fa43e00"
+  },
+  {
+   "cmd": "shasum -a 256 reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: all three match CONTRACTS 9"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 1,
+   "summary": "1 failed | 2410 passed (2411): p7-roots-signs.test.ts timed out at 5000 ms, load average 20.8"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- test/properties/p7-roots-signs.test.ts",
+   "exit": 0,
+   "summary": "2 passed (2): the baseline failure was load, not a defect"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-m8-typed-26 content-m8-golden-paths content-glossary-fire content-m8-wildberger-scope (red, at base)",
+   "exit": 1,
+   "summary": "Tests 10 failed | 3 passed (13); each failure message shows the finding's observed value"
+  },
+  {
+   "cmd": "npm run build (base, tests only changed)",
+   "exit": 0,
+   "summary": "35 pages; links: 1286 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch>/pw.config.ts (port 6900) site/tests/e2e/M8.spec.ts -g regressions (red, at base)",
+   "exit": 1,
+   "summary": "1 failed: b1 and b5 'stated outside the reveal, after the prediction block, in: nowhere'"
+  },
+  {
+   "cmd": "same, -g 'word count' at base",
+   "exit": 0,
+   "summary": "M8 prose words: 1795"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (the 4 adopted files, green after the fixes)",
+   "exit": 0,
+   "summary": "Test Files 4 passed (4); Tests 13 passed (13)"
+  },
+  {
+   "cmd": "npm run build (fixed)",
+   "exit": 0,
+   "summary": "35 pages; links: 1292 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test site/tests/e2e/M8.spec.ts (fixed)",
+   "exit": 0,
+   "summary": "29 passed (2.4m); M8 prose words 1795"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-release npm run build:release",
+   "exit": 0,
+   "summary": "34 pages; links: 1209 internal links, 0 problems"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-release npx playwright test M5 to M8 specs -g 'word count'; M8 -g regressions",
+   "exit": 0,
+   "summary": "release words M5 1791, M6 1733, M7 1769, M8 1797 (limit 1800); regression 1 passed"
+  },
+  {
+   "cmd": "node redteam/rt13-read.mjs http://localhost:6901/ release-nojs m8.json nojs 360 800 /modules/m8-lie-algebras/ && node redteam/rt13-p5-reveal-only.mjs m8.json (lens scripts, run from scratch on the fixed release build)",
+   "exit": 0,
+   "summary": "b1 stated in M8-q08, b5 in M8-q29; OK"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (whole project)",
+   "exit": 1,
+   "summary": "3 failed | 932 passed (935): T03, T12 and T15 tool tests timed out at 5000 ms, load average 16.5"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit T03.test.ts T12.test.ts T15.test.ts",
+   "exit": 0,
+   "summary": "99 passed (99) when run alone; not caused by this branch (no tool file touched)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-m8-golden-paths.test.ts with a scratch edit that put 'so the count above is <G types.E8.minuscule_nodes as=count>' back",
+   "exit": 1,
+   "summary": "1 failed: 'minuscule_nodes in: ...: expected [E8] to equal [E8, F4, G2]'; scratch edit then removed, 4 passed"
+  },
+  {
+   "cmd": "npm run build (final, clean tree at a7d80cd content)",
+   "exit": 0,
+   "summary": "35 page(s) built; links: 1292 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test site/tests/e2e/M8.spec.ts M5.spec.ts M6.spec.ts M7.spec.ts (final)",
+   "exit": 0,
+   "summary": "127 passed (4.7m); words M5 1791, M6 1741, M7 1788, M8 1795"
+  },
+  {
+   "cmd": "npx playwright test site/tests/e2e/nojs.spec.ts site/tests/e2e/a11y.spec.ts -g 'modules/m[5678]' (final)",
+   "exit": 0,
+   "summary": "15 passed (3.2m): axe and every nojs check for M5, M6, M7 and M8"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (4 adopted, glossary, golden, numbers-in-prose x2, content-m6-donnelly, content-m7-provenance; final)",
+   "exit": 0,
+   "summary": "Test Files 10 passed (10); Tests 38 passed (38)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 0,
+   "summary": "Test Files 73 passed (73); Tests 2411 passed (2411), at or above the baseline of 2411"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors 0 warnings; svelte-check 0 errors, 1 old warning (t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "grep -rn 'regression: P5-RT-' packages/engine/test site/tests",
+   "exit": 0,
+   "summary": "9 lines: typed-26 x2, golden-paths x3, glossary-fire x2, wildberger-scope x1, M8.spec.ts x1"
+  },
+  {
+   "cmd": "git ls-files | grep -i redteam",
+   "exit": 0,
+   "summary": "only build-plan/ archive files that are already at base; git diff --name-only base..HEAD has no redteam file"
+  },
+  {
+   "cmd": "git diff --name-only 10fe1f3..HEAD",
+   "exit": 0,
+   "summary": "10 files, none on the forbidden list (no reference/, build-plan/, DECISIONS.md, package files, configs, .github/)"
+  },
+  {
+   "cmd": "python3 scan.py on git diff 10fe1f3 (added lines)",
+   "exit": 0,
+   "summary": "0 each: em-dash, en-dash, .only(, .skip(, xit(, toBeCloseTo, console.log, ': any', astro dev, export let, $:, on: directive"
+  },
+  {
+   "cmd": "git log --format=%s 10fe1f3..HEAD",
+   "exit": 0,
+   "summary": "6 subjects, each starting 'RT-FIX P5-RT-'"
+  },
+  {
+   "cmd": "pgrep astro preview on ports 6900-6903; rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "no server running; status empty"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P5-RT-08-02: Attack 12: M8 types the dimension of the 26 of F4, which has a golden value, and its decisions fragment lists it as a number with none",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m8-typed-26.test.ts > m8-lie-algebras.mdx does not type it (and > m8-lie-algebras.mdx prints the dimension of that representation of F4 with <G>)",
+   "evidence": "Severity major (no adjustment). Red at base 10fe1f3: 'M8 types a golden value; expected <G k=\"weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension\"/>', Received the line-113 hit, the same as the verifier's observed value. Cause: beat 6 typed {'26'} in a brace string although weyl_dimension[type=F4;highest_weight=0,0,0,1].dimension = 26. It is now that <G>, and the M8.spec.ts allowlist entry is removed. Green: 3 passed. The M8 'numbers in prose' test passes without the entry. Commit e2a6c95."
+  },
+  {
+   "item": "P5-RT-08-03: Attack 13: two M8 <G> paths print the right digits from the wrong record (the string through (2, 0) from the node-2 representation, and the determinant of three boards from E8 alone)",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m8-golden-paths.test.ts > M8 does not print a position of the string through (2, 0) from the weights of the node-2 representation; > the determinant of the three boards of beat 6 is not printed from E8 alone",
+   "evidence": "Severity major (no adjustment). Red at base: 'the string through (2, 0) printed through a path to another representation' with Received [m8:61, m8:65], and 'three boards named, one board in the path' with Received [m8:113]. Cause: beat 1 and the b1 caption used minuscule_representations[type=A2;node=2].weights_dynkin_labels[1], and beat 6 used types.E8.det_cartan for three boards. Fix: show(STRING_TWO[1]) from the engine, and determinants from types.E8, types.F4 and types.G2. Green: 4 passed. The rendered digits are unchanged, (0, 1) and '1, 1 and 1'. Commit 5bd3c92."
+  },
+  {
+   "item": "P5-RT-08-03 (sibling): the count of minuscule nodes of E8, F4 and G2 printed from types.E8.minuscule_nodes alone, in the same beat 6 sentence",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m8-golden-paths.test.ts > the sentence of beat 6 on the boards with no minuscule node prints each golden field from every board it names",
+   "evidence": "Same cause: one board's path for a sentence about three boards. Red at base on the determinant field ('expected [E8] to equal [E8, F4, G2]'). With the clause put back by hand after the determinant fix, it is red on minuscule_nodes. Fix: the clause 'so the count above is 0' is dropped, because 'have no minuscule node' already states it. Green: 4 passed. Commit 5bd3c92."
+  },
+  {
+   "item": "P5-RT-08-04: Attack 30 (b): M8 uses the Appendix C terms fire, population and mutate without defining or linking them (siblings: M5, M6 and M7 never link fire)",
+   "status": "fixed",
+   "test": "site/tests/unit/content-glossary-fire.test.ts > m8-lie-algebras.mdx: \"fire\" / \"population\" / \"mutate\" is used, so at least one use links to glossary#...; > siblings: M5, M6 and M7 use \"fire\" and never link it",
+   "evidence": "Severity major (no adjustment). Red at base: 4 failed. M8 'fire' 7, 'population' 4 and 'mutate' 1 uses, each with 0 links. Siblings [{m5-weyl 26, 0}, {m6 7, 0}, {m7 6, 0}], as observed. Cause: no use of these terms was wrapped in the page's Term helper. Fix: the first use on each page is wrapped (M8 'firing' in beat 1, 'population' and 'mutates' in the first sidebar; M5, M6 and M7 the first 'firing' or 'fires'). No word is added. Green: 5 passed. The M5 to M8 specs (127 passed) and axe pass. Commit 5ec4ee9."
+  },
+  {
+   "item": "P5-RT-09-04: M8's Lie theory paragraph credits [W03a] with building every minuscule representation; [W03a] and SPEC 2.18 cover simply laced algebras only",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m8-wildberger-scope.test.ts > the paragraph and the limits it drops",
+   "evidence": "Severity: lens minor, refuter raised to major ('Credit accurately'); worked as major. Red at base: 1 failed, 'stated for every minuscule weight (B3 node 3, ...): expected false to be true'. Cause: the [W03a] sentence had no hypothesis. Fix: it now opens 'On simply laced boards,', which matches Seen statement 1. Green: 1 passed. Commit 937948d."
+  },
+  {
+   "item": "P5-RT-13-01: Attack 8 (P2): the answers of M8's two predictions (b1 and b5) are stated only in their reveals",
+   "status": "fixed",
+   "test": "site/tests/e2e/M8.spec.ts > regressions > without JavaScript > the answers of M8 predictions b1 and b5 are stated outside their reveals, after the prediction block",
+   "evidence": "Severity major (no adjustment). Red at base: '+ b1: stated outside the reveal, after the prediction block, in: nowhere' and '+ b5: ... nowhere', the same as the script's observed value. The test uses the lens script's patterns on the built page without JavaScript. It also requires the stating text to follow its prediction block and nothing before it to match, which respects the held class P3-RT-13-01. Fix: beat 2 opens 'The first figure's two firings reach (0, −2), whose string at node 1 is that position alone.' (show(AFTER_TWO)). Seen statement 2 adds 'and from node 3 the orbit has 8 positions' (a <G> of minuscule_representations[type=D4;node=3].dimension). Words are cut elsewhere, listed in the fragment. M8 is 1795 words (dev) and 1797 (release), the same as at base. Green: 1 passed in both builds, M8.spec.ts 29 passed. The lens's rt13-p5-reveal-only.mjs on the fixed release build prints 'b1 stated in M8-q08', 'b5 stated in M8-q29', OK. Commit a7d80cd."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX 5.3 (adoption changes nothing else)",
+   "what": "Each adopted unit reproducer keeps its tests unchanged. Two files gain one extra test each: a positive <G>-path check in content-m8-typed-26.test.ts and the every-board field check in content-m8-golden-paths.test.ts. The script reproducer of P5-RT-13-01, as a Playwright test, also asserts order: after the prediction block, and nothing before it.",
+   "why": "A fix that only deleted the 26 or the clause would pass the reproducers. The order check keeps the held class P3-RT-13-01 intact."
+  },
+  {
+   "spec": "M8.spec.ts allowlist (P5-A3 instruction 5.8)",
+   "what": "Entry '26' removed. The '(-2,2)' pattern follows the new source (STRING_TWO[1] in place of the node-2 weight path). One entry added for the node label 3 of the new Seen sentence.",
+   "why": "These are consequences of the fixes. The checker fails on an unused entry or an unexplained typed number. The added entry is a node label in the existing category, scoped to its own sentence."
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE",
+   "what": "When folding decisions/RT-FIX-P5-lessons.md into DECISIONS.md, note that 'the 26 of F4' in the entry '2026-10-24 P5-A3: numbers typed without a golden value (instruction 5.8)' is superseded by P5-RT-08-02: it has a golden value and is now a <G>. A fixer may not edit DECISIONS.md or decisions/P5-A3.md.",
+   "finding": "P5-RT-08-02"
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P5-lessons.md",
+ "openQuestions": [
+  "The proposedFix of P5-RT-13-01 for b5 ('Nodes 3 and 4 give orbits of 8 positions too.') does not match the lens's own script pattern ('nodes 3' is not 'node 3'), and beat 5 cannot open with an answer because M8.spec.ts fixes its first sentence. The b5 answer therefore went into Seen statement 2.",
+  "Timing failures not caused by this branch, all passing when run alone: engine p7-roots-signs (5000 ms), and site-unit T03, T12 and T15 property tests (5000 ms), at load averages 16 to 21."
+ ],
+ "handoff": "All changed files are in the cluster: the M5 to M8 lessons, M8.spec.ts, four new site/tests/unit/content-*.test.ts files and the fragment. No T12, MatrixView or history.ts file was touched, and the ω captions of b10 to b12 (P5-RT-08-01) were left alone. No finding needs a decision. Lens rerun: the b1 answer opens beat 2 and the b5 answer sits in Seen statement 2. Both follow their prediction blocks and nothing above them states either answer (P3-RT-13-01 respected). Words were cut in beats 1, 2, 6 and 7, the E8 caption, the second sidebar and the Lie theory paragraph so that M8 stays at 1795 words (1797 in release). The list is in the fragment and the commit body of a7d80cd. Proposed fixes not followed as written: in beat 6 the count clause, a sibling of the determinant, was dropped rather than reprinted per board, and the b5 sentence is worded so that the lens script's pattern matches it."
+}
