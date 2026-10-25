@@ -26,3 +26,6 @@
 - P5-RT-10-02 minor: edge colours and the move/signed matrices of a picked node tested only on A2 node 1 (two mutants survive).
 - P5-RT-10-03 minor: T12's default start is omega_i, not 6.6's 'all ones for numbers'.
 - Notes: T03 '1000 random free moves' has no own timeout (load); P5-A2 relation-in-MathML entry misstates SPEC 7.3 (owner); M8 beat 7 released={false} renders in release (Beat has no released prop); beat 6 reads a phase-6 golden key (satake rank); stringThrough loops without a bound in the engine (E-6), guarded by T12; M6.spec does not assert its next link.
+- RT-09 reproduce: 01, 02, 04, 05 reproduced (oracle checks agree). Refute pending.
+- RT-10 refute: none refuted; 03 raised to major (a stated default of a field is wrong; 6.6 ambiguity for the owner). 01's severity named by the rubric at blocker or minor, not major. Reproduce pending.
+- RT-09 verdicts: 01 CONFIRMED blocker; 02 CONFIRMED major (two senses of 'dimension' in T12, owner); 04 CONFIRMED, raised to major ('Credit accurately'); 05 REFUTED (SPEC 2.7 defines finite type as the connected boards of 2.8; glossary row copies Appendix C; requireFinite's acceptance of pieces is a guard decision).
