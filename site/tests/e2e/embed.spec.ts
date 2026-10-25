@@ -11,9 +11,10 @@
 // through its islands.
 //
 // Hooks read: data-embed (body), data-open-on-site (the link under the tool), data-frame, data-tool,
-// data-hydrated, data-moves (tool root), data-node and data-value (node buttons), data-control="copyLink",
-// "downloadData", "latex", "cite", data-export="png", data-out="citeText", "exportNotice", "notice",
-// "caption", "noscript", and the live region [data-live].
+// data-hydrated, data-moves, data-instance (tool root), data-node, data-value and data-can-act (node
+// buttons), data-control="copyLink", "downloadData", "latex", "cite", data-export="png",
+// data-out="citeText", "exportNotice", "notice", "caption", "noscript", and the live region [data-live].
+// The export module is recognised in the built scripts by its string 'nothing to export as LaTeX'.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
