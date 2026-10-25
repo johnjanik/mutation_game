@@ -299,7 +299,7 @@ test('G2 node 2 fails with some number in the orbit is 3, and F4 and G2, without
   expect(golden.types.G2!.minuscule_nodes).toEqual([]);
   await open(page, 'g=G2&k=2');
   await expect(out(page, 'explanation')).toContainText('some number in the orbit is 3');
-  await expect(out(page, 'no-minuscule')).toHaveText('This board has no minuscule node; its representations need more than the game.');
+  await expect(out(page, 'no-minuscule')).toHaveText('This board has no minuscule node, so the recipe of this tool builds none of its representations.');
   await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
   // F4: the default node is 1 (no minuscule node), its orbit is built, and some relation fails.
   expect(golden.types.F4!.minuscule_nodes).toEqual([]);

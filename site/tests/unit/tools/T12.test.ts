@@ -103,6 +103,7 @@ import {
   type Step,
 } from '../../../src/components/tools/t12/model';
 import { bigBoard } from '../../../src/lib/state';
+import { resolveGoldenPath } from '../../../src/lib/golden';
 import T12 from '../../../src/tools/registry/T12';
 import { LINK_NOTICE, encodeState } from '../../../src/lib/urlCodec';
 import { exportJSON } from '../../../src/lib/export';
@@ -242,7 +243,7 @@ describe('T12 acceptance over minuscule_representations', () => {
     for (const name of ['E8', 'F4', 'G2']) {
       const r = buildRepresentation(named(name), 1);
       expect(golden.types[name]!.minuscule_nodes).toEqual([]);
-      expect(noMinusculeSentence(r)).toBe('This board has no minuscule node; its representations need more than the game.');
+      expect(noMinusculeSentence(r)).toBe('This board has no minuscule node, so the recipe of this tool builds none of its representations.');
     }
     expect(noMinusculeSentence(buildRepresentation(named('A2'), 1))).toBeNull();
   });
@@ -1280,7 +1281,7 @@ describe('T12 server render', () => {
     expect(outText(body, 'limit')[0]).toContain('more than 2000');
     expect(body).not.toContain('data-out="orbit-graph"');
     expect(body).not.toContain('data-format=');
-    expect(outText(body, 'no-minuscule')).toEqual(['This board has no minuscule node; its representations need more than the game.']);
+    expect(outText(body, 'no-minuscule')).toEqual(['This board has no minuscule node, so the recipe of this tool builds none of its representations.']);
     expect(body).toContain('data-out="string-position"');
   });
 
@@ -1438,5 +1439,31 @@ describe('T12 hooks and texts (review P5-A2, findings 5, 7, 9 and request 11)', 
     expect(outText(body, 'state-node')).toEqual(['4']);
     expect(T12.outs).toContain('state-board');
     expect(T12.outs).toContain('state-node');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 5 red-team round (build-plan/red-team/RT-FIX.md 5.3)
+// ---------------------------------------------------------------------------------------------
+
+describe('regressions', () => {
+  // Adopted from site/tests/unit/redteam-RT-08-p5-g2-sentence.test.ts (RT-08, phase 5 round). SPEC 2.18
+  // "One zero weight" builds the 7-dimensional representation of G2 from the game ("a route to G2 that
+  // stays inside the game"); the [D] of "Out of reach" covers only the representations out of reach of both
+  // recipes. So on G2 the sentence may say what the minuscule recipe of this tool builds, not that every
+  // representation needs more than the game.
+  describe('P5-RT-08-05: T12 on G2 says every representation needs more than the game', () => {
+    it('the golden file holds a representation of G2 built from one orbit and one zero position', () => {
+      expect(resolveGoldenPath('orbit_plus_zero_representations[type=G2;highest_weight=1,0].dimension')).toBe(7);
+    });
+    for (const node of [1, 2]) {
+      // regression: P5-RT-08-05
+      it(`G2 node ${node}: the sentence does not say that all its representations need more than the game`, () => {
+        const rep = buildRepresentation(boardFromName('G2') as Board<number>, node);
+        const sentence = noMinusculeSentence(rep);
+        // Observed at 006f50d: "This board has no minuscule node; its representations need more than the game."
+        expect(sentence ?? '').not.toMatch(/its representations need more than the game/);
+      });
+    }
   });
 });

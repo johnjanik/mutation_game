@@ -438,9 +438,14 @@ export function explanation(rep: Representation): string {
   return rep.built ? `${head}, so the steps E and F of the recipe miss some moves and the relations fail.` : `${head}, so the steps E and F of the recipe would miss some moves.`;
 }
 
-/** SPEC 2.18 [D] for a board with no minuscule node (E8, F4, G2), or null. */
+/**
+ * For a board with no minuscule node (E8, F4, G2), or null: what the recipe of this tool builds there,
+ * none of the representations. Not that they all need more than the game: SPEC 2.18 "One zero weight"
+ * builds the 7 of G2 from the game, and its [D] "need more than the game" is for the representations out
+ * of reach of both recipes (RT-FIX P5-RT-08-05).
+ */
 export function noMinusculeSentence(rep: Representation): string | null {
-  return rep.boardHasMinuscule ? null : 'This board has no minuscule node; its representations need more than the game.';
+  return rep.boardHasMinuscule ? null : 'This board has no minuscule node, so the recipe of this tool builds none of its representations.';
 }
 
 /** The stated limit of 4.0 and 5.6 above 2000 positions (data-out="limit"), or null when the matrices are built. */
