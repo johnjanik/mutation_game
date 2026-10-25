@@ -17,7 +17,7 @@
   // Hooks: data-frame, data-tool, data-moves, data-hydrated on the root; data-out="caption",
   // "notice", "noscript"; data-control="undo", "redo", "reset", "copyLink", "downloadData"; data-live.
   // P2-A6 (additive): data-export="svg", "png"; data-export-option="footer", "labels"; data-out="exportNotice".
-  // P6-A5 (additive): data-control="exportLatex", "cite"; data-out="citeText", rendered after a click on Cite.
+  // P6-A5 (additive): data-control="latex", "cite"; data-out="citeText", rendered after a click on Cite.
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import { createAnnouncer } from '../../lib/a11y';
@@ -241,7 +241,7 @@
     <button type="button" class="control" data-control="downloadData" disabled={!hydrated} onclick={onDownloadData}>Download data</button>
     <button type="button" class="control" data-export="svg" disabled={!hydrated} onclick={() => onExport('svg')}>Export SVG</button>
     <button type="button" class="control" data-export="png" disabled={!hydrated} onclick={() => onExport('png')}>Export PNG</button>
-    <button type="button" class="control" data-control="exportLatex" disabled={!hydrated} onclick={onExportLatex}>Export LaTeX</button>
+    <button type="button" class="control" data-control="latex" disabled={!hydrated} onclick={onExportLatex}>Export LaTeX</button>
     <button type="button" class="control" data-control="cite" disabled={!hydrated} onclick={onCite}>Cite</button>
     <fieldset class="export-options">
       <legend class="visually-hidden">Export options</legend>

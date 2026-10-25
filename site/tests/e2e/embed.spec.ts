@@ -12,7 +12,7 @@
 //
 // Hooks read: data-embed (body), data-open-on-site (the link under the tool), data-frame, data-tool,
 // data-hydrated, data-moves (tool root), data-node and data-value (node buttons), data-control="copyLink",
-// "downloadData", "exportLatex", "cite", data-export="png", data-out="citeText", "exportNotice", "notice",
+// "downloadData", "latex", "cite", data-export="png", data-out="citeText", "exportNotice", "notice",
 // "caption", "noscript", and the live region [data-live].
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -173,7 +173,7 @@ test.describe('the embed routes', () => {
             return details ? details.querySelectorAll('table button').length : -1;
           });
           expect(tableButtons).toBeGreaterThan(0);
-          await expect(control(page, 'exportLatex')).toBeDisabled();
+          await expect(control(page, 'latex')).toBeDisabled();
           await expect(control(page, 'cite')).toBeDisabled();
         }
       });
@@ -227,9 +227,9 @@ test.describe('Export LaTeX and Cite', () => {
     test('Export LaTeX and Cite are disabled without JavaScript', async ({ page }) => {
       for (const path of ['tools/board/', 'tools/garden/', 'tools/affine/']) {
         await page.goto(at(path));
-        await expect(control(page, 'exportLatex')).toHaveText('Export LaTeX');
+        await expect(control(page, 'latex')).toHaveText('Export LaTeX');
         await expect(control(page, 'cite')).toHaveText('Cite');
-        await expect(control(page, 'exportLatex')).toHaveAttribute('disabled', '');
+        await expect(control(page, 'latex')).toHaveAttribute('disabled', '');
         await expect(control(page, 'cite')).toHaveAttribute('disabled', '');
         await expect(page.locator('[data-out="citeText"]')).toHaveCount(0);
       }
@@ -241,7 +241,7 @@ test.describe('Export LaTeX and Cite', () => {
       let downloads = 0;
       page.on('download', () => downloads++);
       await ready(page, path);
-      await expect(control(page, 'exportLatex')).toBeEnabled();
+      await expect(control(page, 'latex')).toBeEnabled();
       await expect(control(page, 'cite')).toBeEnabled();
       // Nothing acts by itself on load (4.0, A-9).
       await page.waitForTimeout(600);
@@ -255,21 +255,21 @@ test.describe('Export LaTeX and Cite', () => {
     await stubClipboard(page);
     await ready(page, 'tools/board/?z=1&g=E6');
     await control(page, 'copyLink').click();
-    const { text, file } = await downloadText(page, 'exportLatex');
+    const { text, file } = await downloadText(page, 'latex');
     const [link] = await copied(page);
     expect(file).toBe('board-E6.tex');
     expect(text).toBe(`% ${link}\n% needs \\usepackage{dynkin-diagrams}\n\\dynkin E{oooooo}\n`);
     await expect(page.locator('[data-out="exportNotice"]')).toHaveText('');
     // On C2 the letter is the name the reader chose (D19).
     await ready(page, 'tools/board/?z=1&g=C2');
-    expect((await downloadText(page, 'exportLatex')).text).toContain('\n\\dynkin C{oo}\n');
+    expect((await downloadText(page, 'latex')).text).toContain('\n\\dynkin C{oo}\n');
   });
 
   test('Export LaTeX on a board with no form of SPEC 6.7 shows the notice', async ({ page }) => {
     let downloads = 0;
     page.on('download', () => downloads++);
     await ready(page, 'tools/affine/');
-    await control(page, 'exportLatex').click();
+    await control(page, 'latex').click();
     await expect(page.locator('[data-out="exportNotice"]')).toHaveText('nothing to export as LaTeX');
     expect(downloads).toBe(0);
   });
@@ -338,7 +338,7 @@ test.describe('Export LaTeX and Cite', () => {
     await ready(page, 'tools/board/?z=1&g=G2');
     await page.locator('[data-export="png"]').first().focus();
     await page.keyboard.press('Tab');
-    await expect(control(page, 'exportLatex')).toBeFocused();
+    await expect(control(page, 'latex')).toBeFocused();
     const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Enter')]);
     expect(dl.suggestedFilename()).toBe('board-G2.tex');
     expect(readFileSync((await dl.path())!, 'utf8')).toContain('\n\\dynkin G{oo}\n');
@@ -351,7 +351,7 @@ test.describe('Export LaTeX and Cite', () => {
   test('Export LaTeX and Cite fit at 320 pixels', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await ready(page, 'tools/board/');
-    for (const name of ['exportLatex', 'cite']) {
+    for (const name of ['latex', 'cite']) {
       const b = (await control(page, name).boundingBox())!;
       expect(b.width).toBeGreaterThanOrEqual(44);
       expect(b.height).toBeGreaterThanOrEqual(44);
