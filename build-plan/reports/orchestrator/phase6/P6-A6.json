@@ -1,0 +1,391 @@
+{
+ "agent": "P6-A6",
+ "status": "done",
+ "branch": "worktree-agent-a8097b5c4ed8caf5e",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a8097b5c4ed8caf5e",
+ "commits": [
+  "ea17920 P6-A6: version and licence footer, and the tests of the phase 6 pages",
+  "11f0419 P6-A6: history, common confusions, credits and licences",
+  "647e641 P6-A6: checks that versions and licences are read, not typed, and the record of the checks"
+ ],
+ "filesChanged": [
+  "site/src/components/Footer.astro",
+  "site/src/content/pages/history.mdx",
+  "site/src/content/pages/confusions.mdx",
+  "site/src/content/pages/credits.mdx",
+  "site/tests/e2e/pages-6.spec.ts",
+  "decisions/P6-A6.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 5d16e79",
+   "exit": 0,
+   "summary": "HEAD at 5d16e79 Red team phase 5 round: closed (G5 rerun GREEN)"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed; node v22.22.0"
+  },
+  {
+   "cmd": "npm run size -- --port 7111 (before)",
+   "exit": 0,
+   "summary": "35 routes measured, 0 over budget; /about/, /credits/ and the other no-tool pages 0.0 kB of 15"
+  },
+  {
+   "cmd": "npm run build (final)",
+   "exit": 0,
+   "summary": "37 pages; links: 1442 internal links on 37 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings, 1 hint (existing T06.spec.ts); svelte-check: 0 errors, 1 warning (existing t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "clean"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 1,
+   "summary": "166 files; 3391 passed, 1 failed: site/tests/unit/tools/T12.test.ts hit its 5 s timeout while the load average was about 11 on 4 processors. No file of mine is involved."
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/tools/T12.test.ts",
+   "exit": 0,
+   "summary": "1 file, 82 passed (the timeout above does not happen when the file runs alone)"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/p6-a6/dist-release npm run build",
+   "exit": 0,
+   "summary": "succeeds; report complete, link check passed; lines: 'open item E2 used on /history/ (fallback shown)', 'open item E5 used on /credits/ (fallback shown)', 'open item E5 used on /history/ (fallback shown)', 'open item E13 used on /history/ (fallback shown)', 'open item E17 used on /confusions/ (fallback shown)'; no unknown items"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath npm run build; playwright test pages-6.spec.ts basepath.spec.ts (port 7110)",
+   "exit": 0,
+   "summary": "60 passed"
+  },
+  {
+   "cmd": "playwright test pages-6, nojs, a11y, credits-bundled, pages, nojs-phase0 (port 7110)",
+   "exit": 1,
+   "summary": "174 passed, 1 failed: the a11y scan of /modules/m8-lie-algebras/ passed its 2-minute limit under the same load"
+  },
+  {
+   "cmd": "playwright test a11y.spec.ts -g m8-lie-algebras",
+   "exit": 0,
+   "summary": "1 passed (1.7 min) when run alone"
+  },
+  {
+   "cmd": "playwright test pages-6.spec.ts credits-bundled.spec.ts nojs-phase0.spec.ts (final build)",
+   "exit": 0,
+   "summary": "31 passed"
+  },
+  {
+   "cmd": "mutation check: 9 breaks applied to a scratch build, then playwright test pages-6.spec.ts",
+   "exit": 1,
+   "summary": "9 failed, each on its own break (the manuscript dated 2003, Mozes content outside E2, a typed KaTeX version, the bridge sentence removed, 'orthogonal' outside E17, 'by T. S. Hoang', a section placed before Wildberger's, a typed code licence, a wrong data-year); the files were restored afterwards"
+  },
+  {
+   "cmd": "npm run size -- --port 7111 (after)",
+   "exit": 0,
+   "summary": "37 routes measured, 0 over budget; /history/, /confusions/, /credits/ 0.0 kB of 15; every other route has the same sum as before"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "/history, /confusions and /credits render without JavaScript, with the timeline and the sidebar",
+   "status": "pass",
+   "test": "pages-6 > without JavaScript > the three pages render without JavaScript; nojs.spec.ts passed"
+  },
+  {
+   "item": "axe finds no serious or critical violation on the three pages, light and dark themes",
+   "status": "pass",
+   "test": "pages-6 > the three pages pass axe; a11y.spec.ts"
+  },
+  {
+   "item": "the timeline lists the nine entries of M10 with their keys, data-year never decreasing",
+   "status": "pass",
+   "test": "pages-6 > history timeline is complete and in order of date"
+  },
+  {
+   "item": "the sidebar has Kostant's game 'attributed to Kostant', Satake (1960) and Araki (1962) with Sat60 and Ara62; it sits beside the list when wide and after it on phones",
+   "status": "pass",
+   "test": "pages-6 > history sidebar"
+  },
+  {
+   "item": "the credit lines of 8.4 are on history and credits",
+   "status": "pass",
+   "test": "pages-6 > credit lines on history and credits"
+  },
+  {
+   "item": "the manuscript element contains 'undated' and not '2003'",
+   "status": "pass",
+   "test": "pages-6 > the manuscript is undated"
+  },
+  {
+   "item": "history carries E2, E5 and E13; every Mozes-content sentence is inside E2",
+   "status": "pass",
+   "test": "pages-6 > open items are wrapped on history"
+  },
+  {
+   "item": "the release build succeeds and its report lists /history/ under E2, E5 and E13",
+   "status": "pass",
+   "test": "RELEASE=1 build (report lines in commandsRun)"
+  },
+  {
+   "item": "/confusions makes no reference to the note or the package",
+   "status": "pass",
+   "test": "pages-6 > confusions makes no reference to the note"
+  },
+  {
+   "item": "/confusions has the 13 data-confusion sections of Appendix D and F",
+   "status": "pass",
+   "test": "pages-6 > confusions covers Appendix D and F"
+  },
+  {
+   "item": "the E8 Weyl group order comes from <G> outside any wrapper; the orthogonal-group text is only inside E17",
+   "status": "pass",
+   "test": "pages-6 > golden number and E17 on confusions"
+  },
+  {
+   "item": "not-the-same-game states CS_i=R_iC with the a=Cp gloss and the bridge sentence verbatim",
+   "status": "pass",
+   "test": "pages-6 > confusions bridge sentence"
+  },
+  {
+   "item": "credits puts Wildberger first; its SPDX identifiers equal LICENSE-content and the root package.json; it has the code-samples sentence",
+   "status": "pass",
+   "test": "pages-6 > credits acknowledges Wildberger first and states the licences"
+  },
+  {
+   "item": "credits lists bundled libraries and fonts with title, author, source and licence, and the build packages with their licences as read",
+   "status": "pass",
+   "test": "pages-6 > credits lists bundled libraries with title, author, source, licence"
+  },
+  {
+   "item": "credits has the oracle rule of 7.9 in data-credit=oracle",
+   "status": "pass",
+   "test": "pages-6 > credits states the oracle rule"
+  },
+  {
+   "item": "credits has data-credit=prior-art: the credited Appendix F rows with titles and authors as written there, the ADE phrase, no [U] text outside E17",
+   "status": "pass",
+   "test": "pages-6 > credits lists borrowed prior art"
+  },
+  {
+   "item": "every third-party asset that is not a package is credited, and no video is re-hosted",
+   "status": "pass",
+   "test": "pages-6 > third-party assets are credited and no video is re-hosted"
+  },
+  {
+   "item": "the footer shows the pinned versions and the commit on every page type",
+   "status": "pass",
+   "test": "pages-6 > footer shows the versions and the commit"
+  },
+  {
+   "item": "the footer states both licences with SPDX identifiers",
+   "status": "pass",
+   "test": "pages-6 > footer states both licences"
+  },
+  {
+   "item": "the footer and the three pages load no script",
+   "status": "pass",
+   "test": "pages-6 > the three pages load no tool script; npm run size 0.0 kB"
+  },
+  {
+   "item": "no em-dash in the three pages or in the footer",
+   "status": "pass",
+   "test": "pages-6 > no em-dash"
+  },
+  {
+   "item": "internal links resolve and use BASE_URL",
+   "status": "pass",
+   "test": "pages-6 > links resolve (root and /sub/path/); basepath.spec.ts"
+  },
+  {
+   "item": "every <Cite> key and <G> path resolves (the build passes)",
+   "status": "pass",
+   "test": "npm run build"
+  },
+  {
+   "item": "type checks pass",
+   "status": "pass",
+   "test": "npm run check -w site; tsc -p packages/engine"
+  },
+  {
+   "item": "Owner's part: close items E2, E5, E13 and E17 or accept their fallbacks; approve the text of the M10 pages",
+   "status": "not-automated",
+   "test": "gate G6, owner's part"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "plan 5.1 (titles)",
+   "what": "The credits page keeps the title 'Credits', not 'Credits and licences'.",
+   "why": "P1-A4's pages.spec.ts reads the h1 'Credits', and I may not edit that test."
+  },
+  {
+   "spec": "plan 5.1, D17",
+   "what": "history and confusions carry no draft: true.",
+   "why": "The strict pages schema has no draft field, and the schema is not mine to change."
+  },
+  {
+   "spec": "plan 5.10 (MIT default)",
+   "what": "The code licence shown is AGPL-3.0-only.",
+   "why": "This is the owner's licence, read from the root package.json. It is never typed."
+  },
+  {
+   "spec": "plan 5.10 (full commit in a hook)",
+   "what": "data-commit holds the build's short commit, for example 11f0419.",
+   "why": "astro.config.mjs (P1-A2/MERGE) sets PUBLIC_GIT_COMMIT from git rev-parse --short HEAD. The test accepts HEAD, a prefix of HEAD, an ancestor of HEAD, or 'unknown'."
+  },
+  {
+   "spec": "plan 5.9 item 3 (one source of truth)",
+   "what": "The lines that read the licences exist twice, once in Footer.astro and once in credits.mdx, reading the same two files.",
+   "why": "A shared module would be a new file outside my ownership. The test checks that both match the files."
+  },
+  {
+   "spec": "Appendix D, correction 3",
+   "what": "The confusions page says the two moves are different matrices 'at every node joined to another'.",
+   "why": "At an isolated node S_i equals R_i. The owner holds this wording; the sentence is recorded in my decisions fragment."
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE / P1-A4",
+   "what": "Add a module under site/src/lib/pages/ that reads the two licence identifiers once, so Footer.astro and credits.mdx can share it."
+  },
+  {
+   "to": "P1-A4",
+   "what": "Add a draft field to the pages schema so the M10 pages can show the D17 draft mark."
+  },
+  {
+   "to": "P1-A4 / MERGE",
+   "what": "If the title 'Credits and licences' is wanted, update pages.spec.ts (h1 'Credits') and the navigation."
+  },
+  {
+   "to": "P6-A5 / MERGE",
+   "what": "Once LaTeX export merges, add to the credits prior art that SimpLie's LaTeX export and dynkin-diagrams (as the export target) were borrowed."
+  },
+  {
+   "to": "P6-A8",
+   "what": "Hub of M10: slug history, title 'History'; slug confusions, title 'Common confusions'; slug credits, title 'Credits'."
+  },
+  {
+   "to": "MERGE",
+   "what": "The sources page (P1-A4, generated from SOURCES 11.1) links four YouTube videos without a wrapper, labelled 'unverified' in words, and it does so in release builds too. These links are open item E5. The credits page lists all four with E5-wrapped fields; decide whether the sources page should withhold them in a release."
+  },
+  {
+   "to": "MERGE / owner",
+   "what": "The [Gab72] priority claim on /not-quiver-mutation/ and in M8 is outside my files. My pages do not mention Gabriel."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "unverifiedUsed": [
+  {
+   "item": "E2",
+   "page": "/history/",
+   "fallback": "Later authors describe this paper as the one that introduced the game."
+  },
+  {
+   "item": "E5",
+   "page": "/history/",
+   "fallback": "Video lectures are linked here only after their titles, dates and addresses have been checked."
+  },
+  {
+   "item": "E5",
+   "page": "/credits/",
+   "fallback": "a video lecture whose title is still being checked / still being checked (the title, author and source of each of the four linked videos)"
+  },
+  {
+   "item": "E13",
+   "page": "/history/",
+   "fallback": "Those notes name the game after Kostant."
+  },
+  {
+   "item": "E17",
+   "page": "/confusions/",
+   "fallback": "How this group compares with orthogonal groups over the field of two elements is still being checked for this site."
+  }
+ ],
+ "footerVersions": {
+  "versions": [
+   [
+    "astro",
+    "7.3.8"
+   ],
+   [
+    "@astrojs/mdx",
+    "8.0.3"
+   ],
+   [
+    "svelte",
+    "5.57.2"
+   ],
+   [
+    "@astrojs/svelte",
+    "9.0.1"
+   ],
+   [
+    "typescript",
+    "6.0.3"
+   ],
+   [
+    "nanostores",
+    "1.5.5"
+   ],
+   [
+    "vitest",
+    "5.0.3"
+   ],
+   [
+    "fast-check",
+    "4.10.2"
+   ],
+   [
+    "@playwright/test",
+    "1.64.0"
+   ],
+   [
+    "@axe-core/playwright",
+    "4.13.0"
+   ],
+   [
+    "katex",
+    "0.16.47"
+   ],
+   [
+    "@two-games/engine",
+    "0.0.0"
+   ]
+  ],
+  "commit": "11f0419 (the last build ran before the final commit 647e641; the test accepts an ancestor of HEAD)",
+  "licences": {
+   "content": "CC-BY-SA-4.0",
+   "code": "AGPL-3.0-only"
+  }
+ },
+ "bundledPackages": {
+  "set": [
+   "@astrojs/svelte",
+   "astro",
+   "clsx",
+   "katex",
+   "nanostores",
+   "rolldown",
+   "svelte",
+   "vite"
+  ],
+  "method": "P1-A4's dependencyRows, filtered to the rows that reach the reader. Those rows are the packages the client build records from its own chunks (lib/pages/shippedPackages.ts) plus P1-A4's SHIPPED map (the astro island loader, and the katex stylesheet and fonts). Name, version, author, source and licence are read from each installed package at build time."
+ },
+ "layoutsWithoutFooter": [],
+ "decisionsFragment": "decisions/P6-A6.md",
+ "openQuestions": [
+  "Should the sources page withhold its four [U] YouTube links (E5) in release builds? The credits page credits them either way.",
+  "Owner-held wording of Appendix D correction 3 at an isolated node: I used 'at every node joined to another', as /not-quiver-mutation/ does.",
+  "Under heavy machine load, two tests owned by others timed out: the T12 unit test (5 s) and the M8 axe scan (2 min). Both pass when run alone."
+ ],
+ "handoff": "The footer, /history/, /confusions/ and the extended /credits/ are committed. The footer reads all versions and licences at build time and ships no script. The three new or extended pages are 0.0 kB with no tool and pass the 22 tests of pages-6.spec.ts, at the root and at /sub/path/; each test was shown to fail on a matching break. Reviewers should look at the E5 handling of video links (history wraps them; credits lists all four with wrapped fields because /sources/ links them unwrapped) and the decisions fragment's row-by-row record of the Appendix F prior art."
+}
