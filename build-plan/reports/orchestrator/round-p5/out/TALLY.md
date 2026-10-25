@@ -66,3 +66,8 @@
 ## RT-12: 1 finding (minor). Retests hold: 12-02 (CI base), 12-03 (Node 22.12.0), 12-04 for its own case. Pins 20 of 20 exact; KaTeX one copy, fonts byte-equal; base path crawl 0 outside; verify byte for byte.
 - P5-RT-12-01 minor: a release build that fails in the prebuild leaves the earlier release report marked complete, and npm run report exits 0 with it (edge of the P4-RT-12-04 fix).
 - Notes: T12.test.ts:303 costs about 2.5 s CPU under a 5000 ms default timeout (flake risk on a busy runner); T05.spec Symbol(filename) intermittent with a fresh SSR cache; a malformed $...$ formula builds with exit 0 (P0-A3 open question; 7.7 silent); Node 22.12-22.18 EBADENGINE warnings (undici, wasm-runtime; owner); e2e:ci-base root script not added (RT-FIX-P4-toolchain request); M8 beat 7 released={false} renders (RT-10 note).
+## RT-11: 3 findings (3 minor). Retests hold: 11-01, 11-03 (11-02 owner-held). Reference hashes equal; verify shim 0,1,1,1,1; coverage through phase 5 complete; every rep.ts stub caught.
+- P5-RT-11-01 minor: chevalleySerre's hh, he and hf verdicts never tested where they fail (five mutants pass the suite).
+- P5-RT-11-02 minor: T12's announcement of a failing picked relation is never heard by a test (mutant 'always equal' passes).
+- P5-RT-11-03 minor: T12.test.ts and T12.spec.ts type golden orbit sizes and dimensions.
+- Notes: S2 digest mutant equivalent on shipped pages (every configured state is minuscule); T15.spec:542 reads the live region at the first entry (race under load); T12.test.ts:303 F11 agreement only up to 600 positions (by instruction).
