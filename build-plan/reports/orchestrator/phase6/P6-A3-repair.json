@@ -1,0 +1,243 @@
+{
+ "agent": "P6-A3",
+ "status": "done",
+ "branch": "worktree-agent-ad939293e43360c36 (worktree /home/user/mutation_game/.claude/worktrees/agent-ad939293e43360c36)",
+ "base": "038ad94",
+ "commits": [
+  "f48deb8 P6-A3 repair: ToolFrame gains an optional moves prop for data-moves (MERGE ruling (3), pre-approved, additive)",
+  "6a2160e P6-A3 repair: T13 after review (dark theme, E7/E8 island data, worker failure, captions, A-4, A-1, presets)",
+  "dd68eac P6-A3 repair: tests that fail without each fix of the review",
+  "8561979 P6-A3 repair: decisions fragment, dated entries for each ruling of the review"
+ ],
+ "filesChanged": [
+  "site/src/components/board/ToolFrame.svelte (pre-approved: optional prop moves only)",
+  "site/src/components/tools/T13SatakeStudio.svelte",
+  "site/src/components/tools/t13/model.ts",
+  "site/src/components/tools/t13/load.ts",
+  "site/src/components/tools/t13/config.ts (data-out data-error added)",
+  "site/src/components/tools/t13/DecorationDiagram.svelte",
+  "site/tests/unit/tools/T13.test.ts",
+  "site/tests/e2e/T13.spec.ts",
+  "site/tests/e2e/T13-keyboard.spec.ts",
+  "decisions/P6-A3.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 038ad94; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "head 038ad94; dependencies installed"
+  },
+  {
+   "cmd": "npm run build (baseline at 038ad94, copied to scratch dist-before) and npm run size --dist dist-before --port 7201",
+   "exit": 0,
+   "summary": "baseline /tools/satake/ and /embed/satake/ 85.9 kB, 88 routes, 0 over budget"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors; svelte-check 1202 files 0 errors, 1 warning (t02/LayerChart.svelte, not mine)"
+  },
+  {
+   "cmd": "npm test (TMPDIR in scratch)",
+   "exit": 0,
+   "summary": "Test Files 187 passed (187); Tests 3912 passed (3912)"
+  },
+  {
+   "cmd": "npx vitest run toolframe.test.ts T13.test.ts registry.test.ts registry-offered.test.ts",
+   "exit": 0,
+   "summary": "4 files, 54 passed (T13.test.ts 48)"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "88 pages; links 3215, 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7201",
+   "exit": 0,
+   "summary": "88 routes, 0 over budget; /tools/satake/ and /embed/satake/ 87.0 kB of 90; no other route changed"
+  },
+  {
+   "cmd": "playwright (scratch config, port 7200): T13.spec.ts T13-keyboard.spec.ts toolframe-hydration.spec.ts embed.spec.ts nojs.spec.ts registry-outs.spec.ts engine-fallback.spec.ts worker-on-demand.spec.ts",
+   "exit": 0,
+   "summary": "542 passed (7.9m)"
+  },
+  {
+   "cmd": "playwright a11y.spec.ts -g satake",
+   "exit": 0,
+   "summary": "2 passed (tools/satake, embed/satake)"
+  },
+  {
+   "cmd": "playwright T13.spec.ts T13-keyboard.spec.ts against the baseline build (OUT_DIR=dist-before)",
+   "exit": 1,
+   "summary": "red before: 10 failed (all new and changed tests), 20 passed"
+  },
+  {
+   "cmd": "playwright scratch probe isolated.spec.ts, baseline and repaired builds",
+   "exit": 1,
+   "summary": "baseline: data-moves 0 against 1, 2, 1; next tab stop after restricted board copyLink; repaired: 4 passed"
+  },
+  {
+   "cmd": "python3 scratch mutants.py (12 mutants against T13.test.ts, run twice)",
+   "exit": 0,
+   "summary": "12 of 12 killed, the review's 2 survivors included; sources restored"
+  },
+  {
+   "cmd": "scratch build with decoration roving tabindex removed (OUT_DIR dist-mutant), then T13-keyboard.spec.ts",
+   "exit": 1,
+   "summary": "tab-stop count fails (Expected 1, Received 2) in 2 tests; source restored"
+  },
+  {
+   "cmd": "pkill -f 'port 7200'; rm -rf node_modules site/node_modules packages/engine/node_modules site/dist",
+   "exit": 0,
+   "summary": "no server left; git status --porcelain empty"
+  }
+ ],
+ "findings": [
+  {
+   "finding": "(1) dark theme: black and white nodes differ by 1.12:1",
+   "status": "fixed",
+   "test": "T13.spec.ts > black nodes are filled and white nodes hollow in both themes, a black node against a white node at least 3 to 1 (A-5, A-6)",
+   "evidence": "red before (dark: black 2 against white 1), green after"
+  },
+  {
+   "finding": "(2) an instance configured on E7 or E8 fetches the worker at hydration",
+   "status": "fixed",
+   "test": "T13.test.ts > an instance configured on E7 or E8 carries the data of its pair in the island, and only those (E-9); T13.spec.ts > an instance configured on E7 shows the data written into the island at build time and fetches no worker before the first interaction (E-9), with a control page without the data that requests the worker",
+   "evidence": "red before (element(s) not found; worker requested), green after; mutants 'no island data' and 'another pair's data' killed"
+  },
+  {
+   "finding": "(3) data-moves always 0",
+   "status": "fixed",
+   "test": "T13.spec.ts > play-theta ... (after a stage, three stages, Play θ, undo), E6 composite move, theta/undo/root test; scratch isolated probe",
+   "evidence": "red before (data-moves 0 against moveCounter 1, 2, 1), green after"
+  },
+  {
+   "finding": "(4) a failed worker leaves 'computing the data in the background' forever, unhandled rejection",
+   "status": "fixed",
+   "test": "T13.spec.ts > a worker that fails ends the wait with a sentence that the data could not be computed, and the next change asks again (worker answered 404)",
+   "evidence": "red before (no data-error), green after. The worker client (P1-A2's lib/worker.ts) keeps a failed Worker, so a retry after a load failure waits until it drops it (request below)"
+  },
+  {
+   "finding": "(5) restricted caption pairs word lengths and reduced lengths wrongly on 6 pairs",
+   "status": "fixed",
+   "test": "T13.test.ts > captions on every admissible pair and every panel ... (each node: 2 l(w_X) + L letters, L of the orbit drawn there, golden L on a record's own pair)",
+   "evidence": "red before (scratch mutant with the old pairing fails), green after"
+  },
+  {
+   "finding": "(6) captions, figure name, announcements: ASCII hyphen in names, w_X and m_λ, dim k, '1 moves'",
+   "status": "fixed",
+   "test": "T13.test.ts > captions on every admissible pair ...; names in their display spelling; the figure is named with display spellings (A-10)",
+   "evidence": "red before (mutants for hyphen, plural, dim k fail), green after"
+  },
+  {
+   "finding": "(7) above four nodes announcements read every population and give no step number",
+   "status": "fixed",
+   "test": "T13.test.ts > paint, tau, a stage of theta, a composite move; T13.spec.ts > on a board above four nodes a stage of θ, a reset and a root read only the changed cities and the step number (A-4)",
+   "evidence": "red before, green after; mutants 'every population above four nodes' and 'no step number' killed"
+  },
+  {
+   "finding": "(8) undo, redo and reset come before the restricted board in the tab order",
+   "status": "fixed",
+   "test": "T13-keyboard.spec.ts > a restricted node plays its composite move ... (Tab reaches undo, redo, reset); > after Play θ the next tab stops are undo, redo and reset (A-1)",
+   "evidence": "red before (next tab stop was copyLink), green after; layout: History moved after the panel, recorded in decisions"
+  },
+  {
+   "finding": "(9) an unknown preset falls back silently",
+   "status": "fixed",
+   "test": "T13.test.ts > an unknown preset id fails the build with the list of presets",
+   "evidence": "red before (fallback mutant), green after"
+  },
+  {
+   "finding": "(10) two surviving mutants; no tab-stop count; no E7 island test",
+   "status": "fixed",
+   "test": "T13.test.ts > the failure note ... (A3 black 1 flip gives only the first sentence); > satake and restrictedBoard are never called ... (computeNow with spied engine functions); T13-keyboard.spec.ts expectOneTabStop on decoration, game board, restricted board; E7 island tests of (2)",
+   "evidence": "both review survivors now killed; roving-tabindex mutant build fails the tab-stop count"
+  },
+  {
+   "finding": "(11) golden values typed as duplicates of golden reads",
+   "status": "fixed",
+   "test": "T13.spec.ts and T13.test.ts: duplicates dropped or computed from golden; A.5 and 2.15 e6(-26) worked values kept and marked",
+   "evidence": "green after; review's listed lines removed or marked"
+  },
+  {
+   "finding": "also: catalogue row headers empty-table-header (axe minor)",
+   "status": "fixed",
+   "test": "T13.spec.ts > the catalogue row headers have text (axe empty-table-header), with the typeset names, in both themes",
+   "evidence": "red before (4 empty headers on D4, 5 on E6), green after"
+  }
+ ],
+ "wordingChanges": [
+  {
+   "where": "caption, presets default and data (and tau-on-black alike)",
+   "old": "... restricted roots of type BC1 with multiplicities (m_λ, m_2λ) = (4, 1), dim k = 9, dim p = 6, character −3.",
+   "new": "... restricted roots of type BC1 with multiplicities (4, 1) for λ and 2λ, dim 𝔨 = 9, dim 𝔭 = 6, character −3."
+  },
+  {
+   "where": "caption, several restricted nodes (so(2,5))",
+   "old": "multiplicities (m_λ, m_2λ) = (1, 0) at node 1 and (3, 0) at node 2 of the restricted board, dim k = 11, dim p = 10",
+   "new": "multiplicities (1, 0) at node 1 and (3, 0) at node 2 of the restricted board, for λ and 2λ, dim 𝔨 = 11, dim 𝔭 = 10"
+  },
+  {
+   "where": "caption, preset play-theta",
+   "old": "θ = −w_X∘τ for su*(4) on A3 takes the root (0, 1, 0) to (−1, −1, −1) in three stages: move each population along τ, play w_X = 1 3, and change every sign.",
+   "new": "θ for su*(4) on A3 takes the root (0, 1, 0) to (−1, −1, −1) in three stages: move each population along τ, play the longest word of the black nodes, 1 3, and change every sign."
+  },
+  {
+   "where": "caption, preset restricted",
+   "old": "For e6(-26) on E6 the restricted board is A2: ...",
+   "new": "For e6(−26) on E6 the restricted board is A2: ... (rest unchanged)"
+  },
+  {
+   "where": "caption, restricted panel where nodes differ (e6(−14))",
+   "old": "each of its moves is a fixed sequence of 21 and 18 moves of E6, of reduced length 6 and 9",
+   "new": "its moves are fixed sequences of moves of E6 (18 moves of reduced length 6 at node 1 and 21 moves of reduced length 9 at node 2)"
+  },
+  {
+   "where": "caption, one-letter word (A1)",
+   "old": "a fixed sequence of 1 moves of A1",
+   "new": "a fixed sequence of 1 move of A1"
+  },
+  {
+   "where": "caption, compact form",
+   "old": "the compact form g2(-14): real rank 0, no restricted roots, dim k = 14.",
+   "new": "the compact form g2(−14): real rank 0, no restricted roots, dim 𝔨 = 14."
+  },
+  {
+   "where": "announcement, stage of θ",
+   "old": "Stage 2 of θ. Populations now 1, 1, 1.",
+   "new": "Stage 2 of θ. Populations now 1, 1, 1. Move 2. (above four nodes: Stage 2 of θ. City 1 now 1, ... Move 2.)"
+  },
+  {
+   "where": "announcement, composite move",
+   "old": "Played the composite move of restricted node 2, 32 mutations. Shadow coordinates now 0, minus 1.",
+   "new": "Played the composite move of restricted node 2, 32 mutations. Shadow coordinates now 0, minus 1. City 6 now minus 1. Move 1. (at most four nodes: Populations now ... Move N.)"
+  },
+  {
+   "where": "announcement, reset and root",
+   "old": "Reset. Populations now 0, 0, 1. / Root chosen. Populations now 1, 0, 0.",
+   "new": "Reset. Populations now 0, 0, 1. Move 0. / Root chosen. Populations now 1, 0, 0. Move 0. (above four nodes: changed cities only)"
+  },
+  {
+   "where": "announcement Loaded, figure aria-label, same-form note, Load button name",
+   "old": "e6(-14)",
+   "new": "e6(−14) (U+2212); data-name and Download data keep the data spelling"
+  },
+  {
+   "where": "new: data, shadows, restricted panels (data-out=\"data-error\") and caption",
+   "old": "computing the data in the background (forever)",
+   "new": "The data could not be computed (<reason>). The next change of the decoration or the board asks for them again. / caption: <where>, all three conditions hold, but the data could not be computed."
+  },
+  {
+   "where": "unchanged",
+   "old": "failure note, reason sentences, lights, paint and tau announcements, preset ids, property names, data-out names",
+   "new": "unchanged (one data-out name added: data-error)"
+  }
+ ],
+ "sizes": {
+  "/tools/satake/ before": "85.9 kB (baseline 038ad94, same measurement)",
+  "after": "87.0 kB of 90 (/embed/satake/ the same); 88 routes, 0 over budget, no other route changed"
+ },
+ "decisionsFragment": "decisions/P6-A3.md",
+ "handoff": "For P6-A7 (M9): preset ids, property names and data-out names are unchanged; data-error is new. Captions and announcements changed as listed in wordingChanges and in the decisions entry 'wording that lesson M9 may quote (repair after review)'. The failure note and reason sentences did not change. An instance configured on E7 or E8 now carries its data in the island, so M9 may configure one without needing the worker. Request to P1-A2 or MERGE: site/src/lib/worker.ts keeps a Worker that failed. Dropping it in onerror (worker.terminate(); worker = null) would let T13's retry after a worker that could not load start a new worker. Until then that retry waits."
+}

@@ -1,0 +1,233 @@
+{
+ "agent": "P6-A4",
+ "status": "done",
+ "branch": "worktree-agent-ad0ab3862498fef9f",
+ "base": "9d85868",
+ "commits": [
+  "77107db P6-A4 repair: link texts, the convention switch, records and real forms, provenance",
+  "6e3e5d4 P6-A4 repair: no golden data in the build path, checked on the modules",
+  "f10453e P6-A4 repair: T14.spec compares what the reader sees with golden",
+  "0d98b1b P6-A4 repair: the registry imports the picker by its alias",
+  "6dcf038 P6-A4 repair: the Atlas in the site navigation; the route test's time limit (MERGE)",
+  "47045af P6-A4 repair: decisions fragment, eleven entries for the repair after review"
+ ],
+ "filesChanged": [
+  "site/src/components/atlas/atlasData.ts",
+  "site/src/components/atlas/AtlasSheet.astro",
+  "site/src/components/atlas/ConventionSwitch.astro",
+  "site/src/tools/registry/T14.ts",
+  "site/src/components/Nav.astro (pre-approved)",
+  "site/tests/unit/atlas.test.ts",
+  "site/tests/unit/atlas-build-path.test.ts (new)",
+  "site/tests/e2e/T14.spec.ts",
+  "site/tests/e2e/registry-outs.spec.ts (pre-approved)",
+  "site/tests/e2e/pages.spec.ts (pre-approved: the route test's time limit; nav by keyboard expects Atlas)",
+  "decisions/P6-A4.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-ad0ab3862498fef9f; worktree-agent-ad0ab3862498fef9f"
+  },
+  {
+   "cmd": "git reset --hard 9d85868; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "HEAD 9d85868; installed, Node 22.22.0"
+  },
+  {
+   "cmd": "npm run build (unfixed baseline at 9d85868)",
+   "exit": 0,
+   "summary": "88 pages; links 3215, 0 problems"
+  },
+  {
+   "cmd": "vitest run site/tests/unit/atlas.test.ts with the unfixed atlasData.ts swapped in",
+   "exit": 1,
+   "summary": "red: 5 failed, 116 passed (the five new link-text and record-count tests)"
+  },
+  {
+   "cmd": "playwright T14.spec.ts against the unfixed baseline build (port 7210)",
+   "exit": 1,
+   "summary": "red: 9 failed, 20 passed (legend x2, E6, Short roots, h and |W| texts, counts, provenance, hyphen-minus (e6(-14) etc.), navigation)"
+  },
+  {
+   "cmd": "playwright registry-outs.spec.ts -g Predict, the old spec with the new T14 import",
+   "exit": 1,
+   "summary": "red: T14.ts (atlas) failed, 18 passed"
+  },
+  {
+   "cmd": "python3 mutate_unit2.py (the review's unit mutants against atlas.test.ts and atlas-build-path.test.ts)",
+   "exit": 0,
+   "summary": "U8, U9, U10 KILLED (U8 and U9 by the module test and the scan, U10 by the scan); U1-U4, U7, U11 still killed; U5 and U6 are display mutants caught by T14.spec (B-row sentence, long numbers); U12 is an equivalent mutant"
+  },
+  {
+   "cmd": "python3 mutate_e2e2.py (E1-E6 built together into scratch OUT_DIR, T14.spec on port 7212)",
+   "exit": 0,
+   "summary": "T14 5 failed: convention x2 (E1), displayed values, long numbers (E2), Wildberger full sentences"
+  },
+  {
+   "cmd": "python3 mutate_e2e3.py (pairs E3+E5 and E4+E6, one build each, the two guarding tests)",
+   "exit": 0,
+   "summary": "A: displayed values failed on 'B2 marks and comarks shown' (E5), full sentences failed on the E7 row (E3); B: displayed values failed on 'A1 su(2) black nodes shown' (E6), full sentences failed on the G2 row (E4)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings, 1 hint (T06.spec, not mine); svelte-check 0 errors, 1 warning (t02/LayerChart.svelte, not mine)"
+  },
+  {
+   "cmd": "vitest run atlas.test.ts atlas-build-path.test.ts",
+   "exit": 0,
+   "summary": "124 passed; the guard test also passed with site/src/generated names files absent (it ran names.mjs and the output matched the prebuild's)"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 1,
+   "summary": "187 files passed, 1 failed; 3913 passed, 1 failed: T11.test.ts '200 random symmetric plays' timed out at 5 s under load 11.8 (another agent's test)"
+  },
+  {
+   "cmd": "vitest run site/tests/unit/tools/T11.test.ts (alone)",
+   "exit": 0,
+   "summary": "33 passed; the npm test failure was timing only"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "88 pages; links 3500 internal links, 0 problems"
+  },
+  {
+   "cmd": "playwright T14.spec.ts registry-outs registry-weight embed nojs pages pages-6 module-links (port 7210)",
+   "exit": 0,
+   "summary": "402 passed; T14 29 passed; 'no link anywhere targets dev/math-check' 21.1 s"
+  },
+  {
+   "cmd": "playwright a11y.spec.ts -g 'atlas|modules/m1-|about'",
+   "exit": 0,
+   "summary": "38 passed: 32 board pages, atlas/, tools/atlas/, embed/atlas/, modules/m1-mutation/, about/, and about+credits no script"
+  },
+  {
+   "cmd": "npm run size -- --port 7211",
+   "exit": 0,
+   "summary": "88 routes, 0 over budget; every no-tool page 0.0 kB of script (/about/, /atlas/, /credits/ ...); /atlas/<T>/ 0.0 kB; /tools/atlas/ and /embed/atlas/ 46.0 kB of 90"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/dist-release npm run build",
+   "exit": 0,
+   "summary": "87 pages; links 3350, 0 problems; E4 fallback shown on /atlas/E6/, E7, E8, G2"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/dist-release playwright T14.spec.ts (port 7213)",
+   "exit": 0,
+   "summary": "29 passed, including 'E6: ... (release build)' and the release-aware 'Kac note wrapped'"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath npm run build",
+   "exit": 0,
+   "summary": "88 pages; links 3500, 0 problems"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath playwright basepath.spec.ts T14.spec.ts (port 7213)",
+   "exit": 0,
+   "summary": "118 passed"
+  },
+  {
+   "cmd": "pgrep -af 'port 721[0-3]'; rm -rf node_modules site/node_modules packages/engine/node_modules site/dist",
+   "exit": 0,
+   "summary": "no server left; deleted; git status --porcelain empty"
+  }
+ ],
+ "findings": [
+  {
+   "finding": "Major: on the 16 boards with two root lengths the Coxeter-plane link opens T10 with the short roots hidden, but the text promises 'the roots'",
+   "status": "fixed",
+   "test": "atlas.test.ts > the Coxeter-plane link tells the reader to tick Short roots on exactly the boards with two root lengths; T14.spec.ts > links: with Short roots ticked, the Coxeter-plane link shows all the roots on the rings listed (B3, C3, G2)",
+   "evidence": "red before (unit test failed on the unfixed atlasData; e2e failed on the baseline build), green after; T10 ticked shows ringSizes equal to the page and pointCount = golden n_roots"
+  },
+  {
+   "finding": "Major: the convention switch's legend and note state Kac's numbering outside the E4 wrapper",
+   "status": "fixed",
+   "test": "T14.spec.ts > E6: the switch names a convention, and Kac's numbering is said only inside Unverified E4 (preview and release); convention switch legend",
+   "evidence": "red before (3 tests failed on the baseline), green after on the preview and on the release build"
+  },
+  {
+   "finding": "The |W| link text says 'the product of the exponents plus one'",
+   "status": "fixed",
+   "test": "atlas.test.ts > the Weyl-order link of T5 says each exponent is increased by one; T14.spec.ts > links: the texts of h and |W| ...",
+   "evidence": "red before, green after"
+  },
+  {
+   "finding": "The wave sentence never defines a round",
+   "status": "fixed",
+   "test": "T14.spec.ts > links: the texts of h and |W| promise what the Numbers Game Lab shows",
+   "evidence": "red before, green after"
+  },
+  {
+   "finding": "A1's h link promises rounds of the wave",
+   "status": "fixed",
+   "test": "atlas.test.ts > the h link promises rounds of the wave only where there is a wave; T14.spec.ts > links: the texts of h and |W| ...",
+   "evidence": "red before, green after"
+  },
+  {
+   "finding": "D4 says 'lists 6 real forms' though the 6 records make 5 real forms",
+   "status": "fixed",
+   "test": "atlas.test.ts > the catalogue records and the real forms they make are counted from the engine (golden admissible_counts); T14.spec.ts > real forms: records and real forms counted on every page",
+   "evidence": "red before, green after; counts from canonicalPair, the D4 sentence built from the coincidence group"
+  },
+  {
+   "finding": "T13 link texts show the data spelling (e6(-14)) with a hyphen-minus",
+   "status": "fixed",
+   "test": "atlas.test.ts > the links to the Satake Studio carry no data spelling of a name; T14.spec.ts > no visible text on an Atlas page writes a number with a hyphen-minus",
+   "evidence": "red before (E6 page: 'Open the real form e6(-14) (E III)'), green after on all 33 Atlas pages and /tools/atlas"
+  },
+  {
+   "finding": "registry-outs.spec.ts hard-codes components/tools/ and T14.ts uses a tools/../atlas path",
+   "status": "fixed",
+   "test": "registry-outs.spec.ts > T14.ts (atlas): Predict.svelte's names",
+   "evidence": "red before (old spec with the new '@components/atlas/AtlasPicker.svelte' import failed), green after"
+  },
+  {
+   "finding": "The 'no golden data in the build path' guard is a source regex; mutants U8, U9, U10 survived",
+   "status": "fixed",
+   "test": "site/tests/unit/atlas-build-path.test.ts (golden import and fs read throw; atlasData, downloads, names for all 32 boards); atlas.test.ts > no golden data in the build path (three new patterns)",
+   "evidence": "red before (U8, U9, U10 survived the old tests per the review), killed after"
+  },
+  {
+   "finding": "'displayed values equal golden' reads only data-exact; display mutants survived",
+   "status": "fixed",
+   "test": "T14.spec.ts > displayed values equal golden on every page",
+   "evidence": "red before: E5 failed ('B2 marks and comarks shown') and E6 failed ('A1 su(2) black nodes shown'), each in its own build; green after"
+  },
+  {
+   "finding": "The Wildberger note test checks only fragments of each row",
+   "status": "fixed",
+   "test": "T14.spec.ts > Wildberger note: the full sentence of each row of 2.10",
+   "evidence": "red before: E3 failed on the E7 row and E4 on the G2 row, each in its own build; green after"
+  },
+  {
+   "finding": "The theorem-like sentences beside the values carry no provenance",
+   "status": "fixed",
+   "test": "T14.spec.ts > provenance: each statement beside a value carries the provenance SPEC gives it, on every page",
+   "evidence": "red before, green after (marker, wording and citations per item on all 32 pages)"
+  },
+  {
+   "finding": "T14.spec.ts matches satake records with records.find, not the harness's matchRecord",
+   "status": "fixed",
+   "test": "T14.spec.ts > displayed values equal golden on every page; real forms: records and real forms counted",
+   "evidence": "records now matched with matchRecord (exactly one per real_form); green"
+  }
+ ],
+ "mergeItems": [
+  {
+   "item": "Nav link",
+   "status": "done",
+   "evidence": "Nav.astro adds 'Atlas' after Modules when isReleased({kind:'atlas'}, siteInventory()) holds, href joinBase(BASE_URL,'atlas/'). released.ts not edited: its Target has no entry for the index. T14.spec.ts > navigation (6 page kinds, aria-current on /atlas/, at 320 px no scroll on about/, atlas/, atlas/B8/ and all 8 items inside the viewport) and pages.spec.ts > nav by keyboard: red on the baseline, green after. npm run size: every no-tool page 0.0 kB of script; base-path build 118 passed"
+  },
+  {
+   "item": "pages.spec time limit",
+   "status": "done",
+   "evidence": "'no link anywhere targets dev/math-check' gets one added line, test.setTimeout(Math.max(30_000, routes.length * 1_000)), 88 s for 88 routes; nothing else in it changed. It took 21.1 s at load about 8. Recorded in decisions/P6-A4.md"
+  }
+ ],
+ "decisionsFragment": "decisions/P6-A4.md",
+ "handoff": "Every finding in the review is fixed and each has a test that failed before the fix: the review's mutants U8 to U10 and E3 to E6 are now killed, and the display mutants were built in pairs so each test met only its own mutant. The Atlas nav item relies on released.ts's isReleased plus joinBase, because Target has no entry for the Atlas index. If P1-A4 adds one, Nav can switch to linkIfReleased. When site/src/generated/names.json or satake-names.json is missing (as in CI before the build), atlas-build-path.test.ts runs scripts/names.mjs in a child process first, the same step as the prebuild. The full npm test had one failure, a 5 s timeout in T11.test.ts (not mine) at load 12, which passed alone (33 passed)."
+}
