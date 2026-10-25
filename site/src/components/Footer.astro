@@ -7,10 +7,13 @@
 // Everything is read at build time, never typed: the versions from the exact pins of the three
 // package.json files (root, engine, site), KaTeX's from KATEX_VERSION, the engine's from its own
 // package.json; the code licence from the root package.json (else the site's or the engine's); the
-// content licence from the line "SPDX-License-Identifier: <id>" of LICENSE-content. A pin that is not
-// an exact version, two different pins of one package, or a licence file without an identifier fails
-// the build with a message. The credits page (content/pages/credits.mdx) reads the two licences from
-// the same two files in the same way.
+// content licence from the line "SPDX-License-Identifier: <id>" of LICENSE-content. The names printed
+// beside the identifiers are read from the licence files too (P6-A6 repair after review): the short
+// name in brackets after "licensed under the ..." in LICENSE-content, and the title line and version
+// line of LICENSE; a file that gives no name leaves the identifier alone. No identifier and no name of
+// a licence is typed in this file. A pin that is not an exact version, two different pins of one
+// package, or a licence file without an identifier fails the build with a message. The credits page
+// (content/pages/credits.mdx) reads the two licences from the same two files in the same way.
 // No script, no island, no client directive: the footer is part of the 15 kB shell of a page with no
 // tool (SPEC.md 7.6). The versions sit in a <details> element, which works without JavaScript.
 // Hooks (P6-A6, plan): data-site-footer; data-licence="content" and data-licence="code" with the SPDX
@@ -22,6 +25,7 @@ import rootPackage from '../../../package.json';
 import enginePackage from '../../../packages/engine/package.json';
 import sitePackage from '../../package.json';
 import contentLicenceText from '../../../LICENSE-content?raw';
+import codeLicenceText from '../../../LICENSE?raw';
 
 interface Manifest {
   name?: string;
@@ -89,20 +93,32 @@ function codeLicence(): string {
   throw new Error('Footer.astro: no package.json of the repository has a license field (SPEC.md 7.9)');
 }
 
-/** Short names for identifiers the site may carry (decision D4); any other identifier is shown alone. */
-const SHORT_NAMES: Record<string, string> = {
-  'CC-BY-SA-4.0': 'CC BY-SA 4.0',
-  'CC-BY-4.0': 'CC BY 4.0',
-  'AGPL-3.0-only': 'GNU AGPL version 3',
-  'AGPL-3.0-or-later': 'GNU AGPL version 3 or later',
-  MIT: 'MIT',
-  'Apache-2.0': 'Apache 2.0',
-};
+/**
+ * The short name of the content licence as LICENSE-content gives it: the words in brackets after
+ * "licensed under the <full name>", or null when the file has no such sentence.
+ */
+function contentLicenceName(text: string): string | null {
+  return /\blicensed under (?:the )?[^()]+? \(([^()]+)\)/.exec(text.replace(/\s+/g, ' '))?.[1]?.trim() ?? null;
+}
+
+/**
+ * The name of the code licence as LICENSE gives it: its first line when that line names a licence
+ * (a title in capitals is printed with ordinary capitals, words of three letters or fewer kept), and
+ * the number of the line "Version <n>" that follows it; null when the first line names no licence.
+ */
+function codeLicenceName(text: string): string | null {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '');
+  const title = lines[0];
+  if (title === undefined || !/licen[cs]e/i.test(title)) return null;
+  const plain = title === title.toUpperCase() ? title.split(/\s+/).map((w) => (w.length <= 3 ? w : `${w[0]}${w.slice(1).toLowerCase()}`)).join(' ') : title;
+  const version = /^Version (\d+(?:\.\d+)*)\b/.exec(lines[1] ?? '')?.[1];
+  return version === undefined ? plain : `${plain}, version ${version}`;
+}
 
 const content = contentLicence(contentLicenceText);
 const code = codeLicence();
-const contentName = SHORT_NAMES[content];
-const codeName = SHORT_NAMES[code];
+const contentName = contentLicenceName(contentLicenceText);
+const codeName = codeLicenceName(codeLicenceText);
 
 // The commit the build recorded (site/astro.config.mjs, the constant of P1-A2 that exportJSON uses).
 const commit = (import.meta.env.PUBLIC_GIT_COMMIT as string | undefined) || 'unknown';

@@ -12,8 +12,10 @@ import rootPackage from '../../../../package.json';
 import sitePackage from '../../../package.json';
 import enginePackage from '../../../../packages/engine/package.json';
 import contentLicenceText from '../../../../LICENSE-content?raw';
+import codeLicenceText from '../../../../LICENSE?raw';
 
 export const history = linkIfReleased({ kind: 'page', slug: 'history' });
+export const sources = linkIfReleased({ kind: 'static', name: 'sources' });
 export const m4 = linkIfReleased({ kind: 'module', number: 4 });
 export const m7 = linkIfReleased({ kind: 'module', number: 7 });
 export const sandbox = linkIfReleased({ kind: 'tool', id: 'sandbox' });
@@ -34,16 +36,21 @@ export const codeId = (() => {
   }
   throw new Error('credits.mdx: no package.json of the repository has a license field (SPEC.md 7.9)');
 })();
-export const LICENCE_NAMES = {
-  'CC-BY-SA-4.0': ['the Creative Commons Attribution-ShareAlike 4.0 International licence', 'CC BY-SA 4.0'],
-  'CC-BY-4.0': ['the Creative Commons Attribution 4.0 International licence', 'CC BY 4.0'],
-  'AGPL-3.0-only': ['the GNU Affero General Public License version 3', 'GNU AGPL version 3'],
-  'AGPL-3.0-or-later': ['the GNU Affero General Public License version 3 or later', 'GNU AGPL version 3 or later'],
-  MIT: ['the MIT License', 'MIT'],
-  'Apache-2.0': ['the Apache License, version 2.0', 'Apache 2.0'],
-};
-export const licenceName = (id) => LICENCE_NAMES[id]?.[0] ?? `the licence with SPDX identifier ${id}`;
-export const licenceShort = (id) => LICENCE_NAMES[id]?.[1] ?? id;
+// The names of the two licences, read from the licence files as Footer.astro reads them (P6-A6 repair
+// after review): no identifier and no name of a licence is typed in this file. LICENSE-content gives
+// "licensed under the <full name> (<short name>)"; LICENSE gives its title line and a line "Version <n>".
+export const contentNames = (() => {
+  const m = /\blicensed under (?:the )?([^()]+?) \(([^()]+)\)/.exec(contentLicenceText.replace(/\s+/g, ' '));
+  return m ? { full: `the ${m[1].trim()}`, short: m[2].trim() } : null;
+})();
+export const codeName = (() => {
+  const lines = codeLicenceText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '');
+  const title = lines[0];
+  if (title === undefined || !/licen[cs]e/i.test(title)) return null;
+  const plain = title === title.toUpperCase() ? title.split(/\s+/).map((w) => (w.length <= 3 ? w : `${w[0]}${w.slice(1).toLowerCase()}`)).join(' ') : title;
+  const version = /^Version (\d+(?:\.\d+)*)\b/.exec(lines[1] ?? '')?.[1];
+  return `the ${version === undefined ? plain : `${plain}, version ${version}`}`;
+})();
 export const NOT_STATED = 'not stated in the package';
 export const plain = (s) => (s === null || s === undefined ? NOT_STATED : s.replace(/\s*\u2014\s*/g, ', '));
 export const allRows = () => dependencyRows(findRoot(process.cwd()), bundledPackages(import.meta.env.PROD));
@@ -81,7 +88,12 @@ export const Fonts = () => {
     listed from the installed packages through lib/pages/dependencies.ts of P1-A4 (an author string with
     an em-dash gets a comma); the prior art of Appendix F that the site borrows from, row by row as
     recorded in decisions/P6-A6.md; the linked videos inside the wrapper of open item E5. The page title
-    stays Credits, which the tests of P1-A4 read. */}
+    stays Credits, which the tests of P1-A4 read.
+    Repair after review (P6-A6): the names of the two licences are read from LICENSE-content and LICENSE;
+    the sentence on which pages link the videos sits in an E5 wrapper, so that it holds in a release
+    build too; SimpLie's LaTeX export and dynkin-diagrams as the target of Export LaTeX are credited; the
+    reference-software sentence names no licence for CoReLG (Appendix E item 17); the outside checks of
+    the reference data are those SOURCES.md 11.4 and 11.5 give. */}
 
 <section data-credit="wildberger">
 
@@ -117,7 +129,7 @@ On this site videos are only linked, never embedded, so that no page loads a scr
 
 ## Linked videos
 
-The site shows no image, figure or video made by anyone else. It links the videos below, from the history page and the sources page, and hosts no copy of them. Their titles, channels and addresses come from search listings and are still being checked.
+The site shows no image, figure or video made by anyone else. <Unverified item="E5" fallback="The sources page links the videos below.">The sources page links the videos below, and the history page links the first two.</Unverified> No copy of any of them is hosted here. Their titles, channels and addresses come from search listings and are still being checked.
 
 <ul data-list="assets" style={{ overflowWrap: 'anywhere' }}>
 {VIDEOS.map((v) => <Video {...v} />)}
@@ -129,9 +141,9 @@ The site shows no image, figure or video made by anyone else. It links the video
 
 ## Licences of this site
 
-The text and figures of this site are licensed under {licenceName(contentId)} ({licenceShort(contentId)}; SPDX: <span data-licence="content">{contentId}</span>), in the file <a href={`${repository}/blob/HEAD/LICENSE-content`}>LICENSE-content</a> of the repository. The code is licensed under {licenceName(codeId)} (SPDX: <span data-licence="code">{codeId}</span>), in the file <a href={`${repository}/blob/HEAD/LICENSE`}>LICENSE</a>. Code samples shown in the text fall under the code licence. These are the current licences; the choice for the text and figures is still open and may change before the first release.
+The text and figures of this site are licensed under {contentNames ? <>{contentNames.full} ({contentNames.short}; SPDX: <span data-licence="content">{contentId}</span>)</> : <>the licence with SPDX identifier <span data-licence="content">{contentId}</span></>}, in the file <a href={`${repository}/blob/HEAD/LICENSE-content`}>LICENSE-content</a> of the repository. The code is licensed under {codeName ? <>{codeName} (SPDX: <span data-licence="code">{codeId}</span>)</> : <>the licence with SPDX identifier <span data-licence="code">{codeId}</span></>}, in the file <a href={`${repository}/blob/HEAD/LICENSE`}>LICENSE</a>. Code samples shown in the text fall under the code licence. These are the current licences; the choice for the text and figures is still open and may change before the first release.
 
-The two identifiers are read when the site is built, from the file LICENSE-content and from the package.json file at the root of the repository, and the footer of every page states them in the same way.
+The two identifiers are read when the site is built, from the file LICENSE-content and from the package.json file at the root of the repository, and the names of the licences from the files LICENSE-content and LICENSE. The footer of every page states them in the same way.
 
 </section>
 
@@ -170,8 +182,9 @@ The site takes ideas from these works and none of their code. Each entry says wh
 <li data-prior-art="keller">B. Keller, quiver mutation applet (<a href="https://webusers.imj-prg.fr/~bernhard.keller/quivermutation/">its page</a>): click a node to act on it, and see the history of moves. Every game board of this site works that way. The applet itself is about quiver mutation, a different operation.</li>
 <li data-prior-art="langlands">Langlands Programs preview, Coxeter apps (<a href="https://preview.langlandsprograms.com/apps/coxeter">preview.langlandsprograms.com</a>) run serious computations with Coxeter groups in the browser, on an engine written in TypeScript. The site took them as evidence that an engine written in TypeScript can carry its own computations.</li>
 <li data-prior-art="group-explorer">Group Explorer 3, LGPL licence (<a href="https://nathancarter.github.io/group-explorer/index.html">its page</a>), shows one group in several linked views. The site shows one board in several linked views in the same way, populations beside numbers among them.</li>
-<li data-prior-art="simplie">SimpLie (T. Nutma), GPL licence (<a href="https://github.com/teake/simplie">its repository</a>): draw a Dynkin diagram and read off its type and its roots, "diagram in, structure out". The sandbox and the classification lab of this site work that way.</li>
+<li data-prior-art="simplie">SimpLie (T. Nutma), GPL licence (<a href="https://github.com/teake/simplie">its repository</a>): draw a Dynkin diagram and read off its type and its roots, "diagram in, structure out", and export the diagram as LaTeX. The sandbox and the classification lab of this site work the first way, and the button Export LaTeX of its tools takes the second idea from SimpLie.</li>
 <li data-prior-art="stembridge-vogan">Stembridge's Coxeter plane pictures; Vogan's explanation of the $E_8$ picture (<a href="https://websites.umich.edu/~jrs/coxplane.html">Stembridge's pictures</a>, <a href="https://math.mit.edu/~dav/e8plane.html">Vogan's explanation</a>): the standard picture of the roots of $E_8$ in its Coxeter plane, and a rule in plain words for its edges, that each root is joined to its <G k="e8.neighbours_at_inner_product_1"/> nearest neighbours. {m7 ? <a href={m7}>Module seven</a> : 'Module seven'} draws the picture with the site's own code; no image is copied.</li>
+<li data-prior-art="dynkin-diagrams">`dynkin-diagrams` (LaTeX), a package by B. McKay under the LPPL (<a href="https://ctan.org/pkg/dynkin-diagrams">its page on CTAN</a>), typesets Dynkin, Coxeter and Satake diagrams. It is the target of the button Export LaTeX: on a board named by its finite type, the button writes the diagram, with its black nodes and arrows, as a line for this package.</li>
 </ul>
 
 </section>
@@ -180,9 +193,9 @@ The site takes ideas from these works and none of their code. Each entry says wh
 
 ## Reference software
 
-Reference software under the GPL or LGPL (SageMath, CoReLG, the Atlas of Lie Groups and Representations, Group Explorer) is used only as a black-box source of test data; its source code is not translated. The MIT-licensed `mutation-game` Python package by Andrea Cortis may be read.
+Reference software, such as SageMath, CoReLG, the Atlas of Lie Groups and Representations and Group Explorer, is used only as a black-box source of test data; its source code is not translated. The rule applies in particular to software under the GPL or LGPL. The MIT-licensed `mutation-game` Python package by Andrea Cortis may be read.
 
-The data against which the site's engine is tested come from a reference implementation written for this site, reference/lie_games.py, and its checks, reference/verify.py, both in the repository; no third-party code produced them. Two outside works served as checks on those data: <span data-oracle="sagemath">SageMath was run to confirm the Cartan matrices of the boards of finite type</span>, and <span data-oracle="dynkin-diagrams">the black nodes and arrows of the Satake catalogue were compared with the codes in the source of the LaTeX package `dynkin-diagrams` by B. McKay (LPPL), whose manual says that its table follows Helgason's</span>.
+The data against which the site's engine is tested come from a reference implementation written for this site, reference/lie_games.py, and its checks, reference/verify.py, both in the repository; no third-party code produced them. Outside works also served as checks on those data. <span data-oracle="sagemath">SageMath was run to confirm the four reference Cartan matrices, those of $B_2$, $C_2$, $G_2$ and $F_4$, and the numbering of the nodes.</span> <span data-oracle="satake-catalogue">The black nodes and arrows of the Satake catalogue were compared with a paper that states every diagram in words <Cite k="DM22"/>, and with the codes in the source of the LaTeX package `dynkin-diagrams` by B. McKay (LPPL), whose manual says that its table follows Helgason's. Other sources, listed on {sources ? <a href={sources}>the sources page</a> : 'the sources page'}, were used to check further parts of the catalogue.</span>
 
 </section>
 
