@@ -1,0 +1,124 @@
+{
+ "agent": "P6-A1",
+ "status": "done",
+ "branch": "worktree-agent-a5f3b92d614e7be45",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a5f3b92d614e7be45",
+ "base": "89e37ec",
+ "commits": [
+  "f1df2ba P6-A1 follow-up: restrictedCoordinates, the shadow in the simple restricted roots",
+  "843d6ff P6-A1 follow-up: decisions for restrictedCoordinates and its tests"
+ ],
+ "filesChanged": [
+  "packages/engine/src/satake.ts",
+  "packages/engine/src/index.ts",
+  "packages/engine/test/unit/satake-coordinates.test.ts",
+  "packages/engine/test/unit/p1-api.test.ts",
+  "decisions/P6-A1.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-a5f3b92d614e7be45; worktree-agent-a5f3b92d614e7be45"
+  },
+  {
+   "cmd": "git reset --hard 89e37ec; git log -1",
+   "exit": 0,
+   "summary": "HEAD is now at 89e37ec MERGE: fold P6-size's entries; provide() in CONTRACTS.md 4; record the merge"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed from the lockfile; node v22.22.0"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474636fc9...e95a2f, 485caee8eb85...864bad, 1fc9f82bf62d...dd384d: all three equal CONTRACTS.md 9; reference unchanged, so npm run verify was not run"
+  },
+  {
+   "cmd": "npx vitest run test/unit/satake-coordinates.test.ts (function absent, first version of the file)",
+   "exit": 1,
+   "summary": "15 failed, 1 passed (TypeError: restrictedCoordinates is not a function; the export check passed on undefined === undefined, so it now also checks typeof)"
+  },
+  {
+   "cmd": "node scratchpad/p6-a1b/red.mjs (satake.ts and index.ts put back to 89e37ec, the final test file run, both files restored and sha256-checked)",
+   "exit": 0,
+   "summary": "16 failed, 0 passed; restored: true"
+  },
+  {
+   "cmd": "npx vitest run test/unit/satake-coordinates.test.ts test/unit/p1-api.test.ts",
+   "exit": 0,
+   "summary": "2 files, 22 passed; the new file alone takes 4.9 s (3.2 s of tests), E7 and E8 included"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm test -w packages/engine",
+   "exit": 0,
+   "summary": "88 files, 2728 tests passed (74.65 s)"
+  },
+  {
+   "cmd": "npm test (whole, run 1)",
+   "exit": 1,
+   "summary": "3732 passed, 1 failed: site/tests/unit/tools/T11.test.ts timed out at 5000 ms (load average 13.7 on 4 processors); passes when rerun alone (33 passed)"
+  },
+  {
+   "cmd": "npm test (whole, run 2)",
+   "exit": 1,
+   "summary": "3730 passed, 3 failed, all 5000 ms timeouts in site unit tests that do not reach satake.ts: history.test.ts, repo-ci-playwright-report.test.ts, repo-playwright-forbid-only.test.ts. history passes alone; the two Playwright-config tests import @playwright/test and also time out alone at load 16, but passed in run 1"
+  },
+  {
+   "cmd": "npm test (whole, run 3, on the committed state)",
+   "exit": 1,
+   "summary": "3729 passed, 4 failed, all 5000 ms timeouts (the two Playwright-config tests, T03, T15; load average 12 to 17); T03 and T15 pass alone (43 passed). No engine test failed in any of the three runs"
+  },
+  {
+   "cmd": "node scratchpad/p6-a1b/mutants.mjs (7 mutants, satake.ts restored, sha256 3ced128e... checked each time)",
+   "exit": 0,
+   "summary": "7 of 7 killed; see mutants"
+  },
+  {
+   "cmd": "grep -n \"from '\" packages/engine/src/satake.ts",
+   "exit": 0,
+   "summary": "imports only from ./arith, ./board, ./caps, ./classify, ./errors, ./finite, ./fold, ./guards, ./linalg (new: solve), ./moves, ./rational (new: ratEq), ./restrictedType, ./search"
+  },
+  {
+   "cmd": "git status --porcelain",
+   "exit": 0,
+   "summary": "empty after both commits"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist",
+   "exit": 0,
+   "summary": "deleted; site/dist did not exist"
+  }
+ ],
+ "signature": "export function restrictedCoordinates(d: SatakeDiagram, rb: RestrictedBoard, shadow2: Vec<number>): number[]  // satake.ts, exported by name from src/index.ts, listed in PHASE_6_NAMES. Order of checks: d's shape (RangeError), shadow2's length and integer entries (RangeError), rb belongs to d (its orbits are exactly the tau-orbits of d's white positions and each simple restricted root has n integer entries; RangeError), then requireGcm and requireFinite (NeedsTwoWayRoads, NotFiniteType). Method: exact normal equations G c = S v in bigint, solved with linalg.solve over Rational, then the combination checked exactly against shadow2. RangeError 'is not a combination of the simple restricted roots', 'is not zero, but this diagram has no simple restricted root (a compact form ...)', 'is not an integer combination ...: its coordinates would be (1/2, 0)'. Admissibility is not judged again (rb only comes from restrictedBoard). Pure; no side effects at the module's top level.",
+ "tests": [
+  "satake-coordinates.test.ts > is exported from src/index.ts: red before (typeof undefined) / green after",
+  "> every root of the 167 records: integer coordinates of one sign that recombine to the shadow exactly, all zero exactly on the black sub-board: red (TypeError) / green after; 10928 roots, the count checked against the sum of golden n_roots; a positive root gives all >= 0 and a negative root all <= 0; orbits checked against the golden restricted_simple_orbits through labels()",
+  "> each composite word changes the coordinates of every shadow as the mutation of the restricted board at its position (SPEC 4 T13): red / green; 135 records, 34190 root-and-orbit pairs; applyWord(board, root, rb.compositeWords[k], 'mutation'), then restrictedCoordinates(shadow2(image)) equals mutate(rb.board, coords, k); rb.cartan and cartanNumbers(rb.board) equal the golden restricted_cartan through intEq",
+  "> e6(-26): alpha_6 gives (0, 1) in orbit order [[1], [6]], and (0, -1) after the composite word of the orbit of node 6: red / green; also restricted node 2 of the A2 is orbit {6}, mutate gives (0, -1), alpha_1 gives (1, 0)",
+  "> su(1,2): BC1 coordinates +-1 four times and +-2 twice: red / green",
+  "> e6(-14): coordinates follow the orbit order [[1, 6], [2]], not the Bourbaki order: red / green",
+  "> refusals (7 tests): wrong length; an entry that is not an integer; half a simple restricted root on sl(3,R) ([1, 0], message shows 1/2, 0); 2 alpha_2 on e6(-26) (outside the span); a nonzero vector on su(3), e6(-78), so(5) ([] for zero and for every root); rb of another diagram (fewer orbits, another board, the same number of different orbits) or with simple roots of the wrong length; a malformed diagram: all RangeError; red / green",
+  "> guards (2 tests): NeedsTwoWayRoads on a one-way board; NotFiniteType on A2~, G2~ and an indefinite board: red / green",
+  "> pure (E-5): frozen arguments unchanged, no shared array, two calls equal, the same result with black in another order: red / green",
+  "p1-api.test.ts: 'restrictedCoordinates' added to PHASE_6_NAMES (pre-approved by MERGE): 6 passed"
+ ],
+ "mutants": [
+  "coordinates returned in Bourbaki order (out[rb.board.labels[k]-1] = c[k]): killed by test 1, test 2 and the e6(-14) example",
+  "sign of the last coordinate flipped: killed by test 1, test 2, both E6 examples and purity",
+  "every sign flipped: killed by test 1, the examples, the split-form refusal and purity; test 2 does not catch it because both sides are linear, so a global sign cannot be seen there",
+  "no span check: killed by the outside-the-span and compact-form refusals",
+  "no integrality check: killed by the half-root refusal",
+  "no orbit check: survived at first, then killed after adding the case with the same number of different orbits (rb of e6(-26) used on e6(-14))",
+  "no requireGcm/requireFinite: killed by both guard tests"
+ ],
+ "decisionsFragment": "decisions/P6-A1.md",
+ "handoff": "For P6-A3 (T13). Import restrictedCoordinates by name from '@engine'. If you route it through engineCall, provide({ restrictedCoordinates }) as P6-size requires. Call restrictedCoordinates(d, rb, shadow2(d, root)) with rb = restrictedBoard(d) for the same diagram, positions throughout. It computes no roots and no w_X word, so it is cheap per root on the main thread. Keep rb in step with the decoration: an rb from another diagram throws RangeError. The result has one integer per orbit, in the order of rb.orbits (the same order as rb.simpleRestrictedRoots2, rb.cartan and rb.board's positions). These are the coordinates of the shadow itself in the simple restricted roots, so the double of a BC root has coordinate 2. A compact form gives []. To show a value on the drawn restricted board (boardFromName of the name after satakeRecord's C2 rename, where the node labelled j stands for record.restricted_orbits_in_bourbaki_order[j-1] in big-board labels), find k with toLabels(board, rb.orbits[k]) equal to that orbit and show coords[k]. Without the C2 rename this is the same as k = toPositions(rb.board, [j])[0], since rb.board.labels[k] === j. On su(2,2), sp(4,R), sp(2,2) and so*(8) the drawn C2 lists the two orbits reversed, so always match by orbit, never by rb.board.labels. A click on drawn node j plays rb.compositeWords[k] (the same k) on the population. The new coordinates are restrictedCoordinates(d, rb, shadow2(d, newRoot)), which equals mutate(rb.board, coords, k); this was tested on all 135 records. Worked example e6(-26): alpha_6 gives [0, 1] (orbits [[1], [6]], A2 labels [1, 2]), and node 2 makes it [0, -1]. For the coordinate text, halve nothing: the shadow is the halves vector and the coordinates are integers. A fraction can only come from a vector that is not a shadow; that throws RangeError, and the message lists the fractions."
+}

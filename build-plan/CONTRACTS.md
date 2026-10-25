@@ -257,6 +257,7 @@ stringThrough(board, mu: readonly number[], i: number): number[][]
 theta(d: SatakeDiagram, p): number[];  shadow2(d, root): number[];  admissibility(d): Admissibility
 satake(d): SatakeComputed                                          // throws NotAdmissible
 restrictedBoard(d): RestrictedBoard                                // throws NotAdmissible
+restrictedCoordinates(d, rb: RestrictedBoard, shadow2: Vec<number>): number[]   // (plan, P6-A1 follow-up for T13) integer coordinates of a doubled shadow in the simple restricted roots, in the order of rb.orbits; RangeError when not an integer combination
 classifyRestricted(S: number[][], B: Rational[][], r: number): { name: string; classes: ... }   // ported as it stands from the oracle
 satakeCatalogue(name: string): SatakeCatalogueEntry[];  satakeRecord(name: string, entry: SatakeCatalogueEntry): SatakeRecord
 canonicalPair(d): { black: number[]; tau: number[] };  matchCatalogue(d): SatakeRecord[]    // 0, 1 or 2 records
