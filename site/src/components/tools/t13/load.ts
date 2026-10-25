@@ -51,16 +51,33 @@ export async function fetchData(d: SatakeDiagram, adm: Admissibility, caller: Ca
   if (!adm.admissible) return null;
   const hint = satakeHint(d.board);
   try {
-    const [sat, rb, records] = await Promise.all([
-      caller('satake', [d], hint),
-      noWhiteNode(d) ? Promise.resolve(EMPTY_RESTRICTED) : caller('restrictedBoard', [d], hint),
-      caller('matchCatalogue', [d], hint),
-    ]);
+    if (!dataOnMainThread(d.board)) {
+      // the worker (E7, E8): the three calls are posted at once and answered in turn
+      const [sat, rb, records] = await Promise.all([
+        caller('satake', [d], hint),
+        noWhiteNode(d) ? Promise.resolve(EMPTY_RESTRICTED) : caller('restrictedBoard', [d], hint),
+        caller('matchCatalogue', [d], hint),
+      ]);
+      return { sat, rb, records };
+    }
+    // the main thread: each call in a task of its own, after the task that drew the decoration and the
+    // lights, so that a pick or a paint is never one long task with all three (SPEC 7.6 "Main-thread work")
+    await nextTask();
+    const sat = await caller('satake', [d], hint);
+    await nextTask();
+    const rb = noWhiteNode(d) ? EMPTY_RESTRICTED : await caller('restrictedBoard', [d], hint);
+    await nextTask();
+    const records = await caller('matchCatalogue', [d], hint);
     return { sat, rb, records };
   } catch (e) {
     if (e instanceof NotAdmissible) return null;
     throw e;
   }
+}
+
+/** Resolves in a new task of the event loop (a macrotask), so that the browser may paint in between. */
+function nextTask(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 /** The same data at once (the server render, and the first render on a main-thread board); null when not admissible. */
