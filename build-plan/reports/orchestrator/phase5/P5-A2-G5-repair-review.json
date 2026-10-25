@@ -1,0 +1,65 @@
+{
+ "branch": "worktree-agent-a4e6c13a21a0f8a1b",
+ "testsUnchanged": true,
+ "behaviourUnchanged": true,
+ "results": [
+  {
+   "check": "1. The two long-task tests, their thresholds and their throttling are unchanged",
+   "ok": true,
+   "evidence": "git diff --stat 00e6a4c HEAD -- site/tests/e2e playwright.config.ts shows only T12.spec.ts, 33 lines added and none removed. Its only hunk (@@ -1292,6 +1292,39 @@, inside describe('regressions')) is the new 'seven grids' test. The long-task tests at lines 927-958 are byte-identical: CPU throttling rate 4, a 500 ms wait before the pick, a 60 s waitForFunction, a 1500 ms wait, expect(tasks).toEqual([]). So are their helpers in the same file and playwright.config.ts."
+  },
+  {
+   "check": "2a. Engine suite, T12 unit tests, type check, build, size",
+   "ok": true,
+   "evidence": "npm test -w packages/engine: 74 files, 2418 tests passed. vitest --project site-unit T12.test.ts: 82 passed. npm run check -w site: astro check 0 errors; svelte-check 0 errors and 1 warning that was already there (t02/LayerChart.svelte). npm run build: 35 pages; links: 1292 internal links, 0 problems. npm run size -- --port 7041: /tools/rep/ 87.8 kB of 90, M8 87.8 kB of 120, 35 routes, 0 over budget."
+  },
+  {
+   "check": "2b. Browser specs against astro preview on port 7040",
+   "ok": true,
+   "evidence": "T12.spec.ts in full, --workers 1: 67 passed (4.8 min); both long-task tests printed [] in this run. M8.spec.ts in full: 30 passed. nojs.spec.ts and a11y.spec.ts with -g 'tools/rep/|m8-lie-algebras': 7 passed."
+  },
+  {
+   "check": "2c. Server render compared with the base",
+   "ok": true,
+   "evidence": "I built 00e6a4c at the root into a scratch directory. With asset hashes masked, dist/tools/rep/index.html and dist/modules/m8-lie-algebras/index.html are byte-identical between the base build and the branch build. The hydrated default state is also identical (scenario 01 below)."
+  },
+  {
+   "check": "2d. Settled state compared between base and branch (scratch script compare.mjs, base on 7043, branch on 7042)",
+   "ok": true,
+   "evidence": "For each scenario I captured the tool root's outerHTML (every matrix cell, the orbit SVG, the orbit table and the board table), with comments removed, ids put in canonical order and div.adopted unwrapped. I also captured every data-out (name, data-value, data-format, text), the aria-live text, the active element, the select values and options, the inputs and the URL. Scenarios: 01 default A2; 02 pick E6 (7 grids, 5103 cells); 03 E6 node 2 (list); 04 matrix node k 3; 05 the second relation kind; 06 keyboard Enter on a board node; 07 'u' undo; 08 link ?g=E7&k=6 (756 positions); 09 pick E7; 10 then node 6; 11 D4 then B3 30 ms later; 14 M8's T12 data-outs. All are identical. Announcements, link keys and focus match too, e.g. after 06 both say 'Fired node 1. Node 1 now minus 1, node 3 now 2. Move 1.' with focus on the node 1 button. The only difference is the number of <div class=\"adopted\"> wrappers (display: contents): 7 on the branch after a pick, 0 on the base."
+  },
+  {
+   "check": "2e. Races between the new tasks (scratch scripts link-race.mjs and race.mjs)",
+   "ok": false,
+   "evidence": "A second pick while building (scenario 11) settles the same on both. A link arriving by popstate to ?g=D4&k=2 at 40 ms and at 300 ms after a pick of E6 gives the same result on both: D4 node 2, pickers D4 and 2/4. On the branch, a link arriving exactly after the new `picked` step also ends at D4 node 2 with consistent pickers, because load() clears `picked`. New problem: a node chosen from the node picker in the window between the `picked` step and the loading task (one afterFrame). pickNode builds `spec` (the old state's board) while the picker already lists the new board's labels. A MutationObserver that chose node 3 when the node picker first listed 6 options while the facts still said A2 produced, on the branch, pageerror 'label 3 is not on this board'. The tool then stayed stuck: facts A2, line 'Building A2, node 3.', data-drawn=false, 5 pieces waiting, pickers E6 and 3/6. From E7, choosing node 4 in the window built E7 node 4. On the base the observer never fired, because the node picker shows the old board's labels until the state loads."
+  },
+  {
+   "check": "2f. Reading the diff (T12RepresentationBuilder.svelte, MatrixView.svelte, t12/OrbitLayers.svelte, t12/rep.ts)",
+   "ok": true,
+   "evidence": "matrixInput gives the same table input as the old inline code (same defaults), and matrixTable = head + rows + tail produces the same markup. The `matrix` snippet's matrixOf(out)! needs the same preconditions as the old rep.E![kAt]!. A built table is adopted only when caption, sparse, headers, format and the sparse display are identical, and MatrixView releases it on any prop change. basisHeaders and shownCheck are cached, so adoption is not released spuriously. takeDown, stage and acceptFromWorker remove adoptables before setting ready to false, so an emptied element is never shown. orbitRows ends at DRAW_MAX in the same step that sets board-table ready, and an aborted stage is always followed by load and then stage. orbitSvgLayers gives the same strings as the old loops; orbitSvg, used by export, still returns full arrays. The representationDimension cache is keyed per representation and the result is pure."
+  },
+  {
+   "check": "3. The new tests fail when the code they guard is broken",
+   "ok": true,
+   "evidence": "E2E: in adoptableTable (MatrixView.svelte line 277) I changed insertAdjacentHTML('beforeend', ...) to 'afterbegin' and built into a scratch directory. T12.spec.ts -g 'seven grids' failed with 'Error: matrix-e: 27 rows, row r holding 27 cells of row r' (Expected -19, Received +19: rows out of order). Restored; the test passed in the full T12 run on the clean build. Unit: in matrixTableParts I merged all grid rows into one string; T12.test.ts failed with 'expected [ Array(1) ] to have a length of 27 but got 1'. A second mutant changed matrixInput's default format from 'auto' to 'grid' and failed with \"expected 'grid' to be 'list'\". Restored: 82 passed, and git status was empty."
+  },
+  {
+   "check": "4. Measurement: the two long-task tests, --repeat-each 40 --workers 1, at the root, on a build of the branch and a build of 00e6a4c",
+   "ok": false,
+   "evidence": "Pass counts are in longTaskCounts. Overall the branch has 6 failures in 160 runs against 14 for the base, so it is better. It still misses the repair's own target of at most 1 failure in 40: in round 1 E6 failed 3 times in 40 on the branch (51, 53 and 74 ms; uptime before 0.90, 1.01 to 2.53 during). Every failure was one task of 50 to 74 ms. The load during batches includes the test itself (about 1), and other agents pushed it up to 2.5 to 3.2 at times."
+  }
+ ],
+ "longTaskCounts": {
+  "before": "00e6a4c at the root: round 1 (uptime before 1.45, 0.61 to 1.57 during): E6 37/40, E7 38/40. Round 2 (uptime before 0.97, 0.87 to 3.15 during): E6 37/40, E7 34/40. Total E6 74/80, E7 72/80; failing tasks 50 to 73 ms.",
+  "after": "branch 68d93ef at the root: round 1 (uptime before 0.90, 1.01 to 2.53 during): E6 37/40 (51, 53, 74 ms), E7 39/40 (57 ms). Round 2 (uptime before 0.95, 0.81 to 2.17 during): E6 39/40 (51 ms), E7 39/40 (59 ms). Total E6 76/80, E7 78/80."
+ },
+ "sideEffects": [
+  "New race in a window of about one frame: the pickers show the picked board one step before the state loads (`picked`), but pickNode still builds the old state's `spec`. A node chosen in that window builds the wrong board. A label the old board lacks leaves T12 stuck: pageerror 'label 3 is not on this board', the 'Building A2, node 3.' line, data-drawn=false, panels showing 'Drawing.'. Reproduced only with a MutationObserver that acts at that moment; impossible on the base.",
+  "The DOM after a pick is not literally unchanged, as the repair report says: each adopted grid sits inside a <div class=\"adopted\"> (display: contents) in its .box, 7 after a pick of E6 against 0 on the base. There is no visible, hook, axe or test difference, and the hydrated default state already had this structure on the base.",
+  "A pick takes more tasks to settle: the median duration of the long-task test at 4x went from 3.7 s on the base to 3.9 to 4.0 s on the branch.",
+  "Size: /tools/rep/ and M8 are 87.8 kB (86.8 kB at the base per the repair report), leaving about 2.2 kB of the 90 kB budget.",
+  "Not caused by the repair, seen on both builds: a link (popstate) arriving while a pick builds leaves the 'Building E6.' line on screen, because load() does not clear `building`.",
+  "The added lines contain no em-dash, .only, .skip or console.log. Only T12's own files and decisions/P5-A2.md changed; no engine, golden or contract file was touched.",
+  "Cleanup: previews on 7040 to 7043 stopped; node_modules, site/node_modules, packages/engine/node_modules and site/dist deleted; scratch mutant and base builds deleted; git status --porcelain is empty at 68d93ef. Logs and scripts are in /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/review-p5-a2-g5-repair/."
+ ]
+}
