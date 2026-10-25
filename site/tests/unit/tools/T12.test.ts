@@ -334,7 +334,7 @@ describe('T12 cap and verdict', () => {
     expect(built).toBe(expected);
     expect(built).toBeGreaterThan(100);
     expect(failingSeen).toBe(built - TYPE_NAMES.reduce((s, t) => s + golden.types[t]!.minuscule_nodes.length, 0));
-  });
+  }, 30_000); // MERGE, on P6-A2's request: about 3 s alone and past the 5 s default under load (RT-12 and RT-11 notes of the phase 5 round)
 
   it('the default node is the smallest minuscule label, else 1', () => {
     expect(defaultNode(named('E7'))).toBe(7);

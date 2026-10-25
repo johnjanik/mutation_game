@@ -51,7 +51,11 @@ const PHASE_5_NAMES = [
 ] as const;
 
 // Phase 6 (P6-A1, applied by MERGE on its request): the names of satake.ts.
-const PHASE_6_NAMES = ['theta', 'shadow2', 'admissibility', 'satake', 'restrictedBoard'] as const;
+// P6-A2 (applied by MERGE on its request): the names of satakeCatalogue.ts.
+const PHASE_6_NAMES = [
+  'theta', 'shadow2', 'admissibility', 'satake', 'restrictedBoard',
+  'satakeCatalogue', 'satakeRecord', 'canonicalPair', 'matchCatalogue',
+] as const;
 
 const PHASE_0_NAMES = [
   'SafeInt', 'Big', 'EngineError', 'NotABoard', 'NeedsTwoWayRoads', 'NeedsConnectedBoard', 'NotFiniteType',
