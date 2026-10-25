@@ -21,3 +21,6 @@
 - P6-A5 repair merged (c027f67). Targeted merge checks running on c027f67 (reports/merge-p6-a5r-c027f67/).
 - Running: P6-A3 T13, P6-A4 T14 (base 89e37ec); a review of P6-size (on c027f67, ports 7160-7163); P6-tikz (T2 tikz-graph and T10 tikz-points via latexForExport, LaTeX samples for G6 under LATEX_SAMPLES_DIR, 'citeText' in every registry's outs; base c027f67, ports 7220-7223).
 - Targeted merge checks on c027f67 green: npm test 183 files, 3733 passed; typecheck and build; 252 e2e passed (embed, export, T16, toolframe-hydration, registry-outs, registry-weight, engine-weight, engine-fallback, pages-6); size 51 routes, 0 over (/tools/sandbox/ 72.5, /tools/rep/ 84.7 kB).
+- P6-tikz merged (f6de3c3; records 3800e06, with citeText in T01_OUTS and T10_OUTS by MERGE). Targeted checks on it: build, typecheck, size (51 routes, 0 over) and 236 e2e green; npm test 2 timeouts under load (repo-ci-playwright-report, T15 level), both pass alone.
+- P6-size reviewed (2 minors; rulings eed623c); its repair running on eed623c (ports 7170-7173), told to merge T13 and add T13's row to the new interaction test.
+- P6-A3 T13 merged (fcba468; records add4487): /tools/satake/ 85.0 kB; registry-offered.test.ts fixed by MERGE. Full merge checks running on add4487 (reports/merge-p6-a3-add4487/); review of T13 running (ports 7230-7233). P6-A4 T14 still building.
