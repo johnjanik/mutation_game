@@ -6,3 +6,7 @@
 - Size budget to watch: /tools/rep/ 87.9 of 90 kB; ToolFrame changes land on every tool route.
 - P6-A1 done and merged (87a2665; records dff494c): 81 engine files, all 167 satake records' computed fields, admissible_pairs, satake_examples, property 9; E7/E8 satake 2 to 8 ms. Review running on dff494c.
 - Stage 6.1b started on dff494c: P6-A2 (satakeCatalogue.ts, names).
+- P6-A1 reviewed (5 minors; rulings in DECISIONS.md); repair running on 9c47155.
+- P6-A5 merged (84960fc with request R1: src/tools/ToolIsland.astro shared by /tools/ and /embed/); P6-A2 merged (da9e368); P6-A6 merged (e947205). Merge checks after P6-A5 running (build 49 pages, 0 link problems).
+- Reviews running: P6-A2 (on da9e368), P6-A5 and P6-A6 (on e947205).
+- Carried for later stages: T2 and T10 tikz exports for the owner's G6 LaTeX compile; 'citeText' in registry outs; T16's static export import; the M10 hub slugs (history, confusions, credits) for P6-A8.
