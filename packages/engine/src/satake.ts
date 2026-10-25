@@ -6,6 +6,8 @@
 // oracle's choices: the black set used sorted, theta in three stages (permute by tau, play the word of w_X
 // as mutations, negate), the white tau-orbits in order of their least node, the composite word w_X followed
 // by the longest word of X u O. classifyRestricted (P4-A1's port of classify_restricted) is re-exported.
+// restrictedCoordinates (P6-A1 follow-up for T13, no oracle function) gives the coordinates of a shadow in the
+// simple restricted roots, in the order of the orbits, so that T13 draws shadows without a solver of its own.
 //
 // Positions in, positions out (E-7): black, tau, populations and every node of every result are positions
 // 0..n-1; the oracle's satake returns node numbers from 1 and its admissibility sentences, the engine returns
@@ -29,10 +31,11 @@ import type { Admissibility, Reason } from './errors';
 import { longestWord as longestWordUnguarded } from './finite';
 import type { Symmetry } from './fold';
 import { requireFinite, requireGcm } from './guards';
+import { solve } from './linalg';
 import type { Word } from './moves';
 import { applyWord } from './moves';
 import type { Rational } from './rational';
-import { rat, ratAdd, ratDiv, ratMul, ratToString } from './rational';
+import { rat, ratAdd, ratDiv, ratEq, ratMul, ratToString } from './rational';
 import { classifyRestricted } from './restrictedType';
 import { positiveRootsFrom, roots } from './search';
 
@@ -459,6 +462,98 @@ export function restrictedBoard(d: SatakeDiagram): RestrictedBoard {
     compositeWords: r.words,
     board: r.board,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// restrictedCoordinates (P6-A1 follow-up for T13: P6-A3 instruction 5.8 and 5.9; SPEC.md 2.15, 7.3)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Copies of rb's doubled simple restricted roots, after checking that rb belongs to the diagram: its orbits are
+ * the tau-orbits of the diagram's white positions (as restrictedBoard lists them), and each simple restricted
+ * root has one integer entry per node of the diagram's board. RangeError otherwise.
+ */
+function checkRestricted(d: SatakeDiagram, X: readonly number[], rb: RestrictedBoard): number[][] {
+  if (rb === null || typeof rb !== 'object' || !Array.isArray(rb.orbits) || !Array.isArray(rb.simpleRestrictedRoots2)) {
+    throw new RangeError('a restricted board is an object with orbits and simpleRestrictedRoots2, as restrictedBoard returns');
+  }
+  const n = d.board.n;
+  const isBlack = new Set(X);
+  const white: number[] = [];
+  for (let i = 0; i < n; i++) if (!isBlack.has(i)) white.push(i);
+  const want = tauOrbits(d.tau, white);
+  const m = rb.orbits.length;
+  if (m !== want.length || rb.simpleRestrictedRoots2.length !== m) {
+    throw new RangeError(
+      `this restricted board has ${m} orbits and ${rb.simpleRestrictedRoots2.length} simple restricted roots, but the ` +
+        `diagram has ${want.length} tau-orbits of white nodes: the restricted board belongs to another diagram`,
+    );
+  }
+  want.forEach((o, k) => {
+    const got: unknown = rb.orbits[k];
+    if (!Array.isArray(got) || got.length !== o.length || o.some((x, j) => got[j] !== x)) {
+      throw new RangeError(`orbit ${k} of this restricted board is not the orbit (${o.join(', ')}) of the diagram: the restricted board belongs to another diagram`);
+    }
+  });
+  return rb.simpleRestrictedRoots2.map((s, k) => checkPopulation(n, s, `simple restricted root ${k}`));
+}
+
+/**
+ * The coordinates of a doubled shadow in the doubled simple restricted roots (SPEC.md 2.15): the integers c, one
+ * per orbit in the order of rb.orbits (the order of rb.simpleRestrictedRoots2, rb.cartan and rb.board's
+ * positions, not the Bourbaki order of rb.board's labels), with sum over k of c[k] * rb.simpleRestrictedRoots2[k]
+ * equal to shadow2 exactly. Since both sides are doubled, these are the coordinates of the shadow alpha-bar in
+ * the simple restricted roots; a composite move at orbit k changes them as mutate(rb.board, c, k).
+ * Exact rational arithmetic: the normal equations G c = S v (G the integer Gram matrix of the simple restricted
+ * roots under the dot product, invertible because they are independent) solved by linalg's solve, then the
+ * combination checked entry by entry. A compact form (no orbit) gives [] for the zero vector.
+ * RangeError when shadow2 has the wrong length or an entry that is not an integer, when it is not a combination
+ * of the simple restricted roots (any nonzero vector on a compact form), when it is a combination with a
+ * coefficient that is not an integer, and when rb does not belong to the diagram (other orbits, or simple
+ * restricted roots of another length); on a malformed diagram as the other Satake functions; then
+ * NeedsTwoWayRoads, NotFiniteType as 5.6. Pure: no argument is changed and the result is a new array.
+ */
+export function restrictedCoordinates(d: SatakeDiagram, rb: RestrictedBoard, shadow2: Vec<number>): number[] {
+  const X = checkDiagram(d);
+  const n = d.board.n;
+  const v = checkPopulation(n, shadow2, 'shadow');
+  const S = checkRestricted(d, X, rb);
+  guard(d.board);
+  const m = S.length;
+  const shown = `(${v.join(', ')})`;
+  const Sb = S.map((s) => s.map((x) => BigInt(x)));
+  const vb = v.map((x) => BigInt(x));
+  const dot = (x: readonly bigint[], y: readonly bigint[]): bigint => {
+    let t = 0n;
+    for (let i = 0; i < n; i++) t += x[i]! * y[i]!;
+    return t;
+  };
+  const G = Sb.map((s) => Sb.map((t) => dot(s, t)));
+  const c = solve(G, Sb.map((s) => dot(s, vb)));
+  if (c === null) throw new RangeError('the simple restricted roots of this restricted board are not linearly independent');
+  // the solution of the normal equations is a combination equal to v exactly when v lies in their span
+  for (let i = 0; i < n; i++) {
+    let t = rat(0);
+    for (let k = 0; k < m; k++) t = ratAdd(t, ratMul(c[k]!, rat(Sb[k]![i]!)));
+    if (!ratEq(t, rat(vb[i]!))) {
+      throw new RangeError(
+        m === 0
+          ? `the shadow ${shown} is not zero, but this diagram has no simple restricted root (a compact form: every node is black)`
+          : `the shadow ${shown} is not a combination of the simple restricted roots`,
+      );
+    }
+  }
+  if (c.some((x) => x.den !== 1n)) {
+    throw new RangeError(
+      `the shadow ${shown} is not an integer combination of the simple restricted roots: its coordinates would be (${c.map(ratToString).join(', ')})`,
+    );
+  }
+  return c.map((x, k) => {
+    if (x.num > BigInt(Number.MAX_SAFE_INTEGER) || x.num < BigInt(Number.MIN_SAFE_INTEGER)) {
+      throw new EngineOverflow(`coordinate ${k} of the shadow ${shown} is not a safe integer`);
+    }
+    return Number(x.num);
+  });
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -52,9 +52,11 @@ const PHASE_5_NAMES = [
 
 // Phase 6 (P6-A1, applied by MERGE on its request): the names of satake.ts.
 // P6-A2 (applied by MERGE on its request): the names of satakeCatalogue.ts.
+// P6-A1 follow-up for T13 (pre-approved by MERGE): restrictedCoordinates of satake.ts.
 const PHASE_6_NAMES = [
   'theta', 'shadow2', 'admissibility', 'satake', 'restrictedBoard',
   'satakeCatalogue', 'satakeRecord', 'canonicalPair', 'matchCatalogue',
+  'restrictedCoordinates',
 ] as const;
 
 const PHASE_0_NAMES = [
