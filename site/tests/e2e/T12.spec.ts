@@ -43,6 +43,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { boardFromName, chevalleySerre, fire, minusculeMatrices, play, stringThrough, toLabels, toPositions } from '../../../packages/engine/src/index';
 import type { AnyBoard, Board } from '../../../packages/engine/src/index';
+import { nodePositions } from '../../src/components/draw/layouts';
 import { bigBoard } from '../../src/lib/state';
 import { copiedLink, downloadData, openForExport, unsafeNumbers } from './exportIntegers';
 
@@ -630,6 +631,7 @@ test('no serious or critical axe violations on /tools/rep', async ({ page }) => 
   }
 });
 
+// regression: P5-RT-05-01 (the node hit areas checked against the side of 6.1, not only against 24)
 test('at 320 pixels the page has no horizontal scroll and the targets are large enough', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   for (const query of ['', 'g=E6&k=1', 'g=E7', 'g=D8&k=8']) {
@@ -641,6 +643,14 @@ test('at 320 pixels the page has no horizontal scroll and the targets are large 
       if (r === null || r.width === 0) continue;
       expect(r.width, query).toBeGreaterThanOrEqual(24);
       expect(r.height, query).toBeGreaterThanOrEqual(24);
+    }
+    // The node hit areas of the string viewer have the side of SPEC 6.1 for a box as wide as the viewport
+    // (below 400 pixels the box runs from edge to edge): min(44, u), u = min(64, floor((320 - 16) / k)) (A-7).
+    const k = nodePositions(boardFromName(new URLSearchParams(query).get('g') ?? 'A2')).columns;
+    const side = Math.min(44, Math.min(64, Math.floor((320 - 16) / k)));
+    for (const r of await nodes(page).evaluateAll((bs) => bs.map((b) => b.getBoundingClientRect().toJSON() as DOMRect))) {
+      expect(Math.abs(r.width - side), `${query}: hit area ${r.width} by ${r.height}, expected ${side} (${k} columns)`).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(r.height - side), `${query}: hit area ${r.width} by ${r.height}, expected ${side} (${k} columns)`).toBeLessThanOrEqual(0.5);
     }
     // No two node hit boxes of the string viewer overlap (A-7; review P5-A2, finding 5).
     const boxes = (await Promise.all((await nodes(page).all()).map((b) => b.boundingBox()))).filter((r) => r !== null);
@@ -934,3 +944,41 @@ for (const [board, label, size] of [['E6', 1, 27], ['E7', 7, 56]] as const) {
     await expect(control(page, 'node')).toHaveValue(String(label));
   });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red-team round of phase 5)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // SPEC 6.1 "Size on screen" and A-7: below 400 pixels the board's box runs from edge to edge of the
+  // viewport, so the hit side is min(44, floor((W - 16) / k)) with W the viewport width, also inside the
+  // string viewer's panel (whose padding and border once made it the box).
+  const HIT_CASES: { width: number; board: string; node: number; columns: number }[] = [
+    { width: 320, board: 'E8', node: 8, columns: 7 },
+    { width: 320, board: 'D8', node: 1, columns: 7 },
+    { width: 320, board: 'A7', node: 1, columns: 7 },
+    { width: 320, board: 'A8', node: 1, columns: 8 },
+    { width: 320, board: 'B8', node: 1, columns: 8 },
+    { width: 360, board: 'A8', node: 1, columns: 8 },
+  ];
+  for (const c of HIT_CASES) {
+    const expected = Math.min(44, Math.min(64, Math.floor((c.width - 16) / c.columns)));
+    // regression: P5-RT-05-01
+    test(`T12 string viewer at ${c.width} px on ${c.board}: every node hit area is ${expected} px (6.1, A-7)`, async ({ page }) => {
+      await page.setViewportSize({ width: c.width, height: 800 });
+      const route = `tools/rep/?g=${c.board}&k=${c.node}`;
+      await page.goto(route);
+      const tool = page.locator('[data-tool="rep"][data-hydrated="true"]');
+      await tool.waitFor();
+      await expect(tool.locator('.t12')).toHaveAttribute('data-drawn', 'true', { timeout: 20000 });
+      const buttons = tool.locator('[data-panel="string"] button[data-node]');
+      await expect(buttons.first()).toBeVisible();
+      const sides = await buttons.evaluateAll((bs) => bs.map((b) => ({ node: b.getAttribute('data-node'), w: b.getBoundingClientRect().width, h: b.getBoundingClientRect().height })));
+      expect(sides.length).toBeGreaterThan(0);
+      for (const s of sides) {
+        expect(Math.abs(s.w - expected), `/${route} at ${c.width} x 800: node ${s.node} hit area ${s.w} x ${s.h}, expected ${expected} x ${expected}`).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(s.h - expected), `/${route} at ${c.width} x 800: node ${s.node} hit area ${s.w} x ${s.h}, expected ${expected} x ${expected}`).toBeLessThanOrEqual(0.5);
+      }
+    });
+  }
+});

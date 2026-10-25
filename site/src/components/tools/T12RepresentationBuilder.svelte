@@ -1282,8 +1282,13 @@
   .verdict {
     font-weight: bold;
   }
+  /* The board's box of SPEC 6.1 is as wide as the figure (edge to edge below 400 pixels): it runs over the
+     panel's padding and border (12 and 1 pixels each side), and the grid unit of Board.svelte is read from
+     it, the nearest inline-size container, not from the panel (A-7). */
   .board-host {
     position: relative;
+    margin-inline: -13px;
+    container-type: inline-size;
   }
   .string-line {
     margin: 0;
