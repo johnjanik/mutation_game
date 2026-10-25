@@ -136,7 +136,7 @@ test('acceptance: choosing node 2 of D4 shows a failing relation and the explana
   expect(golden.types.D4!.fundamental_orbit_sizes[1]).toBe(24);
   expect(golden.types.D4!.minuscule_nodes).not.toContain(2);
   await open(page, 'g=D4');
-  await expect(out(page, 'dimension')).toHaveText(String(golden.types.D4!.fundamental_orbit_sizes[0]));
+  await expect(out(page, 'dimension')).toHaveText(String(goldenDim('D4', 1)));
   await control(page, 'node').selectOption('2');
   await expect(out(page, 'dimension')).toHaveText('24');
   await settled(page);
