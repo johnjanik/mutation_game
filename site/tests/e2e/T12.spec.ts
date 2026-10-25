@@ -57,6 +57,8 @@ const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../../reference
   minuscule_representations: MinusculeRecord[];
   types: Record<string, { fundamental_orbit_sizes: number[]; minuscule_nodes: number[] }>;
 };
+/** The golden dimension of the representation of a minuscule node (minuscule_representations, by type and node). */
+const goldenDim = (type: string, node: number): number => golden.minuscule_representations.find((r) => r.type === type && r.node === node)!.dimension;
 
 const ROUTE = 'tools/rep/';
 const NOTICE = 'The link could not be read, so the tool shows its default state.';
@@ -134,7 +136,7 @@ test('acceptance: choosing node 2 of D4 shows a failing relation and the explana
   expect(golden.types.D4!.fundamental_orbit_sizes[1]).toBe(24);
   expect(golden.types.D4!.minuscule_nodes).not.toContain(2);
   await open(page, 'g=D4');
-  await expect(out(page, 'dimension')).toHaveText('8');
+  await expect(out(page, 'dimension')).toHaveText(String(golden.types.D4!.fundamental_orbit_sizes[0]));
   await control(page, 'node').selectOption('2');
   await expect(out(page, 'dimension')).toHaveText('24');
   await settled(page);
@@ -218,16 +220,18 @@ test('E, F and H on A2 are 3 by 3 tables with caption, headers and 1-based cells
 });
 
 test('grids up to dimension 27 and lists above: E6 node 1 and E7 node 7', async ({ page }) => {
+  const e6 = goldenDim('E6', 1);
+  const e7 = goldenDim('E7', 7);
   await open(page, 'g=E6&k=1');
   await expect(out(page, 'matrix-e')).toHaveAttribute('data-format', 'grid');
-  await expect(out(page, 'matrix-e')).toHaveAttribute('data-rows', '27');
-  await expect(out(page, 'matrix-e').locator('tbody tr')).toHaveCount(27);
+  await expect(out(page, 'matrix-e')).toHaveAttribute('data-rows', String(e6));
+  await expect(out(page, 'matrix-e').locator('tbody tr')).toHaveCount(e6);
   await open(page, 'g=E7');
-  await expect(out(page, 'dimension')).toHaveText('56');
+  await expect(out(page, 'dimension')).toHaveText(String(e7));
   for (const name of ['matrix-e', 'matrix-f', 'matrix-h', 'move-matrix', 'signed-move']) {
     await expect(out(page, name)).toHaveAttribute('data-format', 'list');
-    await expect(out(page, name)).toHaveAttribute('data-rows', '56');
-    await expect(out(page, name).locator('caption')).toContainText('nonzero entries of a 56 by 56 matrix');
+    await expect(out(page, name)).toHaveAttribute('data-rows', String(e7));
+    await expect(out(page, name).locator('caption')).toContainText(`nonzero entries of a ${e7} by ${e7} matrix`);
   }
   await expect(out(page, 'relation-left')).toHaveAttribute('data-format', 'list', { timeout: 20000 });
 });
@@ -913,7 +917,8 @@ async function recordLongTasks(page: Page): Promise<void> {
 const longTasksSince = async (page: Page, t0: number): Promise<{ start: number; duration: number }[]> =>
   page.evaluate((from) => (window as unknown as { __longtasks: { start: number; duration: number }[] }).__longtasks.filter((t) => t.start + t.duration > from), t0);
 
-for (const [board, label, size] of [['E6', 1, 27], ['E7', 7, 56]] as const) {
+for (const [board, label] of [['E6', 1], ['E7', 7]] as const) {
+  const size = goldenDim(board, label);
   test(`no long task when ${board} is picked and node ${label} (${size} positions) is built, with the processor slowed four times`, async ({ page }) => {
     test.setTimeout(120000);
     await recordLongTasks(page);
