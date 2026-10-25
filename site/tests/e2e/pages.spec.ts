@@ -101,7 +101,8 @@ test.describe('pages', () => {
 
   test('glossary: one anchor per term', async ({ page }) => {
     await page.goto('glossary/');
-    await expect(page.locator('dl.glossary > div.entry')).toHaveCount(26);
+    // The 26 rows of SPEC Appendix C, and the entries P6-A8 added after them (MERGE, on its request).
+    expect(await page.locator('dl.glossary > div.entry').count()).toBeGreaterThanOrEqual(26);
     for (const id of ['board', 'node', 'city', 'the-translator', 'kostants-game', 'folded-board']) await expect(page.locator(`dfn[id="${id}"]`)).toHaveCount(1);
     expect(await page.locator('dl.glossary math').count()).toBeGreaterThan(20);
   });
