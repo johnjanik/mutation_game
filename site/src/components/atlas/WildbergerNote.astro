@@ -1,0 +1,75 @@
+---
+// The note on Wildberger's names (SPEC.md 2.10; 4 T14 "the note on Wildberger's names"; 9.5, the risk
+// "Confusion between B and C when readers compare with Wildberger", answered by "section 2.10 surfaced in
+// M6 and in the Atlas"). Owner P6-A4. The row of the table of 2.10 that applies to this board, in the
+// site's words, with its provenance in words (every row [V]: "obtained by typing the printed lists of
+// positive roots into verify.py and comparing them with the lists the oracle generates"; 8.4: such a
+// provenance "must not be dressed up as a citation"), and the lists compared (the third column of 2.10).
+// The table has no row for A_n or E8: there the note says only that the site uses Bourbaki's names and
+// numbering. No list of Wildberger's roots is shown, so no misprint of 2.10 can be reproduced.
+// Hooks: data-wildberger (the row), data-letters-exchanged on the sentence of 2.10 on B and C.
+import Cite from '@components/content/Cite.astro';
+import { renderTex } from '@lib/katex';
+import type { AtlasSheet } from './atlasData';
+import { typeName } from './names';
+
+interface Props {
+  sheet: AtlasSheet;
+}
+
+const { sheet } = Astro.props;
+const { row, hisName, lettersExchanged } = sheet.wildberger;
+const n = sheet.rank;
+const his = hisName === null ? '' : typeName(hisName);
+const here = typeName(sheet.name);
+const Bn = renderTex('B_n', false);
+const Cn = renderTex('C_n', false);
+/** The lists of positive roots compared, by row (2.10, third column). */
+const compared: Record<string, string> = {
+  same: sheet.letter === 'G' ? 'all 6 positive roots were compared' : 'the lists of both boards were compared',
+  reversed: sheet.letter === 'F' ? 'all 24 positive roots were compared' : 'the lists were compared for ranks 3 and 4',
+  D: 'the lists were compared for ranks 4 and 5',
+  E: 'the list of E6 was compared in both texts and the list of E7 in the paper',
+};
+---
+<section class="wildberger" aria-labelledby="wildberger-heading" data-wildberger={row}>
+  <h3 id="wildberger-heading">Wildberger's names</h3>
+  {row === 'none' ? (
+    <p>This site uses Bourbaki's names and numbering of the nodes <Cite k="Bou68" />.</p>
+  ) : (
+    <>
+      <p>
+        This site uses Bourbaki's names and numbering of the nodes. Wildberger's paper <Cite k="W20" /> (section 9) and
+        manuscript <Cite k="W-MS" /> (pages 23 to 29) name and number some boards differently.{' '}
+        {row === 'same' && sheet.letter !== 'G' && (
+          <>His “<Fragment set:html={his} />” is this board, with the same numbering of the nodes.</>
+        )}
+        {row === 'same' && sheet.letter === 'G' && (
+          <>His “<Fragment set:html={his} />” is this board, with the same numbering of the nodes: his vertex 1 is the short node.</>
+        )}
+        {row === 'reversed' && sheet.letter !== 'F' && (
+          <>His “<Fragment set:html={his} />” is this board, <Fragment set:html={here} />, with the order of the nodes reversed: his vertex <i>k</i> is node {n + 1} − <i>k</i>.</>
+        )}
+        {row === 'reversed' && sheet.letter === 'F' && (
+          <>His “<Fragment set:html={his} />” is this board with the order of the nodes reversed, so his vertices 3 and 4 are the long nodes.</>
+        )}
+        {row === 'D' && (
+          <>His “<Fragment set:html={his} />” is a path 1, …, {n - 1} with a vertex 0 joined to vertex 2: his vertex <i>k</i> is node {n} − <i>k</i>, and his vertex 0 is node {n}.</>
+        )}
+        {row === 'E' && (
+          <>His “<Fragment set:html={his} />” is a path 1, 2, 3, … with a vertex 0 joined to vertex 3: his path 1, 2, 3, … is the nodes 1, 3, 4, … of this site, and his vertex 0 is node 2.</>
+        )}
+      </p>
+      <p class="provenance">These translations were checked by computation against the printed lists of positive roots: {compared[row]}.</p>
+    </>
+  )}
+  {lettersExchanged && (
+    <p data-letters-exchanged>For rank at least 3 the letters B and C are exchanged relative to Bourbaki: Wildberger's “<Fragment set:html={Bn} />” is this site's <Fragment set:html={Cn} /> with the order of the nodes reversed, and his “<Fragment set:html={Cn} />” is this site's <Fragment set:html={Bn} /> reversed.</p>
+  )}
+</section>
+
+<style>
+  .wildberger h3 {
+    margin-bottom: 4px;
+  }
+</style>

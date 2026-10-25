@@ -1,0 +1,41 @@
+---
+// One item of an Atlas page (SPEC.md 4 T14): a section with an h2 (5.8: "an h2 per item"), its content, and
+// the link to the tool that demonstrates it with the board loaded ("Every item links to the tool that
+// demonstrates it with that board loaded"). Owner P6-A4. The href is built by the released mechanism of
+// P1-A4 under import.meta.env.BASE_URL (7.2 item 10), so a link to a tool that is not registered on this
+// build is left out (7.3), and the link text says where it goes (5.8). No script.
+import { linkIfReleased } from '@lib/pages/released';
+import type { ToolLink } from './atlasData';
+
+interface Props {
+  /** The section's id, also its data-item hook. */
+  id: string;
+  /** The plain heading; a `title` slot replaces it when the heading holds mathematics. */
+  title?: string;
+  link: ToolLink | null;
+}
+
+const { id, title = '', link } = Astro.props;
+const href = link === null ? null : linkIfReleased({ kind: 'tool', id: link.tool, query: link.query });
+---
+<section class="atlas-item" id={id} aria-labelledby={`${id}-heading`} data-item={id}>
+  <h2 id={`${id}-heading`}><slot name="title">{title}</slot></h2>
+  <slot />
+  {href !== null && link !== null && (
+    <p class="tool-link"><a href={href} data-tool-link={link.tool}>{link.text}</a></p>
+  )}
+</section>
+
+<style>
+  .atlas-item {
+    margin-block: 32px;
+  }
+  .atlas-item h2 {
+    margin-bottom: 8px;
+  }
+  .tool-link a {
+    display: inline-block;
+    min-height: 24px;
+    padding-block: 4px;
+  }
+</style>

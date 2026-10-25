@@ -27,6 +27,7 @@ import T10GeometryStudio from '@components/tools/T10GeometryStudio.svelte';
 import T11FoldingBench from '@components/tools/T11FoldingBench.svelte';
 import T12RepresentationBuilder from '@components/tools/T12RepresentationBuilder.svelte';
 import T13SatakeStudio from '@components/tools/T13SatakeStudio.svelte';
+import AtlasPicker from '@components/atlas/AtlasPicker.svelte';
 import T15AffinePlayground from '@components/tools/t15/T15Route.astro';
 import T16Sandbox from '@components/tools/T16Sandbox.svelte';
 
@@ -38,7 +39,7 @@ interface Props {
 const { entry, caption } = Astro.props;
 
 /** The tools that have their static line below (MERGE adds the id with the import). */
-const HYDRATED: ReadonlySet<string> = new Set<string>(['affine', 'board', 'fold', 'form', 'garden', 'geometry', 'kostant', 'lab', 'mirror', 'numbers', 'rep', 'sandbox', 'satake', 'symbolic', 'weyl']);
+const HYDRATED: ReadonlySet<string> = new Set<string>(['affine', 'atlas', 'board', 'fold', 'form', 'garden', 'geometry', 'kostant', 'lab', 'mirror', 'numbers', 'rep', 'sandbox', 'satake', 'symbolic', 'weyl']);
 
 let Unhydrated: ((props: Record<string, unknown>) => unknown) | null = null;
 if (!HYDRATED.has(entry.id)) {
@@ -64,6 +65,7 @@ const toolProps = { id: '', caption, preset: 'default' };
 {entry.id === 'fold' && <T11FoldingBench client:idle {...toolProps} />}
 {entry.id === 'rep' && <T12RepresentationBuilder client:idle {...toolProps} />}
 {entry.id === 'satake' && <T13SatakeStudio client:idle {...toolProps} />}
+{entry.id === 'atlas' && <AtlasPicker client:idle {...toolProps} />}
 {entry.id === 'affine' && <T15AffinePlayground hydrate="idle" {...toolProps} />}
 {entry.id === 'sandbox' && <T16Sandbox client:idle {...toolProps} boardPresets={testBoardPresets()} />}
 {Unhydrated && <Unhydrated {...toolProps} />}

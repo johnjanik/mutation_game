@@ -1,0 +1,100 @@
+---
+// The Cartan matrix with the convention switch of the Atlas (SPEC.md 2.9: the table of conventions "is the
+// basis of the 'conventions' switch in the Atlas (tool T14)"; 4 T14). Owner P6-A4.
+// Both matrices are in the HTML; a native radio group (a fieldset with its legend) chooses which one is
+// shown, through CSS alone (:has with :checked sets display none on the other, so a screen reader skips it
+// too). No script and no island: the switch works without JavaScript and from the keyboard (arrow keys
+// inside the group, as the browser gives a radio group). The default is this site's convention.
+// "This site, Kac and SageMath" shows C with C_ij = <alpha_i^vee, alpha_j>; "Bourbaki and Humphreys
+// (transposed)" shows the transpose, with the same numbering of the nodes (2.9). Kac numbers the nodes of
+// E6, E7, E8 and G2 differently (2.9: [S2] for E6, [U] for the rest; Appendix E item 4): the sentence
+// is wrapped in <Unverified item="E4"> on all four pages (the plan allows wrapping E6 too), and nothing is
+// renumbered.
+// Hooks: data-out="cartan" and data-out="cartan-transposed" with data-exact (the matrix as JSON, rows and
+// columns in label order); data-convention on each box; data-kac-note on the Kac sentence.
+import Cite from '@components/content/Cite.astro';
+import Unverified from '@components/content/Unverified.astro';
+import MatrixView from '@components/math/MatrixView.svelte';
+import { renderTex } from '@lib/katex';
+import type { AtlasSheet } from './atlasData';
+import { exact } from './format';
+
+interface Props {
+  sheet: AtlasSheet;
+}
+
+const { sheet } = Astro.props;
+const headers = sheet.labels.map(String);
+const tex = (src: string): string => renderTex(src, false);
+---
+<div class="convention-switch">
+  <fieldset class="convention-choice">
+    <legend>Show the Cartan matrix as it is printed by</legend>
+    <label><input type="radio" name="convention" value="site" checked data-convention-choice="site" /> This site, Kac and SageMath</label>
+    <label><input type="radio" name="convention" value="bourbaki" data-convention-choice="bourbaki" /> Bourbaki and Humphreys (transposed)</label>
+  </fieldset>
+  <div class="matrix-box" data-convention="site" data-out="cartan" data-exact={exact(sheet.cartan)}>
+    <MatrixView caption={`Cartan matrix C of ${sheet.name}`} rowHeaders={headers} colHeaders={headers} dense={sheet.cartan} format="grid" />
+  </div>
+  <div class="matrix-box" data-convention="bourbaki" data-out="cartan-transposed" data-exact={exact(sheet.cartanTransposed)}>
+    <MatrixView caption={`Transpose of C for ${sheet.name}`} rowHeaders={headers} colHeaders={headers} dense={sheet.cartanTransposed} format="grid" />
+  </div>
+</div>
+<p>
+  This site writes <Fragment set:html={tex('C_{ij}=\\langle\\alpha_i^\\vee,\\alpha_j\\rangle')} /> in row <Fragment set:html={tex('i')} /> and
+  column <Fragment set:html={tex('j')} />, as Kac <Cite k="Kac90" /> and SageMath do, and the board has{' '}
+  <Fragment set:html={tex('A_{ij}=-C_{ji}')} /> roads from node <Fragment set:html={tex('i')} /> to node <Fragment set:html={tex('j')} />.{' '}
+  Bourbaki <Cite k="Bou68" /> and Humphreys <Cite k="Hum72" /> print the transpose,{' '}
+  <Fragment set:html={tex('\\langle\\alpha_i,\\alpha_j^\\vee\\rangle')} /> in row <Fragment set:html={tex('i')} /> and column{' '}
+  <Fragment set:html={tex('j')} />. The nodes are numbered the same way in both, so the switch changes the matrix and nothing else.
+</p>
+{sheet.kacNumbering && (
+  <p data-kac-note>
+    <Unverified item="E4" fallback="Other books may number the nodes of this board differently; compare the Cartan matrices before reading off a node.">
+      Kac numbers the nodes of {sheet.name} differently from Bourbaki, so compare the Cartan matrices before reading off a node.
+    </Unverified>
+  </p>
+)}
+
+<style>
+  .convention-choice {
+    border: 1px solid var(--sign-zero-outline);
+    border-radius: 4px;
+    margin: 0 0 12px;
+    padding: 8px 12px 12px;
+  }
+  .convention-choice legend {
+    padding-inline: 4px;
+  }
+  .convention-choice label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+  }
+  .convention-choice input {
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    flex: none;
+    accent-color: var(--focus-ring);
+  }
+  .convention-choice input:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  /* The switch: both matrices are in the HTML; the one not chosen is not displayed (and so not read). */
+  .convention-switch [data-convention='bourbaki'] {
+    display: none;
+  }
+  .convention-switch:has(input[value='bourbaki']:checked) [data-convention='bourbaki'] {
+    display: block;
+  }
+  .convention-switch:has(input[value='bourbaki']:checked) [data-convention='site'] {
+    display: none;
+  }
+  .matrix-box {
+    min-width: 0;
+    max-width: 100%;
+  }
+</style>
