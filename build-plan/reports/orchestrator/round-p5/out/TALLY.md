@@ -1,5 +1,5 @@
 # Phase 5 red-team round: tally (gate commit 006f50d)
-- Lenses running: RT-09, RT-01, RT-05, RT-10 (ports 5390, 5310, 5350, 5400). To come: RT-02, RT-03, RT-04, RT-06, RT-07, RT-08, RT-11, RT-12, RT-13.
+- Lenses running (2026-10-25 04:10): RT-02, RT-03, RT-04, RT-05, RT-06. Done: RT-01, RT-08, RT-09, RT-10, RT-13. To come: RT-07, RT-11, RT-12.
 ## RT-01: 1 finding (minor). Retests hold: 01-01, 01-02 (one sibling missed, below). rep.ts and T12 against the oracle: 12,624 + tool-boundary comparisons, 0 disagreements.
 - P5-RT-01-01 minor: formIsInvariant throws RangeError 'is not an integer' on an integer form entry beyond 2^53 (form.ts:104 isSafeInteger), so gram(C) of a board with such road counts cannot be tested.
 - Notes: T12 prints 'Dimension: N' on non-minuscule nodes where N is the orbit size, not dim V(omega_i) (D4 node 2: 24 vs 28; F4 node 4: 24 vs 26; E8 node 8: 240 vs 248); SafeInt checks intermediate products (E-2, documented); P3-RT-01-01 still reproduces (held).
@@ -29,3 +29,8 @@
 - RT-09 reproduce: 01, 02, 04, 05 reproduced (oracle checks agree). Refute pending.
 - RT-10 refute: none refuted; 03 raised to major (a stated default of a field is wrong; 6.6 ambiguity for the owner). 01's severity named by the rubric at blocker or minor, not major. Reproduce pending.
 - RT-09 verdicts: 01 CONFIRMED blocker; 02 CONFIRMED major (two senses of 'dimension' in T12, owner); 04 CONFIRMED, raised to major ('Credit accurately'); 05 REFUTED (SPEC 2.7 defines finite type as the connected boards of 2.8; glossary row copies Appendix C; requireFinite's acceptance of pieces is a guard decision).
+## RT-13: 3 findings (3 major). Retests hold: 13-01, 13-02, 13-03. 9 sandbox links open the first board; 90 links, 0 failures; answer sheet 0 outside steps.
+- P5-RT-13-01 major: M8's two prediction answers (b1: (0,-2) and 1 position; b5: 8) are stated only in their reveals (8.1 P2).
+- P5-RT-13-02 major: DUPLICATE of P5-RT-08-01 (T12 writes omega_i, the site's term is e_i; first met in b1's explanation): merged, not verified again.
+- P5-RT-13-03 major: DUPLICATE of P5-RT-09-02 (T12 'Dimension' is the orbit size off minuscule nodes; E8 node 8 240 vs 248): merged, not verified again.
+- Notes: SPEC 2.18 and M8 beat 4 count 18 representations, B2 node 2 and C2 node 1 are one (17; owner); SPEC 1.4 statement 6 (M0 beat 5) against M8 beat 6 on E8's smallest representation (owner); orbit-graph edge colours 3 and 4 are the view accents (6.3, owner); held classes P3-RT-13-01 and P4-RT-13-04 have new instances in M8 (not reported); history counter '50 of 50' at 51 positions.
