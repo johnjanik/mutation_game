@@ -1,0 +1,56 @@
+{
+ "lens": "RT-10",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P6-RT-10-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 6.7, last paragraph ('Orbit graphs and projections are exported as plain TikZ coordinates'); 4.0 'Share and export'; 4 T8 ('the graph of all positions reachable from all ones by legal play, drawn in layers'); 4 T12 ('the orbit drawn in layers with edges coloured by node'); 9.2 ('export as far as the current phase provides it')",
+   "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a793a234e2c7324e8. It started on branch worktree-agent-a793a234e2c7324e8 at aea1802. I detached it at f07eec66a8b80d249101630305ef6d2d23882738 and the status was clean. Node v22.22.0. From worktree-agent-a689e5f789a50ceae I applied site/tests/e2e/redteam-RT-10-p6-latex-scope.spec.ts, redteam/redteam-RT-10-p6-playwright.static.config.ts and redteam/redteam-RT-10-p6-serve.mjs. For the optional survey I also applied site/tests/e2e/redteam-RT-10-p6-latex-survey.spec.ts. None of these exists at the gate commit, and git status listed each as 'A'. The lens branch only adds 26 files and modifies no existing file. Commands: npm ci --prefer-offline (exit 0), then npm run build (exit 0; 90 pages; links.mjs reported 0 problems). Following the verify instructions, I ran the static config from a scratch copy (/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-p6-rt10-reproduce/redteam-RT-10-p6-playwright.static.config.ts). It differs only in PORT 5603->5900, WT set to the absolute worktree path, and no defineConfig import. Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch copy> redteam-RT-10-p6-latex-scope.spec.ts; exit 1; '2 failed ... 1 passed (21.5s)'. T8 A3 output: '% http://localhost:5900/tools/weyl/ / % needs \\usepackage{dynkin-diagrams} / \\dynkin A{ooo}' with 'Expected substring: \"\\\\begin{tikzpicture}\"'. T12 A2 k=1 output: '\\dynkin A{oo}'. The T2 control passed with a tikzpicture. The survey spec exited 0 and printed: 'garden: tikzpicture (248 characters)', 'geometry: tikzpicture (1599 characters)', 'weyl: \\dynkin A{ooo}', 'rep: \\dynkin A{oo}', 'mirror: \\dynkin A{oo}', 'affine: no download; notice \"nothing to export as LaTeX\"', 'sandbox: no download; notice \"nothing to export as LaTeX\"'. Observed matches the finding: T8 \\dynkin A{ooo}, T12 \\dynkin A{oo}, T2 tikzpicture, T6 \\dynkin, T15 and T16 'nothing to export as LaTeX'. After the run the tree held only the applied files (test-results/ was ignored and deleted).",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: T8 on A3 exports '\\dynkin A{ooo}' and T12 on A2 node 1 exports '\\dynkin A{oo}' instead of a tikzpicture, while the T2 control gives a tikzpicture"
+  },
+  {
+   "findingId": "P6-RT-10-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 2.4(a) (the bridge sentence and 'must appear ... wherever the two views are shown together [D]'); 4 T14 ('highest roots and their numbers'); RT-10 attack 25",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied worktree-agent-a689e5f789a50ceae:redteam/redteam-RT-10-p6-atlas-bridge.mjs, which does not exist at the gate commit; git status listed 'A  redteam/redteam-RT-10-p6-atlas-bridge.mjs'. Ran npm ci --prefer-offline (exit 0) and npm run build (exit 0). Ran node redteam/redteam-RT-10-p6-atlas-bridge.mjs; exit 1. Output: 32 lines from 'A1: population and its numbers shown yes; bridge sentence no' to 'G2: ... bridge sentence no', then 'confusions: bridge sentence yes', 'glossary: bridge sentence yes', 'not-quiver-mutation: bridge sentence yes', 'modules/m0-start: bridge sentence yes', and '32 Atlas pages show a population with its numbers and lack the sentence of 2.4(a)'. Cross-check by grep: 0 files under site/dist/atlas/ contain 'would lower city', and site/dist/atlas/B3/index.html contains 'The highest root is <katex...>' and 'its numbers are <katex...>'. Observed matches the finding: 32 Atlas pages, A1 to G2, lack the sentence. After the run the tree held only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: '32 Atlas pages show a population with its numbers and lack the sentence of 2.4(a)', and the sentence is present on confusions, glossary, not-quiver-mutation and M0"
+  },
+  {
+   "findingId": "P6-RT-10-03",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 8.4 bullet 1; 9.2 (lesson definition of done); 3 M10; DECISIONS.md P6-terms 'the shared spec glossary-later-uses.spec.ts' (scope M0 to M9 and five reference pages)",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied worktree-agent-a689e5f789a50ceae:redteam/redteam-RT-10-p6-m10-terms.py, which does not exist at the gate commit; git status listed 'A  redteam/redteam-RT-10-p6-m10-terms.py'. Ran npm ci --prefer-offline (exit 0) and npm run build (exit 0). Ran python3 redteam/redteam-RT-10-p6-m10-terms.py site/dist/modules/m10-atlas/index.html site/dist/glossary/index.html; exit 1. Output: 'board (#board): 9 uses, no glossary link', 'finite (#finite): 2 uses, no glossary link', 'Kostant's game (#kostants-game): 2 uses, no glossary link', 'numbers (#numbers): 4 uses, no glossary link', 'numbers game (#numbers-game): 2 uses, no glossary link', 'word (#word): 2 uses, no glossary link', '0 glossary links on the page'. As a comparison I ran the same script on site/dist/modules/m9-real-forms/index.html: '27 glossary links on the page'. A grep of the whole built M10 page finds 0 href to /glossary/#. grep of site/tests/e2e/glossary-later-uses.spec.ts finds 'modules/m9-real-forms/' at line 40 and no m10 route. Observed matches the finding: board 9, Kostant's game 2, numbers game 2, finite 2, 0 links on M10, 27 on M9. After the run the tree held only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: M10 has 0 glossary links while board (9 uses), numbers game (2), Kostant's game (2) and finite (2) are used unlinked, and M9 in the same build has 27"
+  },
+  {
+   "findingId": "P6-RT-10-04",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 9.3 bullet 4; 10 D10 ('keep separate; note in both that on simple graphs the rule and C=2I-A agree') and D12 ('English'); RT-10 attack 18",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied worktree-agent-a689e5f789a50ceae:redteam/redteam-RT-10-p6-defaults.mjs, which does not exist at the gate commit; git status listed 'A  redteam/redteam-RT-10-p6-defaults.mjs'. Ran npm ci --prefer-offline (exit 0). Ran node redteam/redteam-RT-10-p6-defaults.mjs; exit 1. Output: 'D6: 0 dated entries  <-- no entry (owner's part)', 'D10: 0 dated entries  <-- no entry', 'D11: 1 dated entries, first: ## 2026-10-25 P6-A6: D5, D11, D13, D14, D16, D17 and the page titles', 'D12: 0 dated entries  <-- no entry', 'D13: 1 dated entries, first: ## 2026-10-25 P6-A6: ...'. Every other default from D1 to D19 has 1 or more entries. Supporting greps: grep -n 'English\\|Languages\\|MutationGraph' DECISIONS.md finds nothing (exit 1), and the same pattern over decisions/ finds nothing (exit 1). grep '\\bD1[02]\\b' finds only the board list 'D9 to D16' (DECISIONS.md:3723, decisions/P6-A2.md:56). Observed matches the finding: D10 0 entries, D12 0 entries, D6 none (owner's part). After the run the tree held only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: 'D10: 0 dated entries <-- no entry' and 'D12: 0 dated entries <-- no entry', and no English or MutationGraph line in DECISIONS.md or decisions/*.md"
+  },
+  {
+   "findingId": "P6-RT-10-05",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 4.0 Test hooks [D]; RED-TEAM-COMMON 2 (a [D] choice is a finding when it violates the [D] text)",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied site/tests/e2e/redteam-RT-10-p6-t13-hooks.spec.ts from worktree-agent-a689e5f789a50ceae. The config and server (redteam/redteam-RT-10-p6-playwright.static.config.ts and redteam/redteam-RT-10-p6-serve.mjs) were already applied, all absent at the gate commit, and git status listed each as 'A'. Ran npm ci --prefer-offline (exit 0) and npm run build (exit 0). Ran PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch copy of the static config, port 5900> redteam-RT-10-p6-t13-hooks.spec.ts; exit 1; '1 failed'. Output: '14 node buttons; outside 4.0: data-board=\"decoration\" data-value=\"white\", data-board=\"decoration\" data-value=\"black\", data-board=\"restricted\" data-value=\"0\", data-board=\"restricted\" data-value=\"1\"'. The diff shows 8 offending buttons: decoration nodes 1 to 6 (2 to 5 black, 1 and 6 white) and restricted nodes 1 and 2 with values 0 and 1, all with canAct 'true'. Observed matches the finding exactly. After the run the tree held only the applied files. The Playwright web server stopped with the run, and nothing listens on ports 5900 to 5903.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: '14 node buttons; outside 4.0: data-board=\"decoration\" data-value=\"white\", data-board=\"decoration\" data-value=\"black\", data-board=\"restricted\" data-value=\"0\", data-board=\"restricted\" data-value=\"1\"'"
+  }
+ ]
+}

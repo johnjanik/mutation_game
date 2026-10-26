@@ -1,0 +1,106 @@
+{
+ "lens": "RT-08",
+ "mode": "refute",
+ "verdicts": [
+  {
+   "findingId": "P6-RT-08-01",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 2.11: '[W20] (p. 57, unnumbered) states: ...'. SOURCES 11.1 [W20]: Algebra Colloquium 27 (2020), 55-78, and section 2 holds 'the Mutation Conjecture, unnumbered, p. 57'. DECISIONS.md 'MERGE: P6-A6 reviewed; rulings' (Major: /history/ says [W20] states the Mutation Conjecture 'near its end') and 'P6-A6: the history page, three sentences against SOURCES (repair after review)'. These passages support the finding's expected.",
+   "evidence": "At f07eec6, open-problem.mdx:31 reads 'The paper <Cite k=W20/> states it near its end (page {'57'}, without a number)'. Page 57 is the third page of pp. 55-78, in section 2 (SOURCES 11.1), so 'near its end' contradicts SPEC 2.11 and SOURCES. git log: P2-A7 wrote the page (81c2083). RT-FIX P3 and P6-terms edited it later, and P6-terms only added Term links. P2-A7's decision records only '[W20] p. 57'. MERGE ruled the identical claim on /history/ a major, and the P6-A6 repair changed only /history/ ('Its section 2 also states the Mutation Conjecture, on page 57'). There is no record of this sentence: grep for 'near its end' finds it in reports/ and build-plan only in the P6-A6 review and repair and this round's files. reports/gate-G6.md names gate commit f07eec6 and lists no open item on it.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 no text lets p. 57 of pp. 55-78 be called 'near its end'; R2 the expected matches SPEC 2.11 and SOURCES 11.1; R3 /open-problem/ is a phase 2 page (SPEC 7.3) and is in scope at G6; R4 the oracle does not decide this; R5 no [D] or logged decision covers the phrase (P2-A7 records only p. 57, and the P6-A6 repair was limited to /history/); R6 no earlier record. Level kept at major, as MERGE ruled the same sentence on /history/."
+  },
+  {
+   "findingId": "P6-RT-08-02",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 8.4 bullet 4: 'Every theorem-like statement carries its provenance'. SPEC 9.2: 'every statement has a provenance'. SPEC 8.2 item 4. The passage supports the finding.",
+   "evidence": "m9-real-forms.mdx:116 at f07eec6, beat 1: 'A node is black exactly when θ fixes its root; a real form whose θ fixes every root is compact.' Its paragraph has no Cite and no 'verified by computation'. The four Seen statements (lines 236-239: admissible pairs; shadows, multiplicities and composite moves; the character; τ on black nodes) do not state it. SPEC 2.15 defines the pair (X,τ) with X given and θ=-w_X∘τ, so 'black exactly when θ fixes its root' is a consequence and not the definition (0.3). It is the simple-root case of 2.15's 'the roots with ᾱ=0 are exactly the roots of the black sub-board', which is asserted in the oracle's satake [V]. Beat 3 states a related zero-shadow sentence with 'verified by computation' in its own paragraph, but beat 1 does not. SPEC 3 M9 beat 1 ('why black means compact') asks for the explanation and exempts nothing. The P6-A7 fragment records no provenance choice for this sentence. M9 is phase 6.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 8.4 has no qualifier, and neither the paragraph nor the Seen box carries the statement; R2 the sentence is a general 'exactly when' consequence of the 2.15 definition, not a definition; R3 M9 is phase 6; R4 the finding does not dispute truth on admissible pairs; R5 no [D] or logged choice covers it; R6 no record. Major is the rubric's level for a broken 8.4 prose rule."
+  },
+  {
+   "findingId": "P6-RT-08-03",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "SPEC 7.3 'Pages other than lessons and tools': open-items is 'generated from content/unverified.json and present in preview builds only'. SPEC 7.3 Unverified: 'A preview build ... renders the wrapped sentence with a visible mark that links to the item on the page open-items' and 'a release build ... prints a report of the open items and the pages that use them'. DECISIONS.md '2026-10-10 P1-A4: the open-items page and release builds': 'Pages that use an item come from a static scan of src/content/**/*.mdx for <Unverified item=...> (lib/pages/openItems.ts), not from P0-A4's registry'. Plan P1-A4 5.6.",
+   "evidence": "SPEC 7.3 asks two things of the open-items page: it is generated from unverified.json, and it is the target of the marks. The finding's own observed shows both hold: the four Atlas pages' marks link to open-items#E4, and the page lists E4 with its status. SPEC asks for the list of pages that use an item only in the release build's report, and the finding says that report lists /atlas/E6/, /atlas/E7/, /atlas/E8/ and /atlas/G2/ for E4 (gate-G6.md likewise lists 26 open item pairs). The 'Pages that use it' field comes from the plan (P1-A4 5.6, roster). The plan prescribes its method ('compute usages statically, by scanning the raw sources of src/content/**/*.mdx'), and P1-A4 logged it. The four Atlas uses sit in site/src/components/atlas/ConventionSwitch.astro, outside that scan, which is exactly the logged behaviour. CONTRACTS.md says nothing about this page.",
+   "severityAdjustment": "none",
+   "reason": "SPEC 7.3 requires the page only to be generated from unverified.json and to be the target of the marks, both of which hold, and it requires the list of pages that use each item only in the release report, which lists the Atlas pairs (R2); the scan of MDX sources only is P1-A4's logged decision, taken from the plan (R5)."
+  },
+  {
+   "findingId": "P6-RT-08-04",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 8.4 bullet 2: 'Use the site's words consistently ... Give the standard term once, in the Lie theory paragraph'. Appendix C row 'fundamental position e_i' / 'fundamental weight ω_i'. DECISIONS.md 'RT-FIX-P5-t12-content: the fundamental position written e_i'. These support the finding.",
+   "evidence": "At f07eec6, AtlasSheet.astro:236 reads 'every number fired in the game from its fundamental weight is 1' and :258 reads 'The orbit of the fundamental weight ω_i of each node'. atlasData.ts:341 and :347 put 'the fundamental weight of node 1' in the link texts. SPEC 4 T14 lists 'orbit sizes of the fundamental weights', but that is the item list, and the finding exempts the heading. SPEC T12 also writes ω_i, and still the logged RT-FIX-P5-t12-content reading ('What the specification left open: nothing, by Appendix C and 8.4') required e_i in every text the tool writes. So the T14 entry's wording permits no more than T12's did. P6-A4's fragment ('the items as shown', 'names', 'four link and sentence texts', 'provenance') and the MERGE P6-A4 rulings record no choice of this term. It is not in the known-and-decided list. T14 is phase 6.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 T14's list names the item, not the sentence wording, and the same use of ω_i in SPEC T12 was not taken as permission for T12; R2 the finding reads Appendix C and 8.4 as the logged RT-FIX reading does; R3 T14 is phase 6; R4 the oracle does not decide this; R5 no logged choice for T14's wording; R6 the P5-RT-08-01 fix covered T12 only. Minor is the rubric's level for wording or a name."
+  },
+  {
+   "findingId": "P6-RT-08-05",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "SPEC 0.3: '[S2] Second-hand: reported by a reliable later source that was read; the original was not' (a sourced label). SPEC 9.3: 'Do not present anything labelled [U] as fact in a lesson'. SOURCES 11.4 [Hel01] 'on pp. 532-534 [S2, from the manual of the dynkin-diagrams package]' and [Ara62] 'Three later papers cite its table ... as pp. 32-33 [S2]'. SPEC Appendix B introduction and Appendix E item 1 state the same locators. DECISIONS.md 'P6-A7: Unverified items used' ('[Hel01] is cited by its pages').",
+   "evidence": "m9-real-forms.mdx:246 (Lie theory paragraph): 'The tables are in [Hel01] (pp. 532-534) and [Ara62] (pp. 32-33)'. SOURCES 11.4 labels both locators [S2], not [U]. The [U] part of the Hel01 entry, the table number 'Table VI of Chapter X', is not printed, and P6-A7 records leaving it out. SOURCES 11.0 limit 2 marks [U] only 'section and theorem numbers ... from memory'. These page numbers are not from memory: they come from the dynkin-diagrams manual ([S], read) and from three later papers. 9.3 and 7.3 bar only [U] statements and open items from being stated as fact. SPEC states the same locators without hedging: Appendix B ('the table on pp. 532-534 of [Hel01]'), Appendix E item 1 ('Open [Hel01] pp. 532-534 (or Araki's table, [Ara62] pp. 32-33)'), and SOURCES 11.4's access warning ('Helgason's table on pp. 532-534, Araki's on pp. 32-33'). The ruling the finding extends ('Araki's table is reported by later papers') was MERGE's ruling on one sentence of /history/ in the P6-A6 review, not a rule for other routes. Its reasoning may still interest the owner.",
+   "severityAdjustment": "none",
+   "reason": "the locators carry the sourced label [S2], which SPEC itself states unhedged (Appendix B, E1, SOURCES 11.4); the rules the finding cites bar only [U] statements (9.3, 11.0 limit 2), and the MERGE ruling it extends governed a sentence of /history/ (R1, R2)."
+  },
+  {
+   "findingId": "P6-RT-08-06",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "SPEC 6.4 opening: 'The catalogue has one record per real form of every board of rank at most 8 (golden_data.json, key satake, 167 records, compact forms included)'. SPEC 6.4 'Coincidences': 'on D4 the records so(2,6) and so*(8) are the same real form, so the 167 records make 166 classes [V]'. RT-08 lens file section 6: the wording of beats is not a finding when the meaning is SPEC's.",
+   "evidence": "m9-real-forms.mdx:197, beat 7: 'The catalogue has <G satake as=count/> records, one per real form of each board of rank at most eight, and one class of admissible pairs fewer: on D4, so(2,6) and so*(8) are one real form ... So D4 has <G admissible_counts.D4.catalogue_records/> records for <G admissible_counts.D4.real_forms_including_compact/> real forms'. These are SPEC 6.4's two sentences, in the same order. Golden at f07eec6: len(satake) = 167; admissible_counts.D4 = {catalogue_records 6, real_forms_including_compact 5}; M9 prints both through G. The P6-A4 repair the finding cites concerned /atlas/D4/ counting 6 real forms. M9 prints 6 records for 5 real forms.",
+   "severityAdjustment": "none",
+   "reason": "the sentence restates SPEC 6.4, which itself calls the 167 records 'one record per real form of every board' and then gives the D4 coincidence, and M9 prints the golden 6 records for 5 real forms (R1)."
+  },
+  {
+   "findingId": "P6-RT-08-07",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 8.1 P8: 'Node i is always called \"node i\" or \"city i\", never both in one sentence.' Its exceptions are the fixed bridge sentence of 2.4(a) [D] and the A-4 announcement of 7.5, and neither covers this sentence. The passage supports the finding.",
+   "evidence": "confusions.mdx:57 at f07eec6: 'The first relation says: translate a population p into the position a=Cp, and a mutation at city i becomes the firing of node i.' The bridge sentence follows it as a separate sentence. P8 says 'always'. 8.1 says the owner reads new pages against the principles, and the lens file (section 6) keeps attack 39's concrete rule in scope. SPEC 2.4(a)'s own sentence ('mutating city i ... firing node i') is SPEC's exposition. Only the bold bridge sentence has fixed site wording [D]. The P6-A6 decision on the confusions page records no exception. /confusions/ is phase 6 (7.3).",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 P8 has no qualifier, and the only fixed-wording exceptions are the bridge sentence and the A-4 announcement; R2 the finding reads P8 correctly; R3 phase 6; R4 the oracle does not decide this; R5 no [D] or logged choice; R6 no record. Minor stands: P8 sits in 8.1, not 8.4, and this is wording."
+  },
+  {
+   "findingId": "P6-RT-08-08",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC 8.4 'Every theorem-like statement carries its provenance'. The page's own claim (confusions.mdx:5 description and :25 first sentence) that it 'corrects each one, with the source of the correction'. Plan P6-A6 5.7: 'with the correction in the site's words and its provenance'.",
+   "evidence": "The 8.4 part is weak. The 'lattices' section (lines 79-85) restates SPEC 2.6's unlabelled table: the root lattice is all populations with basis α_i=e_i; the weight lattice is all positions with basis ω_i=e_i; the inclusion is p↦Cp with index det C. SPEC 0.3 makes those definitions ('Statements with no label in section 2 are definitions'), and Appendix D item 6 gives no source either. But the page tells the reader that every correction comes with its source. This section has no Cite, no 'verified by computation', and no pointer beyond 'the standard reading of the two games in Lie theory, and the one this site uses throughout'. Each of the other 12 sections names a source. The P6-A6 decision on the confusions page records nothing for 'lattices'. No logged decision covers it. Phase 6.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R2 holds only in part, since the lattice statements are SPEC 2.6 definitions under 0.3 and 8.4's provenance rule is not clearly engaged, but the page's own promise of a source for each correction (and the plan's 'its provenance') is still unmet in this section, so the cause stands; R1 no permitting text; R3 phase 6; R4 the oracle does not decide this; R5 no logged choice; R6 no record."
+  },
+  {
+   "findingId": "P6-RT-08-09",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "SPEC 2.1: 'A board is a directed multigraph on nodes 1,...,n with no loops' (a definition, 0.3). SPEC 4 T14: 'One static page per board'. SPEC 3 M10: 'The Atlas (T14) is a data sheet for every board'. SPEC 4.0 Board pickers: 'the 32 named types'. SPEC 2.8: 'B2 and C2 are the same board with the two nodes exchanged ... The site shows \"B2=C2\" where a single name could mislead [D]'. D19.",
+   "evidence": "Under 2.1 a board is a multigraph on numbered nodes. B2 (two roads from 1 to 2) and C2 (two roads from 2 to 1) are two such multigraphs: their reference matrices in 2.8 differ, and 2.8 makes them the same board only 'with the two nodes exchanged'. SPEC gives the Atlas one page per board (T14) and a sheet for every board (M10), and there are 32 sheets, one per named type (4.0; MERGE P6-A4: '32 static pages'). So 'a data sheet for each of the 32 boards of finite type' is SPEC's own count. The [D] rule asks for 'B2=C2' only where a name could mislead, and D19 keeps the chosen name in pickers; the count names no board. The B2 and C2 sheets say they are 'one board with its two nodes exchanged' (AtlasSheet.astro:92), which is 2.8's sense. Appendix H's 'B2 and C2 are one board: computed names say B2' is about recognising a board from its shape.",
+   "severityAdjustment": "none",
+   "reason": "SPEC defines a board on numbered nodes (2.1), under which B2 and C2 are two boards that coincide only once the nodes are exchanged (2.8), and SPEC itself gives the Atlas one page per board (T14) and a sheet for every board (M10) over the 32 named types (4.0), so '32 boards' is SPEC's count (R2)."
+  },
+  {
+   "findingId": "P6-RT-08-10",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "SPEC 7.3: '<G> ... Every number in a lesson that has a golden value is written this way, so prose cannot drift from the data'. SPEC 2.7 F4 [V]: 'From ρ ... every legal play has exactly N moves'. F5: 'The complete legal plays from an all-positive start are exactly the reduced words of w0'. Oracle check in verify.py: '{name}: rho-game has N moves' (len(word) == N, where word is the stored longest_word). Golden types.D5.n_positive_roots = 20 = len(types.D5.longest_word). DECISIONS.md 'P6-A7: numbers typed with no golden key' and 'P6-A7: deviations' (1); 'MERGE: P6 stage 6.3, P6-A7 (M9) and P6-A8' ('its deviations stand').",
+   "evidence": "m9-real-forms.mdx:190 prints '<G k=types.${XO_TYPE}.n_positive_roots/> of a longest word of D5', with XO_TYPE = D5. The number is a golden value written with G, as 7.3 requires. M9 beat 2 defines the word as the nodes fired by the numbers game from all ones. By F4 and F5 [V], every such word of w0 has N letters. verify.py stores types.T.longest_word as exactly that rho-game word and checks len(word) == N for every type (lines 170-172). Computed from the golden copy at f07eec6: D5 n_positive_roots 20, longest_word 20 letters, and the two are equal on all 32 types. So the field is the quantity the sentence names, by a [V] identity, and the two cannot drift apart without verify.py failing. SPEC 2.15 writes the same way: 'The word of w_X has 12 letters (the longest word of D4)', with N(D4) = 12. P6-A7 recorded this path ('the 32 moves (w_X_word length plus types.D5.n_positive_roots)'; 'then 20 = types.D5.n_positive_roots'), and CHECK_PLAYED (m9:94) fails the build if the played word differs.",
+   "severityAdjustment": "none",
+   "reason": "the printed 20 is a golden value written with G, as 7.3 requires, and the oracle's named check 'rho-game has N moves' makes types.D5.n_positive_roots the length of types.D5.longest_word (20 and 20, equal on all 32 types), which by SPEC F4 and F5 [V] is the quantity the sentence names; P6-A7 recorded this path and MERGE let it stand (R2, R4, R5)."
+  }
+ ]
+}
