@@ -55,3 +55,4 @@
 - P6-RT-06-01 minor: the no-JS runs accept a blank T13 panel figure (M9 b3 shadow picture, b7 and b12 restricted board) and a blank T14 board drawing (sibling of P5-RT-06-01).
 - P6-RT-06-02 minor: restrictedBoard's board comes back from the worker as the canonical F4 on E8 e8(-24) (workerWire sends a named board by name). DUPLICATE of P6-RT-03-02 (same cause, the wire's specOf).
 - Notes: T13 tables in closed details (owner, as before); Atlas LaTeX names localhost in local builds; M9 prediction answers print an ASCII hyphen (SPEC 6.3 true minus; Predict's formatting) (for RT-08 and the fixes).
+- RT-06 refute: 01 not refuted (the T13 half on M9 carries it; the T14 half is on non-lesson pages); 02 REFUTED as a duplicate of P6-RT-03-02 (R6, one cause one finding); supporting note for the 03-02 fixer: CONTRACTS 4 sends a Board as its BoardSpec (no labels), P1-A2 logged it and MERGE phase 4 passed the permuted restricted board to later phases. Reproduce pending.
