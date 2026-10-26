@@ -73,3 +73,4 @@
 - P6-RT-07-04 minor: T12.spec.ts:1242 (the G6 failure) cannot tell a regression from noise: case and control hydrate in tasks of the same length (35 to 65 ms) in G5 and G6 alike; no phase 6 cause.
 - Notes: T13 on E6 in M9 hydrates on scroll in one task of 80 to 251 ms (owner's INP check); link states are measured by no gate check; /sources/ is in the same class as /glossary/ (predates phase 6); benchmark failed under load only.
 - RT-11 verdicts: all 3 CONFIRMED (reproduced 3 of 3, twice each with a control; refuted 0 of 3). Levels: 01 major, 02 minor, 03 minor (the lens's levels kept; the reproducer asked blocker for 01 and 02 as surviving site mutants, the refuter kept major and minor because the build's behaviour works and was checked by hand in review; all three are fixed in this round either way).
+- RT-05 refute: none refuted (01 and 02 major, 03 to 06 minor; 06 cites RED-TEAM-COMMON 4.3 for COMMON.md 4.3). Reproduce pending.

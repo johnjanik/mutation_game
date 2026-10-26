@@ -1,0 +1,66 @@
+{
+ "lens": "RT-05",
+ "mode": "refute",
+ "verdicts": [
+  {
+   "findingId": "P6-RT-05-01",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.5 A-6 ('Text and numerals at least 4.5 to 1; ... in light and dark themes'), not labelled [D]; 7.4 'Embedding' ('renders the tool alone ... accepting the same query parameters'). Both support the finding's expected value. decisions/P6-A5.md 'the embed page' gives the embed page base.css with tokens and themes and says nothing about link colour.",
+   "evidence": "Read at f07eec6. site/src/pages/embed/[tool].astro imports only '../../styles/base.css'. It gives a colour (var(--text)) and a focus ring only to its own '.open-on-site a'. site/src/layouts/Base.astro:91-97 (<style is:global>) holds 'a { color: var(--text) }' and 'a:focus-visible, button:focus-visible'. base.css (with tokens.css) has no rule for a, :link, :visited or button:focus-visible. Its only focus rule is for .katex-display. AtlasPicker.svelte:121 '.chosen a' sets display, min-height and font-weight, with no colour. FateReport.svelte:58 has a bare <a>. DECISIONS.md 'P6-A5: the embed page' records base.css and themes that follow prefers-color-scheme. It has no ruling on tool links. The known-and-decided list holds only Cite's URL and a heading on the embed pages. Embed routes are phase 6 (4.0, 7.4) and the gate is G6. reports/gate-G6.md has no open item on embed contrast. No earlier round has a record of it.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 no sentence allows the browser's default link colour on /embed/ (A-6 has no qualifier, and 7.4 asks for the same tool); R2 the finding reads A-6 and 7.4 correctly; R3 embed routes are phase 6 at G6; R4 no oracle question; R5 7.5 is not [D], and the P6-A5 embed decision says base.css only, with no link colour; R6 no earlier record. The focus-ring part (browser auto ring on /embed/garden) is the weaker part, but it has the same cause. A stated contrast requirement that is wrong is major."
+  },
+  {
+   "findingId": "P6-RT-05-02",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.5 A-1 ('Every tool is fully operable from the keyboard', 2.1.1), A-10 and A-11. 7.7 Accessibility ('no serious or critical violations'). 4.0 Predict ('The board is frozen until ...'), which freezes the board and does not exempt the table view. DECISIONS.md 'RT-FIX-P3-board-a11y: a frozen board stays one tab stop (P3-RT-05-02)' and the confirmed P3-RT-05-04 (a scroll box with no tab stop, major) support the finding.",
+   "evidence": "Read at f07eec6. ToolFrame.svelte has <fieldset class=\"bare\" disabled={!hydrated}> inside <details class=\"table-view\">, with .bare { overflow-x: auto }. The box has no tabindex, role or name. T13SatakeStudio.svelte: the table buttons carry disabled={!api.hydrated || frozen} (frozen = !predictionResolved), and the Population cells are plain <td>. 'P1-A5: prediction check' disables the nodes, History and the step controls while a prediction is open. The RT-FIX-P3-board-a11y entry then changed only the node buttons to aria-disabled, 'so a reader on the keyboard reaches the board and its values while the prediction waits'. No record names the table buttons or lets the table box lose keyboard reach. Other records make scroll boxes focusable: P3-RT-05-04 display formulas ('a tab stop, so that its box can be scrolled from the keyboard'), T2's chart box 'focusable and named', T10's face table, and P5-RT-05-02. 'RT-FIX-P4-...: .tool-frame minmax(0, 1fr)' made the table scroll inside .bare and says nothing on focus. Round1 P3-RT-05-04 (major, confirmed) read A-11 and A-1 the same way. M9 and M1 predictions exist at G6. gate-G6 and the earlier rounds have no record of a frozen table view.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 4.0 Predict freezes the board but grants no exception to A-1 or A-10, and A-11's scroll-box allowance comes with A-1's keyboard rule; R2 the finding reads A-1, A-10, A-11 and 7.7 as the confirmed P3-RT-05-04 did; R3 Predict, T9, T13 and M9 are all built by G6; R4 no oracle question; R5 no decision covers the frozen table buttons or an unfocusable scroll box (the P1-A5 and RT-FIX-P3 entries name only nodes, History and step controls); R6 no earlier record. Major matches the P3-RT-05-04 precedent."
+  },
+  {
+   "findingId": "P6-RT-05-03",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 6.3 first bullet ('The value is the signed integer, set in tabular figures, with a true minus sign.') and 7.5 A-10 ('presents the same state as an HTML table'). Both support the finding. DECISIONS.md 'P5-A2: the remaining findings (5 to 9)', review finding 7 ('The table view writes a true minus sign'), is the precedent for a table view.",
+   "evidence": "Read at f07eec6. T13SatakeStudio.svelte:907 is <td class=\"numeral\">{inLabelOrder(board, shown)[j]}</td>, where shown is a number array (line 202) printed directly, so a negative value is '-1'. The Coordinate column of the restricted table (line ~933) uses intText, which writes a true minus. decisions/P6-A3.md records no spelling choice for the table view. The MERGE rulings on P6-A3 (ruling 6: display spellings, U+2212) go the other way. Hooks (data-value) are decimal text by 4.0, but the cell is visible text, not a hook. No known-and-decided item or earlier-round record covers it.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 6.3 has no qualifier, and the table cell shows a node's value; R2 the finding applies 6.3 and A-10 to the table view, as the T12 review did (finding 7); R3 T13 is phase 6 at G6; R4 no oracle question; R5 6.3's first bullet is not [D] and no fragment records ASCII in T13's table; R6 no earlier record. Minor matches a spelling defect."
+  },
+  {
+   "findingId": "P6-RT-05-04",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.5 A-4 ('Templates, with negative numbers spoken as \"minus\"') and 4.0 'Keyboard and screen reader' ('a polite live region announces each result with the wording fixed in section 7.5'). P6-A3 plan 5.14 ('numbers through speak, \"minus\" for negatives') and MERGE ruling (6) on P6-A3 (announcements use display spellings, U+2212) apply, because the prediction is announced through T13's own live region.",
+   "evidence": "Read at f07eec6. t01/interop.ts predictionAnswerText gives a position as `(${a.value.join(', ')})` with raw numbers. Predict.svelte puts it in resultText ('The answer is ...') and in announce?.(`Shown. The answer is ${closed} ${prediction.reveal}`). T13SatakeStudio.svelte:552 renders <Predict ... announce={api.announce}>, which is T13's frame region. M9 b6's answer THETA13 = (-1, -1, 0) and b7's (-1, -1) come from the engine, not through <G>. Their reveals use show() with U+2212. Strongest refutation tried (R2): A-4's 'minus' clause sits in the row for move announcements, and 6.3 is titled 'Values on nodes', so neither names a prediction result line by itself. But 4.0 extends 7.5's wording to 'each result', and T13's plan and MERGE ruling (6) fix minus and U+2212 for T13's announcements. No sentence or record allows ASCII hyphen-minus there. No earlier round has a record on how prediction answers are formatted.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 no sentence allows ASCII '-1' in an announced or displayed result; R2 tried (A-4's minus rule is attached to the move templates), but 4.0 applies 7.5's wording to each result, and the P6-A3 plan and MERGE ruling (6) bind T13's announcements, through which this one goes; for the owner, A-4 itself is ambiguous on non-move announcements; R3 Predict (phase 1) and M9 (phase 6) both exist at G6; R4 no oracle question; R5 no fragment records it; R6 no earlier record. Minor (wording) stands."
+  },
+  {
+   "findingId": "P6-RT-05-05",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.5 A-12 ('Mathematics is rendered with MathML available to assistive technology'). DECISIONS.md / decisions/P6-A3.md 'display spellings in captions, the figure's name and announcements': 'Formulas in captions are written in words, since a caption is plain text ... \"dim 𝔨\" and \"dim 𝔭\"'. Both support the finding.",
+   "evidence": "Read site/src/content/modules/m9-real-forms.mdx at f07eec6. Line 129, b2 caption: '... after the word ... of w_X, ...'. Line 150, b3 caption: '... dim k = ${...dim_k}.' Line 183, b6 question: '... stage 2 plays the word of w_X, the single letter ...'. Line 183, b6 caption: '... dim k = ..., dim p = ... and character ...'. Tried R5 with MERGE's P6-A7 ruling ('its deviations stand (... real rank and dim k of su(1,2) in the caption ...)') and P6-A7 deviation (2). That ruling is about where the values go (the b3 caption rather than the prose, for the word budget), not their spelling. It does not cover b2, b6 or the question. The P6-A3 repair test covers only T13's generated captions. No fragment records ASCII TeX in lesson captions. M9 had no review before this round (known-and-decided list).",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 nothing allows ASCII TeX in a plain-text caption, and the recorded rule for T13 captions is words or 𝔨 and 𝔭; R2 the finding reads A-12 and ruling (6) as written; R3 M9 is phase 6 at G6; R4 no oracle question; R5 the MERGE ruling on P6-A7's deviation (2) covers only where the b3 values go, not their spelling; R6 no earlier record. Minor (wording) stands."
+  },
+  {
+   "findingId": "P6-RT-05-06",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.7 Accessibility ('keyboard-only scripts for T1, T4, T13'). build-plan/COMMON.md 4.3 ('A test must fail when the behaviour it guards is removed'); the finding cites it as 'RED-TEAM-COMMON.md 4.3', a section that does not exist. RT-05 lens attack 40 ('a script that still passes after a break') is the standard for this attack.",
+   "evidence": "Read site/tests/e2e/T13-keyboard.spec.ts at f07eec6. After each Enter on the decoration, the test calls pressUntil(Shift+Tab or Tab, selector), which walks until the target from wherever the focus is, <body> included. It never reads document.activeElement right after Enter. The composite and undo sentences are matched by regex (/^Played the composite move ... City \\d+ now .*\\. Move 1\\.$/, /^Undid move 2\\. Populations now /). Tried R2: DECISIONS.md 'RT-FIX-P3-follow-predict: done controls keep the focus' records 'SPEC 7.5 A-1 (with WCAG 2.4.3 among its criteria) names no focus target after an action'. The same entry then decides that controls keep the focus, and P5-RT-05-02 (focus lost on hydration) was confirmed and fixed. So the project's recorded reading treats focus loss as a defect. The P6-A3 plan checklist (line 244) lists what the script does but does not limit what it must catch. No known-and-decided item or earlier record covers this.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 7.7 does not limit what the keyboard script may leave unchecked; R2 the misnamed citation (RED-TEAM-COMMON 4.3 should be COMMON.md 4.3) does not change the cause, and the 'no focus target' record is outweighed by its own decision that controls keep the focus; R3 T13 and its script are phase 6 at G6; R4 no oracle question; R5 no fragment records the script's scope; R6 no earlier record. Minor stands: a test that could be stronger without being wrong."
+  }
+ ]
+}
