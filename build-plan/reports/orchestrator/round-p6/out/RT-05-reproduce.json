@@ -1,0 +1,66 @@
+{
+ "lens": "RT-05",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P6-RT-05-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.5 A-6 ('Text and numerals at least 4.5 to 1 ... in light and dark themes') and A-2; 7.4 'Embedding'; CONTRACTS 8 (tokens in both themes)",
+   "evidence": "<wt> = /home/user/mutation_game/.claude/worktrees/agent-a6a6b51af55f407bc; <scratch> = /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-p6-rt05-reproduce. HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied from worktree-agent-a9713d93ac4c60748 (commit 9068b2c, which adds 7 new files and changes nothing else): site/tests/e2e/redteam-RT-05-p6-embed-link-contrast.spec.ts. The status lines were 'A  <path>', and the only other lines were the other RT-05 reproducer files, each a separate spec that does not affect this run. npm --prefix <wt> ci --prefer-offline: exit 0. npm --prefix <wt> run build: exit 0, '90 page(s) built', 'links: 3998 internal links on 90 pages of site/dist checked, 0 problems'. Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/../pw-browsers npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-embed-link-contrast.spec.ts. The config is a copy of the repository config: port 4321 changed to 5800, absolute paths, webServer cwd <wt>. Exit 1, '2 failed ... 1 passed (19.3s)'. Assertion lines: '/embed/atlas/?g=E8 ... \"color\": \"rgb(0, 0, 238)\", \"page\": \"rgb(18, 18, 18)\", \"ratio\": 1.99, \"text\": \"Open the Atlas page of E8\"' and '/embed/affine/ (pentagon, Play on), dark theme, 360 x 800: links below 4.5 to 1 against the page: [{\"text\":\"[GSS12] Theorem 1.2, with the signs reve\",\"color\":\"rgb(0, 0, 238)\",\"page\":\"rgb(18, 18, 18)\",\"ratio\":1.99}]'. The /tools/atlas/?g=E8 control passed. The observed values match the finding: rgb(0, 0, 238) on rgb(18, 18, 18), ratio 1.99, on both embed routes. The reproducer does not test the /embed/garden focus-ring part of the observed text. After the run the tree held only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the embed links are rgb(0, 0, 238) on rgb(18, 18, 18), ratio 1.99 on /embed/atlas/?g=E8 and /embed/affine/, while the /tools control passes"
+  },
+  {
+   "findingId": "P6-RT-05-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.5 A-10, A-11, A-1; 4.0 Predict ('The board is frozen until ...'); 7.7 Accessibility row; WCAG 2.1.1",
+   "evidence": "<wt> and <scratch> as in P6-RT-05-01. HEAD f07eec6 (detached). Applied site/tests/e2e/redteam-RT-05-p6-frozen-table-scroll.spec.ts from worktree-agent-a9713d93ac4c60748 (status 'A  <path>'). npm ci --prefer-offline exit 0, npm run build exit 0 (one shared build). Ran: npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-frozen-table-scroll.spec.ts (port 5800 copy of the config). Exit 1, '3 failed'. Output lines: 'Error: /modules/m9-real-forms/ satake b6, 320 x 800, prediction pending, table view open: the box scrolls (370 in 288) but holds no tab stop (box tabindex false, focusable inside 0)'; the same for b7, '(370 in 288) ... focusable inside 0'; '/modules/m1-mutation/ kostant b5 ... the box scrolls (306 in 288) but holds no tab stop (box tabindex false, focusable inside 0)'. Each test also gave '+   \"serious scrollable-region-focusable: details[open=\\\"\\\"] > .bare\"'. These match the finding's observed values: b6 and b7 370/288 with 0 focusable, M1 b5 306/288 with 0 focusable, and the serious axe rule on 'details[open=\"\"] > .bare'. The reproducer does not test M3 b8. Tree after the run: only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: frozen table-view boxes 370 in 288 (M9 b6, b7) and 306 in 288 (M1 b5) with no tab stop and 0 focusable elements, axe serious scrollable-region-focusable"
+  },
+  {
+   "findingId": "P6-RT-05-03",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 6.3 first bullet; 7.5 A-10",
+   "evidence": "<wt> and <scratch> as in P6-RT-05-01. HEAD f07eec6 (detached). Applied site/tests/e2e/redteam-RT-05-p6-t13-table-minus.spec.ts from worktree-agent-a9713d93ac4c60748 (status 'A  <path>'). The shared npm ci and npm run build both exited 0. Ran: npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-t13-table-minus.spec.ts. Exit 1, '1 failed'. The earlier assertion that the board numerals equal ['−1', '−1', '−1'] passed. The failing assertion was 'Error: /tools/satake/?g=A3&x=1.3&t=1.2.3 after Play θ, table view, column Population (the board draws −1, −1, −1)', with expected '\"−1\", \"−1\", \"−1\"' and received '\"-1\", \"-1\", \"-1\"'. This matches the finding: the board shows ['−1','−1','−1'] (U+2212) and the table Population column shows ['-1','-1','-1'] (ASCII). Tree after the run: only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: after Play θ the board shows −1, −1, −1 and the table Population column shows -1, -1, -1 with ASCII hyphen-minus"
+  },
+  {
+   "findingId": "P6-RT-05-04",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.5 A-4; 6.3; CONTRACTS.md 4 (speak)",
+   "evidence": "<wt> and <scratch> as in P6-RT-05-01. HEAD f07eec6 (detached). Applied site/tests/e2e/redteam-RT-05-p6-predict-answer-minus.spec.ts from worktree-agent-a9713d93ac4c60748 (status 'A  <path>'). The shared npm ci and npm run build both exited 0. Ran: npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-predict-answer-minus.spec.ts. Exit 1, '1 failed'. The soft check gave 'Expected: \"The answer is (−1, −1, 0).\" Received: \"The answer is (-1, -1, 0).\"'. The hard check gave 'the live region said \"Shown. The answer is (-1, -1, 0). Mutating city 2 turns (1, 0, 0) into (1, 1, 0), and stage 3 changes every sign. ...\"' (Expected: true, Received: false). The test waits a fixed 800 ms, so I ran it a second time; run 2 printed the same lines, exit 1. This matches the finding's b6 values: data-out=predictResult 'The answer is (-1, -1, 0).' and the live region 'Shown. The answer is (-1, -1, 0). Mutating city 2 turns (1, 0, 0) into (1, 1, 0), ...'. The reproducer does not test b7. Tree after the run: only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: on M9 b6 the result line and the live region both read '(-1, -1, 0)' with ASCII hyphen-minus and no 'minus' (both runs)"
+  },
+  {
+   "findingId": "P6-RT-05-05",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.5 A-12, A-10; 8.4; decisions/P6-A3.md 'display spellings in captions'",
+   "evidence": "<wt> and <scratch> as in P6-RT-05-01. HEAD f07eec6 (detached). Applied site/tests/e2e/redteam-RT-05-p6-m9-ascii-math.spec.ts from worktree-agent-a9713d93ac4c60748 (status 'A  <path>'). The shared npm ci and npm run build both exited 0. Ran: npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-m9-ascii-math.spec.ts. Exit 1, '1 failed', with these received entries: 'b2 caption: On A3 with black nodes 1 and 3, the real form su*(4), θ takes the population (0, 1, 0) to (1, 1, 1) after the word 1 3 of w_X, ...'; 'b3 caption: For su(1,2) on A2 ... real rank 1, dim k = 4.'; 'b6 caption: On A3 with black node 2 and τ exchanging 1 and 3, the real form su(1,3): ... dim k = 9, dim p = 6 and character −3.'; 'b6 question: Here stage 1 of θ moves the population (0, 0, 1) to (1, 0, 0), and stage 2 plays the word of w_X, the single letter 2. Where does θ send (0, 0, 1)?'. These match the four texts in the finding's observed field. Tree after the run: only the applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the M9 b2, b3 and b6 captions and the b6 question contain 'w_X', 'dim k = 4', 'dim k = 9, dim p = 6' as plain ASCII text"
+  },
+  {
+   "findingId": "P6-RT-05-06",
+   "mode": "reproduce",
+   "reproduced": false,
+   "refuted": null,
+   "citation": "SPEC.md 7.7 Accessibility row; RED-TEAM-COMMON.md 4.3; 7.5 A-1",
+   "evidence": "<wt> and <scratch> as in P6-RT-05-01. HEAD f07eec6 (detached). Applied redteam/redteam-RT-05-p6-t13-keyboard-mutant.sh and site/tests/e2e/redteam-RT-05-p6-t13-paint-focus.spec.ts from worktree-agent-a9713d93ac4c60748 (status: these two 'A' lines only). npm --prefix <wt> ci --prefer-offline: exit 0. After that, site/src/generated/ did not exist; it is gitignored and written by the root prebuild. Ran as stated, with no build before it: MUTANT_OUT_DIR=<scratch>/dist-mutant (the scratch placement named by the orchestrator) PLAYWRIGHT_BROWSERS_PATH=... sh <wt>/redteam/redteam-RT-05-p6-t13-keyboard-mutant.sh <scratch>/playwright.config.ts. Output: 'mutant build failed, see <scratch>/dist-mutant.build.log', exit 2. The build log reads '[ERROR] [build] Caught error rendering /atlas/A1: Error: Atlas: names.json has no typeset name for \"A1\" (run scripts/names.mjs; request a missing name from P6-A2)'. The script builds with 'npm --prefix $ROOT run build -w site' (astro build only). That skips the root prebuild (scripts/katex-assets.mjs, names.mjs, presets.mjs), so on a clean checkout with npm ci done the mutant build fails before any test runs. Supplementary run, not part of the verdict: after the root npm run build done for findings 01 to 05, the same script printed 'T13-keyboard.spec.ts ... 3 passed (16.1s)' against the mutant. The paint-focus spec then failed with 'Error: after Enter painted node 1 black ... Expected: \"decoration:1\" Received: \"BODY\"'. On the unchanged gate build the paint-focus spec gave '1 passed'. So the claim shows once that unstated step is added. The script restored DecorationDiagram.svelte both times (git status: only the applied files; no .rt05-orig left).",
+   "severityAdjustment": "none",
+   "reason": "needs undocumented step: the root prebuild (npm run build, or node scripts/names.mjs and the other prebuild scripts) before the script. As stated (clean checkout, npm ci, then the script) the mutant build fails on 'names.json has no typeset name for \"A1\"' and no test runs. With that step added, the claim shows exactly: the mutant passes T13-keyboard.spec.ts 3/3 and fails paint-focus with Received 'BODY'"
+  }
+ ]
+}
