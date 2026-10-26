@@ -37,3 +37,7 @@
 - Notes: on boards in pieces the oracle raises AssertionError (not ValueError as decisions/P6-A1.md says), the engine NeedsConnectedBoard; P3-RT-01-01 held, P5-RT-01-01 refuted, both unchanged.
 - RT-10 refute: none refuted; 05 raised to major (a wrong hook; the restricted board's values are populations of a mutation game, 2.15); 04's D10 half arguable under 9.3 'blocks work' (owner). Reproduce pending.
 - RT-03 verdicts: 01 CONFIRMED major; 02 CONFIRMED minor; 03 CONFIRMED minor; 04 REFUTED (reproduced, but no contract rule; the stated 60000 equals SPEC 5.6).
+## RT-02: 2 findings (2 minor). Phase 5 guards rerun, all pass; hand mutants killed (controls equivalent); 117 renumbered catalogue pairs and 300 admissibility pairs against the oracle in positions; 31 routes build-time equal hydrated (M9 96 values); LaTeX forms byte for byte; the switch and the Wildberger notes on 32 pages.
+- P6-RT-02-01 minor: T13 applies the C2 adjustment of 6.4 in site code (model.ts:445-447) instead of taking it from satakeRecord (Appendix H rule); values right.
+- P6-RT-02-02 minor: T13 converts restricted-board labels with l - 1, k - 1, k + 1 in 12 places (E-7: only toLabels and toPositions convert); values right.
+- Notes: the B2 Atlas page names the affine board 'B2~' in its link text (golden constructor_name, D19 reading, owner); the CSV item 'real_form_restricted_type' holds the display field; M9 beat 6 pairs Bourbaki order with orbit order indices, right on e6(-26) only by coincidence (fragile).
