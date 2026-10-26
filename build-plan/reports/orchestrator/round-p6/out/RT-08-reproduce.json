@@ -1,0 +1,106 @@
+{
+ "lens": "RT-08",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P6-RT-08-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 8.4 (credit and claims about sources stated accurately), 2.11; SOURCES.md 11.1 [W20] contents; DECISIONS.md 'P6-A6 ... Major: /history/ says [W20] states the Mutation Conjecture near its end'",
+   "evidence": "pwd = git rev-parse --show-toplevel = <wt> = /home/user/mutation_game/.claude/worktrees/agent-af2e470d55c193422 (branch worktree-agent-af2e470d55c193422 at aea1802). Ran git -C <wt> checkout --detach f07eec66a8b80d249101630305ef6d2d23882738. HEAD is now f07eec66a8b80d249101630305ef6d2d23882738 and the tree is clean. node v22.22.0. Lens branch worktree-agent-a3775b5da62a67ad5 = 095d37a. diff --stat against the gate shows 26 files, all of them new. Applied site/tests/unit/redteam-RT-08-p6-near-its-end.test.ts, which is absent at the gate. git status --porcelain: 'A  site/tests/unit/redteam-RT-08-p6-near-its-end.test.ts'. npm --prefix <wt> ci --prefer-offline exited 0. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-near-its-end.test.ts, exit 1. Output: 'Tests 1 failed | 2 passed (3)'; 'x open-problem.mdx does not say that [W20] states it near its end'; 'AssertionError: p. 57 of pp. 55-78 is near the start of [W20]: expected [ Array(1) ] to deeply equal []'; received 'open-problem.mdx:31: The paper <Cite k=\"W20\"/> states it near its end (page {'57'}, without a number) for any multigraph'. The two passing tests confirm two things: SOURCES.md 11.1 gives '55-78' and '...the Mutation Conjecture, unnumbered, p. 57', and history.mdx:75 now says 'Its section 2 also states the Mutation Conjecture, on page 57'. The built /open-problem/ text (from the P6-RT-08-03 build) reads 'The paper [W20] states it near its end (page 57, without a number) for any multigraph: every root population consists entirely of Martians or entirely of anti-Martians.' This matches observed. The run left nothing behind. Not applied from the branch: the other 14 redteam/ scripts and redteam-RT-08-p6-t13-condition3.test.ts, all new files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: open-problem.mdx:31 says [W20] 'states it near its end (page 57, without a number)', but SOURCES.md 11.1 puts the conjecture in section 2 of a paper on pp. 55-78"
+  },
+  {
+   "findingId": "P6-RT-08-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 8.4 'Every theorem-like statement carries its provenance'; 9.2; 2.15 conditions 1 to 3; golden satake_examples[type=A3;black_nodes=1,2;tau=1,2,3]",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-m9-black-provenance.test.ts and redteam/redteam-RT-08-p6-black-fixed.py, both absent at the gate. The test imports nothing from redteam/. git status --porcelain lists both as 'A', plus the file applied for 01, which this run does not select. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-m9-black-provenance.test.ts, exit 1. Output: 'Tests 1 failed | 1 passed (2)'; 'x its paragraph, or the Seen box that restates it, carries a provenance'; 'AssertionError: m9-real-forms.mdx beat 1: a general statement with no provenance: expected false to be true'. Ran: python3 redteam/redteam-RT-08-p6-black-fixed.py reference, exit 0. It printed 'A3: admissible pairs (tau = id) where the statement fails: 0; other decorations where it fails: 6; first: black positions (0, 1), node position 0, theta fixes its root: False'. The other boards gave A2 0/2, B3 0/2 and D4 0/12. Line 116 and the built page both read 'A node is black exactly when θ fixes its root; a real form whose θ fixes every root is compact.' None of the 4 Seen statements (lines 236-239) mentions black nodes fixed by θ. Own oracle check, a scratch script run with python3 -I against <wt>/reference, positions 0..2: L.theta(L.cartan('A',3), [0,1], [0,1,2], e_i) gives theta(alpha_1) = (0, 1, 0), theta(alpha_2) = (1, 0, 0) and theta(alpha_3) = (-1, -1, -1). L.admissibility gives condition_1 True, condition_2 False ('on the black nodes [1, 2], tau differs from -w_X'), condition_3 True and admissible False. Golden satake_examples entry for type A3, black_nodes [1,2], tau [1,2,3] agrees: condition_2 false, admissible false, real_forms []. So θ(α1) = α2, as the finding states. Observed matches.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: beat 1's 'A node is black exactly when θ fixes its root' has no provenance in its paragraph or the Seen box, and the oracle gives θ(α1) = α2 on A3 with nodes 1 and 2 black and τ the identity (condition 2 fails), with 0 failures on admissible pairs; this is an 8.4 provenance rule, so major stands, and the sentence speaks of real forms, where it holds"
+  },
+  {
+   "findingId": "P6-RT-08-03",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 7.3 (<Unverified> mark 'links to the item on the page open-items'; open-items 'generated from content/unverified.json'); plan P1-A4; lens attack 35",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-open-items-pages.test.ts, absent at the gate. git status --porcelain lists it as 'A', plus the earlier applied test files, which this run does not select. npm ci had already exited 0. Ran npm --prefix <wt> run build (the reproduction's 'npm run build', with the directory given as an argument), exit 0, load average about 30. Output: '[build] 90 page(s) built in 6m 40s', '[build] Complete!', then postbuild 'links: 3998 internal links on 90 pages of site/dist checked, 0 problems'. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-open-items-pages.test.ts, exit 1. Output: 'Tests 1 failed | 1 passed (2)'; 'x item E4: every page that carries its mark is listed'; 'AssertionError: open-items#E4 \"Pages that use it\": expected [ 'modules/m1-mutation/', ...(2) ] to deeply equal [ 'atlas/E6/', 'atlas/E7/', ...(5) ]'. The diff shows atlas/E6/, atlas/E7/, atlas/E8/ and atlas/G2/ missing, and only modules/m1-mutation/, modules/m3-classification/ and open-problem/ listed. Built site/dist/atlas/E6/index.html has data-unverified=\"E4\" and '<a class=\"unverified-mark\" href=\"/open-items#E4\" ...>[unverified E4]</a>'. This matches observed. No preview server was started.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: open-items#E4 lists only modules/m1-mutation/, modules/m3-classification/ and open-problem/, while atlas/E6/, E7/, E8/ and G2/ carry the E4 mark that links to it"
+  },
+  {
+   "findingId": "P6-RT-08-04",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 8.4 bullets 1 and 2; Appendix C row 'fundamental position e_i'; DECISIONS.md 2026-10-25 RT-FIX-P5-t12-content. The item heading 'Orbits of the fundamental weights' follows SPEC 4 T14's list and is not counted.",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-atlas-omega.test.ts, absent at the gate. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-atlas-omega.test.ts, exit 1. Output: 'Tests 2 failed (2)'. The four lines it lists: 'AtlasSheet.astro:236: A node is minuscule when every number fired in the game from its fundamental weight is 1; ...'; 'AtlasSheet.astro:258: The orbit of the fundamental weight <Fragment set:html={tex('\\\\omega_i')} /> of each node, in the order of the nodes, has'; 'atlasData.ts:341: `Play the numbers game on ${name} from the fundamental weight of node 1 in the Game Board; played to the end it stops at minus the weight of node ${mi'; 'atlasData.ts:347: `Open the Orbit Garden on ${name} at the fundamental weight of node 1 and grow its orbit`'. Built /atlas/A2/ text reads: 'The orbit of the fundamental weight ωi of each node, in the order of the nodes, has (3, 3) positions.'; 'A node is minuscule when every number fired in the game from its fundamental weight is 1'; 'Play the numbers game on A2 from the fundamental weight of node 1 in the Game Board; played to the end it stops at minus the weight of node 2'; 'Open the Orbit Garden on A2 at the fundamental weight of node 1 and grow its orbit'. This matches observed. SPEC 8.4 bullet 2 reads: 'Use the site's words consistently ... Give the standard term once, in the Lie theory paragraph.'",
+   "severityAdjustment": "raise to major",
+   "reason": "reproduced as stated; observed matches: 2 tests fail on AtlasSheet.astro:236 and :258 and atlasData.ts:341 and :347, and /atlas/A2/ prints 'the fundamental weight ωi'; Lie theory terms in tool text break SPEC 8.4 bullet 2, and RED-TEAM-COMMON 4 lists 'a prose rule of 8.4 broken' as major, which is also the level of the phase 5 sibling P5-RT-08-01"
+  },
+  {
+   "findingId": "P6-RT-08-05",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SOURCES.md 11.0 limits 1 and 2, 11.4 [Hel01] and [Ara62]; SPEC 9.3; DECISIONS.md P6-A6 review rulings (Araki's table reported, not stated)",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-m9-tables-unread.test.ts, absent at the gate. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-m9-tables-unread.test.ts, exit 1. Output: 'Tests 1 failed | 1 passed (2)'; 'x M9 reports, wraps or drops the page numbers of [Hel01] and [Ara62]'; 'AssertionError: page numbers of texts the research did not open, stated as fact: expected [ Array(1) ] to deeply equal []'; received 'm9-real-forms.mdx:246 (Lie theory paragraph)'. The passing test confirms that history.mdx contains 'is reported by later papers to have a table' and 'This site has not read either text.' Built M9 text reads: 'The tables are in [Hel01] (pp. 532-534) and [Ara62] (pp. 32-33); [Kol14] states the conditions for quantum symmetric pairs.' SOURCES.md:225 [Hel01] says '...pp. 532-534 [S2, from the manual of the dynkin-diagrams package]. Not read.' SOURCES.md:221 [Ara62] says 'Text not read. Three later papers cite its table ... as pp. 32-33 [S2]'. This matches observed.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: m9-real-forms.mdx:246 states 'The tables are in [Hel01] (pp. 532-534) and [Ara62] (pp. 32-33)' with no hedge, though SOURCES.md marks both texts as not read"
+  },
+  {
+   "findingId": "P6-RT-08-06",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 2.15 (167 records, 166 classes); golden admissible_counts.D4; lens attack 32",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-m9-one-per-real-form.test.ts, absent at the gate. It imports only the existing site/src/lib/golden. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-m9-one-per-real-form.test.ts, exit 1. Output: 'Tests 1 failed | 1 passed (2)'; 'x m9-real-forms.mdx does not call the records one per real form'; 'AssertionError: SPEC 2.15: 167 records for 166 classes: expected [ 'm9-real-forms.mdx:197 (beat 7)' ] to deeply equal []'. The golden test passes. From python3 -I on <wt>/reference/golden_data.json: admissible_counts.D4 = {'real_forms_including_compact': 5, 'catalogue_records': 6, 'admissible_pairs_total': 11} and len(satake) = 167. Built M9 text reads: 'The catalogue has 167 records, one per real form of each board of rank at most eight, and one class of admissible pairs fewer: on D4, so(2,6) and so*(8) are one real form, exchanged by a symmetry of ...'. This matches observed.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: beat 7 (line 197) says the 167 records are 'one per real form' and, in the same sentence, that so(2,6) and so*(8) are one real form; golden D4 has 6 records for 5 real forms"
+  },
+  {
+   "findingId": "P6-RT-08-07",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 8.1 P8; lens attack 39",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-confusions-p8.test.ts, absent at the gate. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-confusions-p8.test.ts, exit 1. Output: 'Tests 1 failed (1)'; 'x no sentence of the page other than the bridge sentence names both node i and city i'; 'AssertionError: SPEC 8.1 P8: expected [ Array(1) ] to deeply equal []'; received 'The first relation says: translate a population $p$ into the position $a=Cp$, and a mutation at city $i$ becomes the firing of node $i$.' The sentence is at confusions.mdx:57. Built /confusions/ text reads '...and a mutation at city i becomes the firing of node i.' SPEC.md:1921 P8 reads 'Node $i$ is always called \"node $i$\" or \"city $i$\", never both in one sentence.' This matches observed.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: confusions.mdx:57 'a mutation at city i becomes the firing of node i' names city i and node i in one sentence, which is neither the bridge sentence nor the A-4 announcement"
+  },
+  {
+   "findingId": "P6-RT-08-08",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 8.4; D16; lens attacks 26 and 37",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-confusions-source.test.ts, absent at the gate. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-confusions-source.test.ts, exit 1. Output: 'Tests 1 failed | 1 passed (2)'; 'x each section carries a citation or a computation'; 'AssertionError: sections of confusions.mdx with no source for their correction: expected [ 'lattices' ] to deeply equal []'. The passing test confirms 13 sections and the promise at confusions.mdx:25: '...and corrects each one, with the source of the correction.' m10-atlas.mdx contains 'each with the source of its correction' once. The section at confusions.mdx:79-85 says '...The translator $a=Cp$ carries the first lattice into the second, onto a sublattice whose index is $\\det C$. ... This is the standard reading of the two games in Lie theory, and the one this site uses throughout.' It has no <Cite>, no 'verified by computation' and no 'a fact of linear algebra'. This matches observed. SPEC 8.4 bullet 4: 'Every theorem-like statement carries its provenance.'",
+   "severityAdjustment": "raise to major",
+   "reason": "reproduced as stated; observed matches: section 'lattices' states the index-det C fact with no citation or computation, although the page and M10 promise a source for each correction; a theorem-like statement without provenance breaks SPEC 8.4 bullet 4, which RED-TEAM-COMMON 4 lists as major, the level the lens gave the same rule in P6-RT-08-02"
+  },
+  {
+   "findingId": "P6-RT-08-09",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 2.8 'Names in rank 2'; D19; 4.0 Board pickers ('the 32 named types')",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-atlas-32-boards.test.ts, absent at the gate. It imports only the existing site/src/components/atlas/boards. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-atlas-32-boards.test.ts, exit 1. Output: 'Tests 2 failed | 1 passed (3)'. It lists 'site/src/pages/atlas/index.astro:17: <Page title=\"Atlas\" description=\"A data sheet for each of the 32 boards of finite type, computed by the engine.\">', 'site/src/pages/atlas/index.astro:19: The Atlas has a data sheet for each of the {ATLAS_BOARDS.length} boards of finite type of rank at most 8: ...' and 'site/src/tools/registry/T14.ts:59: caption: `The Atlas has a data sheet for each of the ${ATLAS_BOARDS.length} boards of finite type, computed by the engine when the site is b...'. The passing test confirms 32 ATLAS_BOARDS including B2 and C2, and the note 'are one board with its two nodes exchanged'. Built pages read: /atlas/ 'The Atlas has a data sheet for each of the 32 boards of finite type of rank at most 8'; meta content=\"A data sheet for each of the 32 boards of finite type, computed by the engine.\"; /tools/atlas/ 'The Atlas has a data sheet for each of the 32 boards of finite type, computed by the engine when the site is built'. This matches observed.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the Atlas index text, its meta description and the T14 caption speak of '32 boards', while the Atlas itself says B2 and C2 are one board"
+  },
+  {
+   "findingId": "P6-RT-08-10",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 7.3 (<G> 'so prose cannot drift from the data'); lens attack 13",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-m9-letters-path.test.ts, absent at the gate. It imports only the existing site/src/lib/golden. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-m9-letters-path.test.ts, exit 1. Output: 'Tests 1 failed | 1 passed (2)'; 'x the sentence counts the letters of the longest word with a path to that word'; 'AssertionError: m9-real-forms.mdx beat 6: the letters of a word printed from the number of positive roots: expected 189 to be -1'. findIndex 189 is line 190. The passing test confirms that types.D5.longest_word has 20 letters. Line 190 has '...plays the <G k={`${S('E6', 'e6(-26)')}.w_X_word`} as=\"count\"/> letters of $w_X$, ... then the <G k={`types.${XO_TYPE}.n_positive_roots`}/> of a longest word of <Tex src={TEX(XO_TYPE)}/>'. Line 86 has 'export const XO_LETTERS = gv(`types.${XO_TYPE}.n_positive_roots`);'. Built M9 text reads 'plays the 12 letters of wX, a longest word of D4, then the 20 of a longest word of D5: 32 moves of E6 for one move of reduced length 8'. This matches observed.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: beat 6 (line 190) prints the letters of a longest word of D5 from types.D5.n_positive_roots (20), not from types.D5.longest_word; the digits agree"
+  }
+ ]
+}
