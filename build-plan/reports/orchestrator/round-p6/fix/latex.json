@@ -1,0 +1,76 @@
+[
+ {
+  "id": "P6-RT-10-01",
+  "severity": "major",
+  "title": "Export LaTeX on the Weyl Explorer (T8) and the Representation Builder (T12) writes the \\dynkin line of the board, not their orbit graphs, which 6.7 says are exported as TikZ coordinates",
+  "location": "site/src/components/tools/T08WeylExplorer.svelte:656 and site/src/components/tools/T12RepresentationBuilder.svelte:1364 (ToolFrame without latexForExport, so site/src/lib/export.ts:765-770 defaultLatexExport applies); DECISIONS.md P6-A5 request ('and if wanted T8 and T6'), answered only for T2 and T10 by P6-tikz",
+  "claim": "Only T2 and T10 pass latexForExport. On T8, whose figure is the layered graph of all positions from all ones, and on T12, whose figure is the orbit of omega_i drawn in layers, Export LaTeX downloads a Dynkin diagram of the board instead of the orbit graph shown.",
+  "expected": "SPEC 6.7: 'Orbit graphs and projections are exported as plain TikZ coordinates'. SPEC 4.0 Share and export: 'LaTeX export (dynkin-diagrams and TikZ, section 6.7) arrives in phase 6'. So on /tools/weyl/?z=1&g=A3 and /tools/rep/?z=1&g=A2&k=1 the .tex holds a tikzpicture of the graph drawn, as T2's does on /tools/garden/.",
+  "observed": "T8 on A3: '% needs \\usepackage{dynkin-diagrams}' then '\\dynkin A{ooo}'. T12 on A2 node 1: '\\dynkin A{oo}'. T2 (control) gives a tikzpicture. Survey of every tool route: T6 (a projection of the rank-2 plane) also gives \\dynkin, and T15 and T16 give 'nothing to export as LaTeX'.",
+  "reproduction": "npm ci; npm run build; PLAYWRIGHT_BROWSERS_PATH=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/pw-browsers npx playwright test -c redteam/redteam-RT-10-p6-playwright.static.config.ts redteam-RT-10-p6-latex-scope.spec.ts (2 failed, 1 passed). Optional survey: the same command with redteam-RT-10-p6-latex-survey.spec.ts.",
+  "specRef": "SPEC.md 6.7, last paragraph ('Orbit graphs and projections are exported as plain TikZ coordinates'); 4.0 'Share and export'; 4 T8 ('the graph of all positions reachable from all ones by legal play, drawn in layers'); 4 T12 ('the orbit drawn in layers with edges coloured by node'); 9.2 ('export as far as the current phase provides it')",
+  "proposedFix": "Pass latexForExport with a tikz-graph of the drawn layout from T8 (t08/layout.ts positions) and T12 (OrbitLayers drawing), as P6-tikz did for T2. Add a browser test per tool. Alternatively, record an owner decision that 6.7's TikZ applies to T2 and T10 only.",
+  "reproducer": "site/tests/e2e/redteam-RT-10-p6-latex-scope.spec.ts (with redteam/redteam-RT-10-p6-playwright.static.config.ts and redteam/redteam-RT-10-p6-serve.mjs)",
+  "lens": "RT-10",
+  "branch": "worktree-agent-a689e5f789a50ceae",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-10-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 6.7, last paragraph ('Orbit graphs and projections are exported as plain TikZ coordinates'); 4.0 'Share and export'; 4 T8 ('the graph of all positions reachable from all ones by legal play, drawn in layers'); 4 T12 ('the orbit drawn in layers with edges coloured by node'); 9.2 ('export as far as the current phase provides it')",
+    "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a793a234e2c7324e8. It started on branch worktree-agent-a793a234e2c7324e8 at aea1802. I detached it at f07eec66a8b80d249101630305ef6d2d23882738 and the status was clean. Node v22.22.0. From worktree-agent-a689e5f789a50ceae I applied site/tests/e2e/redteam-RT-10-p6-latex-scope.spec.ts, redteam/redteam-RT-10-p6-playwright.static.config.ts and redteam/redteam-RT-10-p6-serve.mjs. For the optional survey I also applied site/tests/e2e/redteam-RT-10-p6-latex-survey.spec.ts. None of these exists at the gate commit, and git status listed each as 'A'. The lens branch only adds 26 files and modifies no existing file. Commands: npm ci --prefer-offline (exit 0), then npm run build (exit 0; 90 pages; links.mjs reported 0 problems). Following the verify instructions, I ran the static config from a scratch copy (/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-p6-rt10-reproduce/redteam-RT-10-p6-playwright.static.config.ts). It differs only in PORT 5603->5900, WT set to the absolute worktree path, and no defineConfig import. Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch copy> redteam-RT-10-p6-latex-scope.spec.ts; exit 1; '2 failed ... 1 passed (21.5s)'. T8 A3 output: '% http://localhost:5900/tools/weyl/ / % needs \\usepackage{dynkin-diagrams} / \\dynkin A{ooo}' with 'Expected substring: \"\\\\begin{tikzpicture}\"'. T12 A2 k=1 output: '\\dynkin A{oo}'. The T2 control passed with a tikzpicture. The survey spec exited 0 and printed: 'garden: tikzpicture (248 characters)', 'geometry: tikzpicture (1599 characters)', 'weyl: \\dynkin A{ooo}', 'rep: \\dynkin A{oo}', 'mirror: \\dynkin A{oo}', 'affine: no download; notice \"nothing to export as LaTeX\"', 'sandbox: no download; notice \"nothing to export as LaTeX\"'. Observed matches the finding: T8 \\dynkin A{ooo}, T12 \\dynkin A{oo}, T2 tikzpicture, T6 \\dynkin, T15 and T16 'nothing to export as LaTeX'. After the run the tree held only the applied files (test-results/ was ignored and deleted).",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: T8 on A3 exports '\\dynkin A{ooo}' and T12 on A2 node 1 exports '\\dynkin A{oo}' instead of a tikzpicture, while the T2 control gives a tikzpicture"
+   },
+   "refute": {
+    "findingId": "P6-RT-10-01",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 6.7, last paragraph: 'Orbit graphs and projections are exported as plain TikZ coordinates.' SPEC.md 4.0 [D] Share and export: 'LaTeX export (dynkin-diagrams and TikZ, section 6.7) arrives in phase 6.' SPEC 4 T8 ('the graph of all positions reachable from all ones by legal play, drawn in layers') and T12 ('the orbit drawn in layers with edges coloured by node'). Read together, these support the finding's expected.",
+    "evidence": "Read SPEC 6.7 whole. The sentence has no label and no qualifier ('may', 'where ... allows'). The [S] label belongs to the compile sentence, not to this one. Section 4.0 is [D], but its LaTeX bullet points to 6.7, and 6.7 assigns orbit graphs to TikZ. Phases: T8 is phase 3, T12 is phase 5, and LaTeX export is phase 6 (4.0; 9.1 row 6 'LaTeX export'). All three are due at G6. Records at f07eec6: DECISIONS.md 'P6-A5: ToolFrame, the prop latexForExport and the default export' is a builder's design: a tool without the prop exports the board's \\dynkin. 'P6-A5: TikZ export in the tools (request)' asks for T2 and T10 'and if wanted T8 and T6'. 'MERGE: P6 stage 6.1, P6-A5, and stage 6.1b, P6-A2' assigns only T2 and T10, as 'needed for the owner's G6 compile of one file of each kind'. 'MERGE: P6-tikz ...' wires T2 (tikz-graph) and T10 (tikz-points) and leaves to the owner only edge colours, labels and rise lines. No record exempts T8 or T12 from 6.7, and no section 10 default applies. The P6-A5 plan line 135 says 'T02 ... and T10 ... at least'. git grep at f07eec6 finds latexForExport passed only by T02OrbitGarden.svelte and T10GeometryStudio.svelte. reports/gate-G6.md (d59af4a, gate commit f07eec6 confirmed) checks only the three sample forms and lists no open item on T8 or T12. This is the first round of phase 6, so there is no earlier merge report. The known-and-decided list names only 'edge colours and labels in the TikZ forms'.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, because 6.7 states the TikZ export of orbit graphs with no permissive clause; R2 failed, because T8's and T12's figures are orbit graphs drawn in layers (SPEC 4) and 6.7 governs them; R3 failed, because LaTeX is phase 6 and the tools are phases 3 and 5, all due at G6; R4 does not apply, since no oracle value is involved; R5 failed, because the default \\dynkin export is a builder's choice outside the 6.7 text, not an owner's answer or section 10 default, and MERGE scoped T2 and T10 only for the G6 compile samples without exempting the others; R6 failed, because neither gate-G6.md nor an earlier round records it. Severity stays major (a stated behaviour missing)."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-03-03",
+  "severity": "minor",
+  "title": "exportLaTeX writes TeX with 'undefined' and missing node names for lists that have a hole, instead of refusing",
+  "location": "site/src/lib/export.ts:686-692 (edgeList: Array.prototype.every skips holes), :697-709 (tikzGraph: nodes.map skips holes), :711-729 (tikzPoints: points.map and forEach skip holes)",
+  "claim": "The tikz-graph and tikz-points writers check their lists with map, every and forEach, which skip the holes of a sparse array. A hole in the vertices, the points or an edge passes every check and reaches the TeX text.",
+  "expected": "exportLaTeX 'Throws RangeError, naming the fault, on data it cannot write' (export.ts:737, the CONTRACTS 4 function, plan). An explicit undefined in the same place is already a RangeError. The P6-A1 review found the same class of defect in satake.ts checkPopulation, and it was fixed with a test.",
+  "observed": "tikz-points with points [[0,0], <hole>, [1,1]] and edges [[0,1]] writes '\\draw (0,0) -- undefined;'. tikz-graph with edges [[<hole>, 1]] writes '\\draw (nundefined) -- (n1);'. tikz-points with edge [<hole>, 1] writes '\\draw undefined -- (1,1);'. tikz-graph with nodes [{x:0,y:0}, <hole>, {x:1,y:1}] writes '\\draw (n0) -- (n1);' although no node n1 is defined. None of them throws. T2's and T10's adapters build dense arrays, so no reader reaches this today.",
+  "reproduction": "From a clean checkout of f07eec6 plus this branch's files: npm ci; TMPDIR=<fresh dir> npx vitest run --project site-unit redteam-RT-03-p6-latex (4 of 7 tests fail).",
+  "specRef": "CONTRACTS.md 4 exportLaTeX; site/src/lib/export.ts:737 docstring (plan); SPEC.md 6.7",
+  "proposedFix": "Read nodes, points and each edge with index loops over 0..length-1 (or Array.from first), so a hole reaches the existing type checks.",
+  "reproducer": "site/tests/unit/redteam-RT-03-p6-latex.test.ts",
+  "lens": "RT-03",
+  "branch": "worktree-agent-aaf7a474ed3a7598c",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-03-03",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "CONTRACTS.md 4 exportLaTeX; site/src/lib/export.ts:737 docstring (plan); SPEC.md 6.7",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. npm ci done once. Removed the previous finding's file, then applied only site/tests/unit/redteam-RT-03-p6-latex.test.ts from worktree-agent-aaf7a474ed3a7598c. It is absent at the gate and present on the branch, with no redteam/ imports. status --porcelain: 'A  site/tests/unit/redteam-RT-03-p6-latex.test.ts'. Ran from <wt>: TMPDIR=<scratch>/verify-p6-rt03-reproduce/tmp-latex npx vitest run --project site-unit redteam-RT-03-p6-latex. Exit 1, 'Tests  4 failed | 3 passed (7)'. The controls (explicit undefined gives RangeError) and the label and coordinate refusals pass. (1) tikz-graph with nodes [{0,0}, <hole>, {1,1}]: no throw; output has n0 and n2 nodes and '\\draw (n0) -- (n1);' with no node n1 defined. (2) tikz-points with points [[0,0], <hole>, [1,1]] and edge [0,1]: '\\draw (0,0) -- undefined;', received {threw: null, writesUndefined: true}. (3) tikz-graph edge [<hole>, 1]: '\\draw (nundefined) -- (n1);'. (4) tikz-points edge [<hole>, 1]: '\\draw undefined -- (1,1);'. Each expected {threw: 'RangeError', writesUndefined: false}. Observed matches the finding's four outputs exactly. Tree after the run: only the applied file, which I then removed before the next finding.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: exportLaTeX does not throw on a hole and writes '\\draw (0,0) -- undefined;', '\\draw (nundefined) -- (n1);', '\\draw undefined -- (1,1);' and '\\draw (n0) -- (n1);' with n1 undefined. The required RangeError is plan or contract text (export.ts docstring, CONTRACTS 4) and not a SPEC behaviour of the major list, so the claimed minor stands."
+   },
+   "refute": {
+    "findingId": "P6-RT-03-03",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "decisions/P6-A5.md '2026-10-25 P6-A5: the TikZ forms': 'a coordinate that is not a finite number below 1e15 in size throws RangeError, as does an edge that does not join two given vertices or a label list of the wrong length.' CONTRACTS.md 4: 'exportLaTeX(kind, data: unknown): string; // phase 6 (P6-A5)'. SPEC.md 6.7 is silent on refusals. The recorded decision supports the finding's expected.",
+    "evidence": "SPEC 6.7 (read whole) says only that orbit graphs and projections 'are exported as plain TikZ coordinates'. It has no sentence that permits or forbids malformed data. CONTRACTS 4 gives only the signature, phase 6. The refusal rule is P6-A5's recorded decision, quoted above, together with export.ts:736 'Throws RangeError, naming the fault, on data it cannot write'. An edge [<hole>, 1], or an edge to a vertex that is a hole, does not 'join two given vertices', so by P6-A5's own record it must throw. Source at f07eec6: edgeList (:689) checks pairs with e.every, which skips holes; tikzGraph (:700) uses nodes.map and tikzPoints (:713, :723) uses points.map and forEach, all of which skip holes. No decision in DECISIONS.md, decisions/P6-A5.md or decisions/P6-tikz.md mentions holes or sparse lists. The same class of defect, 'a population with a hole that passes the input check', was ruled a minor and fixed in P6-A1's repair (DECISIONS.md:3520, 3708). exportLaTeX is phase 6 (CONTRACTS 4; SPEC 4.0 'LaTeX export ... arrives in phase 6'). Not in gate-G6.md. Not in the known-and-decided list (which holds only TikZ edge colours and labels). Reachability: T2's and T10's adapters build dense arrays (the finding says so), so only code reaches it.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 neither SPEC 6.7 nor CONTRACTS 4 permits writing 'undefined' or undefined node names, and P6-A5's record says such an edge throws; R2 the finding reads the docstring and the P6-A5 decision correctly; R3 exportLaTeX is phase 6 at G6; R4 no oracle value is involved; R5 no [D] or recorded decision accepts holes; R6 no record. Minor fits for an input check that only code can reach."
+   }
+  }
+ }
+]

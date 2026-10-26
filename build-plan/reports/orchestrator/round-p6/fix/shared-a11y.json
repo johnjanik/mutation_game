@@ -1,0 +1,150 @@
+[
+ {
+  "id": "P6-RT-05-01",
+  "severity": "major",
+  "title": "Attacks 29 and 45: on /embed/<id> links drawn inside a tool keep the browser's default link colour (#0000EE), 1.99 to 1 on the dark page",
+  "location": "site/src/pages/embed/[tool].astro:16 imports only base.css, not the global rules of site/src/layouts/Base.astro:91-97 (a { color: var(--text) }; a:focus-visible, button:focus-visible ring). Links that rely on those rules: site/src/components/atlas/AtlasPicker.svelte:87 (the 'chosen' link has no colour) and site/src/components/tools/t15/FateReport.svelte:57 (the GSS12 source link; also the unverified-mark of t15/fate.ts:143 in preview builds)",
+  "claim": "The link colour and the focus ring of links and buttons are set only by Base.astro's global style. The embed route does not use that layout, so every link a tool draws is #0000EE (visited #551A8B) in both themes, below A-6 in the dark theme. Buttons without their own :focus-visible rule fall back to the browser ring there.",
+  "expected": "SPEC 7.5 A-6: text at least 4.5 to 1 in light and dark themes; 7.4: /embed/<tool> renders the tool alone, with the same tool as /tools/<tool> (whose links are drawn in var(--text), 15.3 to 1 on #121212).",
+  "observed": "Dark theme, 360 x 800. /embed/atlas/?g=E8: 'Open the Atlas page of E8' has color rgb(0, 0, 238) on rgb(18, 18, 18), ratio 1.99. /embed/affine/ after the pentagon tab and Play on, both by keys: '[GSS12] Theorem 1.2, with the signs reversed' is rgb(0, 0, 238), ratio 1.99. The control /tools/atlas/?g=E8 shows the same link in rgb(232, 232, 232). Also, a Tab walk of /embed/garden in the dark theme shows its jump buttons with 'auto 1px' (the browser ring) instead of 3px solid --focus-ring, as on /tools/garden.",
+  "reproduction": "From a clean checkout of f07eec6 plus the reproducer: npm ci; npm run build; npx playwright test site/tests/e2e/redteam-RT-05-p6-embed-link-contrast.spec.ts (webServer = astro preview). The two embed tests fail as above and the /tools control passes.",
+  "specRef": "SPEC.md 7.5 A-6 ('Text and numerals at least 4.5 to 1 ... in light and dark themes') and A-2; 7.4 'Embedding'; CONTRACTS 8 (tokens in both themes)",
+  "proposedFix": "Move the global link colour and the a/button :focus-visible rule from Base.astro's <style is:global> into styles/base.css, which both Base.astro and the embed page import. Alternatively import the same rule in pages/embed/[tool].astro. Add the dark-theme link check to embed.spec.ts.",
+  "reproducer": "site/tests/e2e/redteam-RT-05-p6-embed-link-contrast.spec.ts",
+  "lens": "RT-05",
+  "branch": "worktree-agent-a9713d93ac4c60748",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-05-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.5 A-6 ('Text and numerals at least 4.5 to 1 ... in light and dark themes') and A-2; 7.4 'Embedding'; CONTRACTS 8 (tokens in both themes)",
+    "evidence": "<wt> = /home/user/mutation_game/.claude/worktrees/agent-a6a6b51af55f407bc; <scratch> = /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-p6-rt05-reproduce. HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied from worktree-agent-a9713d93ac4c60748 (commit 9068b2c, which adds 7 new files and changes nothing else): site/tests/e2e/redteam-RT-05-p6-embed-link-contrast.spec.ts. The status lines were 'A  <path>', and the only other lines were the other RT-05 reproducer files, each a separate spec that does not affect this run. npm --prefix <wt> ci --prefer-offline: exit 0. npm --prefix <wt> run build: exit 0, '90 page(s) built', 'links: 3998 internal links on 90 pages of site/dist checked, 0 problems'. Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/../pw-browsers npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-embed-link-contrast.spec.ts. The config is a copy of the repository config: port 4321 changed to 5800, absolute paths, webServer cwd <wt>. Exit 1, '2 failed ... 1 passed (19.3s)'. Assertion lines: '/embed/atlas/?g=E8 ... \"color\": \"rgb(0, 0, 238)\", \"page\": \"rgb(18, 18, 18)\", \"ratio\": 1.99, \"text\": \"Open the Atlas page of E8\"' and '/embed/affine/ (pentagon, Play on), dark theme, 360 x 800: links below 4.5 to 1 against the page: [{\"text\":\"[GSS12] Theorem 1.2, with the signs reve\",\"color\":\"rgb(0, 0, 238)\",\"page\":\"rgb(18, 18, 18)\",\"ratio\":1.99}]'. The /tools/atlas/?g=E8 control passed. The observed values match the finding: rgb(0, 0, 238) on rgb(18, 18, 18), ratio 1.99, on both embed routes. The reproducer does not test the /embed/garden focus-ring part of the observed text. After the run the tree held only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: the embed links are rgb(0, 0, 238) on rgb(18, 18, 18), ratio 1.99 on /embed/atlas/?g=E8 and /embed/affine/, while the /tools control passes"
+   },
+   "refute": {
+    "findingId": "P6-RT-05-01",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.5 A-6 ('Text and numerals at least 4.5 to 1; ... in light and dark themes'), not labelled [D]; 7.4 'Embedding' ('renders the tool alone ... accepting the same query parameters'). Both support the finding's expected value. decisions/P6-A5.md 'the embed page' gives the embed page base.css with tokens and themes and says nothing about link colour.",
+    "evidence": "Read at f07eec6. site/src/pages/embed/[tool].astro imports only '../../styles/base.css'. It gives a colour (var(--text)) and a focus ring only to its own '.open-on-site a'. site/src/layouts/Base.astro:91-97 (<style is:global>) holds 'a { color: var(--text) }' and 'a:focus-visible, button:focus-visible'. base.css (with tokens.css) has no rule for a, :link, :visited or button:focus-visible. Its only focus rule is for .katex-display. AtlasPicker.svelte:121 '.chosen a' sets display, min-height and font-weight, with no colour. FateReport.svelte:58 has a bare <a>. DECISIONS.md 'P6-A5: the embed page' records base.css and themes that follow prefers-color-scheme. It has no ruling on tool links. The known-and-decided list holds only Cite's URL and a heading on the embed pages. Embed routes are phase 6 (4.0, 7.4) and the gate is G6. reports/gate-G6.md has no open item on embed contrast. No earlier round has a record of it.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 no sentence allows the browser's default link colour on /embed/ (A-6 has no qualifier, and 7.4 asks for the same tool); R2 the finding reads A-6 and 7.4 correctly; R3 embed routes are phase 6 at G6; R4 no oracle question; R5 7.5 is not [D], and the P6-A5 embed decision says base.css only, with no link colour; R6 no earlier record. The focus-ring part (browser auto ring on /embed/garden) is the weaker part, but it has the same cause. A stated contrast requirement that is wrong is major."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-05-02",
+  "severity": "major",
+  "title": "Attacks 9, 33, 34 and 39: while a prediction is pending, the 'Show as table' view of T13 (M9 b6, b7) and T9 (M1 b5) overflows at 320 with no tab stop, so its right-hand columns cannot be reached by keyboard (axe scrollable-region-focusable, serious)",
+  "location": "site/src/components/board/ToolFrame.svelte:263-268 and :339-345 (fieldset.bare is overflow-x: auto with no tabindex, role or name); site/src/components/tools/T13SatakeStudio.svelte:901 and :935 (table buttons disabled={!api.hydrated || frozen}); T09Kostant's table buttons, disabled likewise while frozen",
+  "claim": "The table view's scroll box relies on the buttons inside it for keyboard access. A frozen tool renders all those buttons with the HTML disabled attribute, so at 320 the box scrolls but nothing in it can take focus. T13's tables are 370 px wide in a 288 px box, so its Population, Coordinate and Composite move columns are out of keyboard reach until the prediction is answered.",
+  "expected": "A-10: the table view presents the same state at any time. A-11: what cannot reflow scrolls inside its own box, and that box is keyboard-operable (A-1, WCAG 2.1.1). 7.7: no serious axe violation. The frozen boards themselves stay focusable with aria-disabled (Board.svelte header), and the table view should follow the same rule.",
+  "observed": "320 x 800, prediction pending, table view opened by keys. M9 b6: box scrollWidth 370, clientWidth 288, box tabindex none, 0 focusable elements inside; M9 b7: the same. M1 b5 (kostant): 306 in 288, 0 focusable. axe (scrollable-region-focusable, serious) flags 'details[open=\"\"] > .bare' in each. After 'Show me' the buttons are enabled and the box becomes reachable. M3 b8 (kostant, frozen) shows the same in the reflow sweep.",
+  "reproduction": "npm ci; npm run build; npx playwright test site/tests/e2e/redteam-RT-05-p6-frozen-table-scroll.spec.ts (3 failed: b6, b7 and M1 b5; each message gives the box size and the focusable count, and the soft axe check lists the serious violation).",
+  "specRef": "SPEC.md 7.5 A-10, A-11, A-1; 4.0 Predict ('The board is frozen until ...'); 7.7 Accessibility row; WCAG 2.1.1",
+  "proposedFix": "Give ToolFrame's table-view box a tab stop and a name (tabindex=0, role=region, aria-label 'Table of <title>'), as the site does for its other scroll boxes. Or keep frozen table buttons focusable with aria-disabled='true', as Board.svelte does.",
+  "reproducer": "site/tests/e2e/redteam-RT-05-p6-frozen-table-scroll.spec.ts",
+  "lens": "RT-05",
+  "branch": "worktree-agent-a9713d93ac4c60748",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-05-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.5 A-10, A-11, A-1; 4.0 Predict ('The board is frozen until ...'); 7.7 Accessibility row; WCAG 2.1.1",
+    "evidence": "<wt> and <scratch> as in P6-RT-05-01. HEAD f07eec6 (detached). Applied site/tests/e2e/redteam-RT-05-p6-frozen-table-scroll.spec.ts from worktree-agent-a9713d93ac4c60748 (status 'A  <path>'). npm ci --prefer-offline exit 0, npm run build exit 0 (one shared build). Ran: npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-frozen-table-scroll.spec.ts (port 5800 copy of the config). Exit 1, '3 failed'. Output lines: 'Error: /modules/m9-real-forms/ satake b6, 320 x 800, prediction pending, table view open: the box scrolls (370 in 288) but holds no tab stop (box tabindex false, focusable inside 0)'; the same for b7, '(370 in 288) ... focusable inside 0'; '/modules/m1-mutation/ kostant b5 ... the box scrolls (306 in 288) but holds no tab stop (box tabindex false, focusable inside 0)'. Each test also gave '+   \"serious scrollable-region-focusable: details[open=\\\"\\\"] > .bare\"'. These match the finding's observed values: b6 and b7 370/288 with 0 focusable, M1 b5 306/288 with 0 focusable, and the serious axe rule on 'details[open=\"\"] > .bare'. The reproducer does not test M3 b8. Tree after the run: only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: frozen table-view boxes 370 in 288 (M9 b6, b7) and 306 in 288 (M1 b5) with no tab stop and 0 focusable elements, axe serious scrollable-region-focusable"
+   },
+   "refute": {
+    "findingId": "P6-RT-05-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.5 A-1 ('Every tool is fully operable from the keyboard', 2.1.1), A-10 and A-11. 7.7 Accessibility ('no serious or critical violations'). 4.0 Predict ('The board is frozen until ...'), which freezes the board and does not exempt the table view. DECISIONS.md 'RT-FIX-P3-board-a11y: a frozen board stays one tab stop (P3-RT-05-02)' and the confirmed P3-RT-05-04 (a scroll box with no tab stop, major) support the finding.",
+    "evidence": "Read at f07eec6. ToolFrame.svelte has <fieldset class=\"bare\" disabled={!hydrated}> inside <details class=\"table-view\">, with .bare { overflow-x: auto }. The box has no tabindex, role or name. T13SatakeStudio.svelte: the table buttons carry disabled={!api.hydrated || frozen} (frozen = !predictionResolved), and the Population cells are plain <td>. 'P1-A5: prediction check' disables the nodes, History and the step controls while a prediction is open. The RT-FIX-P3-board-a11y entry then changed only the node buttons to aria-disabled, 'so a reader on the keyboard reaches the board and its values while the prediction waits'. No record names the table buttons or lets the table box lose keyboard reach. Other records make scroll boxes focusable: P3-RT-05-04 display formulas ('a tab stop, so that its box can be scrolled from the keyboard'), T2's chart box 'focusable and named', T10's face table, and P5-RT-05-02. 'RT-FIX-P4-...: .tool-frame minmax(0, 1fr)' made the table scroll inside .bare and says nothing on focus. Round1 P3-RT-05-04 (major, confirmed) read A-11 and A-1 the same way. M9 and M1 predictions exist at G6. gate-G6 and the earlier rounds have no record of a frozen table view.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 4.0 Predict freezes the board but grants no exception to A-1 or A-10, and A-11's scroll-box allowance comes with A-1's keyboard rule; R2 the finding reads A-1, A-10, A-11 and 7.7 as the confirmed P3-RT-05-04 did; R3 Predict, T9, T13 and M9 are all built by G6; R4 no oracle question; R5 no decision covers the frozen table buttons or an unfocusable scroll box (the P1-A5 and RT-FIX-P3 entries name only nodes, History and step controls); R6 no earlier record. Major matches the P3-RT-05-04 precedent."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-05-04",
+  "severity": "minor",
+  "title": "Attacks 1 and 9: a prediction's negative answer is shown and announced with the ASCII hyphen-minus, not read through speak ('minus'); first reached on M9 b6 and b7",
+  "location": "site/src/components/tools/t01/interop.ts:71-72 (predictionAnswerText: `(${a.value.join(', ')})`), used by site/src/components/board/Predict.svelte:38-41 (result line) and :90 (announcement)",
+  "claim": "M9 is the first lesson whose predictions have negative answers. Predict composes both the visible result and the live-region sentence from raw numbers, so the reader hears and sees '-1'. The lesson's reveal in the same sentence prints '(0, −1)'.",
+  "expected": "A-4: negative numbers spoken as 'minus' in the tool's announcements; CONTRACTS 4 speak; 6.3: true minus sign on screen.",
+  "observed": "/modules/m9-real-forms/ b6, 'Show me' by Enter. data-out=predictResult reads 'The answer is (-1, -1, 0).' The live region reads 'Shown. The answer is (-1, -1, 0). Mutating city 2 turns (1, 0, 0) into (1, 1, 0), ...'. On b7 the region reads 'Shown. The answer is (-1, -1). ... node 2 gives (0, −1), ...', mixing both signs in one sentence.",
+  "reproduction": "npm ci; npm run build; npx playwright test site/tests/e2e/redteam-RT-05-p6-predict-answer-minus.spec.ts (1 failed; the soft check reports the result line and the hard check the announcement).",
+  "specRef": "SPEC.md 7.5 A-4; 6.3; CONTRACTS.md 4 (speak)",
+  "proposedFix": "Show the answer with U+2212 (displayValue) and announce it through speakList.",
+  "reproducer": "site/tests/e2e/redteam-RT-05-p6-predict-answer-minus.spec.ts",
+  "lens": "RT-05",
+  "branch": "worktree-agent-a9713d93ac4c60748",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-05-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.5 A-4; 6.3; CONTRACTS.md 4 (speak)",
+    "evidence": "<wt> and <scratch> as in P6-RT-05-01. HEAD f07eec6 (detached). Applied site/tests/e2e/redteam-RT-05-p6-predict-answer-minus.spec.ts from worktree-agent-a9713d93ac4c60748 (status 'A  <path>'). The shared npm ci and npm run build both exited 0. Ran: npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-predict-answer-minus.spec.ts. Exit 1, '1 failed'. The soft check gave 'Expected: \"The answer is (−1, −1, 0).\" Received: \"The answer is (-1, -1, 0).\"'. The hard check gave 'the live region said \"Shown. The answer is (-1, -1, 0). Mutating city 2 turns (1, 0, 0) into (1, 1, 0), and stage 3 changes every sign. ...\"' (Expected: true, Received: false). The test waits a fixed 800 ms, so I ran it a second time; run 2 printed the same lines, exit 1. This matches the finding's b6 values: data-out=predictResult 'The answer is (-1, -1, 0).' and the live region 'Shown. The answer is (-1, -1, 0). Mutating city 2 turns (1, 0, 0) into (1, 1, 0), ...'. The reproducer does not test b7. Tree after the run: only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: on M9 b6 the result line and the live region both read '(-1, -1, 0)' with ASCII hyphen-minus and no 'minus' (both runs)"
+   },
+   "refute": {
+    "findingId": "P6-RT-05-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.5 A-4 ('Templates, with negative numbers spoken as \"minus\"') and 4.0 'Keyboard and screen reader' ('a polite live region announces each result with the wording fixed in section 7.5'). P6-A3 plan 5.14 ('numbers through speak, \"minus\" for negatives') and MERGE ruling (6) on P6-A3 (announcements use display spellings, U+2212) apply, because the prediction is announced through T13's own live region.",
+    "evidence": "Read at f07eec6. t01/interop.ts predictionAnswerText gives a position as `(${a.value.join(', ')})` with raw numbers. Predict.svelte puts it in resultText ('The answer is ...') and in announce?.(`Shown. The answer is ${closed} ${prediction.reveal}`). T13SatakeStudio.svelte:552 renders <Predict ... announce={api.announce}>, which is T13's frame region. M9 b6's answer THETA13 = (-1, -1, 0) and b7's (-1, -1) come from the engine, not through <G>. Their reveals use show() with U+2212. Strongest refutation tried (R2): A-4's 'minus' clause sits in the row for move announcements, and 6.3 is titled 'Values on nodes', so neither names a prediction result line by itself. But 4.0 extends 7.5's wording to 'each result', and T13's plan and MERGE ruling (6) fix minus and U+2212 for T13's announcements. No sentence or record allows ASCII hyphen-minus there. No earlier round has a record on how prediction answers are formatted.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 no sentence allows ASCII '-1' in an announced or displayed result; R2 tried (A-4's minus rule is attached to the move templates), but 4.0 applies 7.5's wording to each result, and the P6-A3 plan and MERGE ruling (6) bind T13's announcements, through which this one goes; for the owner, A-4 itself is ambiguous on non-move announcements; R3 Predict (phase 1) and M9 (phase 6) both exist at G6; R4 no oracle question; R5 no fragment records it; R6 no earlier record. Minor (wording) stands."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-06-01",
+  "severity": "minor",
+  "title": "Attacks 1 and 10, retest of P5-RT-06-01: the no-JS runs accept a blank T13 panel figure (M9 b3 shadow picture, b7 and b12 restricted board) and a blank T14 board drawing as the default figure",
+  "location": "site/tests/e2e/nojs.spec.ts:75-180 (toolReport/figureProblems: the first data-board-group is the figure; any role=img element with a child element counts as a drawing); site/tests/e2e/M9.spec.ts:278-343 ('M9 renders without JavaScript'); site/tests/e2e/T14.spec.ts:138-147 and :822",
+  "claim": "The P5 fix taught nojs.spec.ts the parts of T12's figure only. A blank T13 panel figure and a blank T14 board drawing are still accepted as the default figure, because the predicate checks a figure's container and not its marks.",
+  "expected": "SPEC 7.4: 'A Playwright run with JavaScript disabled checks, for every lesson, that the text, every default figure and every table are present'; SPEC 4 T13 'Shadows: ... a picture' and 'Restricted board: drawn in Bourbaki order'; SPEC 4 T14's board drawing. A root whose configured figure has no marks should be rejected.",
+  "observed": "With JS off on modules/m9-real-forms/, the reproducer removes every element inside b3's shadow-picture SVG (4 point circles before) and the drawing and node buttons of b7's and b12's restricted board. The current predicate still accepts the roots: ['b3 as board', 'b7 as board', 'b12 as board'], and M9.spec.ts's per-instance checks still pass. On atlas/B3/ and tools/atlas/, removing every line, path, circle, polygon and text from the role=img drawings (empty g groups kept) leaves the root accepted ('atlas (page) as drawing'), and T14.spec.ts's checks (drawing visible, aria-label set) still pass.",
+  "reproduction": "From a clean checkout of f07eec6 plus the reproducer: npm ci --prefer-offline; npm run build; PLAYWRIGHT_BROWSERS_PATH=<browsers> npx playwright test -c redteam/redteam-RT-06-p6-playwright.config.ts site/tests/e2e/redteam-RT-06-p6-nojs-blank-figure.spec.ts (the config starts astro preview on RT06_PORT, default 5560; under heavy load start it first with node node_modules/astro/bin/astro.mjs preview --root site --port 5560 --ignore-lock). 3 tests fail with the arrays above.",
+  "specRef": "SPEC.md 7.4 'Without JavaScript' (last sentence); 4 T13 Shadows and Restricted board; 4 T14; 7.7 row 'Without JavaScript'; RED-TEAM-COMMON 2 ('a test that would pass against an empty function'); retest of P5-RT-06-01",
+  "proposedFix": "Make the figure check content-based for every figure: a role=img drawing, a data-out figure SVG or a board must hold at least one mark (circle, line, path, polygon or text outside title and desc). Have nojs.spec.ts read the figure of the panel each T13 instance is configured to show (data-out shadow-picture, restricted-board), and have M9.spec.ts check b3's points and b7/b12's restricted nodes.",
+  "reproducer": "site/tests/e2e/redteam-RT-06-p6-nojs-blank-figure.spec.ts",
+  "lens": "RT-06",
+  "branch": "worktree-agent-ab01232faaf6b3607",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-06-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.4 'Without JavaScript' (last sentence); 4 T13 Shadows and Restricted board; 4 T14; 7.7 row 'Without JavaScript'; RED-TEAM-COMMON 2 ('a test that would pass against an empty function'); retest of P5-RT-06-01",
+    "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a32a0e2818dcef881. Detached HEAD f07eec66a8b80d249101630305ef6d2d23882738. Node v22.22.0. Applied from worktree-agent-ab01232faaf6b3607 (68f1920): site/tests/e2e/redteam-RT-06-p6-nojs-blank-figure.spec.ts (the reproducer) and redteam/redteam-RT-06-p6-playwright.config.ts (named in reproduction, absent at the gate). Neither exists at f07eec6. The spec imports nothing under redteam/. git status --porcelain: 'A  redteam/redteam-RT-06-p6-playwright.config.ts' / 'A  site/tests/e2e/redteam-RT-06-p6-nojs-blank-figure.spec.ts'. The finding 2 file had been applied and removed again before this run. Commands: 'npm ci --prefer-offline' (exit 0); 'npm run build' (exit 0, '90 page(s) built', links.mjs '0 problems'); 'RT06_PORT=5820 RT06_OUT=<scratch>/verify-p6-rt06-reproduce/pw-out PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c redteam/redteam-RT-06-p6-playwright.config.ts site/tests/e2e/redteam-RT-06-p6-nojs-blank-figure.spec.ts' (exit 1). The orchestrator assigned RT06_PORT=5820. RT06_OUT only moves Playwright's output folder into my scratch directory. The config's own webServer started the preview with no manual start. Output: '3 failed'. Test 1 (M9 b3, b7, b12) received [\"b3 as board\", \"b7 as board\", \"b12 as board\"] where [] was expected. Its earlier assertions passed: shadow points > 0 and restricted shapes and nodes > 0 before blanking, and the M9.spec-style checks on the blanked roots. Tests 2 (atlas/B3/) and 3 (tools/atlas/) each received [\"atlas (page) as drawing\"] where [] was expected, after the drawing-visible and aria-label checks passed. I also diffed the reproducer's copied predicate (its lines 24 to 173) against site/tests/e2e/nojs.spec.ts lines 31 to 180 at the gate: identical (diff exit 0). The observed value matches the finding's observed exactly. After the run, the tree held only the two applied files. Server on 5820 stopped (no listener, no process).",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: nojs.spec.ts's predicate accepts the blanked roots ['b3 as board', 'b7 as board', 'b12 as board'] on modules/m9-real-forms/ and 'atlas (page) as drawing' on atlas/B3/ and tools/atlas/; this is a check that could be stronger without being wrong (the build's figures are present), which the rubric lists as minor"
+   },
+   "refute": {
+    "findingId": "P6-RT-06-01",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.4 'Without JavaScript' (no [D] mark): 'A Playwright run with JavaScript disabled checks, for every lesson, that the text, every default figure and every table are present.' SPEC 3 M9 figure table: beat 3 'T13 shadows on A2 with the flip and no black node', beat 6 'T13 restricted board on E6 with black nodes 2, 3, 4, 5'. SPEC 4 T13 (phase 6): 'Shadows: for real rank 1 and 2 a picture', 'Restricted board: drawn in Bourbaki order'. These passages support the finding's expected for M9.",
+    "evidence": "Read at f07eec6 (worktree detached there, clean; nothing built or run). (1) nojs.spec.ts:75-180, toolReport: the figure is boards[0] ?? drawings[0] ?? imgs[0]. A board is any visible [data-board-group] with a [data-node] beside an svg with children, so a T13 root passes as 'board' through its decoration. A drawing is any role=img element with childElementCount > 0 and a name, so empty <g> children are enough. blankParts reads only data-out=orbit-graph and [data-format][data-rows][data-cols], which are T12's parts (RT-FIX-P5-t12-a11y, DECISIONS.md:3406). No line reads data-out=shadow-picture or restricted-board. (2) M9.spec.ts:275-344, 'M9 renders without JavaScript': per instance it checks the decoration svg, the decoration and game-board buttons, colours, black-nodes, tau, the selected tab and the decoration table. For b7 it checks only restricted-name text. Beat 3's picture checks (M9.spec.ts:503-517, data-point and data-mult) run after hydrate(page, 'b3'), with JavaScript on. So without JavaScript nothing checks that b3's picture or b7's restricted nodes are present at all. (3) P6-A3 'the panels and the history' (DECISIONS.md ~3970): 'Only the open panel is rendered; a preset opens its panel at build time'. So the shadows and restricted panels are the configured default figures of those beats. (4) The reproducer, read as text at worktree-agent-ab01232faaf6b3607, asserts exactly the claim. (5) Records: RT-FIX-P3-test-integrity (DECISIONS.md:2583), RT-FIX-P4-tool-t10 (:3050) and RT-FIX-P5-t12-a11y (:3406) are builder records of the predicate. None is a [D], a section 10 default or an owner answer, and none covers T13 panels or the marks of a role=img drawing. P6-A4 'the tool root of an Atlas page is its opening figure' (:4002) chooses the root and does not set a predicate. The MERGE entries on P6-A3, P6-A4 and P6-size say nothing on this. The known-and-decided list has nothing on it. (6) Precedent: P5-RT-06-01, the same cause on T12, was not refuted (round-p5 out/RT-06-refute.json). gate-G6.md (report commit d59af4a, which names f07eec6 as the gate commit) records no open item on the no-JS figure check. No earlier phase 6 red-team round exists. Partial overstatement: the T14 half is on /atlas/B3/ and /tools/atlas/, which are not lessons. 7.4's sentence says 'for every lesson'. M10 has no tool root, so no lesson holds a T14 figure. The T13 half on M9 carries the cause on its own.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed because no sentence permits a no-JS run that skips a lesson's default figure, and 7.4 asks for every default figure on every lesson, with M9's table making the shadow picture (beat 3) and the restricted board (beat 6) figures. R2 holds only for the T14 half, since Atlas pages and the picker are not lessons, and the M9 half carries the cause. R3 failed because T13, T14 and M9 are phase 6 at gate G6. R4 does not apply, since no oracle quantity is involved. R5 failed because 7.4 and T13 carry no [D], and the predicate entries in DECISIONS.md are builder records that do not cover T13 or drawing marks. R6 failed because the P5-RT-06-01 fix and its regression test cover T12 only, gate-G6.md has no open item, and no earlier P6 round exists. Minor fits ('a test that could be stronger without being wrong'): the server markup does hold the figures today."
+   }
+  }
+ }
+]
