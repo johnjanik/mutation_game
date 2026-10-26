@@ -12,3 +12,4 @@
 - P6-RT-03-03 minor: exportLaTeX's TikZ writers let a hole in a list through ('undefined', missing nodes); no reader reaches it today.
 - P6-RT-03-04 minor: the Atlas writes the counting cap as the literal 60000 in its sentence and CSV.
 - Notes: confusions.mdx line 75 types '60000' and 'eight' in prose (for RT-08); t13/load.ts fetchData returns null on a NotAdmissible from the worker for a pair judged admissible (unreachable).
+- RT-09 verdicts: all 4 CONFIRMED (01, 02 blocker; 03, 04 minor; reproduced 4 of 4, refuted 0 of 4). Refuter note: the P6-A4 review graded the Kac wording on the Atlas legend as major (04, owner).
