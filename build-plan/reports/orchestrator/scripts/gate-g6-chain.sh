@@ -4,16 +4,19 @@
 # against the root release build); as the G5 rerun for the root benchmark and the e2e suite at the CI base
 # (P4-RT-12-02). Supporting: the three LaTeX samples for the owner's compile (P6-tikz), written by
 # latex-export.spec.ts into reports/gate-G6/latex/ against the preview build.
+# Usage: gate-g6-chain.sh A|B|C  (three parts, each under two hours, run one after the other with nothing else running)
+PART=${1:?part A, B or C}
 R=/home/user/mutation_game
 L=$R/reports/gate-G6
 S=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad
 mkdir -p $L/previous $L/latex
+run() { n=$1; shift; echo "[$(date +%T)] start $n: $*" >> $L/00-timeline.log; "$@" > $L/$n.log 2>&1; e=$?; echo "exit=$e" >> $L/$n.log; echo "[$(date +%T)] end $n exit=$e" >> $L/00-timeline.log; }
+unset TMPDIR
+export PLAYWRIGHT_BROWSERS_PATH=$S/pw-browsers
+if [ "$PART" = A ]; then
 for f in reports/open-items-report.json reports/open-items-report.md reports/numbers-in-prose.md; do [ -f $R/$f ] && mv -v $R/$f $L/previous/ >> $L/00-moves.log; done
 pkill -f "astro [p]review"
 rm -rf /tmp/two-games-ssr-test-cache-*
-unset TMPDIR
-export PLAYWRIGHT_BROWSERS_PATH=$S/pw-browsers
-run() { n=$1; shift; echo "[$(date +%T)] start $n: $*" >> $L/00-timeline.log; "$@" > $L/$n.log 2>&1; e=$?; echo "exit=$e" >> $L/$n.log; echo "[$(date +%T)] end $n exit=$e" >> $L/00-timeline.log; }
 : > $L/00-timeline.log
 git -C $R rev-parse HEAD >> $L/00-timeline.log
 uptime >> $L/00-timeline.log
@@ -44,11 +47,17 @@ run 10-release-build-root env RELEASE=1 BASE_PATH=/ npm --prefix $R run build
 tar -czf $R/reports/release-1.0-root.tar.gz -C $R/site/dist . && echo "root archive: $(ls -l $R/reports/release-1.0-root.tar.gz | awk '{print $5}') bytes, $(tar -tzf $R/reports/release-1.0-root.tar.gz | wc -l) entries, sha256 $(sha256sum $R/reports/release-1.0-root.tar.gz | cut -d' ' -f1); RELEASE=1 BASE_PATH=/" >> $L/00-timeline.log
 run 11-size-release npm --prefix $R run size
 pkill -f "astro [p]review"
+fi
+if [ "$PART" = B ]; then
 sleep 5
 uptime >> $L/00-timeline.log
+git -C $R rev-parse HEAD >> $L/00-timeline.log
 run 12-lab npm --prefix $R run lab -- --all --json $L/lab.json
 pkill -f "astro [p]review"
+fi
+if [ "$PART" = C ]; then
 sleep 5
+git -C $R rev-parse HEAD >> $L/00-timeline.log
 uptime >> $L/00-timeline.log
 run 13-bench npm --prefix $R run bench -w packages/engine
 run 13b-bench-root npm --prefix $R run bench
@@ -77,3 +86,4 @@ grep -E "errors$" $L/14-typecheck.log
 grep -E "passed|failed|flaky|skipped" $L/15b-e2e-ci-base.log | tail -4
 grep -E "^\s+(✘|×)" $L/15b-e2e-ci-base.log | head -12
 git -C $R status --porcelain
+fi
