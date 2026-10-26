@@ -33,3 +33,5 @@
 - P6-RT-08-09 minor: the Atlas index and picker say '32 boards' (B2 and C2 are one board).
 - P6-RT-08-10 minor: M9 prints the letters of a longest word of D5 from types.D5.n_positive_roots.
 - Notes: Kostant attribution wrapped E13 on /history/ but unwrapped in M1 (owner); embed routes carry no licence footer (plan, owner); credits says the content licence 'may change before the first release' (stale?).
+## RT-01: 0 findings. Phase 5 reproducers rerun (no confirmed RT-01 finding then); 10 reseeded harnesses, about 666000 comparisons, 0 disagreements; the Satake functions against the oracle: 39396 admissibility verdicts and Reason records, 351 pairs in every numbering, 323 catalogue records to rank 12, 11280 theta, shadow2 and restrictedCoordinates, 0 disagreements; T13's data path on all 174 offered pairs, 0; every Atlas value and download on the 32 pages, 0; LaTeX marks for the 167 records agree; the 167 records against classical values, agree.
+- Notes: on boards in pieces the oracle raises AssertionError (not ValueError as decisions/P6-A1.md says), the engine NeedsConnectedBoard; P3-RT-01-01 held, P5-RT-01-01 refuted, both unchanged.
