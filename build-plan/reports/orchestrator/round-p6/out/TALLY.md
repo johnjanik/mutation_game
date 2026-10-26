@@ -13,3 +13,10 @@
 - P6-RT-03-04 minor: the Atlas writes the counting cap as the literal 60000 in its sentence and CSV.
 - Notes: confusions.mdx line 75 types '60000' and 'eight' in prose (for RT-08); t13/load.ts fetchData returns null on a NotAdmissible from the worker for a pair judged admissible (unreachable).
 - RT-09 verdicts: all 4 CONFIRMED (01, 02 blocker; 03, 04 minor; reproduced 4 of 4, refuted 0 of 4). Refuter note: the P6-A4 review graded the Kac wording on the Atlas legend as major (04, owner).
+## RT-10: 5 findings (4 major, 1 minor). Retests hold: 10-01, 10-02, 10-03. Inventory 10 phase 6 names, 0 missing; signatures 0 mismatches; 5.6 rows 24, 0 mismatches; T13 and T14 acceptance 7 of 7 with a test; 8 presets; ownership of every changed file recorded.
+- P6-RT-10-01 major: Export LaTeX on T8 and T12 writes the board's \dynkin line, not their orbit graphs (6.7 'orbit graphs ... as plain TikZ'); T6 too, T15 and T16 'nothing to export'.
+- P6-RT-10-02 major: the 32 Atlas pages show a population with its numbers and a = Cp without the bridge sentence of 2.4(a).
+- P6-RT-10-03 major: M10 links no later use of a glossary term; glossary-later-uses.spec.ts leaves M10 out.
+- P6-RT-10-04 major: DECISIONS.md records neither D12 (English) nor D10 (separate from MutationGraph).
+- P6-RT-10-05 minor: T13's data-board 'decoration' and 'restricted' and data-value 'black'/'white' outside 4.0's hooks (logged by P6-A3).
+- Notes: owner's parts of G3, G4, G6 have no outcome lines (not yet due); numbers-in-prose sees little of the lessons' typed numbers (P0-A6 design); M10 has no Sources block and 575 words (plan reading); M8's word count rule changed by MERGE (4 words over by the old rule); the release archives contain the unreleased /dev/ pages; T13 presets fixing a panel or the toggle are not fully links (SPEC tension).
