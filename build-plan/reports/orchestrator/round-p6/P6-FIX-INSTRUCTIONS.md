@@ -12,6 +12,7 @@ You fix one cluster of confirmed findings of the phase 6 red-team round. You are
 - Preview servers: never use port 4321 and never pkill broadly. For browser runs copy site/playwright.config.ts to your scratch directory with the webServer command `node node_modules/astro/bin/astro.mjs preview --port <your first port> --ignore-lock` run in site/ (or ../node_modules/astro/bin/astro.mjs if site/node_modules has no astro) and baseURL on that port, and run `npx playwright test -c <your copy> <spec>`; stop your server with `pkill -f "port <your first port>"`. npm run size takes `-- --port <your second port>`; npm run lab takes `-- --port <your third port>`.
 - If site unit tests fail with "Cannot read properties of undefined (reading Symbol(filename))", that is a stale Vite SSR cache under /tmp/two-games-ssr-test-cache-*: run vitest with TMPDIR set to a fresh directory inside your scratch directory (vitest only).
 - The machine is shared, so timing results are noisy: check uptime, and repeat a timing failure once alone before calling it real.
+- Set NODE_DISABLE_COMPILE_CACHE=1 in the environment of every astro build, npm run build, npm run size and Playwright webServer: Astro's CLI otherwise enables Node's compile cache, and concurrent builds of several agents stall on the one shared cache directory under /tmp (RT-12 phase 6 note). It changes nothing in the output.
 - Shell commands: absolute paths, no `cd` chains, no multi-line inline scripts (write a script file in your scratch directory and run it).
 
 ## Rules

@@ -11,6 +11,7 @@ You verify the findings of one red-team lens against commit f07eec66a8b80d249101
 - Preview servers: never use port 4321 and never pkill broadly. If a reproducer's own Playwright config names a port, copy it to your scratch directory with your first port in the webServer command and baseURL. Stop your server with `pkill -f "port <your first port>"`.
 - If site unit tests fail with "Cannot read properties of undefined (reading Symbol(filename))", run vitest with TMPDIR set to a fresh directory inside your scratch directory (vitest only).
 - The machine is shared, so timing results are noisy: check uptime and repeat a timing result before relying on it.
+- Set NODE_DISABLE_COMPILE_CACHE=1 in the environment of every astro build, npm run build, npm run size and Playwright webServer: Astro's CLI otherwise enables Node's compile cache, and concurrent builds of several agents stall on the one shared cache directory under /tmp (RT-12 phase 6 note). It changes nothing in the output.
 - Shell commands: absolute paths, no `cd` chains, no multi-line inline scripts (write a script file in your scratch directory and run it).
 - Last step: delete node_modules, site/node_modules, packages/engine/node_modules and site/dist inside your worktree, stop your preview server, and confirm `git status --porcelain` shows only nothing (refute) or only the reproducer files you brought in (reproduce).
 
