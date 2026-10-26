@@ -1,0 +1,187 @@
+[
+ {
+  "id": "P6-RT-08-01",
+  "severity": "major",
+  "title": "Attack 1, sibling of a phase 6 repair: /open-problem/ says [W20] states the Mutation Conjecture 'near its end'; the P6-A6 repair fixed only /history/",
+  "location": "site/src/content/pages/open-problem.mdx:31 (route /open-problem/; the paragraph P6-terms edited in phase 6)",
+  "claim": "The open-problem page states a false fact about where the source states the conjecture. The P6-A6 review raised the same false fact on /history/ as major, and the repair left this sibling sentence unchanged.",
+  "expected": "SOURCES.md 11.1: [W20] is 'Algebra Colloquium 27 (2020), no. 1, 55-78', and section 2 contains 'the Mutation Conjecture, unnumbered, p. 57' (SPEC 2.11). That is near the start of the paper, as the repaired /history/ now says ('Its section 2 also states the Mutation Conjecture, on page 57').",
+  "observed": "'The paper [W20] states it near its end (page 57, without a number) for any multigraph: every root population consists entirely of Martians or entirely of anti-Martians.'",
+  "reproduction": "git checkout f07eec6 plus the reproducer; npm ci --prefer-offline; npx vitest run site/tests/unit/redteam-RT-08-p6-near-its-end.test.ts (fails: 'open-problem.mdx:31: The paper <Cite k=\"W20\"/> states it near its end (page {'57'} ...'; set TMPDIR to a fresh directory if a stale Vite SSR cache error appears)",
+  "specRef": "SPEC 8.4 (credit and claims about sources stated accurately), 2.11; SOURCES.md 11.1 [W20] contents; DECISIONS.md 'P6-A6 ... Major: /history/ says [W20] states the Mutation Conjecture near its end'",
+  "proposedFix": "Write 'states it in its section 2 (page 57, without a number)', as /history/ does.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p6-near-its-end.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a3775b5da62a67ad5",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-08-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.4 (credit and claims about sources stated accurately), 2.11; SOURCES.md 11.1 [W20] contents; DECISIONS.md 'P6-A6 ... Major: /history/ says [W20] states the Mutation Conjecture near its end'",
+    "evidence": "pwd = git rev-parse --show-toplevel = <wt> = /home/user/mutation_game/.claude/worktrees/agent-af2e470d55c193422 (branch worktree-agent-af2e470d55c193422 at aea1802). Ran git -C <wt> checkout --detach f07eec66a8b80d249101630305ef6d2d23882738. HEAD is now f07eec66a8b80d249101630305ef6d2d23882738 and the tree is clean. node v22.22.0. Lens branch worktree-agent-a3775b5da62a67ad5 = 095d37a. diff --stat against the gate shows 26 files, all of them new. Applied site/tests/unit/redteam-RT-08-p6-near-its-end.test.ts, which is absent at the gate. git status --porcelain: 'A  site/tests/unit/redteam-RT-08-p6-near-its-end.test.ts'. npm --prefix <wt> ci --prefer-offline exited 0. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-near-its-end.test.ts, exit 1. Output: 'Tests 1 failed | 2 passed (3)'; 'x open-problem.mdx does not say that [W20] states it near its end'; 'AssertionError: p. 57 of pp. 55-78 is near the start of [W20]: expected [ Array(1) ] to deeply equal []'; received 'open-problem.mdx:31: The paper <Cite k=\"W20\"/> states it near its end (page {'57'}, without a number) for any multigraph'. The two passing tests confirm two things: SOURCES.md 11.1 gives '55-78' and '...the Mutation Conjecture, unnumbered, p. 57', and history.mdx:75 now says 'Its section 2 also states the Mutation Conjecture, on page 57'. The built /open-problem/ text (from the P6-RT-08-03 build) reads 'The paper [W20] states it near its end (page 57, without a number) for any multigraph: every root population consists entirely of Martians or entirely of anti-Martians.' This matches observed. The run left nothing behind. Not applied from the branch: the other 14 redteam/ scripts and redteam-RT-08-p6-t13-condition3.test.ts, all new files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: open-problem.mdx:31 says [W20] 'states it near its end (page 57, without a number)', but SOURCES.md 11.1 puts the conjecture in section 2 of a paper on pp. 55-78"
+   },
+   "refute": {
+    "findingId": "P6-RT-08-01",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 2.11: '[W20] (p. 57, unnumbered) states: ...'. SOURCES 11.1 [W20]: Algebra Colloquium 27 (2020), 55-78, and section 2 holds 'the Mutation Conjecture, unnumbered, p. 57'. DECISIONS.md 'MERGE: P6-A6 reviewed; rulings' (Major: /history/ says [W20] states the Mutation Conjecture 'near its end') and 'P6-A6: the history page, three sentences against SOURCES (repair after review)'. These passages support the finding's expected.",
+    "evidence": "At f07eec6, open-problem.mdx:31 reads 'The paper <Cite k=W20/> states it near its end (page {'57'}, without a number)'. Page 57 is the third page of pp. 55-78, in section 2 (SOURCES 11.1), so 'near its end' contradicts SPEC 2.11 and SOURCES. git log: P2-A7 wrote the page (81c2083). RT-FIX P3 and P6-terms edited it later, and P6-terms only added Term links. P2-A7's decision records only '[W20] p. 57'. MERGE ruled the identical claim on /history/ a major, and the P6-A6 repair changed only /history/ ('Its section 2 also states the Mutation Conjecture, on page 57'). There is no record of this sentence: grep for 'near its end' finds it in reports/ and build-plan only in the P6-A6 review and repair and this round's files. reports/gate-G6.md names gate commit f07eec6 and lists no open item on it.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 no text lets p. 57 of pp. 55-78 be called 'near its end'; R2 the expected matches SPEC 2.11 and SOURCES 11.1; R3 /open-problem/ is a phase 2 page (SPEC 7.3) and is in scope at G6; R4 the oracle does not decide this; R5 no [D] or logged decision covers the phrase (P2-A7 records only p. 57, and the P6-A6 repair was limited to /history/); R6 no earlier record. Level kept at major, as MERGE ruled the same sentence on /history/."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-09-02",
+  "severity": "blocker",
+  "title": "The history page states Donnelly and Eriksson's finite-type theorem without the hypothesis that roads run both ways; the one-way board contradicts it",
+  "location": "site/src/content/pages/history.mdx:67 (timeline entry 2008, data-entry Don08, last sentence); route /history/ (preview and release)",
+  "claim": "'Donnelly and Eriksson use the game to prove that a connected graph with whole-number road counts is a Dynkin diagram of finite type exactly when some start that has no negative number and is not all zeros gives a game that ends' is false for a graph with a one-way road. The site defines such boards and offers them in the editor.",
+  "expected": "SOURCES.md [DE08]: 'Theorem 2.1: a connected integer-weighted graph ...' (the integer-weighted graphs of that literature have roads both ways). M3 beat 7 states the same theorem as 'a connected board with roads both ways is of finite type exactly when its numbers game ends from some start with a positive number and no negative one'. SPEC 2.1: on a one-way board 'none of the theory of this section applies'; 2.11.",
+  "observed": "The one-way board [[2,0],[-1,2]] (one road from city 1 to city 2, none back) is connected and has whole-number road counts. classify gives kind 'one-way', class none, so it is not of finite type. Yet legal play from (1,0), a start with no negative number and not all zeros, ends at (-1,-1) after 2 moves. This is the oracle's play() (word 1, 2; fired 1, 1) and also the engine's play (status 'ended', moves 2).",
+  "reproduction": "npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts -t 'P6-RT-09-02' (fails on f07eec6); oracle: python3 redteam/RT-09/redteam-RT-09-p6-oracle.py reference (section 'history, entry 2008').",
+  "specRef": "SOURCES.md [DE08]; SPEC 2.1 (bidirected; one-way board), 2.11; site M3 beat 7; RT-09 attack 1 (a fact of bidirected boards stated for all boards)",
+  "proposedFix": "Write 'a connected graph whose roads all run both ways, with whole-number road counts, ...', as M3 does.",
+  "reproducer": "site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts (describe P6-RT-09-02)",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a59a82db3a362f1d9",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-09-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SOURCES.md [DE08]; SPEC 2.1 (bidirected; one-way board), 2.11; site M3 beat 7; RT-09 attack 1 (a fact of bidirected boards stated for all boards)",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied from worktree-agent-a59a82db3a362f1d9: site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts, plus redteam/RT-09/redteam-RT-09-p6-oracle.py, which the reproduction names and which is not at the gate commit. status --porcelain: 'A  redteam/RT-09/redteam-RT-09-p6-oracle.py' / 'A  site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts'. npm ci --prefer-offline: ok. Ran from <wt>: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts -t 'P6-RT-09-02'; exit 1; 'Tests 1 failed | 4 skipped (5)'. Several assertions passed before the last one. The history sentence is present in history.mdx (line 67). classify(fromAdjacency([[0,1],[0,0]])) kinds = ['one-way']. play gives {status:'ended', moves:2, end:[-1,-1]}. The test then failed at line 153: 'history (2008): \"Donnelly and Eriksson use the game to prove that a connected graph with whole-number road counts is a Dynkin diagram of finite type exactly when some start that has no negative number and is not all zeros gives a game that ends.\". The one-way board ... ends after 2 moves ... expected true to be false'. Ran: python3 redteam/RT-09/redteam-RT-09-p6-oracle.py reference; exit 0. Output: 'board_kind one-way classify [{... 'kind': 'one-way', 'balanced': False, 'class': None, 'name': None}]' / 'start [1, 0] end (-1, -1) word [1, 2] fired [1, 1]'. My own script (own_oracle.py, no -I) gave L.board_kind([[2,0],[-1,2]]) = 'one-way'; L.classify gives class None; L.play(C1,[1,0]) ends at (-1,-1), word in labels [1,2], fired [1,1], 2 moves. Observed matches the finding: ended at (-1,-1) after 2 moves, word 1,2, fired 1,1, kind one-way, class none. Tree after the run: only the applied files (the ignored reference/__pycache__ was removed). The other branch files were not applied.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: the one-way board [[2,0],[-1,2]] is classified one-way with class None, yet legal play from (1,0) ends at (-1,-1) after 2 moves (oracle and engine agree), so the history sentence, stated without 'roads both ways', is a wrong mathematical statement presented as fact (blocker under RED-TEAM-COMMON 4)."
+   },
+   "refute": {
+    "findingId": "P6-RT-09-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SOURCES.md [DE08] ('Theorem 2.1: a connected integer-weighted graph has a terminating game from some nonzero dominant start exactly when it is a Dynkin diagram of finite type'); SPEC 2.1 ('Both games can be played on a one-way board ... but none of the theory of this section applies to it'); oracle classify and play on [[2,0],[-1,2]]; golden one_way_counterexample.cartan = [[2,0],[-1,2]]. The passages and the oracle support the finding.",
+    "evidence": "Read at f07eec6: history.mdx:67 says 'Donnelly and Eriksson use the game to prove that a connected graph with whole-number road counts is a Dynkin diagram of finite type exactly when some start that has no negative number and is not all zeros gives a game that ends'. 'counts' and 'finite' link to glossary entries. The glossary's 'finite' entry reads 'A connected board with roads both ways is finite ... Every other board is neither', and its 'board' entry allows 'any number of them in each direction'. M3:121 states the same theorem with 'a connected board with roads both ways'. Oracle: board_kind([[2,0],[-1,2]]) = 'one-way'; classify gives [{'nodes':[1,2],'kind':'one-way','balanced':False,'class':None,'name':None}]; play(C,(1,0)) = ((-1,-1), word [0,1], fired [1,1]). In labels that is word 1, 2, and the game ends after 2 moves, as observed. Tried R1 on SPEC 2.1 'Unless stated otherwise a board is bidirected'. It fails: the sentence fixes the specification's own default, while the history sentence says 'graph with whole-number road counts', the site defines one-way boards for its readers (glossary row 2), and 2.1 itself says the theory does not apply to them. The [D] of 2.11 covers only the reading of the Mutation Conjecture. decisions/P6-A6.md ('the history page' and its repair) records no choice about this hypothesis, and no MERGE or known-and-decided item touches it. gate-G6 and earlier rounds have no record of it.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, because SPEC 2.1's bidirected default governs the specification's text, not a site sentence about graphs with road counts, and 2.1 excludes one-way boards from the theory. R2 failed, because SOURCES [DE08] and M3 beat 7 restrict the theorem, and the parenthetical about the literature is the lens's gloss but is not needed for the cause. R3 failed, because history.mdx is phase 6. R4 failed, because the oracle confirms the counterexample (classify class None; play from (1,0) ends in 2 moves). R5 failed: there is no [D] or recorded decision. R6 failed: there is no record. The severity stays blocker, since a theorem stated without its hypothesis is false as printed."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-08-07",
+  "severity": "minor",
+  "title": "Attack 39: /confusions/ names city i and node i in one sentence",
+  "location": "site/src/content/pages/confusions.mdx:57 (section 'The two games differ even on simply laced boards')",
+  "claim": "A sentence of the new page uses both 'city i' and 'node i'. It is neither the bridge sentence nor the A-4 announcement.",
+  "expected": "SPEC 8.1 P8: 'Node i is always called \"node i\" or \"city i\", never both in one sentence.'",
+  "observed": "'The first relation says: translate a population p into the position a=Cp, and a mutation at city i becomes the firing of node i.' This is the only such sentence in either build outside the exemptions.",
+  "reproduction": "npm ci --prefer-offline; npx vitest run site/tests/unit/redteam-RT-08-p6-confusions-p8.test.ts (fails and prints the sentence)",
+  "specRef": "SPEC 8.1 P8; lens attack 39",
+  "proposedFix": "'... and a mutation at city i becomes the firing of the same place in the numbers game', or name it node i in both halves.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p6-confusions-p8.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a3775b5da62a67ad5",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-08-07",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.1 P8; lens attack 39",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-confusions-p8.test.ts, absent at the gate. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-confusions-p8.test.ts, exit 1. Output: 'Tests 1 failed (1)'; 'x no sentence of the page other than the bridge sentence names both node i and city i'; 'AssertionError: SPEC 8.1 P8: expected [ Array(1) ] to deeply equal []'; received 'The first relation says: translate a population $p$ into the position $a=Cp$, and a mutation at city $i$ becomes the firing of node $i$.' The sentence is at confusions.mdx:57. Built /confusions/ text reads '...and a mutation at city i becomes the firing of node i.' SPEC.md:1921 P8 reads 'Node $i$ is always called \"node $i$\" or \"city $i$\", never both in one sentence.' This matches observed.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: confusions.mdx:57 'a mutation at city i becomes the firing of node i' names city i and node i in one sentence, which is neither the bridge sentence nor the A-4 announcement"
+   },
+   "refute": {
+    "findingId": "P6-RT-08-07",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 8.1 P8: 'Node i is always called \"node i\" or \"city i\", never both in one sentence.' Its exceptions are the fixed bridge sentence of 2.4(a) [D] and the A-4 announcement of 7.5, and neither covers this sentence. The passage supports the finding.",
+    "evidence": "confusions.mdx:57 at f07eec6: 'The first relation says: translate a population p into the position a=Cp, and a mutation at city i becomes the firing of node i.' The bridge sentence follows it as a separate sentence. P8 says 'always'. 8.1 says the owner reads new pages against the principles, and the lens file (section 6) keeps attack 39's concrete rule in scope. SPEC 2.4(a)'s own sentence ('mutating city i ... firing node i') is SPEC's exposition. Only the bold bridge sentence has fixed site wording [D]. The P6-A6 decision on the confusions page records no exception. /confusions/ is phase 6 (7.3).",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 P8 has no qualifier, and the only fixed-wording exceptions are the bridge sentence and the A-4 announcement; R2 the finding reads P8 correctly; R3 phase 6; R4 the oracle does not decide this; R5 no [D] or logged choice; R6 no record. Minor stands: P8 sits in 8.1, not 8.4, and this is wording."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-08-08",
+  "severity": "minor",
+  "title": "Attacks 26 and 37: /confusions/ promises a source for every correction, but the section 'Which lattice each game lives in' has none",
+  "location": "site/src/content/pages/confusions.mdx:79-85 (data-confusion=\"lattices\"); repeated by m10-atlas.mdx:62 ('each with the source of its correction')",
+  "claim": "The page's opening sentence and M10's hub both say every correction comes with its source. One of the 13 sections has no citation and no 'verified by computation', although it states a theorem-like fact.",
+  "expected": "The page's own promise ('corrects each one, with the source of the correction'), and SPEC 8.4 'Every theorem-like statement carries its provenance'. The Atlas gives the same fact a provenance ('The index is a fact of linear algebra ...').",
+  "observed": "The section says 'The translator a=Cp carries the first lattice into the second, onto a sublattice whose index is det C. ... This is the standard reading of the two games in Lie theory, and the one this site uses throughout.' It has no <Cite> and no 'verified by computation'. The other 12 sections have one.",
+  "reproduction": "npm ci --prefer-offline; npx vitest run site/tests/unit/redteam-RT-08-p6-confusions-source.test.ts (fails: [\"lattices\"])",
+  "specRef": "SPEC 8.4; D16; lens attacks 26 and 37",
+  "proposedFix": "Add the provenance (SPEC 2.4 / a fact of linear algebra, or a citation such as [Don08] for the coordinates), or soften the page's promise.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p6-confusions-source.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a3775b5da62a67ad5",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-08-08",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.4; D16; lens attacks 26 and 37",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-confusions-source.test.ts, absent at the gate. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-confusions-source.test.ts, exit 1. Output: 'Tests 1 failed | 1 passed (2)'; 'x each section carries a citation or a computation'; 'AssertionError: sections of confusions.mdx with no source for their correction: expected [ 'lattices' ] to deeply equal []'. The passing test confirms 13 sections and the promise at confusions.mdx:25: '...and corrects each one, with the source of the correction.' m10-atlas.mdx contains 'each with the source of its correction' once. The section at confusions.mdx:79-85 says '...The translator $a=Cp$ carries the first lattice into the second, onto a sublattice whose index is $\\det C$. ... This is the standard reading of the two games in Lie theory, and the one this site uses throughout.' It has no <Cite>, no 'verified by computation' and no 'a fact of linear algebra'. This matches observed. SPEC 8.4 bullet 4: 'Every theorem-like statement carries its provenance.'",
+    "severityAdjustment": "raise to major",
+    "reason": "reproduced as stated; observed matches: section 'lattices' states the index-det C fact with no citation or computation, although the page and M10 promise a source for each correction; a theorem-like statement without provenance breaks SPEC 8.4 bullet 4, which RED-TEAM-COMMON 4 lists as major, the level the lens gave the same rule in P6-RT-08-02"
+   },
+   "refute": {
+    "findingId": "P6-RT-08-08",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 8.4 'Every theorem-like statement carries its provenance'. The page's own claim (confusions.mdx:5 description and :25 first sentence) that it 'corrects each one, with the source of the correction'. Plan P6-A6 5.7: 'with the correction in the site's words and its provenance'.",
+    "evidence": "The 8.4 part is weak. The 'lattices' section (lines 79-85) restates SPEC 2.6's unlabelled table: the root lattice is all populations with basis α_i=e_i; the weight lattice is all positions with basis ω_i=e_i; the inclusion is p↦Cp with index det C. SPEC 0.3 makes those definitions ('Statements with no label in section 2 are definitions'), and Appendix D item 6 gives no source either. But the page tells the reader that every correction comes with its source. This section has no Cite, no 'verified by computation', and no pointer beyond 'the standard reading of the two games in Lie theory, and the one this site uses throughout'. Each of the other 12 sections names a source. The P6-A6 decision on the confusions page records nothing for 'lattices'. No logged decision covers it. Phase 6.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R2 holds only in part, since the lattice statements are SPEC 2.6 definitions under 0.3 and 8.4's provenance rule is not clearly engaged, but the page's own promise of a source for each correction (and the plan's 'its provenance') is still unmet in this section, so the cause stands; R1 no permitting text; R3 phase 6; R4 the oracle does not decide this; R5 no logged choice; R6 no record."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-10-04",
+  "severity": "major",
+  "title": "DECISIONS.md records neither default D12 (English) nor D10 (keep separate from MutationGraph)",
+  "location": "DECISIONS.md (no dated entry names D10 or D12; the only 'D12' and 'D10' strings are boards, as in 'A11, A13 and D12')",
+  "claim": "Two defaults of section 10 that the build relies on by phase 6 have no DECISIONS.md line. D12 is first relied on in phase 0 (every page is English, html lang=\"en\"). D10 is relied on by release 1.0 with the credits, about and history pages complete. Every other default has a line (D11 and D13 got theirs only in phase 6, from P6-A6).",
+  "expected": "SPEC 9.3: 'When an open decision of section 10 blocks work, take the default, and add a line to DECISIONS.md with the date and the reason'. RT-10 attack 18 reads D12 as a phase 0 default and D10 as checked from phase 6.",
+  "observed": "redteam-RT-10-p6-defaults.mjs: 'D10: 0 dated entries <-- no entry', 'D12: 0 dated entries <-- no entry'; D6 also has none (the owner's act at G3, listed but not counted). grep -n 'English\\|Languages\\|MutationGraph' DECISIONS.md finds nothing about D12 or D10.",
+  "reproduction": "node redteam/redteam-RT-10-p6-defaults.mjs (exit 1)",
+  "specRef": "SPEC.md 9.3 bullet 4; 10 D10 ('keep separate; note in both that on simple graphs the rule and C=2I-A agree') and D12 ('English'); RT-10 attack 18",
+  "proposedFix": "Add dated MERGE lines recording D12 (English; html lang=\"en\") and D10 (projects kept separate; where on the site the simple-graph note is, or that it is left to the owner).",
+  "reproducer": "redteam/redteam-RT-10-p6-defaults.mjs",
+  "lens": "RT-10",
+  "branch": "worktree-agent-a689e5f789a50ceae",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-10-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 9.3 bullet 4; 10 D10 ('keep separate; note in both that on simple graphs the rule and C=2I-A agree') and D12 ('English'); RT-10 attack 18",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied worktree-agent-a689e5f789a50ceae:redteam/redteam-RT-10-p6-defaults.mjs, which does not exist at the gate commit; git status listed 'A  redteam/redteam-RT-10-p6-defaults.mjs'. Ran npm ci --prefer-offline (exit 0). Ran node redteam/redteam-RT-10-p6-defaults.mjs; exit 1. Output: 'D6: 0 dated entries  <-- no entry (owner's part)', 'D10: 0 dated entries  <-- no entry', 'D11: 1 dated entries, first: ## 2026-10-25 P6-A6: D5, D11, D13, D14, D16, D17 and the page titles', 'D12: 0 dated entries  <-- no entry', 'D13: 1 dated entries, first: ## 2026-10-25 P6-A6: ...'. Every other default from D1 to D19 has 1 or more entries. Supporting greps: grep -n 'English\\|Languages\\|MutationGraph' DECISIONS.md finds nothing (exit 1), and the same pattern over decisions/ finds nothing (exit 1). grep '\\bD1[02]\\b' finds only the board list 'D9 to D16' (DECISIONS.md:3723, decisions/P6-A2.md:56). Observed matches the finding: D10 0 entries, D12 0 entries, D6 none (owner's part). After the run the tree held only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: 'D10: 0 dated entries <-- no entry' and 'D12: 0 dated entries <-- no entry', and no English or MutationGraph line in DECISIONS.md or decisions/*.md"
+   },
+   "refute": {
+    "findingId": "P6-RT-10-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 9.3 bullet 4: 'When an open decision of section 10 blocks work, take the default, and add a line to DECISIONS.md with the date and the reason.' SPEC 10 D10 (default 'keep separate; note in both that on simple graphs the rule and C=2I-A agree') and D12 (default 'English'). The passage supports the finding for D12; for D10 it is ambiguous.",
+    "evidence": "grep -E '\\bD1[02]\\b|MutationGraph|English|Languages|research-software' on DECISIONS.md at f07eec6 finds no entry naming D10 or D12. The only hit for the language is line 331, '2026-10-10 P0-A5: Base.astro created; the stylesheet link', which records `<html lang=\"en\">` with the reason 'the instruction, section 5.12' but does not say a section 10 default was taken. Every other default has a named line (for example 'P0-A1: D18 default used', 'P6-A6: D5, D11, D13, D14, D16, D17 ...'). gate-G6.md says every fragment is folded (1265 headings), so no fragment holds a missing record. The 9.3 qualifier 'blocks work' is the one possible refutation (R1). For D12 it fails: every page's lang attribute needs the language, so the site uses D12's answer from phase 0. For D10 it is arguable: the lens's own file (RT-10 section 2 item 7) says D10 'needs no code' and is 'relied on by no build phase', and its check from phase 6 is a plan reading. The site contains no MutationGraph note (git grep at f07eec6). The known-and-decided list and the MERGE entries hold no D10 or D12 ruling. RT-VERIFY 5.4: 'A section 10 default without a record is not R5.' 9.1 G0's owner part names D1, D3, D4 and D17 only, which gives no exemption.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 holds at most for the D10 half, through 9.3's 'blocks work' (the lens concedes D10 needs no code), but the D12 default (English, lang=\"en\" on every page since phase 0) is used, and line 331 of P0-A5 records the attribute, not the default with its reason, so the cause stands; R2 failed, because the finding quotes 9.3 whole; R3 failed, because D12 is used from phase 0; R4 does not apply; R5 failed, because a default without a record is not R5 (RT-VERIFY 5.4); R6 failed, because nothing is on record. The ambiguity of 'blocks work' for D10 is for the owner. A missing required DECISIONS.md entry is major."
+   }
+  }
+ }
+]
