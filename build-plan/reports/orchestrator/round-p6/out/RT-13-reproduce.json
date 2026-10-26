@@ -1,0 +1,66 @@
+{
+ "lens": "RT-13",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P6-RT-13-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 2.7; 4 T9 ('the highest root, or the highest short root after a start at a short city'); 8.4 'Define every term'; RED-TEAM-COMMON 4 ('a mathematical statement presented as fact that is wrong')",
+   "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-aca20141e88212061, started at aea1802 on worktree-agent-aca20141e88212061, clean; 'git checkout --detach f07eec66a8b80d249101630305ef6d2d23882738', HEAD f07eec66a8b80d249101630305ef6d2d23882738. node v22.22.0. The lens branch worktree-agent-a46277fe7c5321fb3 (c2fb509) only adds files (30) and changes nothing that exists at the gate commit. I applied redteam/redteam-RT-13-p6-oracle-highest.py together with the reproducers of findings 02 to 06, because none of them affects another's run. None exists at the gate commit. git status --porcelain: 9 lines 'A  ...' (redteam/redteam-RT-13-p6-{dimk.mjs,m9-reveal-only.mjs,oracle-highest.py,playwright.config.ts,read.mjs,realrank.mjs,serve.mjs}, site/tests/e2e/redteam-RT-13-p6-{atlas-captions,m9-leak}.spec.ts). 'npm --prefix <wt> ci --prefer-offline': exit 0. 'npm run build': exit 0, '90 page(s) built', 'links: 3998 internal links on 90 pages of site/dist checked, 0 problems'. Ran 'python3 redteam/redteam-RT-13-p6-oracle-highest.py reference site/dist': exit 1. Output: 'glossary, highest root: \"On a board of finite type, the root population at which no mutation raises any city.\"' / 'B3: roots at which no mutation raises any city: [(1, 2, 2), (1, 1, 1)]; highest root (1, 2, 2); highest short root (1, 1, 1)   <-- not unique' / 'C3: ... [(1, 2, 1), (2, 2, 1)]; highest root (2, 2, 1); highest short root (1, 2, 1)' / 'F4: ... [(2, 3, 4, 2), (1, 2, 3, 2)]' / 'G2: ... [(2, 1), (3, 2)]; highest root (3, 2); highest short root (2, 1)' / '16 of 32 boards of finite type have more than one root population at which no mutation raises any city'. The 16 boards are B2 to B8, C2 to C8, F4 and G2. All A, D and E boards are unique. Observed matches: B3, C3, F4 and G2 lists, and 16 of 32. Supporting check: site/dist/atlas/B3/index.html has data-out=\"highest-root\" '(1, 2, 2' and 'highest short root is ... data-exact=\"[1,1,1]\" (1, 1, 1)'. Left behind: an untracked, git-ignored reference/__pycache__/ from importing lie_games. No tracked file under reference/ changed, and I deleted the cache.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the glossary's definition picks out two root populations on 16 of 32 finite-type boards (B3 (1,2,2) and (1,1,1); C3 (1,2,1) and (2,2,1); F4 (2,3,4,2) and (1,2,3,2); G2 (2,1) and (3,2)). The rubric counts a wrong mathematical statement presented as fact as a blocker."
+  },
+  {
+   "findingId": "P6-RT-13-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 8.1 P2; 4.0 Starts meaningful; RT-13 attack 8; regression of P5-RT-13-01 (M8.spec.ts > regressions)",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied set and status as in P6-RT-13-01: m9-reveal-only.mjs, read.mjs and serve.mjs are among the 9 'A' lines. npm ci --prefer-offline: exit 0. As the prompt instructs, I replaced /tmp/rel and /tmp/m9.json with S=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-p6-rt13-reproduce and port 5631 with 5960/5961. (1) 'RELEASE=1 OUT_DIR=$S/rel npm run build': exit 0, 'links: 3841 internal links on 89 pages ... 0 problems'. This build finished before the coordinator's NODE_DISABLE_COMPILE_CACHE note arrived, and I ran no build after it. (2) 'node redteam/redteam-RT-13-p6-serve.mjs $S/rel 5961 /' in the background: 'serving ... at http://localhost:5961/'. (3) 'PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers node redteam/redteam-RT-13-p6-read.mjs http://localhost:5961/ release $S/m9.json nojs 360 800 /modules/m9-real-forms/': exit 0, '/modules/m9-real-forms/ 52 blocks'. The browsers path is the environment setting the instructions require. (4) 'node redteam/redteam-RT-13-p6-m9-reveal-only.mjs $S/m9.json': exit 1. Output: 'b6 (beat 5): Where does theta send (0, 0, 1)? (answer (-1, -1, 0))  stated outside the reveal in: nowhere' / 'b7 (beat 6): ... (answer (-1, -1))  stated outside the reveal in: nowhere' / 'b6: \"...Where does θ send (0, 0, 1)?\" -> without JavaScript the answer sits in a closed <details>: \"(-1, -1, 0)\"' / 'b7: ... closed <details>: \"(-1, -1)\"' / 'FAIL: 2 of 2 prediction answers of M9 are held only by the reveal'. Observed matches on the release log. I did not run the preview-log variant, because the reproduction does not state it. Tree afterwards: only the 9 applied files.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: 'FAIL: 2 of 2 prediction answers of M9 are held only by the reveal'. b6 (-1, -1, 0) and b7 (-1, -1) appear only in the closed <details>. A stated behaviour (P2) that is missing is major."
+  },
+  {
+   "findingId": "P6-RT-13-03",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 4.0 Predict; 8.1 P5; RT-13 attacks 6 and 7; DECISIONS.md P3-RT-13-01 (held class) and the P6-A7 decision 'predictions'",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied set and status as in P6-RT-13-01, including site/tests/e2e/redteam-RT-13-p6-m9-leak.spec.ts and redteam/redteam-RT-13-p6-playwright.config.ts. npm ci --prefer-offline: exit 0. 'npm run build' (preview): exit 0, 90 pages, 0 link problems. As P6-VERIFY-INSTRUCTIONS requires, the config names port 5630, so I used a copy at $S/redteam-RT-13-p6-playwright.config.ts (S as in finding 02). Its only changes: PORT 5630 -> 5960; testDir and webServer cwd made absolute (<wt>/site/tests/e2e, <wt>/site), because the copy no longer sits in redteam/; and the import of '@playwright/test' given as the absolute <wt>/node_modules/@playwright/test/index.mjs, because a config outside the worktree cannot resolve the bare name. Ran 'PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c $S/redteam-RT-13-p6-playwright.config.ts redteam-RT-13-p6-m9-leak.spec.ts': exit 1. The config's webServer started astro preview on 5960 and stopped it afterwards. Output: 'theta: …er stage 1 (1, 0, 0) During stage 2 (1, 1, 0) After stage 3 (−1, −1, 0)' / 'shadows: …α with θα01(0, 1, 0) ↦ (0, 1, 0)(1/2, 1/2, 1/2)4(0, 0, 1) ↦ (−1, −1, 0);' / 'Error: the answer is shown before the reader commits ... expect(received).toEqual(expected) ... + Array [ \"theta: …\", \"shadows: …\" ]' / '1 failed'. Earlier steps passed: predictCheck enabled and predictResult '' before and after the two tab clicks. Observed matches the finding's theta-panel and shadows-panel text. It is not timing-dependent, so I ran it once. Left behind: an ignored <wt>/test-results/, which I deleted.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: while b6's prediction is open (Check enabled, empty result), the Play θ tab shows 'After stage 3 (−1, −1, 0)' and the Shadows tab shows '(0, 0, 1) ↦ (−1, −1, 0)'. The freeze of 4.0 Predict does not cover the tabs, a stated behaviour that is missing (major)."
+  },
+  {
+   "findingId": "P6-RT-13-04",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 8.4; 1.2; 3 M9 beat 5; RT-13 attack 13",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied set and status as in P6-RT-13-01, including redteam/redteam-RT-13-p6-dimk.mjs. Same release build ($S/rel), server (5961) and log ($S/m9.json) as in P6-RT-13-02, which this reproduction names ('serve and read as in P6-RT-13-02'). /tmp paths are replaced by scratch paths as the prompt instructs. Ran 'node redteam/redteam-RT-13-p6-dimk.mjs $S/m9.json $S/rel': exit 1. Output: 'FIRST M9-q05 beat=1 section=-: The data of beat 5 differ too: real rank 1 against 0, $\\dim\\mathfrak k$ 1 against 3.' Further blocks outside the Lie-theory box that use 𝔨 or 𝔭: M9-q19 (beat 4), q23, q24, q25 (beat 5) and q30 (beat 7), plus M9-q41 section=lie-theory ('a decomposition $\\mathfrak k\\oplus\\mathfrak p$'). 'glossary entries naming k or p: none (of 104 terms)' / 'sentences that say what k is: none' / 'FAIL: 𝔨 and 𝔭 are first used at M9-q05 and defined nowhere a primary reader reads (only in the Lie-theory box)'. Observed matches: first use M9-q05, six prose blocks outside the box, 0 defining sentences, 0 of 104 glossary terms.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: 𝔨 and 𝔭 are first used at M9-q05 and appear in six prose blocks outside the Lie-theory box. No sentence there defines them, and 0 of 104 glossary terms names them. A broken 8.4 prose rule is major."
+  },
+  {
+   "findingId": "P6-RT-13-05",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 4 T14; 4.0 Starts meaningful; 8.1 P1; DECISIONS.md held P4-RT-13-04 (this is new evidence for the owner)",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied set and status as in P6-RT-13-01, including site/tests/e2e/redteam-RT-13-p6-atlas-captions.spec.ts, redteam-RT-13-p6-serve.mjs and the config. Release build $S/rel (exit 0, 89 pages, 0 link problems), served by 'node redteam/redteam-RT-13-p6-serve.mjs $S/rel 5961 /' in the background. Port 5631 is replaced by 5961 and the config copy is the one described in P6-RT-13-03 (port 5960). Ran 'RT13_BASE_URL=http://localhost:5961/ PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c $S/redteam-RT-13-p6-playwright.config.ts redteam-RT-13-p6-atlas-captions.spec.ts': exit 1, '2 failed'. Test 1 output: 'caption: Start with one Martian in city 1 of A3 and mutate only where a city rises: the game stops after 2 moves at (1, 1, 1), the highest root, whatever the order of the moves.' / 'endName: The game stops at the highest root, (1, 2, 2).; moves 3' / 'Expected substring: \"(1, 2, 2)\"'. Test 2 output: 'caption: From all ones on A3, legal play reaches 24 positions in 7 layers, one for each element of the group; ...' / 'groupOrder: 48' / 'Expected substring: \"48 positions\"'. Observed matches both claims. Note for the reader of this verdict: both default captions name A3 explicitly ('of A3', 'on A3') while the loaded board is B3. I did not check the T2 and T15 'also seen' cases, because the reproducer does not test them. Not timing-dependent, so I ran it once.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: from /atlas/B3/ the Kostant page's caption says '2 moves at (1, 1, 1), the highest root' while the tool ends at '(1, 2, 2)' after 3 moves. The Weyl page's caption says '24 positions in 7 layers' beside groupOrder 48."
+  },
+  {
+   "findingId": "P6-RT-13-06",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC 8.4; RT-13 attack 13",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied set and status as in P6-RT-13-01, including redteam/redteam-RT-13-p6-realrank.mjs. I used the release M9 log $S/m9.json, read as in P6-RT-13-02 as the reproduction states, with /tmp/m9.json replaced per the prompt. Ran 'node redteam/redteam-RT-13-p6-realrank.mjs $S/m9.json': exit 1. Output: 'first use: /modules/m9-real-forms/ M9-q05 (beat 1): \"The data of beat 5 differ too: real rank 1 against 0, dimk 1 against 3.\"' / 'linked to #real-rank there: false; defined there or in the next block: false' / 'defined at: /modules/m9-real-forms/ M9-q22 (beat 5)' / 'FAIL: real rank is used before it is defined, unlinked'. Observed matches. The log covers M9 only, as the reproduction states, so 'first use' means first use within M9. Afterwards: release server stopped (curl to 5961 and 5960 returns 000). I deleted node_modules (root, site, packages/engine), site/dist, $S/rel, <wt>/test-results and reference/__pycache__. git status --porcelain lists only the 9 applied files ('A').",
+   "severityAdjustment": "raise to major",
+   "reason": "reproduced as stated; observed matches: 'real rank' is first used at M9-q05 (beat 1), not linked and not defined there or in the next block, and is defined at M9-q22 (beat 5). RED-TEAM-COMMON 4 lists 'a prose rule of 8.4 broken' as major, and 8.4 says 'Define every term on first use', so the claimed minor is raised. The pointer to beat 5 is neither a definition nor a glossary link."
+  }
+ ]
+}
