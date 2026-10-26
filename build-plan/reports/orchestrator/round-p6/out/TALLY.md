@@ -20,3 +20,4 @@
 - P6-RT-10-04 major: DECISIONS.md records neither D12 (English) nor D10 (separate from MutationGraph).
 - P6-RT-10-05 minor: T13's data-board 'decoration' and 'restricted' and data-value 'black'/'white' outside 4.0's hooks (logged by P6-A3).
 - Notes: owner's parts of G3, G4, G6 have no outcome lines (not yet due); numbers-in-prose sees little of the lessons' typed numbers (P0-A6 design); M10 has no Sources block and 575 words (plan reading); M8's word count rule changed by MERGE (4 words over by the old rule); the release archives contain the unreleased /dev/ pages; T13 presets fixing a panel or the toggle are not fully links (SPEC tension).
+- RT-03 refute: 01, 02, 03 not refuted; 04 REFUTED (CONTRACTS 2.3 holds no 'used once' rule; the stated 60000 equals SPEC 5.6 in the wording P6-A4's plan prescribes). Reproduce pending.
