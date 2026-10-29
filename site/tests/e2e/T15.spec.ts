@@ -31,9 +31,10 @@
 // linkTo and layers are accepted and ignored. preset: 'default' (= frozen), 'frozen', 'marks-comarks',
 // 'pentagon', 'three-fates'.
 //
-// Announcements asserted (exact): "Played 14 moves to the end. Numbers now 0, 0, 0, 0, 1."; "Fired node
-// 1. Node 1 now 1, node 2 now 1, node 5 now minus 2. Move 1."; "Undid move 2." (prefix); "Played 20000
-// moves; still running after 20000 moves. Numbers now ..." (prefix and the report).
+// Announcements asserted (exact, whole sentences): "Played 14 moves to the end. Numbers now 0, 0, 0, 0,
+// 1."; "Fired node 1. Node 1 now 1, node 2 now 1, node 5 now minus 2. Move 1."; "Undid move 2. Numbers
+// now ..."; "Played 20000 moves; still running after 20000 moves. Numbers now ..." (and the report), the
+// numbers computed by the engine (RT-FIX P3-RT-11-08).
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -53,6 +54,17 @@ const golden = JSON.parse(readFileSync(fileURLToPath(new URL('../../../reference
 };
 const P = golden.pentagon_example;
 const big = (name: string): Board<bigint> => boardFromName(name) as Board<bigint>;
+
+/** A value (decimal text) read aloud as SPEC 7.5 A-4 says: negative numbers are spoken as "minus". */
+const spoken = (t: string): string => (t.startsWith('-') ? `minus ${t.slice(1)}` : t);
+
+/** The sentence of a play on stopped by the cap (decisions/P2-A4.md), its numbers from the engine in label order. */
+function cappedSentence(b: Board<bigint>, start: bigint[]): string {
+  const r = playFate(b, start, undefined, CAPS.playMoves);
+  expect(r.status).toBe('cap');
+  const end = toPositions(b, [...b.labels].sort((x, y) => x - y)).map((p) => spoken(String(r.position[p]!)));
+  return `Played ${r.moves} moves; still running after ${CAPS.playMoves} moves. Numbers now ${end.join(', ')}.`;
+}
 
 const root = (page: Page): Locator => page.locator('[data-tool="affine"]');
 const nodes = (page: Page): Locator => root(page).locator('[data-board-group] button[data-node]');
@@ -224,6 +236,7 @@ test('in the Olympiad form a negative number is flipped and added to both neighb
   expect(n1).toBe('Node 1, value 1, cannot be fired');
 });
 
+// regression: P3-RT-11-08
 test('three fates on the square: ended, returned, still running', async ({ page }) => {
   test.setTimeout(120000);
   await open(page);
@@ -254,7 +267,8 @@ test('three fates on the square: ended, returned, still running', async ({ page 
   await expect(root(page)).toHaveAttribute('data-moves', String(CAPS.playMoves));
   await expect(out(page, 'fateSentence')).toContainText(ROW_POSITIVE);
   await expect(out(page, 'provenance')).toContainText('GSS12');
-  await expect(live(page)).toContainText('Played 20000 moves; still running after 20000 moves. Numbers now ');
+  // The whole sentence (decisions/P2-A4.md), with the numbers computed here by the engine.
+  await expect(live(page)).toHaveText(cappedSentence(sq, [1n, 0n, 0n, 0n]));
 });
 
 test('on a non-simply-laced board the fate sentence is wrapped as E6', async ({ page }) => {
@@ -366,6 +380,7 @@ test('the affine route has no serious or critical axe violations', async ({ page
 // History (4.0), long numbers, export, the table, the worker
 // ---------------------------------------------------------------------------------------------
 
+// regression: P3-RT-11-08
 test('undo, redo and reset restore the positions and the move count', async ({ page }) => {
   await open(page);
   await tabButton(page, 'pentagon').click();
@@ -379,7 +394,7 @@ test('undo, redo and reset restore the positions and the move count', async ({ p
   await control(page, 'undo').click();
   await expect(root(page)).toHaveAttribute('data-moves', '1');
   expect(await values(page)).toEqual(shownAfter(1));
-  await expect(live(page)).toHaveText(/^Undid move 2\./);
+  await expect(live(page)).toHaveText(`Undid move 2. Numbers now ${shownAfter(1).map(spoken).join(', ')}.`);
   await control(page, 'redo').click();
   await expect(root(page)).toHaveAttribute('data-moves', '2');
   expect(await values(page)).toEqual(shownAfter(2));
@@ -518,6 +533,7 @@ test('the worker is fetched only when play on is pressed', async ({ page }) => {
   expect(fetched.length).toBeGreaterThan(0);
 });
 
+// regression: P3-RT-11-08
 test('announcements of a capped play, recorded', async ({ page }) => {
   test.setTimeout(120000);
   await open(page);
@@ -529,5 +545,5 @@ test('announcements of a capped play, recorded', async ({ page }) => {
   await expect(out(page, 'fate')).toHaveText('still running after 20000 moves', { timeout: 60000 });
   await expect.poll(async () => (await read()).length).toBeGreaterThan(0);
   const said = await read();
-  expect(said[said.length - 1]).toMatch(/^Played 20000 moves; still running after 20000 moves\. Numbers now (minus )?\d+, (minus )?\d+, (minus )?\d+, (minus )?\d+\.$/);
+  expect(said[said.length - 1]).toBe(cappedSentence(big('square'), [1n, 0n, 0n, 0n]));
 });

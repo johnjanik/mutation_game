@@ -13,6 +13,8 @@ export default defineConfig({
   // basepath.spec.ts runs only through npm run e2e:basepath, against the BASE_PATH=/sub/path/ build.
   testIgnore: process.env.BASE_PATH ? [] : ['**/basepath.spec.ts'],
   fullyParallel: false,
+  // A test.only left in a spec fails the run in CI instead of silencing the rest (RT-FIX P3-RT-11-04).
+  forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {

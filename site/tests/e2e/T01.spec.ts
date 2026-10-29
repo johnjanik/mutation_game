@@ -38,11 +38,14 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { T01_OUTS, T01_PROP_ONLY_OUTS } from '../../src/tools/registry/T01';
-import { boardFromName, toNumbers } from '../../../packages/engine/src/index';
+import { CAPS, boardFromName, fromAdjacency, playFate, toNumbers, toPositions } from '../../../packages/engine/src/index';
 import type { Board } from '../../../packages/engine/src/index';
 
 const ROUTE = 'tools/board/';
 const TRIANGLE = 'c:2,-1,-1;-1,2,-1;-1,-1,2';
+
+/** A number read aloud as SPEC 7.5 A-4 says: negative numbers are spoken as "minus". */
+const spoken = (v: bigint): string => (v < 0n ? `minus ${-v}` : String(v));
 
 const root = (page: Page): Locator => page.locator('[data-tool="board"]');
 const node = (page: Page, board: 'populations' | 'numbers', label: number): Locator =>
@@ -413,6 +416,7 @@ test('no move on load', async ({ page }) => {
   expect(await values(page, 'numbers')).toEqual(['1', '1', '1']);
 });
 
+// regression: P3-RT-11-08
 test('play to the end on the triangle reports the cap', async ({ page }) => {
   test.setTimeout(120000);
   const workers: string[] = [];
@@ -423,7 +427,13 @@ test('play to the end on the triangle reports the cap', async ({ page }) => {
   await expect(root(page)).toHaveAttribute('data-moves', '20000');
   expect(workers.length).toBeGreaterThan(0);
   expect(await page.locator('body').innerText()).not.toContain('not of finite type');
-  await expect(live(page)).toContainText('Still running after 20000 moves.');
+  // The whole sentence (decisions/P1-A5.md), with the numbers after 20000 legal moves, lowest node
+  // first, computed here by the engine on the triangle (C = 2I - A^T, all roads single).
+  const tri = fromAdjacency([[0, 1, 1], [1, 0, 1], [1, 1, 0]]) as Board<bigint>;
+  const r = playFate(tri, [1n, 1n, 1n], undefined, CAPS.playMoves);
+  expect(r.status).toBe('cap');
+  const end = toPositions(tri, [1, 2, 3]).map((p) => spoken(r.position[p]!));
+  await expect(live(page)).toHaveText(`Still running after 20000 moves. Numbers now ${end.join(', ')}.`);
 });
 
 test('node names follow A-3', async ({ page }) => {
@@ -476,6 +486,7 @@ test('only changed nodes are read above four nodes', async ({ page }) => {
   await expect(live(page)).not.toContainText('node 5');
 });
 
+// regression: P3-RT-11-08
 test('scrubbing is announced once', async ({ page }) => {
   await open(page, 'g=A3&v=n&m=f&c=n&s=1,1,1');
   for (const label of [1, 2, 3, 1, 2]) await fire(page, label);
@@ -487,13 +498,17 @@ test('scrubbing is announced once', async ({ page }) => {
   await page.waitForTimeout(900);
   const said = await texts();
   expect(said).toHaveLength(1);
-  expect(said[0]).toMatch(/^Undid move 2\. Numbers now /);
+  // A-4, the whole sentence: back at move 1, A3 after firing node 1 from all ones.
+  expect(await values(page, 'numbers')).toEqual(['-1', '2', '1']);
+  expect(said[0]).toBe('Undid move 2. Numbers now minus 1, 2, 1.');
 });
 
+// regression: P3-RT-11-08
 test('game over is announced', async ({ page }) => {
   await open(page, 'g=A2&v=n&m=l&c=n&s=1,1');
   for (const label of [1, 2, 1]) await fire(page, label);
-  await expect(live(page)).toContainText('Game over after 3 moves.');
+  // A-4, the whole text: the move that ends the game, then the game over (decisions/P1-A5.md).
+  await expect(live(page)).toHaveText('Fired node 1. Numbers now minus 1, minus 1. Move 3. Game over after 3 moves.');
 });
 
 test('play to the end on A3', async ({ page }) => {

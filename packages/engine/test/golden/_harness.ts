@@ -294,6 +294,11 @@ function intEqAt(actual: unknown, expected: unknown, message: string | undefined
     fail(message, path, `cannot compare a number with ${showLeaf(expected)}`);
   }
   if (typeof actual === 'bigint') {
+    // A JSON number beyond 2^53 is not an exact integer (rule 1 stores those as decimal strings), and its
+    // String() is the double's shortest text (String(2 ** 60) is "1152921504606847000"), so it is refused.
+    if (typeof expected === 'number' && !Number.isSafeInteger(expected)) {
+      fail(message, path, `${showLeaf(expected)} is not a safe integer`);
+    }
     if (typeof expected === 'number' || typeof expected === 'string' || typeof expected === 'bigint') {
       if (actual.toString() === String(expected)) return;
       fail(message, path, `${showLeaf(actual)} does not print as ${showLeaf(expected)}`);
