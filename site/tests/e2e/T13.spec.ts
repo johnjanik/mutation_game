@@ -960,4 +960,31 @@ test.describe('regressions', () => {
     expect(await valuesOf(game)).toEqual(['-1', '-1', '-1']);
     await expect(live(page)).toHaveText('Stage 3 of θ. Populations now minus 1, minus 1, minus 1. Move 3.');
   });
+
+  // Adopted from the RT-11 lens (the same file): SPEC 7.5 A-10 "every tool has a 'show as table' view that
+  // presents the same state as an HTML table with a button per node". It fails on the lens's mutant
+  // S-T13-table-buttons-noop (both table buttons do nothing).
+  // regression: P6-RT-11-02
+  test('T13: the buttons of the table view act like the nodes (A-10: "a button per node")', async ({ page }) => {
+    // the paint buttons of the decoration's table
+    await page.goto('tools/satake/?g=A3&x=1.3&t=1.2.3');
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await root(page).locator('details summary').click();
+    const paint2 = root(page).locator('[data-table-node="2"]');
+    await expect(paint2).toHaveText('white');
+    await paint2.click();
+    await expect(out(page, 'black-nodes')).toHaveText('1.2.3');
+    await expect(out(page, 'decoration').locator('button[data-node="2"]')).toHaveAttribute('data-colour', 'black');
+    await expect(paint2).toHaveText('black');
+    await expect(live(page)).toHaveText(/^Node 2 painted black\. /);
+    // the composite-move buttons of the restricted table: e6(-26), restricted node 2 reflects alpha_6's shadow
+    await page.goto('tools/satake/?g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await root(page).locator('details summary').click();
+    await expect(out(page, 'shadow-coordinates')).toHaveText('(0, 1)');
+    await root(page).locator('[data-table-restricted="2"]').click();
+    await expect(out(page, 'moveCounter')).toHaveText('1');
+    await expect(out(page, 'shadow-coordinates')).toHaveText('(0, −1)');
+    await expect(live(page)).toHaveText(/^Played the composite move of restricted node 2, \d+ mutations\. Shadow coordinates now 0, minus 1\. /);
+  });
 });
