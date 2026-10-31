@@ -1409,6 +1409,33 @@ async function readingBlocks(page: Page): Promise<ReadingBlock[]> {
 }
 
 test.describe('regressions', () => {
+  // RT-05, attack 36, from site/tests/e2e/redteam-RT-05-p6-m9-ascii-math.spec.ts of the lens branch (SPEC.md 7.5
+  // A-12 "Mathematics is rendered with MathML available to assistive technology"; A-10 the caption is the
+  // figure's text; 8.4). The figure captions of M9 and the question of b6's prediction are plain-text props
+  // written by the lesson, and they carried mathematics as ASCII TeX: "w_X" (read "w underscore X"), "dim k = 4",
+  // "dim k = 9, dim p = 6", where the tool's own captions were repaired to write these in words and with 𝔨 and 𝔭
+  // (MERGE ruling (6) on P6-A3; decisions/P6-A3.md "display spellings in captions"; the tool's test: no
+  // underscore, no "dim k" in any caption it writes). The lesson's captions override the tool's.
+  // regression: P6-RT-05-05
+  test('M9: no T13 caption or prediction question writes mathematics as ASCII TeX (w_X, dim k, dim p)', async ({ page }) => {
+    await page.goto(ROUTE);
+    const texts = await page.locator('[data-tool="satake"]').evaluateAll((tools) =>
+      tools.flatMap((t) => {
+        const id = t.getAttribute('data-instance');
+        const out: string[] = [];
+        const cap = t.querySelector('[data-out="caption"]')?.textContent ?? '';
+        out.push(`${id} caption: ${cap}`);
+        const q = t.querySelector('[data-prediction] .question')?.textContent;
+        if (q) out.push(`${id} question: ${q}`);
+        return out;
+      }),
+    );
+    // Observed at f07eec6: the captions of b2 ("of w_X"), b3 ("dim k = 4") and b6 ("dim k = 9, dim p = 6") and the
+    // question of b6 ("the word of w_X").
+    const bad = texts.filter((s) => /\w_\w|\bdim [kp]\b/.test(s));
+    expect(bad, '/modules/m9-real-forms/: T13 captions and questions that write a formula as ASCII TeX').toEqual([]);
+  });
+
   test.describe('without JavaScript', () => {
     test.use({ javaScriptEnabled: false });
     // RT-13, attack 8 (P2), from the script redteam/redteam-RT-13-p6-m9-reveal-only.mjs of the lens branch, which
