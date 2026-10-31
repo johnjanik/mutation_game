@@ -1442,6 +1442,48 @@ test.describe('regressions', () => {
       expect(report.flatMap((r) => r.before), 'stated before the prediction block').toEqual([]);
     });
 
+    // RT-13, attacks 13 and 35 (LO9), from the script redteam/redteam-RT-13-p6-dimk.mjs of the lens branch: the
+    // reader is asked to read dim 𝔨 and dim 𝔭 from beat 1 on, but no block outside the Lie theory paragraph said
+    // what 𝔨 or 𝔭 is, and the glossary had no entry for them (SPEC 8.4 "Define every term on first use and link
+    // later uses to a glossary entry"; 1.2; 3 M9 beat 5). The patterns of the script: a use of 𝔨 or 𝔭, and a
+    // sentence that says what 𝔨 is. Adoption: the same patterns on the built page (formulas as $TeX$) and the
+    // built glossary; the script accepted either a defining sentence or a glossary entry, and this test asks for
+    // both, at the first use, with a later use linked to each entry.
+    // regression: P6-RT-13-04
+    test('𝔨 and 𝔭 are defined at their first use on M9, and the glossary has entries for them that later uses link', async ({ page }) => {
+      const K = /\\mathfrak\s*\{?k\}?|𝔨|\\mathfrak\s*\{?p\}?|𝔭/;
+      const KK = String.raw`(?:\\mathfrak\s*\{?k\}?|𝔨)`;
+      const PP = String.raw`(?:\\mathfrak\s*\{?p\}?|𝔭)`;
+      const defines = (x: string): RegExp => new RegExp(String.raw`${x}\s*(is|,\s*the|=\s*\{|denotes|stands for)|where\s+${x}|(subalgebra|part|fixed)[^.]{0,40}${x}|${x}[^.]{0,40}(fixed by|compact part|subalgebra)`);
+      await page.goto(ROUTE);
+      const prose = (await readingBlocks(page)).filter((b) => !b.tool && !b.challenge);
+      const first = prose.findIndex((b) => !b.lie && K.test(b.text));
+      expect(first, 'a use of 𝔨 or 𝔭 outside the Lie theory paragraph').toBeGreaterThanOrEqual(0);
+      // Observed at f07eec6: the first use, M9 beat 1 ("real rank 1 against 0, dim 𝔨 1 against 3"), and no sentence
+      // outside the Lie theory paragraph says what 𝔨 is.
+      const said = prose[first]!.text.split(/(?<=[.;])\s+/).filter((s) => K.test(s));
+      expect(said.filter((s) => defines(KK).test(s)), `the first use of 𝔨, beat ${prose[first]!.beat}: ${said.join(' | ')}`).not.toEqual([]);
+      expect(said.filter((s) => defines(PP).test(s)), `the first use of 𝔭, beat ${prose[first]!.beat}: ${said.join(' | ')}`).not.toEqual([]);
+      // Later uses link to the entries.
+      for (const anchor of ['dim-k', 'dim-p']) {
+        const linked = prose.slice(first + 1).filter((b) => b.links.some((l) => l.href.endsWith(`glossary/#${anchor}`)));
+        expect(linked.length, `a later use linked to glossary#${anchor}`).toBeGreaterThan(0);
+      }
+      // Observed at f07eec6: "glossary entries naming k or p: none (of 104 terms)".
+      await page.goto('glossary/');
+      const ids = await page.locator('dl.glossary dfn[id]').evaluateAll((els) => els.map((e) => e.id));
+      expect(ids.filter((d) => /^(k|p|dim-k|dim-p|compact-part|cartan-decomposition|fixed-subalgebra)$/.test(d)).sort()).toEqual(['dim-k', 'dim-p']);
+      const entry = page.locator('dl.glossary > div.entry').filter({ has: page.locator('dfn#dim-k') });
+      await expect(entry.locator('dfn#dim-p')).toHaveCount(1);
+      const definition = await entry.locator('dd[data-col="definition"]').evaluate((el) => {
+        const copy = el.cloneNode(true) as HTMLElement;
+        for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(`$${k.querySelector('annotation')?.textContent ?? ''}$`));
+        return (copy.textContent ?? '').replace(/\s+/g, ' ');
+      });
+      expect(definition).toMatch(defines(KK));
+      expect(definition).toMatch(defines(PP));
+    });
+
     // RT-13, attack 13, from the script redteam/redteam-RT-13-p6-realrank.mjs of the lens branch: the first use of
     // "real rank" on M9 (beat 1) was neither defined there or in the next block nor linked to its glossary entry;
     // the definition comes in beat 5 (SPEC 8.4). The patterns of the script, on the prose blocks of the built
