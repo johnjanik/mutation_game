@@ -13,8 +13,9 @@
 //
 // Hooks read:
 //   root:        data-tool="satake", data-moves, data-hydrated="true"
-//   decoration:  button[data-node] with data-colour ("black" | "white"), data-board="numbers", data-value ("1" on a
-//                black node, "0" on a white one), data-can-act (inside data-out="decoration"); the drawing's
+//   decoration:  the paint buttons, controls and not node buttons: button[data-control="paint"] with data-paint (the
+//                label), data-colour ("black" | "white"), data-can-act, and no data-node, data-board or data-value
+//                (inside data-out="decoration"); the drawing's
 //                data-arrow and data-black-arrow
 //   game board:  button[data-node] with data-board="populations", data-value, data-can-act (inside data-out="game-board");
 //                the drawn numerals data-numeral (Node.svelte)
@@ -51,6 +52,7 @@ import type { Board, SatakeDiagram } from '../../../packages/engine/src/index';
 // the tool's own server-side functions, for the E7 island test (as registry-outs.spec.ts loads the registry)
 import { computeNow, islandScript, pairJson } from '../../src/components/tools/t13/load';
 import { diagramOf, pairKey } from '../../src/components/tools/t13/model';
+import { altOfRealForm } from '../../../scripts/names.mjs';
 
 interface GoldenRecord {
   dynkin_type: string;
@@ -127,7 +129,7 @@ const root = (page: Page): Locator => page.locator('[data-tool="satake"]');
 const out = (page: Page, name: string): Locator => root(page).locator(`[data-out="${name}"]`);
 const control = (page: Page, name: string): Locator => root(page).locator(`[data-control="${name}"]`);
 const live = (page: Page): Locator => root(page).locator('[data-live]');
-const deco = (page: Page, label: number): Locator => out(page, 'decoration').locator(`button[data-node="${label}"]`);
+const deco = (page: Page, label: number): Locator => out(page, 'decoration').locator(`button[data-paint="${label}"]`);
 const gameNodes = (page: Page): Locator => out(page, 'game-board').locator('button[data-node]');
 const restrictedNode = (page: Page, label: number): Locator => out(page, 'restricted-board').locator(`button[data-node="${label}"]`);
 const tab = (page: Page, id: string): Locator => root(page).locator(`[data-panel-tab="${id}"]`);
@@ -456,8 +458,9 @@ test('every node button carries data-node, data-board, data-value and data-can-a
   await expect(root(page)).toHaveAttribute('data-tool', 'satake');
   await expect(root(page)).toHaveAttribute('data-moves', '0');
   await openPanel(page, 'restricted');
+  // the game board's six and the restricted board's two; the decoration's six are paint controls (below)
   const buttons = root(page).locator('button[data-node]');
-  expect(await buttons.count()).toBe(6 + 6 + 2);
+  expect(await buttons.count()).toBe(6 + 2);
   for (const b of await buttons.all()) {
     for (const a of ['data-node', 'data-board', 'data-value']) expect((await b.getAttribute(a)) ?? '', a).not.toBe('');
     expect(['true', 'false']).toContain(await b.getAttribute('data-can-act'));
@@ -466,10 +469,14 @@ test('every node button carries data-node, data-board, data-value and data-can-a
     await expect(b).toHaveAttribute('data-board', 'populations');
     await expect(b).toHaveAttribute('data-can-act', 'false');
   }
-  for (const b of await out(page, 'decoration').locator('button[data-node]').all()) {
+  const paints = out(page, 'decoration').locator('button');
+  expect(await paints.count()).toBe(6);
+  for (const b of await paints.all()) {
+    await expect(b).toHaveAttribute('data-control', 'paint');
+    await expect(b).toHaveAttribute('data-paint', /^[1-6]$/);
     await expect(b).toHaveAttribute('data-colour', /^(black|white)$/);
-    await expect(b).toHaveAttribute('data-board', 'numbers');
-    await expect(b).toHaveAttribute('data-value', (await b.getAttribute('data-colour')) === 'black' ? '1' : '0');
+    expect(['true', 'false']).toContain(await b.getAttribute('data-can-act'));
+    for (const a of ['data-node', 'data-board', 'data-value']) expect(await b.getAttribute(a), a).toBeNull();
   }
   await expect(deco(page, 2)).toHaveAttribute('data-colour', 'black');
   await expect(deco(page, 1)).toHaveAttribute('data-colour', 'white');
@@ -516,7 +523,7 @@ test.describe('without JavaScript', () => {
     await expect(root(page)).not.toHaveAttribute('data-hydrated', 'true');
     await expect(out(page, 'caption')).not.toHaveText('');
     await expect(out(page, 'noscript')).toHaveCount(1);
-    await expect(out(page, 'decoration').locator('button[data-node]')).toHaveCount(3);
+    await expect(out(page, 'decoration').locator('button[data-control="paint"]')).toHaveCount(3);
     await expect(gameNodes(page)).toHaveCount(3);
     for (const k of [1, 2, 3]) await expect(out(page, `light-${k}`)).toHaveText('holds');
     await expect(out(page, 'real-form')).toHaveAttribute('data-name', 'su(1,3)');
@@ -559,7 +566,7 @@ test('at 320 pixels the panels stack and the page has no horizontal scroll', asy
       await openPanel(page, p);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${query} ${p}`).toBeLessThanOrEqual(0);
     }
-    for (const b of await root(page).locator('button[data-node]').all()) {
+    for (const b of await root(page).locator('button[data-node], button[data-control="paint"]').all()) {
       const r = (await b.boundingBox())!;
       expect(r.width).toBeGreaterThanOrEqual(24);
       expect(r.height).toBeGreaterThanOrEqual(24);
@@ -822,8 +829,9 @@ test.describe('regressions', () => {
   // JavaScript /tools/satake/ fetches before the reader's first interaction when it is opened from a link that
   // the site itself writes. SPEC 7.6: the budget of a route is the gzip size of "all JavaScript the route fetches
   // before the reader's first interaction", 90 kB for "each tool alone, on /tools/<id>"; SPEC 6.6: "On a tool's
-  // own route (/tools/..., /embed/...) the keys are bare", so a link is the same route. decisions/P6-A3.md: the
-  // typeset names (t13/satakeNames.ts, about 5 kB gzipped) load only after the reader's first change. Measured as
+  // own route (/tools/..., /embed/...) the keys are bare", so a link is the same route. The typeset names of the
+  // whole catalogue (t13/satakeNames.ts, about 5 kB gzipped) do not fit; a link state fetches those of its own
+  // board only (t13/names.ts; RT-FIX P6-MERGE-T13-01), and the default state none. Measured as
   // npm run size measures a route (scripts/size.mjs: 360 by 800, network idle, then quiet; gzip level 9 of the
   // files from the built directory), with 3 s with no request as the settle. npm run size opens bare routes only.
   const SITE_DIR = resolve(import.meta.dirname, '../..');
@@ -885,12 +893,34 @@ test.describe('regressions', () => {
     });
   }
 
+  // MERGE follow-up of P6-RT-07-01 (rtconfirm-p6-t13). SPEC 7.5 A-12: "Mathematics is rendered with MathML
+  // available to assistive technology (KaTeX's default output)"; decisions/P6-A3.md: "the first view is always
+  // the typeset one". A link state shows a pair the server did not render: before the reader's first action its
+  // names are KaTeX's markup with MathML, never the plain markup of t13/names.ts (Unicode fraktur), while the
+  // tests above keep the same links within 90 kB.
+  const FRAKTUR = /[\u{1D51E}-\u{1D537}]/u;
+  for (const link of [...LINKS, 'embed/satake/?g=A3&x=1.3&t=1.2.3']) {
+    // regression: P6-MERGE-T13-01
+    test(`/${link}: the names of the real form are typeset with MathML before the first interaction (A-12)`, async ({ page }) => {
+      await page.goto(link);
+      await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+      const names = out(page, 'real-form');
+      await expect(names.first()).toBeAttached();
+      for (const li of await names.all()) {
+        const name = (await li.getAttribute('data-name')) ?? '';
+        // the name, and for su*(2m) its second name sl(m,H) (SPEC 6.5), each with its MathML
+        await expect(li.locator('math'), `/${link}: ${name}`).toHaveCount(altOfRealForm(name) === null ? 1 : 2);
+        expect(await li.textContent(), `/${link}: ${name}`).not.toMatch(FRAKTUR);
+      }
+    });
+  }
+
   // Adopted from the RT-10 lens (site/tests/e2e/redteam-RT-10-p6-t13-hooks.spec.ts), attack 9 (SPEC 4.0 Test
   // hooks: "Every node button carries data-node (its label), data-board (populations or numbers, which matters in
   // the linked view), data-value (the value shown, as decimal text, or as p/q for a fraction) and data-can-act
   // (true or false)"): every node button of /tools/satake/ with the restricted panel open (E6, black nodes 2 to
-  // 5), the paint buttons, the game board and the restricted board, where the shadows play a mutation game
-  // (SPEC 2.15). The colour of a paint button stays readable in data-colour.
+  // 5), the game board and the restricted board, where the shadows play a mutation game (SPEC 2.15). The paint
+  // buttons of the decoration are controls since RT-FIX P6-MERGE-T13-02 (data-control="paint"; the test below).
   // regression: P6-RT-10-05
   test('RT-10 p6: every node button of T13 carries the hooks of 4.0 with legal values', async ({ page }) => {
     await page.goto('tools/satake/?z=1&g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
@@ -903,6 +933,29 @@ test.describe('regressions', () => {
     );
     const bad = hooks.filter((h) => !['populations', 'numbers'].includes(h.board ?? '') || !/^[-−]?\d+(\/\d+)?$/.test(h.value ?? '') || !['true', 'false'].includes(h.canAct ?? ''));
     expect(bad, `${hooks.length} node buttons; outside 4.0: ${[...new Set(bad.map((h) => `data-board="${h.board}" data-value="${h.value}"`))].join(', ')}`).toEqual([]);
+  });
+
+  // MERGE follow-up of P6-RT-10-05 (rtconfirm-p6-t13). SPEC 4.0 Test hooks: data-board is the game's board and
+  // data-value "the value shown"; 6.3 last bullet: the decoration is drawn on its own copy so that black and white
+  // never compete with the sign encoding. The copy draws no numeral and plays neither game, so its paint buttons
+  // are controls (data-control="paint", the label in data-paint, the colour in data-colour), and the node buttons
+  // a reader of the hooks (a test, a lesson's Challenge) finds on T13 are those of the mutation game: the game
+  // board and the restricted board, all data-board="populations", none "numbers".
+  // regression: P6-MERGE-T13-02
+  test('the paint buttons of the decoration are controls, not node buttons: data-control "paint", data-paint, data-colour; no "numbers" board on T13', async ({ page }) => {
+    await open(page, 'g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+    await openPanel(page, 'restricted');
+    const paints = out(page, 'decoration').locator('button');
+    await expect(paints).toHaveCount(6);
+    const hooks = await paints.evaluateAll((bs) =>
+      bs.map((b) => ['data-control', 'data-paint', 'data-colour', 'data-node', 'data-board', 'data-value'].map((a) => `${a}=${b.getAttribute(a) ?? '-'}`).join(' ')),
+    );
+    // e6(-26): black nodes 2, 3, 4, 5, in the label order of the drawing
+    const expected = [1, 2, 3, 4, 5, 6].map((l) => `data-control=paint data-paint=${l} data-colour=${[2, 3, 4, 5].includes(l) ? 'black' : 'white'} data-node=- data-board=- data-value=-`);
+    expect([...hooks].sort()).toEqual([...expected].sort());
+    const boards = await root(page).locator('[data-node]').evaluateAll((bs) => bs.map((b) => `${b.closest('[data-out]')?.getAttribute('data-out') ?? '-'} ${b.getAttribute('data-board') ?? '-'}`));
+    expect(boards.sort()).toEqual([...Array<string>(6).fill('game-board populations'), ...Array<string>(2).fill('restricted-board populations')].sort());
+    await expect(root(page).locator('[data-board="numbers"]')).toHaveCount(0);
   });
 
   // Adopted from the RT-05 lens (site/tests/e2e/redteam-RT-05-p6-t13-table-minus.spec.ts), attacks 30 and 33
@@ -974,7 +1027,7 @@ test.describe('regressions', () => {
     await expect(paint2).toHaveText('white');
     await paint2.click();
     await expect(out(page, 'black-nodes')).toHaveText('1.2.3');
-    await expect(out(page, 'decoration').locator('button[data-node="2"]')).toHaveAttribute('data-colour', 'black');
+    await expect(out(page, 'decoration').locator('button[data-paint="2"]')).toHaveAttribute('data-colour', 'black');
     await expect(paint2).toHaveText('black');
     await expect(live(page)).toHaveText(/^Node 2 painted black\. /);
     // the composite-move buttons of the restricted table: e6(-26), restricted node 2 reflects alpha_6's shadow

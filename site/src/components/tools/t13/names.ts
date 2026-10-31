@@ -1,28 +1,32 @@
 // T13: the names of real forms on screen (SPEC.md 6.5, 7.3, 7.5 A-12). Owner P6-A3. The typeset name (KaTeX's
-// markup with MathML) comes from satake-names.json through satakeNames.ts: in-process during server rendering,
-// and in the browser only after the reader's first change (loadNames), because the section weighs about 5 kB
-// gzipped and SPEC 7.6 counts every script a route fetches before the first interaction (decisions/P6-A3.md).
-// Until it has loaded, or where the file is absent (unit tests), a name is written in plain markup: the letters
-// of the algebra in Unicode's mathematical fraktur, R and H as double-struck capitals, the subscript of an
-// exceptional algebra with <sub>. Hydration keeps the server's markup ({@html} adopts it), so the first view is
-// always the typeset one. KaTeX itself is never sent to the reader.
+// markup with MathML) comes from satake-names.json through satakeNames.ts in-process during server rendering, and
+// in the browser from the file of one board, site/src/generated/satake-names/<board>.json (scripts/names.mjs),
+// loaded by loadNames(board) when the Studio shows a pair the server did not render: a link state while the
+// island hydrates, or the reader's change. One board's names weigh under 1 kB gzipped, so that a link state
+// stays within SPEC 7.6's 90 kB (RT-FIX P6-MERGE-T13-01; the whole section, about 5 kB, did not fit).
+// Until they have loaded, or where the files are absent (unit tests), a name is written in plain markup: the
+// letters of the algebra in Unicode's mathematical fraktur, R and H as double-struck capitals, the subscript of
+// an exceptional algebra with <sub>. Hydration keeps the server's markup ({@html} adopts it), so the default
+// state's first view is the typeset one. KaTeX itself is never sent to the reader.
 import type { NameEntry } from './satakeNames';
 
-let realForms: Readonly<Record<string, NameEntry>> | null = import.meta.env.SSR ? (await import('./satakeNames')).REAL_FORMS : null;
-let loading: Promise<void> | null = null;
+/** The typeset names known here: all of them during server rendering; in the browser, those of the boards loaded. */
+const realForms: Record<string, NameEntry> = import.meta.env.SSR ? { ...(await import('./satakeNames')).REAL_FORMS } : {};
+/** One lazily loaded chunk per board in the browser; empty where the files do not exist. */
+const byBoard = import.meta.env.SSR
+  ? {}
+  : import.meta.glob<Record<string, NameEntry>>('../../../generated/satake-names/*.json', { import: 'realForms' });
+const loading = new Map<string, Promise<void>>();
 
-/** Loads the typeset names once (the browser, after the reader's first change); resolves when they are there. */
-export function loadNames(): Promise<void> {
-  if (realForms !== null) return Promise.resolve();
-  loading ??= import('./satakeNames').then((m) => {
-    realForms = m.REAL_FORMS;
-  });
-  return loading;
-}
-
-/** Whether the typeset names are available. */
-export function namesLoaded(): boolean {
-  return realForms !== null;
+/** Loads the typeset names of one board once; resolves when they are there (at once during server rendering). */
+export function loadNames(board: string): Promise<void> {
+  let p = loading.get(board);
+  if (p === undefined) {
+    const load = byBoard[`../../../generated/satake-names/${board}.json`];
+    p = load === undefined ? Promise.resolve() : load().then((forms) => void Object.assign(realForms, forms));
+    loading.set(board, p);
+  }
+  return p;
 }
 
 const FRAKTUR_A = 0x1d51e;
@@ -43,12 +47,12 @@ export function fallbackHtml(name: string): string {
 
 /** The markup of a real form's name: KaTeX's when loaded, the plain markup otherwise. */
 export function realFormHtml(name: string): string {
-  return realForms?.[name]?.html ?? fallbackHtml(name);
+  return realForms[name]?.html ?? fallbackHtml(name);
 }
 
 /** The second name of su*(2m), sl(m,H) (SPEC 6.5), as markup, or null. */
 export function realFormAltHtml(name: string): string | null {
-  const alt = realForms?.[name]?.alt;
+  const alt = realForms[name]?.alt;
   if (alt !== undefined) return alt.html;
   const m = /^su\*\((\d+)\)$/.exec(name);
   return m === null ? null : fallbackHtml(`sl(${Number(m[1]) / 2},H)`);

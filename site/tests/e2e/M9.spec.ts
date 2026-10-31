@@ -15,9 +15,10 @@
 //     restricted-type, real-rank, multiplicities, multiplicity-classes, dim-k, dim-p, character, theta-word,
 //     theta-stage, shadow, shadow-coordinates, shadow-table, restricted-board, restricted-name,
 //     composite-word, composite-length, catalogue-row (data-name), same-form; History: moveCounter;
-//     Predict: predictResult. Extra hooks of T13 (decisions/P6-A3.md): data-colour on the paint buttons,
-//     data-board "numbers" on the paint buttons and "populations" on the restricted board (SPEC 4.0;
-//     decisions/RT-FIX-P6-t13.md), data-arrow and data-black-arrow on the drawing,
+//     Predict: predictResult. Extra hooks of T13 (decisions/P6-A3.md): the paint buttons are controls,
+//     data-control "paint" with data-paint (the label) and data-colour (decisions/RT-FIX-P6-t13-followup.md);
+//     data-board "populations" on the restricted board (SPEC 4.0; decisions/RT-FIX-P6-t13.md), data-arrow and
+//     data-black-arrow on the drawing,
 //     data-panel-tab, data-control picker, tau (data-tau), toggle, root, theta-next, example
 //     (data-example); Predict: data-prediction, .question, details, data-control predictAnswer,
 //     predictCheck, predictShow
@@ -178,7 +179,7 @@ const minusTuple = (v: readonly number[]): string => `(${v.map((x) => (x < 0 ? `
 const tool = (page: Page, id: string): Locator => page.locator(`[data-tool="satake"][data-instance="${id}"]`);
 const out = (page: Page, id: string, name: string): Locator => tool(page, id).locator(`[data-out="${name}"]`);
 const control = (page: Page, id: string, name: string): Locator => tool(page, id).locator(`[data-control="${name}"]`);
-const deco = (page: Page, id: string, label: number): Locator => out(page, id, 'decoration').locator(`button[data-node="${label}"]`);
+const deco = (page: Page, id: string, label: number): Locator => out(page, id, 'decoration').locator(`button[data-paint="${label}"]`);
 const gameNodes = (page: Page, id: string): Locator => out(page, id, 'game-board').locator('button[data-node]');
 const restrictedNode = (page: Page, id: string, label: number): Locator => out(page, id, 'restricted-board').locator(`button[data-node="${label}"]`);
 const tab = (page: Page, id: string, panel: string): Locator => tool(page, id).locator(`[data-panel-tab="${panel}"]`);
@@ -292,7 +293,7 @@ test.describe('without JavaScript', () => {
       // The default figure: the drawing of the decoration and the game board, with their values (7.4).
       const n = B(board).n;
       await expect(out(page, id, 'decoration').locator('svg').first(), id).toBeAttached();
-      await expect(out(page, id, 'decoration').locator('button[data-node]'), id).toHaveCount(n);
+      await expect(out(page, id, 'decoration').locator('button[data-control="paint"]'), id).toHaveCount(n);
       await expect(gameNodes(page, id), id).toHaveCount(n);
       for (const v of await valuesOf(gameNodes(page, id))) expect(v, id).toMatch(/^-?\d+$/);
       for (const l of ident(n)) await expect(deco(page, id, l), `${id} node ${l}`).toHaveAttribute('data-colour', black.includes(l) ? 'black' : 'white');
@@ -1468,6 +1469,24 @@ test.describe('regressions', () => {
     // question of b6 ("the word of w_X").
     const bad = texts.filter((s) => /\w_\w|\bdim [kp]\b/.test(s));
     expect(bad, '/modules/m9-real-forms/: T13 captions and questions that write a formula as ASCII TeX').toEqual([]);
+  });
+
+  // MERGE follow-up of P6-RT-07-01 (rtconfirm-p6-t13): an instance link of M9 shows a pair the server did not
+  // render, and its names were the plain markup of t13/names.ts (Unicode fraktur, no MathML) until the reader's
+  // first action. SPEC 7.5 A-12: "Mathematics is rendered with MathML available to assistive technology". b8 opens
+  // on the Catalogue panel (preset catalogue); the link loads the catalogue of E6, five records.
+  // regression: P6-MERGE-T13-01
+  test('M9: an instance link shows the names of its catalogue typeset with MathML before the first interaction (A-12)', async ({ page }) => {
+    await page.goto(`${ROUTE}?b8.z=1&b8.g=E6&b8.x=2.3.4.5&b8.t=1.2.3.4.5.6`);
+    await hydrate(page, 'b8');
+    const rows = out(page, 'b8', 'catalogue-row');
+    const expected = GOLDEN.satake.filter((x) => x.dynkin_type === 'E6').map((x) => x.real_form);
+    await expect(rows).toHaveCount(expected.length);
+    for (const [k, f] of expected.entries()) {
+      await expect(rows.nth(k)).toHaveAttribute('data-name', f);
+      await expect(rows.nth(k).locator('th math'), f).toHaveCount(1);
+      expect(await rows.nth(k).locator('th').textContent(), f).not.toMatch(/[\u{1D51E}-\u{1D537}]/u);
+    }
   });
 
   test.describe('without JavaScript', () => {

@@ -17,7 +17,9 @@
 // Properties of T13 beyond the common ones of 4.0 Configuration (id, board, prediction, preset, caption):
 // black (labels of the black nodes), tau (images of all nodes in label order) and root (a population in
 // label order). coords, start, moves and linkTo do not apply.
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -89,6 +91,7 @@ import { whereToRun } from '../../../src/lib/worker';
 import { announceTemplates } from '../../../src/lib/a11y';
 import T13 from '../../../src/tools/registry/T13';
 import { ssrLoader, type SsrLoader } from '../_svelteSsr';
+import { writeSatakeNames, writeSatakeNamesByBoard } from '../../../../scripts/names.mjs';
 
 interface GoldenSatakeRecord {
   dynkin_type: string;
@@ -1301,5 +1304,32 @@ describe('regressions', () => {
       }
       expect(hits).toEqual([]);
     });
+  });
+
+  // MERGE follow-up of P6-RT-07-01 (rtconfirm-p6-t13): a link state showed the plain markup of t13/names.ts until
+  // the reader's first action, because the whole section of typeset names (about 5 kB gzipped) did not fit in the
+  // 90 kB of SPEC 7.6. The browser now fetches the names of one board, from the file names.mjs writes for it; the
+  // file must hold every name the Studio shows on that board (the Data panel's records and the Catalogue, both of
+  // satakeCatalogue on that board), typeset as in satake-names.json (SPEC 7.3, 7.5 A-12). The browser test is in
+  // site/tests/e2e/T13.spec.ts (regressions).
+  // regression: P6-MERGE-T13-01
+  it('names.mjs writes one file per board holding the typeset names of exactly that board\'s catalogue, as satake-names.json typesets them', () => {
+    const dir = mkdtempSync(join(tmpdir(), 't13-names-'));
+    try {
+      writeSatakeNames(join(dir, 'satake-names.json'));
+      const whole = JSON.parse(readFileSync(join(dir, 'satake-names.json'), 'utf8')) as { katex: string; realForms: Record<string, unknown> };
+      expect(writeSatakeNamesByBoard(join(dir, 'satake-names'))).toEqual({ boards: T13_BOARDS.length, realForms: Object.keys(whole.realForms).length });
+      expect(readdirSync(join(dir, 'satake-names')).sort()).toEqual(T13_BOARDS.map((b) => `${b}.json`).sort());
+      for (const name of T13_BOARDS) {
+        const file = JSON.parse(readFileSync(join(dir, 'satake-names', `${name}.json`), 'utf8')) as { katex: string; realForms: Record<string, unknown> };
+        expect(Object.keys(file), name).toEqual(['katex', 'realForms']);
+        expect(file.katex, name).toBe(whole.katex);
+        const forms = [...new Set(satakeCatalogue(name).map((e) => e.real_form))];
+        expect(Object.keys(file.realForms), name).toEqual(forms);
+        for (const f of forms) expect(file.realForms[f], `${name} ${f}`).toEqual(whole.realForms[f]);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
