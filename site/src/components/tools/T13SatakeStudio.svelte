@@ -50,6 +50,7 @@
     defaultRoot,
     diagramOf,
     displayName,
+    drawnPosition,
     exportData,
     failureNote,
     failureSentence,
@@ -215,15 +216,18 @@
   const rows = $derived(data !== null && panel === 'shadows' ? shadowRows(d) : null);
   const points = $derived(rows !== null && data !== null ? shadowPoints(d, data, rows) : null);
   const drawn = $derived(data?.drawing ? boardOf(data.drawing.name) : null);
+  // The coordinates, the names and the pairs of the drawn restricted board, indexed by its positions (the
+  // Bourbaki order of the drawing's arrays); a drawn node's label becomes a position only by drawnPosition (E-7).
   const drawnValues = $derived.by(() => {
     if (drawn === null || coords === null) return null;
-    return drawn.labels.map((l) => String(coords[l - 1]!));
+    return coords.map((c) => String(c));
   });
   const drawnNames = $derived.by(() => {
-    if (drawn === null || data === null) return [];
-    return drawn.labels.map((l) => `${restrictedNodeName(d, data, l)}${coords !== null ? `, shadow coordinate ${speakList([coords[l - 1]!])}` : ''}`);
+    if (drawn === null || data === null || data.drawing === null) return [];
+    const drawing = data.drawing;
+    return drawn.labels.map((l) => `${restrictedNodeName(d, data, l)}${coords !== null ? `, shadow coordinate ${speakList([coords[drawnPosition(drawing, l)]!])}` : ''}`);
   });
-  const drawnPairs = $derived(drawn === null || data === null ? [] : drawn.labels.map((l) => `(${data.drawing!.pairs[l - 1]![0]}, ${data.drawing!.pairs[l - 1]![1]})`));
+  const drawnPairs = $derived(drawn === null || data === null || data.drawing === null ? [] : data.drawing.pairs.map(([a, b]) => `(${a}, ${b})`));
   const composite = $derived(step !== null && step.kind === 'composite' ? step : null);
   const catalogue = $derived(panel === 'catalogue' ? catalogueRows(cfg.board) : null);
   const roots = $derived(rootsOffered(board));
@@ -938,11 +942,12 @@
       </thead>
       <tbody>
         {#each drawn.labels as l (l)}
+          {@const p = drawnPosition(data.drawing, l)}
           <tr>
             <th scope="row">{l}</th>
             <td class="numeral">{orbitText(d, data, l)}</td>
-            <td class="numeral">{drawnPairs[l - 1]}</td>
-            <td class="numeral">{coords === null ? '' : intText(coords[l - 1]!)}</td>
+            <td class="numeral">{drawnPairs[p]}</td>
+            <td class="numeral">{coords === null ? '' : intText(coords[p]!)}</td>
             <td>
               <button type="button" class="cell" data-table-restricted={l} disabled={!api.hydrated || frozen} aria-label="Play the composite move of restricted node {l}" onclick={() => compositeMove(l, api.announce)}
                 >Play</button

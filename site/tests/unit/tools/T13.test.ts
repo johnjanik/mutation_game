@@ -1275,4 +1275,31 @@ describe('regressions', () => {
       expect(checked).toBe(RECORDS.filter((r) => r.dynkin_type === 'E7' || r.dynkin_type === 'E8').length);
     });
   });
+
+  // Adopted from the RT-02 lens (site/tests/unit/redteam-RT-02-p6-label-arith.test.ts), attack 1 (stray
+  // conversions between positions and labels) on T13's restricted board. SPEC 5.1 E-7: "Two functions, toLabels
+  // and toPositions, convert node lists and words; nothing else converts." T13 draws the restricted board as
+  // boardFromName(<restricted board name>), and the arrays of the drawing (orbits, pairs, orbitIndex,
+  // coordinates) are in its position order; a label of a drawn node is turned into an index of those arrays only
+  // by toPositions on the drawn board, and back only by toLabels.
+  describe('RT-02 p6: T13 converts restricted-board labels only through toLabels and toPositions (E-7)', () => {
+    const FILES = ['../../../src/components/tools/t13/model.ts', '../../../src/components/tools/T13SatakeStudio.svelte'];
+    /** Index arithmetic on a restricted-board label: x[k - 1], x[l - 1], or a label written as k + 1. */
+    const PATTERNS: RegExp[] = [/(orbits|pairs|orbitIndex|coords|drawnPairs)\[[kl] - 1\]/, /\$\{k \+ 1\}/];
+
+    // regression: P6-RT-02-02
+    it('no label arithmetic on the drawn restricted board', () => {
+      const hits: string[] = [];
+      for (const rel of FILES) {
+        const path = fileURLToPath(new URL(rel, import.meta.url));
+        readFileSync(path, 'utf8')
+          .split('\n')
+          .forEach((line, k) => {
+            if (/^\s*(\/\/|\*|\/\*\*)/.test(line)) return;
+            if (PATTERNS.some((p) => p.test(line))) hits.push(`${rel.replace('../../../', 'site/')}:${k + 1}: ${line.trim()}`);
+          });
+      }
+      expect(hits).toEqual([]);
+    });
+  });
 });

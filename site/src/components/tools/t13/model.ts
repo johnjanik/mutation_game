@@ -397,18 +397,32 @@ export interface RestrictedLike {
 /** The restricted board of a pair with no white node (the compact form): empty (MERGE ruling (4) on P6-A1). */
 export const EMPTY_RESTRICTED: RestrictedLike = { orbits: [], simpleRestrictedRoots2: [], cartan: [], compositeWords: [] };
 
-/** How the restricted board is drawn: its name and, for each drawn node k (Bourbaki order), its orbit. */
+/**
+ * How the restricted board is drawn: its name and, for each node of the drawn board (boardFromName of the name,
+ * whose positions are the Bourbaki order), its orbit. Every array is indexed by position on the drawn board; a
+ * label of a drawn node becomes such a position only through drawnPosition (toPositions, E-7).
+ */
 export interface Drawing {
-  /** The restricted board's name after the C2 adjustment of the record drawn by (SPEC 6.4). */
+  /** The restricted board's name, from the record for display drawn by (satakeRecord's C2 naming, SPEC 6.4). */
   name: string;
-  /** The orbit (positions) drawn at Bourbaki node k + 1. */
+  /** The orbit (positions of the big board) drawn at each position of the drawn board. */
   orbits: number[][];
-  /** For Bourbaki node k + 1, the index of its orbit in rb.orbits (orbit order), found by orbit. */
+  /** For each position of the drawn board, the index of its orbit in rb.orbits (orbit order), found by orbit. */
   orbitIndex: number[];
-  /** (m_lambda, m_2lambda) at Bourbaki node k + 1. */
+  /** (m_lambda, m_2lambda) at each position of the drawn board. */
   pairs: [number, number][];
-  /** The reduced length of the composite move of Bourbaki node k + 1. */
+  /** The reduced length of the composite move at each position of the drawn board. */
   reducedLengths: number[];
+}
+
+/** The position on the drawn restricted board of its node with label k (toPositions on the drawn board, E-7). */
+export function drawnPosition(drawing: Drawing, k: number): number {
+  return toPositions(boardOf(drawing.name), [k])[0]!;
+}
+
+/** The label of the node at position p of the drawn restricted board (toLabels on the drawn board, E-7). */
+export function drawnLabel(drawing: Drawing, p: number): number {
+  return toLabels(boardOf(drawing.name), [p])[0]!;
 }
 
 export type Shape = 'split' | 'compact' | 'quasi-split';
@@ -541,21 +555,24 @@ export function recordInLabels(board: Board<number>, rec: SatakeRecord): Record<
 
 /** "1: (8, 0); 2: (8, 0)": the pair at each node of the drawn restricted board, Bourbaki order; "none" without one. */
 export function multiplicitiesText(data: Assembled): string {
-  if (data.drawing === null) return 'none';
-  return data.drawing.pairs.map(([a, b], k) => `${k + 1}: (${a}, ${b})`).join('; ');
+  const drawing = data.drawing;
+  if (drawing === null) return 'none';
+  return drawing.pairs.map(([a, b], p) => `${drawnLabel(drawing, p)}: (${a}, ${b})`).join('; ');
 }
 
 /** The accessible name of restricted node k (A-3, plan wording): its orbit in labels and its pair. */
 export function restrictedNodeName(d: SatakeDiagram, data: Assembled, k: number): string {
   const drawing = data.drawing!;
-  const orbit = toLabels(d.board, drawing.orbits[k - 1]!);
-  const [a, b] = drawing.pairs[k - 1]!;
+  const p = drawnPosition(drawing, k);
+  const orbit = toLabels(d.board, drawing.orbits[p]!);
+  const [a, b] = drawing.pairs[p]!;
   return `Restricted node ${k}, orbit ${listText(orbit)}, multiplicity ${a} and ${b}`;
 }
 
 /** The orbit drawn at restricted node k, in labels ("1 and 6"). */
 export function orbitText(d: SatakeDiagram, data: Assembled, k: number): string {
-  return listText(toLabels(d.board, data.drawing!.orbits[k - 1]!));
+  const drawing = data.drawing!;
+  return listText(toLabels(d.board, drawing.orbits[drawnPosition(drawing, k)]!));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -753,7 +770,7 @@ export interface CompositeMove {
 export function restrictedClick(d: SatakeDiagram, data: Assembled, k: number, population: readonly number[]): CompositeMove {
   const drawing = data.drawing;
   if (drawing === null) throw new RangeError('this pair has no restricted board');
-  const orbitIndex = drawing.orbitIndex[k - 1];
+  const orbitIndex = drawing.orbitIndex[drawnPosition(drawing, k)];
   if (orbitIndex === undefined || orbitIndex < 0) throw new RangeError(`the restricted board has no node ${k}`);
   const word = [...data.rb.compositeWords[orbitIndex]!];
   const populations: number[][] = [];
@@ -877,10 +894,11 @@ function classPhrase(sat: SatakeComputed): string {
  * in words (a caption is plain text: no subscripts): "multiplicities (4, 1) for λ and 2λ".
  */
 function pairsPhrase(data: Assembled): string {
-  const pairs = data.drawing === null ? [] : data.drawing.pairs.map(([a, b]) => `(${a}, ${b})`);
+  const drawing = data.drawing;
+  const pairs = drawing === null ? [] : drawing.pairs.map(([a, b]) => `(${a}, ${b})`);
   if (pairs.length === 1) return `multiplicities ${pairs[0]} for λ and 2λ`;
   if (new Set(pairs).size === 1) return `multiplicities ${pairs[0]} for λ and 2λ at every node of the restricted board`;
-  return `multiplicities ${listText(pairs.map((p, k) => `${p} at node ${k + 1}`))} of the restricted board, for λ and 2λ`;
+  return `multiplicities ${listText(pairs.map((pair, p) => `${pair} at node ${drawnLabel(drawing!, p)}`))} of the restricted board, for λ and 2λ`;
 }
 
 /**
@@ -896,7 +914,7 @@ function compositePhrase(data: Assembled, name: string): string {
   if (lengths.every((x) => x === lengths[0]) && reduced.every((x) => x === reduced[0])) {
     return `each of its moves is a fixed sequence of ${movesText(lengths[0]!)} of ${name}, of reduced length ${reduced[0]}`;
   }
-  return `its moves are fixed sequences of moves of ${name} (${listText(lengths.map((n, k) => `${movesText(n)} of reduced length ${reduced[k]} at node ${k + 1}`))})`;
+  return `its moves are fixed sequences of moves of ${name} (${listText(lengths.map((n, p) => `${movesText(n)} of reduced length ${reduced[p]} at node ${drawnLabel(drawing, p)}`))})`;
 }
 
 export interface CaptionInput {
