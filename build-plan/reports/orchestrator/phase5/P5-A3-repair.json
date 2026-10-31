@@ -1,0 +1,196 @@
+{
+ "agent": "P5-A3",
+ "status": "done",
+ "branch": "worktree-agent-a62dc76627f6fa694",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a62dc76627f6fa694",
+ "commits": [
+  "ee72a59 P5-A3: repair M8 and the not-quiver page after the stage 5.3 review",
+  "fa4ee84 P5-A3: decisions for the repair after the stage 5.3 review"
+ ],
+ "filesChanged": [
+  "site/src/content/modules/m8-lie-algebras.mdx",
+  "site/src/content/pages/not-quiver-mutation.mdx",
+  "site/tests/e2e/M8.spec.ts",
+  "decisions/P5-A3.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard d93efa0",
+   "exit": 0,
+   "summary": "HEAD is now at d93efa0"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed once"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings, 1 hint. svelte-check: 0 errors, 1 warning, the existing one in t02/LayerChart.svelte"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "clean"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 0,
+   "summary": "159 test files, 3319 tests passed"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "links: 1286 internal links on 35 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=dist-release npm run build",
+   "exit": 0,
+   "summary": "open item E10 used on /modules/m8-lie-algebras/ (fallback shown); nothing reported for /not-quiver-mutation/; 1203 links on 34 pages, 0 problems"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=... npx playwright test --config scratchpad/p5-a3-repair/playwright.config.ts (port 7750) M8.spec.ts nojs.spec.ts a11y.spec.ts pages.spec.ts",
+   "exit": 0,
+   "summary": "165 passed (6.6m)"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=... npx playwright test --config scratchpad/p5-a3-repair/playwright.config.ts M8.spec.ts (final state)",
+   "exit": 0,
+   "summary": "28 passed; M8 prose words: 1795"
+  },
+  {
+   "cmd": "scratch revert: the d93efa0 versions of both MDX files restored, site rebuilt, a temporary copy of the new M8.spec.ts with every expect made expect.soft run against it, then the copy deleted and the new MDX files restored",
+   "exit": 1,
+   "summary": "failed as intended: 10 failed, 18 passed. At least one new assertion failed for each of the 12 findings (list in decisions/P5-A3.md). Log: /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p5-a3-repair/m8-revert-soft.log"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist site/dist-release; ss -ltnp; git status --porcelain",
+   "exit": 0,
+   "summary": "nothing listening on ports 7750 to 7753 (Playwright stopped its own preview server); git status --porcelain is empty"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "Review 1 (major): the confusions list is introduced as corrections: 'Each item below corrects a statement about the mutation game that is sometimes made.'",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > the corrections of the page are introduced as corrections"
+  },
+  {
+   "item": "Review 2 (major): both pages build a quiver with 'Keep one of the two roads of each line of a simply laced board (choose a direction for each line)'. The M8 sidebar now says 'an arrowhead on a double or triple line'. No sentence pairs 'each road' with 'direction', and none says 'double or triple road'.",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > the two meanings of arrow are kept apart"
+  },
+  {
+   "item": "Review 3 (major): 'A connected board of finite type has det C-1 minuscule nodes, verified by computation for every such board of rank at most eight.'",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > statements of M8 carry their hypotheses and their provenance (det C-1); > numbers in prose (allowlist context updated)"
+  },
+  {
+   "item": "Review 4: beat 5 now opens 'On a minuscule orbit, firing node k permutes the positions, so its matrix ...'",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > statements of M8 carry their hypotheses and their provenance (beat 5)"
+  },
+  {
+   "item": "Review 5: on both pages the reflection-functor sentence carries the hypothesis of [BGP73] Theorem 1.1: 'For an indecomposable representation (of the quiver) other than the simple one at that vertex, ...'. The page also says what the simple one is.",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > statements of M8 carry their hypotheses and their provenance; > statements of the page carry their hypotheses and their provenance"
+  },
+  {
+   "item": "Review 6: the [BKR16] convention is now a sign and a transpose: 'fires negative numbers and writes the transpose of C: negate every number and transpose its matrix to read it in this site's convention'",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > statements of the page carry their hypotheses and their provenance ([BKR16])"
+  },
+  {
+   "item": "Review 7: provenance on the page. (1) The form value is that of the population p with a=Cp, verified by computation for every board of finite type of rank at most eight (verify.py checks the invariant form for every type). (2) The identities CS_i=R_iC and R_i(C)=S_i(C^T)^T now carry a one-line argument: S_i=I-e_ie_i^T C and R_i=I-Ce_ie_i^T. (3) 'Verified' is used only for what verify.py section 9 checks; the Hasse statement is no longer called verified and follows from an argument citing [W03a] Proposition 3.5 (F2). (4) [Ele16] and [Che17] are cited for Kostant's game and its moods, and are added to the sources.",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > statements of the page carry their hypotheses and their provenance; > not-quiver page renders without JavaScript (sources); > numbers in prose (new page allowlist entries)"
+  },
+  {
+   "item": "Review 8: 'two different matrices at any node joined to another'",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > statements of the page carry their hypotheses and their provenance (third confusion)"
+  },
+  {
+   "item": "Review 9: on both pages the table cells read 'the population of each city' and 'the population of one city'",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > M8 renders without JavaScript; > not-quiver page renders without JavaScript"
+  },
+  {
+   "item": "Review 10: the D4 and E6 challenges, whose answers the prose printed, are replaced by b10 'On E6, find the node where the recipe fails whose orbit is smallest.' (node 2) and b11 'On D5, find the minuscule node missing from beat 4.' (node 4). Each has a single answer the prose does not print. The b10 explanation now says 'so firing there moves a position by two steps, which no single step gives'.",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > challenges report success on their goal and not before (including wrong steps); > the prose does not print the answers of the challenges"
+  },
+  {
+   "item": "Review 11: the sentence 'The site shows the positions of such representations' is gone. Beat 6 now ties the figure to E8 on its own Lie algebra ('The figure draws these positions.') and ends with ': their matrices need more than the game'.",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > statements of M8 carry their hypotheses and their provenance (beat 6)"
+  },
+  {
+   "item": "Review 12: (1) both E8 minimality statements are marked as a standard fact, and the figure's text alternative no longer says 'smallest'. (2) Seen statement 1 is limited to the 18 representations (verified by computation) and to minuscule nodes of simply laced boards ([W03a], proofs in [Gre13]). (3) Beat 1 and Seen statement 3 now read 'its positions on the line through one of them, mu, in the direction of alpha_i'.",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > anatomy of 8.2 (Seen statement 1); > statements of M8 carry their hypotheses and their provenance"
+  },
+  {
+   "item": "Word limit 800 to 1800 kept after the repair (1795 by the test's rule)",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > word count between 800 and 1800"
+  },
+  {
+   "item": "No em-dash or en-dash in the four files or the two built pages; glossary links, the twelve-word overlap check and the 8.4 writing rules still hold",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts > no em-dash in the built text; > later uses of a term link to the glossary; > writing rules of 8.4"
+  }
+ ],
+ "deviations": [],
+ "requests": [
+  {
+   "to": "owner (reference/ is read-only for agents)",
+   "what": "Add a named check to reference/verify.py: on every simply laced type of rank at most 8, the state graph of Kostant's game over all starting cities equals the Hasse diagram of the positive roots. The page could then call the statement verified; for now it gives the argument from F2 instead."
+  },
+  {
+   "to": "P5-A2",
+   "what": "Unchanged and not relied on: a data-out or attribute naming the board and node shown, so that a challenge check could accept several right answers (for example 'a node of D5 where the recipe fails') without matching T12's caption text."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P5-A3.md",
+ "openQuestions": [
+  "SPEC 2.16 (Quiver representations) and SOURCES 11.3 [BGP73] compress Theorem 1.1. Proposed wording: 'for an indecomposable representation other than the simple one at that node, the dimensions change by exactly the mutation rule'. Without it the statement is false for the simple representation at a sink. SPEC.md was not edited.",
+  "SPEC Appendix D main correction 3 and 2.4(b) say R_i=S_i^T are 'two different matrices'. Proposed: 'at any node joined to another'. On A1, and at an isolated node, S_i = R_i.",
+  "SPEC 2.7 F11 'Their number is det C-1': propose 'on a connected board'. On A1+A1, which classify calls finite component by component, both nodes are minuscule but det C - 1 = 3.",
+  "SPEC 3 M8 beat 6 and 2.18 call the 248 the smallest representation of E8 with no label. The lesson now calls it 'a standard fact of Lie theory'. A source in SOURCES.md, or an explicit label, would settle it.",
+  "SPEC 2.16 states the Hasse diagram of Kostant's game with no label; see the request to the owner."
+ ],
+ "challenges": [
+  {
+   "id": "b9",
+   "goal": "Find a position whose string has four positions.",
+   "pattern": "reach a target",
+   "check": "string-length equals stringThrough(A2, [3,0], 0).length (unchanged)"
+  },
+  {
+   "id": "b10",
+   "goal": "On E6, find the node where the recipe fails whose orbit is smallest.",
+   "pattern": "find a counterexample",
+   "check": "caption equals ownCaption('E6', 2). Orbit sizes come from types.E6.fundamental_orbit_sizes. The tool still starts on D4 node 4, so the page carries no second set of E6 grids."
+  },
+  {
+   "id": "b11",
+   "goal": "On D5, find the minuscule node missing from beat 4.",
+   "pattern": "classify",
+   "check": "caption equals ownCaption('D5', 4). Node 4 is in types.D5.minuscule_nodes but is not one of the 18 records."
+  },
+  {
+   "id": "b12",
+   "goal": "On A3, find the node whose matrices are the largest.",
+   "pattern": "classify",
+   "check": "caption equals ownCaption('A3', 2) (unchanged)"
+  }
+ ],
+ "wordCount": {
+  "measured": 1795,
+  "method": "the rule of M8.spec.ts: article words without tool roots, details, live regions, the draft mark and the list of sources; each formula counts as one word; tables counted"
+ },
+ "handoff": "All twelve findings are fixed in the two MDX files, and each has at least one M8.spec.ts assertion shown to fail on the reviewed text (a soft-assertion scratch revert, log in the scratch directory). The page now calls verified only what verify.py checks, with ranges. The Hasse diagram and the CS_i/R_i identities are given with short arguments instead, and the owner is asked for a verify.py check. Two challenges were replaced by single-answer ones on E6 and D5, because T12's caption check accepts only one state; the review's D5/E7 suggestions have several answers. The SPEC text that has the same compressions is proposed under openQuestions and was not edited."
+}

@@ -434,4 +434,47 @@ test.describe('regressions', () => {
     ]);
     expect(answered.n, `page answered after ${Date.now() - t0} ms`).toBeGreaterThan(0);
   });
+
+  // SPEC 5.6: the editor offers 0 to 4 roads each way and refuses more, while a link may carry a board
+  // with more (the engine accepts any count). The road selects show the count the board holds, as an
+  // option the reader cannot choose; the reader can still lower it to 0 to 4. A change the editor
+  // refuses (the other direction holds more than 4) leaves the select on the count the board holds.
+  // regression: residual of P3-RT-03-01 (roadsBack showed an empty value for 5 roads)
+  test('the road selects show a held count above four without offering it', async ({ page }) => {
+    const options = (name: string): Promise<[string, boolean][]> =>
+      control(page, name).evaluate((s) => [...(s as HTMLSelectElement).options].map((o) => [o.value, o.disabled] as [string, boolean]));
+    const zeroToFour: [string, boolean][] = ['0', '1', '2', '3', '4'].map((v) => [v, false]);
+    // C = [[2, -5], [-1, 2]]: 1 road from node 1 to node 2 and 5 roads from node 2 to node 1 (A[i][j] = -C[j][i]).
+    await open(page, 'g=c:2,-5;-1,2');
+    await expect(out(page, 'editorSubject')).toHaveText('node 1');
+    await expect(control(page, 'roadsOut')).toHaveValue('1');
+    await expect(control(page, 'roadsBack')).toHaveValue('5');
+    expect(await options('roadsOut')).toEqual(zeroToFour);
+    expect(await options('roadsBack')).toEqual([...zeroToFour, ['5', true]]);
+    // The export writes the board as held, and the import refuses that text (RT-FIX-P3-drawing's reason).
+    await expect(out(page, 'boardJson')).toContainText('[2, -5]');
+    await control(page, 'importText').fill((await out(page, 'boardJson').textContent())!);
+    await control(page, 'importBoard').click();
+    await expect(out(page, 'importStatus')).toHaveText(
+      'The board could not be read: it has 5 roads from node 2 to node 1, and the editor allows at most 4 each way. The board was left as it was.',
+    );
+    await control(page, 'roadsBack').selectOption('2');
+    await expect(control(page, 'roadsBack')).toHaveValue('2');
+    expect(await options('roadsBack')).toEqual(zeroToFour);
+    await expect(out(page, 'boardJson')).toContainText('[2, -2]');
+    // Lowered to 0 to 4, the export reads back through the import.
+    await control(page, 'importText').fill((await out(page, 'boardJson').textContent())!);
+    await control(page, 'importBoard').click();
+    await expect(out(page, 'importStatus')).toContainText('Board imported: 2 nodes.');
+    // The sibling: 5 roads from node 1 to node 2 and 1 back.
+    await open(page, 'g=c:2,-1;-5,2');
+    await expect(control(page, 'roadsOut')).toHaveValue('5');
+    await expect(control(page, 'roadsBack')).toHaveValue('1');
+    expect(await options('roadsOut')).toEqual([...zeroToFour, ['5', true]]);
+    const before = await out(page, 'boardJson').textContent();
+    await control(page, 'roadsBack').selectOption('2');
+    await expect(control(page, 'roadsBack')).toHaveValue('1');
+    await expect(control(page, 'roadsOut')).toHaveValue('5');
+    expect(await out(page, 'boardJson').textContent()).toBe(before);
+  });
 });

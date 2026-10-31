@@ -1,0 +1,223 @@
+{
+ "agent": "rtfix-p4-a11y",
+ "status": "done",
+ "branch": "worktree-agent-a347d9cdaad4ab310",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a347d9cdaad4ab310",
+ "base": "967118d23189fb1ac0190af9790884d1c897edc7",
+ "commits": [
+  "e06e6b9 RT-FIX P4-RT-05-01: controls that their own press makes inactive keep the focus",
+  "f676b3e RT-FIX P4-RT-05-02: the tool frame is one column no wider than itself",
+  "4745304 RT-FIX P4-RT-05-05: an answer Check cannot read is named in words",
+  "7015b1a RT-FIX P4-RT-05-07: T6's placement buttons are named by their visible text first",
+  "7267407 RT-FIX P4-RT-06-01: one look for a control that cannot act",
+  "caf9460 RT-FIX P4-RT-05-01 P4-RT-05-02 P4-RT-05-05 P4-RT-05-07 P4-RT-06-01: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/T02OrbitGarden.svelte",
+  "site/src/components/tools/T05NumbersGameLab.svelte",
+  "site/src/components/tools/T07SymbolicGame.svelte",
+  "site/src/components/board/BoardEditor.svelte",
+  "site/src/components/lesson/Challenge.svelte",
+  "site/src/components/board/ToolFrame.svelte",
+  "site/src/components/board/Predict.svelte",
+  "site/src/components/tools/T06Kaleidoscope.svelte",
+  "site/src/styles/base.css",
+  "site/tests/e2e/ownpress-focus.spec.ts",
+  "site/tests/e2e/play-focus.spec.ts",
+  "site/tests/e2e/table-reflow.spec.ts",
+  "site/tests/e2e/predict-invalid.spec.ts",
+  "site/tests/e2e/T06.spec.ts",
+  "site/tests/e2e/disabled-look.spec.ts",
+  "decisions/RT-FIX-P4-a11y.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 967118d",
+   "exit": 0,
+   "summary": "HEAD is now at 967118d"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "node --version; git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "v22.22.0; worktree agent-a347d9cdaad4ab310; branch worktree-agent-a347d9cdaad4ab310; base 967118d23189fb1ac0190af9790884d1c897edc7"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474636f..., 485caee8eb..., 1fc9f82bf6...: all three match CONTRACTS 9"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "npm run build (base)",
+   "exit": 0,
+   "summary": "32 pages; links: 1040 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7630> site/tests/e2e/redteam-RT-05-p4-ownpress-focus.spec.ts (base)",
+   "exit": 1,
+   "summary": "8 failed, each 'Expected: not \"BODY\"' (T10 x2, T2 x2, T7, T5, editor, Challenge)"
+  },
+  {
+   "cmd": "npx playwright test ... redteam-RT-05-p4-table-reflow, -predict-invalid, -label-in-name, redteam-RT-06-disabled-look (base)",
+   "exit": 1,
+   "summary": "15 failed: reflow Received 585/338/385/361/417 for Expected 320; predict 3x 'Expected: not {invalid: null, result: \"\", said: []}'; label-in-name geometry (T10) and mirror (a1-minus, a1-plus, a2-minus, a2-plus); disabled-look 5 cases with identical style and screenshots"
+  },
+  {
+   "cmd": "npx playwright test ... ownpress-focus.spec.ts (adopted, base build)",
+   "exit": 1,
+   "summary": "8 failed (6 adopted + 2 T5 siblings)"
+  },
+  {
+   "cmd": "npm run build (fixed)",
+   "exit": 0,
+   "summary": "32 pages, 0 link problems"
+  },
+  {
+   "cmd": "npx playwright test ... ownpress-focus table-reflow predict-invalid disabled-look",
+   "exit": 0,
+   "summary": "28 passed"
+  },
+  {
+   "cmd": "npx playwright test ... play-focus.spec.ts T06.spec.ts",
+   "exit": 0,
+   "summary": "49 passed"
+  },
+  {
+   "cmd": "npx playwright test ... T02 T05 T07 T16 T04 M1 a11y nojs",
+   "exit": 0,
+   "summary": "270 passed (6.3m)"
+  },
+  {
+   "cmd": "npx playwright test ... T01 T08 T09 T10 T11 M6 M7 predict-focus predict-result frozen-board toolframe-hydration lesson-reflow",
+   "exit": 1,
+   "summary": "212 passed, 2 failed: T10 'no long task' timing tests (load average 15 to 16); see openQuestions A/B run"
+  },
+  {
+   "cmd": "sh ab-timing.sh (T10 'no long task' x2, base build port 7631 vs fixed build port 7630, alternating 3 rounds, repeat-each 2)",
+   "exit": 1,
+   "summary": "base: 4 passed, 4 passed, 3 failed/1 passed; fixed: 4 passed, 3 failed/1 passed, 2 failed/2 passed; long tasks 51 to 141 ms on both builds at load 5 to 10: machine noise, not caused by the change"
+  },
+  {
+   "cmd": "TMPDIR=<scratch> npx vitest run --project site-unit challenge contrast history released scaffold state-classify-once toolframe boardEditor tools/T02 T04 T05 T06 T07 T10 T16",
+   "exit": 0,
+   "summary": "Test Files 15 passed (15); Tests 246 passed (246)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "0 errors; first run flagged aria-invalid on role radio in Predict (fixed); left 1 warning in t02/LayerChart.svelte, which was already at base"
+  },
+  {
+   "cmd": "scratch revert of site/src (git diff > patch; git checkout -- site/src; npm run build; tests; git apply patch)",
+   "exit": 1,
+   "summary": "red on reverted source: adopted specs 28 failed (ownpress 8, table-reflow 5, predict-invalid 5, disabled-look 10); T06 label test and the 6 OWN_PRESS play-focus cases 7 failed, the 8 earlier play-focus cases passed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run typecheck",
+   "exit": 0,
+   "summary": "0 errors, 1 warning (LayerChart, already at base)"
+  },
+  {
+   "cmd": "npm run build (final, clean tree)",
+   "exit": 0,
+   "summary": "32 page(s) built; links: 1040 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test ... ownpress-focus table-reflow predict-invalid disabled-look play-focus T06 a11y nojs (final)",
+   "exit": 0,
+   "summary": "182 passed (4.2m)"
+  },
+  {
+   "cmd": "git diff --name-only 967118d..HEAD | grep -ic redteam; git diff 967118d..HEAD | grep forbidden patterns (.only .skip xit toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on:) ; grep em-dash",
+   "exit": 0,
+   "summary": "0 redteam files on the branch; no forbidden pattern (grep exit 1 each); 0 em-dashes; 17 'regression: P4-RT-' comments"
+  },
+  {
+   "cmd": "git log --format=%s 967118d..HEAD",
+   "exit": 0,
+   "summary": "6 subjects, each beginning 'RT-FIX P4-RT-'"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep preview on 7630-7633",
+   "exit": 0,
+   "summary": "status empty; no preview server running"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P4-RT-05-01: eight controls that their own press makes inactive still take the HTML disabled attribute or leave the page, so keyboard focus falls to <body>",
+   "status": "fixed",
+   "test": "site/tests/e2e/ownpress-focus.spec.ts > T2 \"Show total\" keeps the focus; T2 \"Grow one layer\" keeps the focus at the last layer; T7 table view: \"Fire node 1\" keeps the focus; T5 \"Play to the end B\" keeps the focus; board editor: \"Add node\" ... and \"Remove node\" ... keep the focus; Challenge: an accepted answer ... keeps the focus. Also site/tests/e2e/play-focus.spec.ts > OWN_PRESS cases (<what>: every aria-disabled control ignores Enter, Space and a click)",
+   "evidence": "Fixed except T10 (T10 cluster). Severity major (no adjustment). Red at base 967118d: reproducer 8 failed 'Expected: not \"BODY\"'. The adopted file without the two T10 cases failed 6 of 6 at base, and the 6 play-focus OWN_PRESS cases failed on the reverted source. Cause: the controls took the HTML disabled attribute in a state their own press brings about. They now carry aria-disabled in that state (disabled only before hydration, while frozen, while the editor is off, and for T2 grow in follow mode). Each handler returns by the same predicate (revealTotal, stepB, add and remove guards; T7's onclick checks canAct). The Challenge field is also readonly. Green: 28 passed with the other adopted specs, play-focus 49 passed with T06, final 182 passed. Commit e06e6b9."
+  },
+  {
+   "item": "P4-RT-05-01 (sibling): T5 \"Start the wave from all ones\" and \"Use this start\" leave the page under their own press",
+   "status": "fixed",
+   "test": "site/tests/e2e/ownpress-focus.spec.ts > T5 \"Start the wave from all ones\" hands the focus to the wave panel; T5 \"Use this start\" with all ones hands the focus to the start chooser",
+   "evidence": "Red at base: 2 failed (focusInTool Expected true, Received false). Cause: both buttons sit in {#if} blocks that their own press closes (waveText becomes null; startKind leaves 'custom' when the start is all ones or a fundamental weight). A focus left on either now moves inside the tool after tick(): to the tab panel (tabindex -1) or to the startKind select, as T4's keep counting does. Green: passed. Commit e06e6b9."
+  },
+  {
+   "item": "P4-RT-05-02: opening 'Show as table' on T1, T8 or T9 at 320 widens the whole tool frame past the viewport",
+   "status": "fixed",
+   "test": "site/tests/e2e/table-reflow.spec.ts > no page-level horizontal scroll at 320 with the table view of <tool> open on /<route> (5 cases)",
+   "evidence": "Severity major. Red at base: 5 failed, Expected 320, Received 585/338/385/361/417, the same as the verifier. Also red on the reverted source. Cause: .tool-frame had an implicit auto grid column, so a grid item's min-content (the open table) set the frame's width. Fix: grid-template-columns: minmax(0, 1fr), so the existing overflow-x: auto of .bare scrolls the table in its own box. Green: 5 passed; a11y and nojs passed. Commit f676b3e."
+  },
+  {
+   "item": "P4-RT-05-05: pressing Check with an answer that is not a whole number does nothing and says nothing (every prediction)",
+   "status": "fixed",
+   "test": "site/tests/e2e/predict-invalid.spec.ts > Check with the answer \"two\"/\"1.5\"/\"\" says why nothing happened; the sentence, the mark on the field, and their end",
+   "evidence": "Severity major. Red at base: 3 failed, 'Expected: not {invalid: null, result: \"\", said: []}'. The added exact-sentence test also failed on the reverted source. Cause: check() returned without a word when read() gave null. Now it writes 'Type a whole number.' (number question) or 'Type a whole number in each field.' (position question) into predictResult and the tool's live region. Each bad field gets aria-describedby on that line, and aria-invalid on a text field; editing clears both. An answered Check returns at once. Green: 5 passed, and predict-result and predict-focus passed. Commit 4745304."
+  },
+  {
+   "item": "P4-RT-05-05 (sibling): a choice question checked with no choice made said nothing either",
+   "status": "fixed",
+   "test": "site/tests/e2e/predict-invalid.spec.ts > Check with no choice made says why nothing happened (modules/m1-mutation/ b5, a choice question)",
+   "evidence": "Red on the reverted source (result ''). Same cause: read() returned null for choiceAnswer null. It now says 'Choose one of the answers.', and each radio is described by that line. Radios get no aria-invalid, because svelte-check (ARIA 1.3) rejects it on role radio. Green: passed. Commit 4745304."
+  },
+  {
+   "item": "P4-RT-05-07: the aria-labels of T10's ring and up/down turn buttons and of T6's point buttons do not contain the visible label (WCAG 2.5.3)",
+   "status": "fixed",
+   "test": "site/tests/e2e/T06.spec.ts > regressions > every labelled control of tools/mirror/ has its visible text in its name (WCAG 2.5.3)",
+   "evidence": "Fixed for T6. T10's ring and turn buttons are the T10 cluster's and were not touched. Severity minor; T6Kaleidoscope.svelte is in this cluster's assignment. Red at base: the reproducer's mirror case failed with a1-minus, a1-plus, a2-minus, a2-plus; the adopted mirror-only test failed on the reverted source. Cause: each aria-label replaced the visible text. Each name now starts with it, for example 'a1 − 1: move the point, number at node 1 minus 1'. Green: T06.spec passed (49 with play-focus). Commit 7015b1a."
+  },
+  {
+   "item": "P4-RT-06-01: a control rendered disabled before hydration (and with JavaScript off) looks exactly like the enabled control",
+   "status": "fixed",
+   "test": "site/tests/e2e/disabled-look.spec.ts > a disabled control does not look like the enabled one (5 adopted cases: tools/geometry, tools/fold, M7 b1, M6 b8, tools/board); without JavaScript every disabled control of every page has the shared look, whatever its component sets; a done control looks it: T2 Show total, T1 Step, Predict Check in T10 (M7 b4) and in T11 (M6 b7)",
+   "evidence": "Severity major. Red at base: reproducer 5 failed (identical style and screenshots); all 10 tests of the adopted file failed on the reverted source. Cause: no shared disabled style, and every component sets color and border for the usable look. Fix: one rule in site/src/styles/base.css for :is(button, input, select, textarea):is(:disabled, [aria-disabled='true']). It sets border-style: dashed and color: color-mix(in srgb, var(--text) 65%, var(--page)), both !important so no scoped component rule overrides them. The toned text is 5.4:1 light and 6.9:1 dark (A-6). The focus ring is unchanged, so opacity was not used. T10 and T11 files were not edited; the sweep checks all 32 built pages without JavaScript, T10 and T11 routes included. Green: 10 passed; a11y and nojs passed. Commit 7267407."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX 5.3 (adoption changes only names, paths, selectors)",
+   "what": "The own-press reproducer was adopted without its two T10 tests. The label-in-name reproducer was adopted only for tools/mirror, into T06.spec.ts regressions. In table-reflow and ownpress-focus, the class selectors details.table-view and figure.tool-figure became the summary 'Show as table' (as T08, T10 and T15 specs open it) and the frame's figure.",
+   "why": "The prompt gives T10's controls to the T10 fixer, so committing those cases here would leave the branch red. RT-FIX 5.3 asks adopted tests to read hooks, not class names. Inputs, routes and assertions are unchanged."
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P4-a11y.md",
+ "openQuestions": [
+  "T10.spec.ts 'no long task on E8 loads and the graph switch' and 'no long task after a ring click on the largest main-thread configuration' fail now and then on this shared machine (long tasks of 51 to 141 ms at load average 5 to 16). An alternating A/B run failed on both the base build and the fixed build (base round 3: 3 of 4 failed). They are timing noise, not caused by this branch; MERGE should rerun them on a quiet machine.",
+  "On a board that is not hydrated yet or is frozen by a prediction, the drawn second ring of 6.3 ('may act here') is unchanged. The node buttons are transparent hit areas, so the shared rule shows nothing on a drawn board. Dashing the ring would clash with the dashed mark circles of T9 and the board editor. If the owner wants frozen boards to look frozen, that needs a separate visual decision."
+ ],
+ "handoff": "Shared files outside the per-tool area: site/src/styles/base.css (a global rule on every page), ToolFrame.svelte, Predict.svelte and BoardEditor.svelte (every tool), and site/src/components/lesson/Challenge.svelte; also play-focus.spec.ts (OWN_PRESS cases added, nameOf now names data-table-node). The T10 fixer takes the T10 parts of P4-RT-05-01 and P4-RT-05-07. If they adopt the own-press reproducer as site/tests/e2e/ownpress-focus.spec.ts too, MERGE will get an add/add conflict there: keep both sets of tests. T10 and T11 get the disabled look from base.css with no edit to their files. For the lens rerun: on P4-RT-06-01 the proposed opacity was not used because it would fade the focus ring of done controls that keep the focus (A-2, A-6), and 'covers frozen boards' does not reach the drawn rings (see openQuestions). P4-RT-05-02, P4-RT-05-05 and P4-RT-05-07 follow their proposed fixes; P4-RT-05-05 differs only in giving radio buttons no aria-invalid."
+}

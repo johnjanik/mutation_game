@@ -4,7 +4,7 @@
   // of T4. Import and export of boards as JSON." The island owns the state object of 6.6 for tool
   // 'sandbox' and composes, inside one ToolFrame: T1's game (t01/model.ts T1Game, drawn with Board,
   // Bridge and History exactly as T01GameBoard draws them, in free play only), the shared BoardEditor
-  // (P2-A3's contract, editor/types.ts), the verdict of T4 (t04/verdict.ts buildVerdict, T16Verdict),
+  // (P2-A3's contract, editor/types.ts), the verdict of T4 (t04/verdict.ts verdictCore, T16Verdict),
   // and the JSON import and export of boards (T16BoardIO). T01GameBoard itself is not nested: it
   // renders its own ToolFrame with data-tool="board" and reads links as tool 'board', and two frames
   // in one tool would double the root, the live region and the noscript line (T9 and T15 made the
@@ -24,9 +24,8 @@
   import type { Board as EngineBoard } from '@two-games/engine';
   import { decodeState, LINK_NOTICE } from '../../lib/urlCodec';
   import { cloneState, defaultStart, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
-  import { exportJSON } from '../../lib/export';
   import { T1Game, boardForStart, effectiveView, startVector, type Coords, type View } from './t01/model';
-  import { buildVerdict, type ComponentView } from './t04/verdict';
+  import { verdictCore, type ComponentView } from './t04/verdict';
 
   /** The default board (plan): two cities joined by three roads each way, the board of bigint_test. */
   export const DEFAULT_BOARD: { cartan: number[][]; xy: [number, number][] } = {
@@ -166,10 +165,15 @@
     return { ...game.derived(), verdict: components.map((c) => ({ ...c.record, verdict: c.classText })) };
   }
 
-  /** The text "Download data" saves for a state (used by the tests; the island calls the same parts). */
-  export function exportOf(state: ToolState): string {
+  /**
+   * The text "Download data" saves for a state (used by the tests; the island calls the same parts).
+   * export.ts is fetched when this is called, as ToolFrame fetches it on a click, so that it stays out
+   * of the first fetch of /tools/sandbox/ (SPEC 7.6; P6-A5 repair).
+   */
+  export async function exportOf(state: ToolState): Promise<string> {
+    const { exportJSON } = await import('../../lib/export');
     const game = gameOf(state);
-    return exportJSON(stateOf(game), derivedOf(game, buildVerdict(resolveBoard(state.board)).components));
+    return exportJSON(stateOf(game), derivedOf(game, verdictCore(resolveBoard(state.board)).components));
   }
 
   /** True when two specs have the same Cartan matrix (a move of a node changes only `xy`). */
@@ -185,6 +189,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import BoardEditor from '../board/BoardEditor.svelte';
   import Frac from '../math/Frac.svelte';
   import Bridge from './t01/Bridge.svelte';
@@ -258,7 +263,8 @@
   }
 
   const verdictBoard: AnyBoard = $derived(resolveBoard(spec));
-  const verdict = $derived(buildVerdict(verdictBoard));
+  // The verdict bullet only: T4's "Also shown" items are not shown here, so they are not computed (7.6).
+  const verdict = $derived(verdictCore(verdictBoard));
   const view$ = $derived(cur().view);
   const shown: Shown = $derived(cur().shown);
   const canAct = $derived(cur().canAct());
@@ -388,16 +394,15 @@
     else redo(announce);
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
+    return historyNames(g.moves.length, g.cursor, (k) => {
       const s = g.shownAt(k);
       const pops = s.populations !== null && g.view === 'populations';
       const v = pops ? s.populations! : s.numbers;
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: ${pops ? 'populations' : 'numbers'} ${inLabelOrder(g.board, v).map(spokenValue).join(', ')}`);
-    }
-    return out;
+      return `${k === 0 ? 'Start' : `After move ${k}`}: ${pops ? 'populations' : 'numbers'} ${inLabelOrder(g.board, v).map(spokenValue).join(', ')}`;
+    });
   });
 
   const labelsInOrder = $derived([...cur().labels].sort((a, b) => a - b));

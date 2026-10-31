@@ -785,3 +785,38 @@ test('T1 colour-class panel', async ({ page }) => {
   await expect(tri).toHaveAttribute('data-none', 'true');
   await expect(tri).toHaveText('No two colour classes: the board has a cycle of odd length.');
 });
+
+test.describe('regressions', () => {
+  // SPEC 8.3: "Icons: a small city for Populations, a small numbered disc for Numbers, used wherever the
+  // view is named"; 6.3: the two views have "distinct, fixed accent colours and icons used consistently"
+  // (P8). T7's right board ("Letters") is a board of the numbers game played with letters: its node
+  // buttons carry data-board="numbers". Its panel carried the city icon and the accent of the
+  // Populations view. Adopted from the red team's reproducer (RT-05 attack 38), reading the panel by its
+  // data-out wrapper and its accessible name instead of class names.
+  // regression: P3-RT-05-10
+  test('the Populations icon and accent mark only the Populations view (T7 /tools/symbolic/)', async ({ page }) => {
+    await page.goto('tools/symbolic/');
+    await page.locator('[data-tool][data-hydrated="true"]').waitFor();
+    const r = await page.evaluate(() => {
+      const popIcon = 'M1.5 14.5V8.5h3.5v6M5 14.5V3.5h5v11M10 14.5V6.5h4.5v8M0.5 14.5h15M7 6h1M7 9h1M12 9h1';
+      const numIcon = 'M8 1.5a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13ZM6.5 5.75L8.25 4.5v7M6.5 11.5h3.5';
+      const panel = document.querySelector('[data-out="symbolicBoard"]') as HTMLElement;
+      const paths = [...panel.querySelectorAll('svg path')].map((p) => p.getAttribute('d'));
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-populations').trim();
+      return {
+        title: panel.getAttribute('aria-label'),
+        boards: [...panel.querySelectorAll('button[data-node]')].map((b) => (b as HTMLElement).dataset.board),
+        usesPopulationsIcon: paths.includes(popIcon),
+        usesNumbersIcon: paths.includes(numIcon),
+        border: getComputedStyle(panel).boxShadow,
+        accent,
+      };
+    });
+    expect(r.boards.every((b) => b === 'numbers'), 'the Letters board is a numbers board by its hooks').toBe(true);
+    expect(r.usesPopulationsIcon, `/tools/symbolic/: panel "${r.title}" (data-board=${r.boards[0]}) carries the Populations city icon`).toBe(false);
+    expect(r.border.includes('rgb(0, 158, 115)'), `/tools/symbolic/: panel "${r.title}" bordered in the Populations accent ${r.accent} (${r.border})`).toBe(false);
+    // The remedy taken: the Numbers icon and the Numbers accent (#CC79A7), as the left panel.
+    expect(r.usesNumbersIcon, `/tools/symbolic/: panel "${r.title}" carries the Numbers icon`).toBe(true);
+    expect(r.border, `/tools/symbolic/: panel "${r.title}" bordered in the Numbers accent`).toContain('rgb(204, 121, 167)');
+  });
+});

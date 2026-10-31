@@ -1,0 +1,112 @@
+{
+ "reviewed": "add4487",
+ "findings": [
+  {
+   "severity": "major",
+   "what": "In the dark theme, black and white nodes of the decoration look almost the same. A white node is filled with the page colour (#121212) and a black node with #000. Both have the same #E8E8E8 outline, so the only cue is a fill contrast of 1.12 to 1. axe does not check SVG fills, so no test catches this.",
+   "where": "site/src/components/tools/t13/DecorationDiagram.svelte:176-185",
+   "evidence": "bash /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a3-review/run-rv.sh rv-a11y rv-a11y.spec.ts gives these computed styles. discs-dark: white {fill rgb(18,18,18), stroke rgb(232,232,232)}, black {fill rgb(0,0,0), stroke rgb(232,232,232)}; page-dark rgb(18,18,18). WCAG ratio of #000 against #121212 is 1.12. Screenshots: /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a3-review/out/decoration-dark.png and /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a3-review/out/decoration-e6-dark.png (node 2 of A3 and nodes 2 to 5 of E6 can barely be told from the white nodes).",
+   "specRef": "SPEC 7.5 A-5 and A-6 (WCAG 1.4.11), 6.3 last bullet; instruction 5.14 (A-6, black fill against the dark theme)",
+   "proposedFix": "Fill black nodes with var(--text) so that black means filled and white means hollow in both themes, or add a second non-colour mark to black nodes. Add a test that computes the fill contrast of a black node against a white node in both themes (at least 3 to 1)."
+  },
+  {
+   "severity": "major",
+   "what": "An instance configured on E7 or E8 (the board property; T13_BOARDS offers both) needs the worker for its default state. On the client, initialPair is null on E7 and E8, and the hydration effect calls refresh(), which runs fetchData and fetches the worker script with no interaction. The reader first sees the server's data, then 'computing the data in the background', then the data again. Instruction 5.11 asked for build-time data passed to the island; this was not done. No page configures E7 or E8 today, so the problem is latent, but M9 authors can reach it.",
+   "where": "site/src/components/tools/T13SatakeStudio.svelte:135 and 293-298",
+   "evidence": "rv-e7island.spec.ts (bash /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a3-review/run-rv.sh rv-e7island rv-e7island.spec.ts) serves /embed/satake/ with only the island props changed to {board: E7 or E8}. Result: E7 requests _astro/engine.worker-BYJkMOC0.js at 863 ms with no interaction, timeline '951ms pending=1 realForms=0', then '1112ms pending=0 realForms=1'. E8 requests the worker at 402 ms. Control board D8: no worker request.",
+   "specRef": "SPEC 5.1 E-9 ('No tool may need the worker for its default state'), 7.6; CLAUDE.md Rules; instruction 5.11 and 5.12",
+   "proposedFix": "During the server render on E7 and E8, write the computed PairData (sat, rb without board, records) as JSON inside the island, for example <script type=application/json data-t13-pair>. At hydration, read it as initialPair when the configured pair matches, and do not call the worker. Otherwise refuse E7 and E8 as configured boards at build time. Add a browser test with an E7-configured instance that asserts no worker request before the first interaction."
+  },
+  {
+   "severity": "minor",
+   "what": "data-moves on the tool root is always 0. ToolFrame derives it from state.moves, and T13 keeps its steps out of the state. A hook reader therefore sees 0 after any number of theta stages or composite moves. The only test checks /^\\d+$/. Opinion asked by MERGE ruling (3): 4.0 defines data-moves as the length of the move list the History walks, and that does not depend on what the link carries, so 0 is a wrong value, not a neutral one.",
+   "where": "site/src/components/board/ToolFrame.svelte:95; site/src/components/tools/T13SatakeStudio.svelte:904-918; site/tests/e2e/T13.spec.ts:422",
+   "evidence": "rv-state.spec.ts (run-rv.sh rv-state rv-state.spec.ts), /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a3-review/out/rv-moves.json: after Play θ on su*(4), data-moves '0' and moveCounter '3'; after 51 composite moves on e6(-26), data-moves '0' and moveCounter '51'.",
+   "specRef": "SPEC 4.0 Test hooks and History; MERGE ruling (3) on P6-A3",
+   "proposedFix": "ToolFrame (P1-A2 or MERGE) gains an optional prop moves?: number that overrides state.moves?.length. T13 passes play.cursor, which is the same count as moveCounter and the N of 'Undid move N'. The session history stays out of the link. T13.spec should assert data-moves equals moveCounter after a stage, a composite move and an undo."
+  },
+  {
+   "severity": "minor",
+   "what": "If the worker fails, the reader sees 'computing the data in the background' forever and gets no message. The rejection from fetchData is unhandled, because refresh() has no catch.",
+   "where": "site/src/components/tools/T13SatakeStudio.svelte:250-262",
+   "evidence": "rv-state.spec.ts 'a worker that fails to load' (worker script answered 404, then E8 picked), /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a3-review/out/rv-worker-fail.json: after 5 s, data-pending 'computing the data in the background', real-form 0, notice 0; pageerror 'Error: the engine worker failed: unknown error'.",
+   "specRef": "Instruction 5.5 ('any other error surfaces') and 5.12 ('never a frozen page'); SPEC 4.0 Stated limits (a wait must not stand for a result)",
+   "proposedFix": "Catch the rejection in refresh(). Replace the pending line with a sentence saying the data could not be computed (with the message), and allow a retry on the next change."
+  },
+  {
+   "severity": "minor",
+   "what": "The caption of the restricted panel pairs the wrong numbers. It lists the distinct composite-word lengths in orbit order and the distinct reduced lengths in Bourbaki order, so the two lists are paired wrongly whenever the two orders differ.",
+   "where": "site/src/components/tools/t13/model.ts:850-852",
+   "evidence": "Dumper through model.ts (run-dump.sh), then check_math.py and a caption scan. 6 of 174 admissible pairs are affected. e6(-14) reads 'a fixed sequence of 21 and 18 moves of E6, of reduced length 6 and 9', but the 21-letter word (orbit {1,6}) has reduced length 9 and the 18-letter word (orbit {2}) has 6. e8(-24) reads '32 and 25 ... 1 and 8'. The same happens for e6(2), so(3,5) under both D4 swaps, and D4 black 1,4.",
+   "specRef": "SPEC 4.0 Starts meaningful (the caption states the result); 2.15 The restricted game",
+   "proposedFix": "Write the caption per drawn node in Bourbaki order: 'node k: a word of N moves of reduced length L', taking N from rb.compositeWords[orbitIndex[k]]."
+  },
+  {
+   "severity": "minor",
+   "what": "Caption typography does not follow house style. Captions print data spellings of names with an ASCII hyphen-minus (e6(-26)). They write formulas as w_X, (m_λ, m_2λ) and 'dim k', while the data panel next to them uses subscripts and 𝔨. They also say 'a fixed sequence of 1 moves'. The same names appear in the figure's aria-label and in the 'Loaded ...' announcement.",
+   "where": "site/src/components/tools/t13/model.ts:795-797, 831, 841-859",
+   "evidence": "Caption scan over the 1044 captions of the 174 admissible pairs (6 panels each): 55 contain '(-<digit>' in a name, 316 contain w_X or m_, and 38 contain 'of 1 moves'. The built /tools/satake caption reads '... (m_λ, m_2λ) = (4, 1), dim k = 9, dim p = 6, character −3.'",
+   "specRef": "SPEC 6.3 and 8.4 (true minus sign, house style), 6.5 (display names; data spellings are for data)",
+   "proposedFix": "Use a plain-text display spelling in captions: U+2212 in names, subscripts as in the panel (or words), and 'dim 𝔨'. Write '1 move' in the singular."
+  },
+  {
+   "severity": "minor",
+   "what": "Announcements on boards with more than four nodes read every population and never give the move number. This applies to the theta stage, reset and root announcements.",
+   "where": "site/src/components/tools/t13/model.ts:314-316; site/src/components/tools/T13SatakeStudio.svelte:344, 439",
+   "evidence": "rv-a11y.spec.ts, /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a3-review/out/rv-names.json: on E6 the stage announcement is 'Stage 2 of θ. Populations now 1, 0, 1, 1, 1, 0.' (six values, no 'Move N').",
+   "specRef": "SPEC 7.5 A-4 (more than four nodes: only the changed nodes; 'Move N')",
+   "proposedFix": "Use announceTemplates.changedOnly above four nodes and append the step number, or have MERGE confirm the deviation in the announcement wording explicitly."
+  },
+  {
+   "severity": "minor",
+   "what": "Undo, redo and reset come before the restricted board in the tab order. The History row sits under the game board, and the restricted board, where composite moves are played, is in the panel below it.",
+   "where": "site/src/components/tools/T13SatakeStudio.svelte:602-612 (History) and 774-785 (restricted board)",
+   "evidence": "DOM order: game board, then History, then lights, then tabs, then the panel with the restricted board. The agent's own keyboard script has to Shift+Tab back from the restricted board to reach reset (site/tests/e2e/T13-keyboard.spec.ts:98).",
+   "specRef": "SPEC 7.5 A-1 ('Undo, redo and reset are visible buttons after the board in the tab order')",
+   "proposedFix": "Render the History controls after the restricted board inside the restricted panel too, or place the restricted board before History."
+  },
+  {
+   "severity": "minor",
+   "what": "An unknown preset id falls back silently to 'default'. T13 makes a bad board, decoration or root fail the build, and T8 throws on an unknown preset, but a mistyped preset in M9 would show su(1,3) without any error.",
+   "where": "site/src/components/tools/T13SatakeStudio.svelte:106",
+   "evidence": "Server render through site/tests/unit/_svelteSsr.ts with {preset: 'shadow'} (run-ssr.sh): panel data, black 2, tau 3.2.1, caption of su(1,3), no error. For comparison, site/src/components/tools/t08/presets.ts:76 throws 'T8: unknown preset'.",
+   "specRef": "SPEC 4.0 Configuration; CONTRACTS 6",
+   "proposedFix": "Throw 'T13 instance <id>: unknown preset <p> (presets: ...)' at build time, as for a bad board."
+  },
+  {
+   "severity": "minor",
+   "what": "Some tests do not fail when the behaviour they guard is removed. Survivors: (a) the careful sentence shown whenever condition 3 fails, so that on A3 black 1 with the flip the note would claim 'Conditions 1 and 2 hold'; (b) computeNow calling satake on a pair that is not admissible (catching NotAdmissible); (c) data-moves is never compared with the moves; (d) the keyboard spec says 'one tab stop' but never counts tabindex=0; (e) no test covers an E7 or E8 configured island.",
+   "where": "site/tests/unit/tools/T13.test.ts:308-316 and 352-378; site/tests/e2e/T13.spec.ts:422; site/tests/e2e/T13-keyboard.spec.ts:38-40",
+   "evidence": "python3 /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a3-review/mutants.py ran 18 mutants of model.ts and load.ts against T13.test.ts. 13 were killed: stage-2 word reversed, w_X before tau, default root pos[0], positions in the reason sentence, ASCII minus in the fraction, hint kind 'other', E7 and E8 computed at once, fetchData guard removed, C2 on every B2 board, drawing by the last record, coordinates by index, D4 rotations offered, restricted click by k-1. 2 survived with 42/42 passing: model.ts:280 changed to 'if (!adm.condition_3)', and computeNow without its admissible guard. 3 are equivalent or killed elsewhere: the default-root variant (simple roots come first), arrows over pairs with one black node (same on admissible pairs), and doubles not flagged (killed by T13.spec su(1,2)).",
+   "specRef": "COMMON 4.3 (each test fails when the behaviour it guards is removed)",
+   "proposedFix": "Assert failureNote(A3, black 1, flip) equals [FAILURE_FIRST]. Spy the engine in computeNow on pairs that are not admissible. Assert data-moves equals moveCounter. Count tabindex=0 per board group. Add an E7-configured island test."
+  },
+  {
+   "severity": "minor",
+   "what": "Golden values are typed into the tests as duplicates of values the same tests read from the golden file. Some assertions check the golden file against typed numbers and do not test the tool at all.",
+   "where": "site/tests/e2e/T13.spec.ts:157, 161, 283, 288, 297, 300, 334, 341, 397-400; site/tests/unit/tools/T13.test.ts:506-509, 520-523, 638-645",
+   "evidence": "For example, T13.spec.ts:397-400 runs expect(multText(record('B3','so(2,5)'))).toBe('1: (1, 0); 2: (3, 0)') and expect(record('C3','sp(1,2)').dim_k).toBe(13). T13.test.ts:508-509 types e6(-14)'s restricted_orbits_in_bourbaki_order [[2],[1,6]] and its multiplicities '1: (6, 0); 2: (8, 1)'. Many of these values come from the instruction's acceptance text.",
+   "specRef": "CONTRACTS 3; COMMON 4.4 ('a golden value typed into source')",
+   "proposedFix": "Keep the golden-read assertions and drop the typed duplicates. Keep only the SPEC worked values (A.5, the e6(-26) example of 2.15, the 6.7 strings), each marked as such."
+  }
+ ],
+ "checked": [
+  "1 Mathematics, through t13/model.ts and t13/load.ts against lie_games.py and golden_data.json, 0 failures. Lights agree with the oracle on all 3590 pairs of the 32 types, including reason node labels and fractions. Accepted pairs equal admissible_pairs for 32/32 types (174 pairs). All 174 admissible pairs (177 entries) match oracle satake plus match_catalogue on every field, and 167/167 records match the golden file field by field. The C2 adjustment is applied exactly 6 times (the 4 C2 records, plus so*(8) under D4 black 3,4 and black 1,4) and never to B2 records such as so(2,6). On all 142 drawings, the drawn board's Cartan matrix equals restricted_cartan read by orbit; this includes the 7 named boards whose Cartan matrix stays in orbit order. Theta matches step by step on every root of 998 pairs (92722 runs). Shadows: 2113 coordinates, 63 pictures, 72 BC doubles at exactly twice the distance. Composite moves: 35058 checks (word of the orbit drawn there; shadow coordinates equal the mutation of the drawn board). The async and immediate data paths agree (0 mismatches).",
+  "2 Words: scanned 3590 sets of lights, reasons, notes and announcements and 1044 captions. Found 0 'not an involution', 0 Vogan or E15 sentence, 0 Helgason, Araki or novelty claim, 0 em-dash, and true minus signs in every reason. The careful sentence appears on exactly the 824 pairs with conditions 1 and 2 holding and 3 failing; on each of them theta was checked to be an involution that permutes the roots. Captions have 55 ASCII-hyphen names, 316 underscore formulas, 38 'of 1 moves' and 6 wrong pairings (findings).",
+  "3 State and links: 19 bad links (wrong t, order-3 t, wrong length, labels 0, 4, -1 and a, affine, custom, pentagon, E9, z=2) each give the notice and the default state; 6 good links load as configured. A burst of 4 paints gives 1 replaceState. Tau and board picks give replaceState only; theta and root write nothing; an example and a catalogue entry give 1 pushState each; back works. All 8 presets render their state and panel at build time, and the override rule holds. An unknown preset falls back silently (finding).",
+  "4 Hooks and history: the four 4.0 hooks are on every node button (T13.spec hooks test passes). data-moves stays 0 against moveCounter 3 and 51 (finding). The slider appears at 52 positions ('51 of 51'), scrubbing to 10 works, acting there gives 11 steps and the button strip, and undo, redo and reset work.",
+  "5 E-9 and timing: with a stalled stub worker on E8 split, E7 e7(-5) and E7 compact, the worker is asked for satake, restrictedBoard and matchCatalogue (the compact pair skips restrictedBoard), the main thread renders 0 real-form, and 'computing the data in the background' shows in the data, shadows and restricted panels. The default route fetches 0 worker requests. An E7 or E8 configured island fetches the worker at hydration (finding). Long tasks with the processor slowed four times (machine load 12 to 18), picks in run 2: D8 63/61/74, A8 59/63, E6 53/82, B8 50/67, C8 75 ms; most paints have none (run 1 had D8 pick 129). A ring of about 40 interactions fetched 0 engineAll chunks.",
+  "6 Accessibility: arrow keys, Home and End follow the A-1 rule on the decoration, game and restricted boards of 6 configurations, 0 wrong, one tab stop each. Names (A-3) and announcements (A-4) were read. Lights show word plus disc or cross. Dark-theme black and white nodes have 1.12:1 contrast (finding). axe in both themes: T13.spec 0 serious; my 14 states with the table view open, 0 serious and 1 minor rule (empty-table-header on catalogue rows). At 320 px, 5 boards × 6 panels plus the table view: no horizontal scroll, hit areas at least 24. No motion on load; 14 frames without reduced motion. Without JavaScript, the default and embed routes show lights, data, caption, 4 tables and the noscript line, with 0 enabled controls.",
+  "7 Size: npm run size -- --port 7231 gives /tools/satake/ and /embed/satake/ 85.0 kB (85041 B) each, 53 routes, 0 over budget. Against parent eed623c (rebuilt): 14 routes unchanged, and 37 tool and lesson routes grew by 39 to 41 B gzip.",
+  "8 Tests: T13 unit tests 42/42; T13.spec plus T13-keyboard 24/24; embed, nojs, a11y, registry-outs, registry-weight, engine-weight and engine-fallback 361/362 (the 1 failure is the M8 axe scan timing out at 120 s, also when rerun alone; not T13). 18 mutants: 13 killed, 2 survived as real gaps, 3 equivalent or killed elsewhere. Typed golden values listed (findings)."
+ ],
+ "notes": [
+  "The long tasks of 50 to 100 ms on D8 match the agent's report. They also appear on picks of A8, E6 (the board of the restricted preset), B8 and C8. MERGE ruling (2) already sends this to the owner's E-9 sizing item. The machine was heavily loaded (load 12 to 18), so the figures overstate.",
+  "The size growth of 39 to 41 B on every tool and lesson route is consistent with the shared ToolFrame chunk, which carries site/src/tools/offered.ts and gained 'satake: NAMED_TYPES' (a pre-approved edit). Every route stays far inside its limit.",
+  "The failure note claims, for every pair failing only condition 3, that no involution of the Lie algebra acts as θ. SPEC 2.15 verifies this for A2 with node 1 black only. The general wording is the instruction's own plan (5.5), and its source is Kolb's theorem [S]. P6-A7 and the owner may want the lesson to cite it.",
+  "Export LaTeX writes a \\dynkin line for a decoration that is not admissible, with no remark. P6-A5 left admissibility to T13. This is harmless but may be worth a sentence in the exported file.",
+  "axe reports minor empty-table-header on every catalogue row header, whose content is KaTeX markup only. Its impact is minor, so no serious-or-critical gate catches it.",
+  "Positions never appear on screen: every visible vector, word, orbit and reason uses labels. The root select's option values are in position order, but they are not displayed and equal label order on named boards.",
+  "Cleanup: the servers on ports 7230 and 7231 are stopped; node_modules, site/node_modules, packages/engine/node_modules and site/dist are deleted; HEAD is back at add4487 (detached); git status --porcelain is empty."
+ ]
+}

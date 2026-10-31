@@ -76,6 +76,11 @@ describe('allCompleteGames', () => {
     const elapsed = performance.now() - t0;
     expect(r.truncated).toBe(true);
     expect(r.items).toEqual([]);
+    // This bound is a limit of the runner that guards a hang, not a timing check: P3-A2's acceptance asks for
+    // "bounded time" on a board whose plays never end (the oracle recurses there until Python's recursion limit),
+    // and SPEC.md gives allCompleteGames no time. Vitest's own limit of 5 s a test (the engine project sets no other)
+    // is tighter and binds first; the call takes tens of milliseconds. So it stays in npm test, unlike the timing
+    // checks of test/bench (P4-X2, P4 wave 4.5).
     expect(elapsed).toBeLessThan(60000);
     expect(play(b, start, undefined, CAPS.playMoves).status).toBe('cap');
   });

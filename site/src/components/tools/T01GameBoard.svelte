@@ -36,18 +36,19 @@
   //   linkTo (ignored: T1 is the tool others follow), layers (ignored: T1 never grows a set),
   //   script, goal, prediction, hints, panels, roadStyle, rounds, settings, onChange.
   import { untrack } from 'svelte';
-  import { CAPS } from '@two-games/engine';
+  import { CAPS, play as enginePlay, raisingPlay } from '@two-games/engine';
   import type { AnyBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import Frac from '../math/Frac.svelte';
   import Bridge from './t01/Bridge.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { decodeState, encodeState } from '../../lib/urlCodec';
   import { boardVerdictInLabels, defaultStart, firstForbiddenMove, isFiniteType, publishToolState, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
-  import { engineCall, whereToRun } from '../../lib/worker';
+  import { engineCall, provide, whereToRun } from '../../lib/worker';
   import { highlight } from '../../lib/highlight';
   import { POPULATIONS_ICON, NUMBERS_ICON } from '../draw/palette';
   import type { NodeState } from '../../lib/a11y';
@@ -98,6 +99,9 @@
     playOnCap,
     signedText,
   } from './t01/phase2';
+
+  // The engine functions this tool calls by name through engineCall (playFate runs only in the worker).
+  provide({ play: enginePlay, raisingPlay });
 
   interface Props {
     id?: string;
@@ -170,6 +174,8 @@
   let busy = $state(false);
   let scriptBase = $state(initialGame.cursor);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /** The prediction was withdrawn because a state other than the configured one was loaded first (loadFromOutside). */
+  let predictionWithdrawn = $state(false);
   let goalWasMet = $state(false);
 
   const touch = (): void => {
@@ -243,19 +249,34 @@
     touch();
   }
 
+  /**
+   * A state that reaches the instance from outside its own controls: a link, the back button, a jump a
+   * linked tool publishes. The prediction is a question about the configured state (SPEC 4.0 Predict: its
+   * answer is computed for that state, and the board is frozen until the reader commits). While it is
+   * open, any other state withdraws it, so that no question stands over a board it does not describe and
+   * the board never shows the answer under an open question; the board then plays as without a prediction.
+   */
+  function loadFromOutside(s: ToolState): void {
+    if (!predictionResolved && encodeState(s) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(s);
+  }
+
   // Hydration: read the URL once with the instance prefix (6.6); follow jumps published under this id.
   $effect(() => {
     return untrack(() => {
       try {
         const { state: decoded, notice: n } = decodeState(window.location.search, 'board', defaults, { prefix: instanceId });
         if (n !== null) notice = n;
-        if (encodeState(decoded) !== encodeState(defaults)) load(decoded);
+        if (encodeState(decoded) !== encodeState(defaults)) loadFromOutside(decoded);
       } catch {
         // decodeState never throws on a bad link; a failure here leaves the default state.
       }
       return followJumps(instanceId, () => game.state(), (moves) => {
         try {
-          load({ ...game.state(), moves });
+          loadFromOutside({ ...game.state(), moves });
         } catch {
           // a jump that is not a play of this board is ignored
         }
@@ -426,16 +447,15 @@
     highlight.set({ kind: 'node', board: boardName, value: game.labels[position]! });
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const game = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= game.moves.length; k++) {
+    return historyNames(game.moves.length, game.cursor, (k) => {
       const s = game.shownAt(k);
       const v = s.populations !== null && game.view === 'populations' ? s.populations : s.numbers;
       const noun = s.populations !== null && game.view === 'populations' ? 'populations' : 'numbers';
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${inLabelOrder(game.board, v).map(spokenValue).join(', ')}`);
-    }
-    return out;
+      return `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${inLabelOrder(game.board, v).map(spokenValue).join(', ')}`;
+    });
   });
 
   const labelsInOrder = $derived([...game.labels].sort((a, b) => a - b));
@@ -460,7 +480,7 @@
       <p class="line" data-out="goalMet">{goalNow ? GOAL_MET_TEXT : ''}</p>
       <p class="line" data-out="goalNote">{goalNoteText ?? ''}</p>
     {/if}
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     {#if shown.populations !== null}
@@ -582,20 +602,36 @@
 {/snippet}
 
 {#snippet controls(api: FrameApi)}
+  <!-- A play control that its own press makes inactive (a play running, the end reached) keeps the focus:
+       aria-disabled, its handler doing nothing then; the disabled attribute only before hydration (7.4)
+       and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
   {#if stepOffered}
-    <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || busy || atEnd} onclick={() => step(api.announce)}>Step</button>
+    <button
+      type="button"
+      class="control"
+      data-control="step"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && (busy || atEnd) ? 'true' : undefined}
+      onclick={() => step(api.announce)}>Step</button
+    >
     <button
       type="button"
       class="control"
       data-control="playToEnd"
       data-play={play.play}
-      disabled={playControlDisabled({ hydrated: api.hydrated, frozen, busy, atEnd, finite, cursor: cur().cursor })}
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && playControlDisabled({ hydrated: true, frozen: false, busy, atEnd, finite, cursor: cur().cursor }) ? 'true' : undefined}
       onclick={() => playToEnd(api.announce)}>{play.text}</button
     >
   {/if}
   {#if script}
-    <button type="button" class="control" data-control="next" disabled={!api.hydrated || frozen || busy || progress < 0 || progress >= script.length} onclick={() => next(api.announce)}
-      >Next</button
+    <button
+      type="button"
+      class="control"
+      data-control="next"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && (busy || progress < 0 || progress >= script.length) ? 'true' : undefined}
+      onclick={() => next(api.announce)}>Next</button
     >
     <p class="line script" data-out="scriptCaption">{scriptCaption(script, progress)}</p>
   {/if}
@@ -680,7 +716,7 @@
     {figureLabel}
     derivedForExport={() => ({ ...game.derived(), ...phase2Derived() })}
     onPopState={(s, n) => {
-      load(s);
+      loadFromOutside(s);
       notice = n;
     }}
     {figure}
@@ -734,7 +770,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,

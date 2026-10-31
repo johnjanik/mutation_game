@@ -10,6 +10,7 @@
   import type { AnyBoard, Board as EngineBoard } from '@engine';
   import Board from './Board.svelte';
   import History from './History.svelte';
+  import { historyNames } from './historyNames';
   import { announceTemplates, createAnnouncer, moveAnnouncement, speakList } from '@lib/a11y';
   import { shortcutOf } from './keyboard';
   import { rowLayout } from './layout';
@@ -59,8 +60,9 @@
   const show = (p: Position): string[] => p.map((v) => board.arith.show(v));
   const values = $derived(show(positions[cursor]!));
   const canAct = $derived(values.map(() => true));
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived(
-    positions.map((p, k) => (k === 0 ? `Start: populations ${speakList(show(p))}` : `After move ${k}: populations ${speakList(show(p))}`)),
+    historyNames(moves.length, cursor, (k) => (k === 0 ? `Start: populations ${speakList(show(positions[k]!))}` : `After move ${k}: populations ${speakList(show(positions[k]!))}`)),
   );
 
   function act(position: number): void {

@@ -19,17 +19,18 @@
   // plan property unverifiedMode ('marked' | 'fallback' | 'plain', default 'fallback'), decided at build
   // time by the page (t15/T15Route.astro applies the rule of <Unverified>).
   import { untrack } from 'svelte';
-  import { CAPS, boardFromName, classify, comarks as comarksOf, isRootPopulation, level as levelOf, marks as marksOf, toLabels } from '@two-games/engine';
+  import { CAPS, applyWord, boardFromName, classify, comarks as comarksOf, isRootPopulation, level as levelOf, marks as marksOf, toLabels } from '@two-games/engine';
   import type { Board as EngineBoard, ClassifyRecord } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { displayValue } from '../board/sign';
   import { decodeState, encodeState, LINK_NOTICE } from '../../lib/urlCodec';
   import { firstForbiddenMove, integerOut, labelOrder, type ToolState } from '../../lib/state';
-  import { engineCall } from '../../lib/worker';
+  import { engineCall, provide } from '../../lib/worker';
   import { announceTemplates, moveAnnouncement, speak, type NodeState } from '../../lib/a11y';
   import type { Prediction } from '../../tools/types';
   import { isLong, shortValue } from './t01/longNumber';
@@ -44,6 +45,10 @@
   import MarksComarks from './t15/MarksComarks.svelte';
   import StartEditor from './t15/StartEditor.svelte';
   import ConventionSwitch from './t15/ConventionSwitch.svelte';
+
+  // The engine function this tool calls by name through engineCall (playFate runs only in the worker;
+  // firstForbiddenMove is worker.ts's own).
+  provide({ applyWord });
 
   interface Props {
     id?: string;
@@ -149,6 +154,12 @@
   let busy = $state(false);
   let martianCity = $state<number | null>(null);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
   let loadToken = 0;
 
   const touch = (): void => {
@@ -196,6 +207,12 @@
     if (g === null || !isNumbers) return [] as number[];
     return g.legalNow();
   });
+  // A play control that cannot act: a play running in the worker, the end of the game (no number is
+  // positive), or the link maximum (Step) and the play maximum (Play on) reached. Each is aria-disabled
+  // then, and its handler does nothing (RT-FIX P3-RT-05-09; Play on at the end was neither, and said
+  // "Played 0 moves to the end.").
+  const stepInactive = $derived(busy || legal.length === 0 || atLinkCap);
+  const playOnInactive = $derived(busy || legal.length === 0 || (cur()?.cursor ?? 0) >= CAPS.playMoves);
   const canAct = $derived.by(() => {
     const n = anyBoard.n;
     if (frozen || busy || atLinkCap || current === null) return Array.from({ length: n }, () => false);
@@ -265,11 +282,7 @@
     if (g === null) return [] as string[];
     const total = g.moves.length;
     const noun = isNumbers ? 'numbers' : 'populations';
-    const name = (k: number): string => `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${shownAt(g, k).map((v) => speak(v)).join(', ')}`;
-    if (total + 1 <= 50) return Array.from({ length: total + 1 }, (_, k) => name(k));
-    const sparse: string[] = new Array(total + 1).fill('');
-    sparse[g.cursor] = name(g.cursor);
-    return sparse;
+    return historyNames(total, g.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${shownAt(g, k).map((v) => speak(v)).join(', ')}`);
   });
 
   // ------------------------------------------------------------------------------------------
@@ -366,12 +379,19 @@
       return;
     }
     const token = ++loadToken;
+    // A state other than the configured one withdraws a prediction still open (SPEC 4.0 Predict; as T1).
+    const withdraw = (): void => {
+      if (predictionResolved || encodeState(s) === encodeState(defaults)) return;
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    };
     try {
       const name = typeof s.board === 'string' ? s.board : '';
       const nextTab = tabForState(s);
       const b = info(name).board;
       if (nextTab === 'marks-comarks') {
         notice = null;
+        withdraw();
         commit(nextTab, name, null);
         return;
       }
@@ -399,6 +419,7 @@
       if (token !== loadToken) return;
       notice = null;
       convention = nextTab === 'pentagon' ? 'olympiad' : 'site';
+      withdraw();
       commit(nextTab, name, g);
     } catch {
       if (token !== loadToken) return;
@@ -445,13 +466,16 @@
     announce(sentence);
   }
 
+  // Step and Play on do nothing in the states in which they are aria-disabled (stepInactive, playOnInactive):
+  // no move and nothing said (RT-FIX P3-RT-05-09).
   function step(announce: (t: string) => void): void {
-    if (legal.length > 0) act(legal[0]!, announce);
+    if (frozen || stepInactive) return;
+    act(legal[0]!, announce);
   }
 
   async function playOn(announce: (t: string) => void): Promise<void> {
     const g = game;
-    if (g === null || frozen || busy || !isNumbers) return;
+    if (g === null || frozen || playOnInactive || !isNumbers) return;
     const from = g.cursor;
     const cap = CAPS.playMoves - from;
     if (cap < 1) return;
@@ -571,7 +595,7 @@
     <p class="line">
       Board <span data-out="boardName">{boardName}</span>: <span data-out="verdict">{inf.verdict}</span>.
     </p>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     {#if tab === 'marks-comarks'}
@@ -619,14 +643,23 @@
 
 {#snippet controls(api: FrameApi)}
   {#if isNumbers}
-    <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || busy || legal.length === 0 || atLinkCap} onclick={() => step(api.announce)}
-      >Step</button
+    <!-- A play control that its own press makes inactive (a play running in the worker, the end or the
+         link maximum reached) keeps the focus: aria-disabled, its handler doing nothing then; the disabled
+         attribute only before hydration (7.4) and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+    <button
+      type="button"
+      class="control"
+      data-control="step"
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && stepInactive ? 'true' : undefined}
+      onclick={() => step(api.announce)}>Step</button
     >
     <button
       type="button"
       class="control"
       data-control="playOn"
-      disabled={!api.hydrated || frozen || busy || (cur()?.cursor ?? 0) >= CAPS.playMoves}
+      disabled={!api.hydrated || frozen}
+      aria-disabled={!frozen && playOnInactive ? 'true' : undefined}
       onclick={() => void playOn(api.announce)}>Play on</button
     >
   {/if}
@@ -775,7 +808,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,

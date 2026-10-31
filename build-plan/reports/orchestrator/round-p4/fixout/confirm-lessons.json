@@ -1,0 +1,126 @@
+{
+ "clusters": [
+  {
+   "branch": "rtfix-p4/lesson-m6",
+   "results": [
+    {
+     "findingId": "P4-RT-09-02",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "Ran at 095e84e (npm ci, npm run build OK: 1041 links, 0 problems). The original reproducer redteam-RT-09-p4-m6-lengths.test.ts (from worktree-agent-a271fd128e69144b1, as an untracked copy) printed 1 passed, 2 failed. Test 1 still passes because its substring 'short roots have form value 2, long ones 4 or 6, verified by computation.' is still in the Seen item, now after 'on a board of finite type,'. Tests 2 and 3 fail by design: they assert that the engine facts are not so (form values 2, 8 on A2^(2) and 2, 4, 8 on A4^(2)), and no lesson change can alter those. By hand, the rendered Seen 2 reads '...; on a board of finite type, short roots have form value 2, long ones 4 or 6, verified by computation.' This matches SPEC 2.5. The oracle gives root form values {2} on simply laced types, {2,4} on B, C, F and {2,6} on G, for every finite type of rank 8 or less, with no exception. The fixer's content-m6-root-lengths.test.ts: 1 passed. Scratch revert of only the clause ('; on a board of finite type, short roots' back to '; short roots'): the test failed with 'M6: \"short roots have form value 2, long ones 4 or 6\" is stated with no restriction to the finite types; on the balanced board A2^(2) ... 2, 8, on A4^(2) 2, 4, 8: expected false to be true'. Restored from a copy taken at HEAD; cmp identical."
+    },
+    {
+     "findingId": "P4-RT-09-05",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original redteam-RT-09-p4-m6-wildberger-range.test.ts now fails test 1 ('expected ... to contain For rank at least {'3'}, ...'): the sentence is gone and the page now gives n=3,4. Test 2 fails by design, because it asserts that the golden file has B or C lists of rank 9 or more. By hand, Seen 5 reads 'From rank 3 on, Wildberger's B and C are Bourbaki's C and B ([W20], section 9).', with no claim of computation. The box's provenance line reads 'Verified by computation (B and C for n=3,4, D for n=4,5), except ...'. Golden wildberger_lists.names holds B3, B4, C3, C4, D4, D5, which agrees. content-m6-wildberger-range.test.ts: 4 passed. Scratch revert of the two spans (Seen 5 and the provenance line): 3 failed. They were 09-05 ('expected ... not to contain For rank at least ...'), its D sibling ('expected ... to contain D for <Tex src=\"n=4,5\"/>') and the 08-03 case ('expected [ Array(1) ] to deeply equal []'). The golden-only test passed. Restored."
+    },
+    {
+     "findingId": "P4-RT-08-03",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "DUPLICATE of P4-RT-09-05, confirmed with it: same cause, same commit d677311. The original redteam-RT-08-p4-wildberger-range.test.ts (from worktree-agent-a5ac953e1a01ff603): 2 passed at HEAD. It was adopted unchanged as content-m6-wildberger-range.test.ts > 'the Seen box does not claim the computation for every rank from 3 up' (// regression: P4-RT-08-03). Under the 09-05 scratch revert it failed with 'M6 Seen box: \"verified by computation\" for every rank at least 3: expected [ Array(1) ] to deeply equal []'."
+    },
+    {
+     "findingId": "P4-RT-09-06",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original redteam-RT-09-p4-m6-donnelly-convention.test.ts: 2 passed. Its test 2 failed at the gate and now passes. The rendered beat 4 reads '[Don08] (Theorem 5.2; Donnelly's matrix is C^T)'. SPEC 2.9 gives C = M^T, so the sentence is true. The oracle gives symbolic_play(cartan('B',2),[0,1,0,1]) = (1,0),(2,1),(1,1),(0,1), which are the positive roots of C^T. content-m6-donnelly-convention.test.ts: 2 passed. Scratch revert of the parenthesis: 1 failed with '... nowhere says that Donnelly's matrix M is the transpose of C (SPEC 2.9, 8.4): expected false to be true'. Restored."
+    },
+    {
+     "findingId": "P4-RT-09-07",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original redteam-RT-09-p4-m6-road-back.test.ts now fails test 1, because the sentence 'Until now every road had a road back' is gone. Tests 2 and 3 fail by design: they assert that B2 has a one-way road and that M3 has none. By hand, beat 1 renders 'On A2 every road has exactly one road back. Here the one-way counts of two cities ... differ: two roads run from city 1 to city 2 and one runs back.' The oracle gives adjacency [[0,1],[1,0]] for A2 and [[0,2],[1,0]] for B2, so the sentence is true. content-m6-road-back.test.ts: 1 passed. Scratch revert of the sentence: failed with 'expected ... not to contain Until now every <Term a=\"roads\">road<...'. Restored."
+    },
+    {
+     "findingId": "P4-RT-08-02",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original redteam-RT-08-p4-typed-rounds.test.ts: 2 passed. At the gate its source test listed 7 phrases; it now lists none. The rendered page reads the same as before: '3, 4 or 6 rounds', 'after eight moves, when the round counter reads 4', 'twelve moves', b3 'After 8 moves, 4 rounds', b4 '12 moves, 6 rounds'. These now come from {{types.T.coxeter_number}}, fmt() and B2_MOVES/G2_MOVES = 2*gv(coxeter_number). The oracle's alternating mutations return after 3, 4 and 6 rounds; the round matrix has order 3, 4, 6; coxeter_number is 3, 4, 6. content-m6-typed-rounds.test.ts: 3 passed (the sibling case is included). Scratch revert of the 13 spans: 2 failed ('expected [ …(7) ] to deeply equal []' and 'expected [ After 8 moves, …(11) ] to deeply equal []'). The engine-and-golden test passed. Restored."
+    },
+    {
+     "findingId": "P4-RT-08-05",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original script redteam-RT-08-p4-captions.mjs now prints two captions. b11: 'One Martian in city 2 of G2, the long city; every population it reaches is a long root population, with form value ${G2_LENGTHS[1]}.' (renders 6). b13: 'The builder on G2 starts from every weight 1, which passes on A2 and fails here: with three roads one way, the city weights must differ. Its meter reads the G2 board of the first challenge.' Both state a result and neither gives the answer. Oracle checks: the mutation orbit of (0,1) on G2 is exactly the 6 long roots, all with form value 6. form_is_invariant on [[2,-1],[-1,2]] (builder weights all 1) is True on A2 and False on G2. The G2 symmetrizer is (1,3). content-m6-challenge-captions.test.ts: 1 passed. Scratch revert of both captions: failed with 'b11 caption: expected ... not to be ...'. Restored."
+    },
+    {
+     "findingId": "P4-RT-13-03",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "Ran the original redteam/rt13-read.mjs and rt13-lo6-arrow.mjs (from worktree-agent-a666e09c0973563f9) against astro preview of the fix build on port 6300. Output: 'Primary-reader sentences that explain a double or triple line with an arrow: 2', the styles unchanged {b1 roads, b3, b4, b11 dynkin, b12 roads}, 'OK', exit 0 (at the gate: FAIL, exit 1). The two sentences are M6-q09 'A double or triple line is two or three roads the way its arrowhead points, and one back.' and M6-q12 '... more roads run from the long city to the short one, as the arrowhead points.' site/src/components/draw/roads.ts points the chevron towards j when A_ij > A_ji, so the text matches the drawing. Oracle: B2 has A_12=2, A_21=1 and d=(2,1); G2 has A_21=3 and d=(1,3). M6.spec.ts: 30 passed, regressions included (M6 prose words 1741). Scratch revert of both sentences and a rebuild: the regression failed with '3 M6 figures draw a multiple road as a double or triple line with an arrow (...), and no primary-reader sentence says how to read it'. Restored and rebuilt."
+    }
+   ],
+   "sideEffects": [
+    "No test breaks. Engine: 65 files, 2218 tests passed. The six content-m6 unit files: 12 passed. npm run check -w site: 0 errors (the 1 hint in T06.spec.ts and the 1 svelte-check warning in LayerChart.svelte were already there). M6.spec.ts: 30 passed. nojs.spec.ts: 72 passed. Axe a11y.spec.ts on /modules/m6-multiple-edges/: passed.",
+    "Only m6-multiple-edges.mdx, its tests and decisions/RT-FIX-P4-lesson-m6.md changed. No golden value, convention, cap, engine or shared component was touched. No .only or .skip was added. Added lines and commit messages contain 0 em or en dashes.",
+    "A word-budget trim (recorded) leaves beat 1's restatement of the rule as 'Wildberger's rule is unchanged: every other city sends one copy of its population down each road into the city that mutates'. It no longer mentions that the mutating city changes type. It is true as a recall of M0 and M1, but read alone it is an incomplete statement of the rule. Other trims lose no fact. A_ij stays defined in M2, and 'the Average tab' is still named in the b10 caption.",
+    "The move counts eight and twelve are printed as words by a lesson-local helper, inWords(2*coxeter_number). They are derived from the golden file, so they cannot drift, but they come from neither <G> nor <Tex>. The fragment records this as a point SPEC 7.3 leaves open. The fragment also withdraws part of P4-A5's 'typed numbers' decision.",
+    "Intermediate commits 4345046 to f2fc071 fail npm run check (ts(2345) in the adopted lengths test). The fixer recorded this; it is fixed in 095e84e, and HEAD is clean.",
+    "M6 measures 1741 words against M6.spec.ts's budget of 1748."
+   ]
+  },
+  {
+   "branch": "rtfix-p4/lesson-m7",
+   "results": [
+    {
+     "findingId": "P4-RT-09-01",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "Ran at 1cffa3b (same package files as M6, so no new npm ci; build OK: 1040 links, 0 problems). The original redteam-RT-09-p4-m7-finite-type.test.ts now fails test 1 ('expected ... to contain Free play from the position reaches f...'), because the sentence now begins 'On a board of finite type, free play ...'. Tests 2 and 3 fail by design: they assert that the triangle has a finite orbit and is accepted by euclideanBasis. By hand, beat 2 and Seen 2 begin 'On a board of finite type', and beat 6, Seen 1 and Seen 4 say 'every board of finite type of rank two to eight'. Oracle over all 30 finite types of rank 2 to 8: max |E^T E - B| = 1.1e-12, no root at the centre, and every Coxeter-plane ring is a multiple of h. The triangle A2~ is affine, and orbit((1,0,0)) raises OverflowError. Finite-type orbits of dominant starts are finite and lie on one sphere. content-m7-finite-type.test.ts: 3 passed. Scratch revert of the 5 spans: 3 failed ('beat 2 says \"finite type\": expected false to be true'; '... the orbit of (1, 0, 0) has more than 5000 positions ...'; '... the engine refuses it (NotFiniteType) ... expected NotFiniteType to be empty'). Restored."
+    },
+    {
+     "findingId": "P4-RT-08-01",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "DUPLICATE of P4-RT-09-01, confirmed with it: same cause, commit fe1e2e6. The original redteam-RT-08-p4-rank-range.test.ts: 2 passed at HEAD (at the gate it listed lines 114, 156 and 159). The adopted content-m7-rank-range.test.ts (// regression: P4-RT-08-01) failed under the 09-01 scratch revert with 'M7 states the check of SPEC 2.14 for every board of rank 2 to 8, not every finite type: expected [ …(3) ] to deeply equal []'."
+    },
+    {
+     "findingId": "P4-RT-09-03",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original redteam-RT-09-p4-m7-b12-challenge.spec.ts now fails at its locator in both its test and its control. It filters the challenge by the old goal text 'Find rings on B3, other than those of beat 5' and finds 0, so the goal it reproduces is gone. By hand, the goal reads 'Move the rings of one to another pair of nodes of B3, keeping 24 vertices and 36 edges.' Oracle wythoff_f_vector on B3: (1,1,0) gives [24,36,14], (1,0,1) gives [24,48,26], and (2,1,0) and (1,2,0) give [24,36,14] but are not rings of one. So (1,1,0) is the only answer, and it is what the polytopeName check accepts. M7.spec.ts regressions: the (2,1,0) test passed (data-met null, no result) and the control (1,1,0) passed. Scratch revert of the goal and a rebuild: failed with 'the rings (2, 1, 0) on B3 give 24 vertices and 36 edges, the goal as printed (\"Find rings on B3, other than those of beat 5, ...\") ... Expected \"true\" Received null'. The control passed. Restored."
+    },
+    {
+     "findingId": "P4-RT-09-04",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original redteam-RT-09-p4-m7-uniform.spec.ts now fails at its first assertion. The b7 caption reads 'redraws it from a multiple of (0, 1, √2) with one edge length', so it no longer contains the claim the finding disputes. By hand: T10 starts from (0, 1/√2, 1) = (1/√2)(0, 1, √2). With the oracle symmetrizer of B3, (2,2,1), the squared edge lengths are 2 and 2, so there is one length and 'a multiple of (0,1,√2)' is true for the drawn figure (from (0,1,√2) itself they would be 4 and 4). The M7.spec.ts regression passed. Scratch revert of the beat 5 sentence and the b7 caption, and a rebuild: failed with 'the caption of b7: make uniform draws from (0, 1, √2); ... the studio reads \"2\" Expected \"4\" Received \"2\"'. Restored."
+    },
+    {
+     "findingId": "P4-RT-08-08",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original script redteam-RT-08-p4-provenance.mjs now prints 'provenance in the paragraph: yes' (at the gate: none). Beat 5 adds 'verified by computation on A3, B3, C3, D4, F4, G2 and E6', exactly the list that verify.py section 11 checks (lines 1118 to 1127); my oracle rerun of that check gave True. The uniform condition is stated as a consequence ('only when'). It is true: W acts by isometries, and the edges at the start are the segments to its firings at the ringed nodes. content-m7-provenance.test.ts: 1 passed. Scratch revert of the span: failed with '... provenance in the paragraph: none; a Seen statement on edge lengths or uniform polytopes: none'. Restored."
+    },
+    {
+     "findingId": "P4-RT-08-09",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original script redteam-RT-08-p4-e7-wrap.mjs now prints the Seen wrap 'The rule is of the kind described in [CKPS95].' with the fallback 'The attribution of this rule is being checked.' The wrap no longer states the item's status, and the fallback names no face counts. content-m7-e7-wrap.test.ts: 1 passed. Scratch revert: failed with 'm7-geometry.mdx:158: the wrapped sentence states the open status of E7'. Restored."
+    },
+    {
+     "findingId": "P4-RT-13-01",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original redteam-RT-13-p4-links.spec.ts against the fix build printed 'm7-geometry first figure board A2 sandbox /tools/sandbox/?g=A2' and 'sandbox board A2 nodes 2', and the test passed. All 8 module cases passed; the release-only test was skipped. The M7.spec.ts regression passed, and the anatomy test now asserts g=A2. Scratch revert of board=\"A2\" and a rebuild: failed with 'the sandbox opens B3, the module's first board is A2 Expected \"A2\" Received \"B3\"'. Restored."
+    },
+    {
+     "findingId": "P4-RT-13-02",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original redteam-RT-13-p4-accents.spec.ts: 8 passed. M7 shows 'marked view words [numbers:Numbers:underline:rgb(204, 121, 167):icon] unmarked candidates []'. M0 (5) and M4 (2) are still marked with underline and icon. The M7.spec.ts regression passed. Scratch revert of M7's '<View v=\"numbers\"/>' and a rebuild: failed with 'm7-geometry: view words without the accent underline and icon'. Restored. M0.spec.ts and M4.spec.ts pass."
+    }
+   ],
+   "sideEffects": [
+    "No test breaks. Engine: 2218 passed. The content-m7 unit files plus content-components and numbers-in-prose-fallbacks: 25 passed. The other site unit files that read M0, M4, M7 or the content barrel passed, except one timeout in history.test.ts at load average 24.8, which passed alone (9 passed). npm run check -w site: 0 errors. M7.spec.ts, M0.spec.ts and M4.spec.ts: 84 passed (M0 1685, M4 1767, M7 1798 words). nojs.spec.ts and a11y.spec.ts: 105 passed. module-links.spec.ts: 3 passed.",
+    "Files outside the M7 lesson changed, each with a recorded reason: the new site/src/components/content/View.astro; the content barrel, which now also exports View (an addition to the CONTRACTS 7 interface, recorded as a deviation); and m0-start.mdx and m4-numbers.mdx, which now import View. M4's two view words take M0's inline styles (icon margin 0.25em becomes 0.2em; stroke width 1.5 on the svg), as recorded.",
+    "One existing expected value changed: the M7.spec.ts anatomy test's sandbox href g=B3 became g=A2. It pinned the behaviour P4-RT-13-01 corrects; recorded as a deviation.",
+    "Phrases named by no finding were cut to stay within SPEC 8.2's 1800 words (recorded): beat 1 'Floating point enters only here.', beat 2 'of the studio', beat 3 'in whole numbers' and 'also', beat 6 'and the default view from rank four on'. No needed fact is lost. M7 now stands at 1798 of 1800, so any later addition needs a cut.",
+    "No golden value, convention, cap, engine or T10 file was touched. No .only or .skip was added. Added lines and commit messages contain 0 em or en dashes.",
+    "The b12 goal wording 'Move the rings of one to another pair of nodes of B3' is terse. Under either reading its only answer is (1,1,0), which matches the check."
+   ]
+  }
+ ]
+}

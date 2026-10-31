@@ -52,10 +52,11 @@
   } from './t02/garden';
   import { followStopMessage, layersGrownText, stopMessage } from './t02/limits';
   import { positiveView } from './t02/poset';
-  import { extendPlay, followStart, followStep, moveMade, type FollowModel } from './t02/follow';
+  import { extendPlay, followPlay, followStep, moveMade, type FollowModel } from './t02/follow';
   import { exactText, vertexText } from './t02/numbers';
   import { pickedState, pickerGroups, presetOf } from './t02/presets';
   import { drawGarden } from './t02/drawing';
+  import { gardenLatex } from './t02/latex';
   import GardenGraph, { type GraphEdge, type GraphVertex } from './t02/GardenGraph.svelte';
   import LayerChart from './t02/LayerChart.svelte';
   // Phase 2 (P2-A7): the finite test from classify's verdict (5.6), the verdict text beside the stop message.
@@ -189,14 +190,23 @@
   // ------------------------------------------------------------------------------------------
   const grown = $derived(grow(spec, layersGrown));
   const gGraph: OrbitGraph<unknown> = $derived(grown.graph);
-  let followModel = $state.raw<FollowModel | null>(untrack(() => (growth === 'follow' ? followStart(gb, current, game, bound) : null)));
+  /**
+   * The follow model of the play the garden holds: the start and every position up to the cursor, with
+   * the edge of each move (followPlay), as if the garden had followed the play from its start. A garden
+   * that attaches to a board already played (client:visible: it hydrates when scrolled to) or loads a
+   * link therefore shows every position the play reached (SPEC 4 T2 follow; 3 M1 row 1, M4 row 5).
+   */
+  function playModel(): FollowModel {
+    return followPlay(gb, positions.slice(0, cursor + 1), toPositions(gb, allMoves.slice(0, cursor)), game, bound);
+  }
+  let followModel = $state.raw<FollowModel | null>(untrack(() => (growth === 'follow' ? playModel() : null)));
 
   function restartFollow(): void {
-    followModel = followStart(gb, current, game, bound);
+    followModel = playModel();
   }
   /** The follow model, made when first needed. */
   function fm(): FollowModel {
-    if (followModel === null) followModel = followStart(gb, current, game, bound);
+    if (followModel === null) followModel = playModel();
     return followModel;
   }
 
@@ -399,6 +409,7 @@
   }
 
   function revealTotal(announce: (t: string) => void): void {
+    if (totalShown) return;
     totalShown = true;
     announce(`Total: ${totalText(gardenTotal(spec, bound))}.`);
   }
@@ -528,6 +539,10 @@
     };
   }
 
+  // Export LaTeX (SPEC 6.7; P6-tikz): the garden as drawn now, its vertices and the edges shown, as a
+  // tikz-graph (t02/latex.ts); read at the click, so it follows the growth, the view and the labels toggle.
+  const latexForExport = () => gardenLatex({ cx: layout.cx, cy: layout.cy, width: layout.width, entries, edges: shownEdges, labelled });
+
   const groups = $derived(pickerGroups(config.boardChoices));
   const boardName = $derived(typeof boardSpec === 'string' ? boardSpec : 'custom');
   const figureLabel = $derived(
@@ -543,6 +558,7 @@
   state={toolState}
   defaults={config.defaults}
   {derivedForExport}
+  {latexForExport}
   {notice}
   {figureLabel}
   {onPopState}
@@ -627,8 +643,20 @@
   {/snippet}
 
   {#snippet controls(api)}
-    <button type="button" class="control" data-control="grow" disabled={!growable} onclick={() => growLayer(api.announce)}>Grow one layer</button>
-    <button type="button" class="control" data-control="showTotal" disabled={totalShown} onclick={() => revealTotal(api.announce)}>Show total</button>
+    <!-- Grow one layer at the last layer and Show total once shown are done by their own press but keep the
+         focus (A-1, WCAG 2.4.3; RT-FIX P4-RT-05-01): aria-disabled, the handlers doing nothing then. The
+         disabled attribute stays for the follow mode, set by another control, and before hydration (7.4). -->
+    <button
+      type="button"
+      class="control"
+      data-control="grow"
+      disabled={growth !== 'explore'}
+      aria-disabled={growth === 'explore' && !growable ? 'true' : undefined}
+      onclick={() => growLayer(api.announce)}>Grow one layer</button
+    >
+    <button type="button" class="control" data-control="showTotal" aria-disabled={totalShown ? 'true' : undefined} onclick={() => revealTotal(api.announce)}
+      >Show total</button
+    >
     <button
       type="button"
       class="control"

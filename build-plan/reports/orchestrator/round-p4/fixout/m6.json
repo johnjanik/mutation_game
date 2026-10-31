@@ -1,0 +1,232 @@
+{
+ "agent": "rtfix-p4-m6",
+ "status": "done",
+ "branch": "worktree-agent-a1de61b56ea596100",
+ "base": "967118d23189fb1ac0190af9790884d1c897edc7",
+ "commits": [
+  "8433e9c RT-FIX P4-RT-13-03 P4-RT-09-06 P4-RT-09-02 P4-RT-09-05: make room in M6's word budget",
+  "4271869 RT-FIX P4-RT-09-07: M6 beat 1 sets B2 against one road each way",
+  "cb9d232 RT-FIX P4-RT-08-02: M6 reads its round and move counts from the golden file",
+  "713047c RT-FIX P4-RT-08-05: the M6 challenge captions of b11 and b13 state their point",
+  "c837483 RT-FIX P4-RT-13-03: M6 tells the primary reader how to read a double or triple line",
+  "6285172 RT-FIX P4-RT-09-06: M6 states Donnelly's convention where it quotes his theorem",
+  "4345046 RT-FIX P4-RT-09-02: M6 gives the root lengths 2, 4, 6 for the boards of finite type only",
+  "d677311 RT-FIX P4-RT-09-05 P4-RT-08-03: M6 names the ranks of Wildberger's lists compared",
+  "8c0fb03 RT-FIX P4-RT-13-03 P4-RT-09-06 P4-RT-09-02 P4-RT-09-05: keep room for the Atlas line in M6",
+  "f2fc071 RT-FIX P4-RT-09-02 P4-RT-09-05 P4-RT-08-03 P4-RT-09-06 P4-RT-09-07 P4-RT-08-02 P4-RT-08-05 P4-RT-13-03: decisions fragment",
+  "095e84e RT-FIX P4-RT-09-02: type the board of the adopted root-lengths test"
+ ],
+ "filesChanged": [
+  "site/src/content/modules/m6-multiple-edges.mdx",
+  "site/tests/e2e/M6.spec.ts",
+  "site/tests/unit/content-m6-root-lengths.test.ts",
+  "site/tests/unit/content-m6-wildberger-range.test.ts",
+  "site/tests/unit/content-m6-donnelly-convention.test.ts",
+  "site/tests/unit/content-m6-road-back.test.ts",
+  "site/tests/unit/content-m6-typed-rounds.test.ts",
+  "site/tests/unit/content-m6-challenge-captions.test.ts",
+  "decisions/RT-FIX-P4-lesson-m6.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard 967118d; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-a1de61b56ea596100, worktree-agent-a1de61b56ea596100, base 967118d23189fb1ac0190af9790884d1c897edc7"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b..., all equal to CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit <the six lens reproducers as fetched, before adoption>",
+   "exit": 1,
+   "summary": "Test Files 6 failed (6); Tests 8 failed | 6 passed (14); observed values as in the findings (A2^(2) 2, 8; A4^(2) 2, 4, 8; 7 typed phrases; ranks 3, 4 only; no Donnelly convention; B2 bidirected; M3 one-way road)"
+  },
+  {
+   "cmd": "npm run build (base) && npx playwright test -c <scratch config, port 7600> M6.spec.ts -g 'word count'",
+   "exit": 0,
+   "summary": "M6 prose words: 1743; 1 passed"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> M6.spec.ts -g regressions (base build)",
+   "exit": 1,
+   "summary": "1 failed: 3 M6 figures draw a multiple road as a double or triple line with an arrow ({b1 roads, b3 dynkin, b4 dynkin, b11 dynkin, b12 roads}), and no primary-reader sentence says how to read it"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-m6-*.test.ts (6 files, adopted, lesson at base)",
+   "exit": 1,
+   "summary": "Test Files 6 failed (6); Tests 8 failed | 3 passed (11)"
+  },
+  {
+   "cmd": "scratch revert of m6-multiple-edges.mdx to 967118d, then npx vitest run --project site-unit content-m6-*.test.ts (final tests)",
+   "exit": 1,
+   "summary": "Test Files 6 failed (6); Tests 9 failed | 3 passed (12); every regression test red, the lesson then restored with git checkout"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-m6-*.test.ts (HEAD)",
+   "exit": 0,
+   "summary": "Test Files 6 passed (6); Tests 12 passed (12)"
+  },
+  {
+   "cmd": "python3 scratch/check_g2.py (oracle: orbit of (0,1) on G2; coxeter numbers)",
+   "exit": 0,
+   "summary": "orbit ±(0,1), ±(3,1), ±(3,2) (the long roots); coxeter_number 3, 4, 6 for A2, B2, G2; reference/__pycache__ removed afterwards"
+  },
+  {
+   "cmd": "npm run build (final lesson)",
+   "exit": 0,
+   "summary": "links: 1041 internal links on 32 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7600> M6.spec.ts",
+   "exit": 0,
+   "summary": "30 passed (1.5m); M6 prose words: 1741 (budget 1748)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> nojs.spec.ts a11y.spec.ts -g 'm6-multiple-edges|M6 b10|routes are discovered'",
+   "exit": 0,
+   "summary": "5 passed (axe on /modules/m6-multiple-edges/, no-JS render, server markup default state, M6 b10)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 0,
+   "summary": "Test Files 65 passed (65); Tests 2218 passed (2218)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run check -w site (before 095e84e)",
+   "exit": 1,
+   "summary": "1 error: ts(2345) in site/tests/unit/content-m6-root-lengths.test.ts (Board<unknown> passed to toPositions), from the reproducer; fixed in 095e84e"
+  },
+  {
+   "cmd": "npm run check -w site (HEAD)",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings (1 hint, T06.spec.ts, existing); svelte-check 0 errors, 1 warning (LayerChart.svelte, existing)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (whole site unit suite)",
+   "exit": 1,
+   "summary": "Tests 4 failed | 812 passed (816): 4 timeouts at 5000 ms with load average 15.85 on 4 processors (links-internal, repo-ci-playwright-report, T03, T15); rerun alone: T03 and T15 pass, then links-internal 5 passed and repo-ci-playwright-report 1 passed, each alone"
+  },
+  {
+   "cmd": "git diff --name-only 967118d..HEAD | grep -i redteam",
+   "exit": 1,
+   "summary": "nothing printed"
+  },
+  {
+   "cmd": "sh scratch/greps.sh (added lines of git diff 967118d..HEAD: .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on:click, on: directives, U+2014, U+2013)",
+   "exit": 0,
+   "summary": "0 for every pattern; commit messages: 0 em-dashes"
+  },
+  {
+   "cmd": "grep -rn 'regression: P4-RT-' site/tests",
+   "exit": 0,
+   "summary": "10 lines: 09-02, 09-05, 09-05 (sibling), 08-03, 09-06, 09-07, 08-02, 08-02 (sibling), 08-05, 13-03"
+  },
+  {
+   "cmd": "git log --format=%s 967118d..HEAD",
+   "exit": 0,
+   "summary": "11 subjects, each beginning 'RT-FIX ' and a finding id"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist test-results; pgrep -fl 'preview --port [7]600'; git status --porcelain",
+   "exit": 0,
+   "summary": "no preview running; porcelain empty"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P4-RT-09-02: M6's Seen box gives the root lengths of the finite types B, C, F, G for every balanced board",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m6-root-lengths.test.ts > M6's Seen box gives the root lengths of the finite types B, C, F, G for every balanced board",
+   "evidence": "severity blocker (no adjustment). Red: with the lesson at base, '1 failed' with message '... is stated with no restriction to the finite types; on the balanced board A2^(2) the simple root populations have form values 2, 8, on A4^(2) 2, 4, 8' (the reproducer's own red: tests 2 and 3 failed with 2, 8 and 2, 4, 8). Green: 1 passed. Cause: the length clause kept the scope of 'Exactly the balanced boards', while SPEC 2.5 gives 2 and 4 or 6 for the finite types only. It now reads 'on a board of finite type, short roots have form value 2, long ones 4 or 6, verified by computation'. Commit 4345046, typed in 095e84e. Adoption: the reproducer asserted that the counterexamples do not exist, which can never pass. As in the round 1 adoption of P3-RT-09-02, the test keeps them as observed facts and asserts the expected."
+  },
+  {
+   "item": "P4-RT-09-05 and P4-RT-08-03 (DUPLICATE): M6 states Wildberger's B/C translation as 'verified by computation' for every rank of at least 3; the lists were compared for ranks 3 and 4 only",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m6-wildberger-range.test.ts > M6 states Wildberger's B/C translation as 'verified by computation' for every rank of at least 3; the lists were compared for ranks 3 and 4 only; and the same file > m6-multiple-edges.mdx: the Seen box does not claim the computation for every rank from 3 up (the RT-08 reproducer, unchanged)",
+   "evidence": "severity major (no adjustment). Red at base: both tests failed ('expected [ Array(1) ] to deeply equal []' for RT-08; the sentence as found for RT-09). Green: 4 passed. Cause: computation was claimed for every n while golden wildberger_lists.names holds B3, B4, C3, C4 (and D4, D5) only. Fix: Seen 5 now reads 'From rank 3 on, Wildberger's B and C are Bourbaki's C and B ([W20], section 9).', resting on his graphs. The box's provenance line now reads 'Verified by computation (B and C for n=3,4, D for n=4,5), ...'. Commit d677311."
+  },
+  {
+   "item": "P4-RT-09-05 (sibling): the box's D_n row was also verified for n = 4, 5 only",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m6-wildberger-range.test.ts > the box's row for Wildberger's D_n of every rank names its ranks compared too (n = 4, 5)",
+   "evidence": "Red with the lesson at base (part of '9 failed'). Green: passed. Same line of provenance, same cause. Commit d677311."
+  },
+  {
+   "item": "P4-RT-09-06: M6 quotes Donnelly's theorem on the forms fired without saying that his matrix is the transpose of the site's",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m6-donnelly-convention.test.ts > M6 quotes Donnelly's theorem on the forms fired and says that his matrix is the transpose of the site's",
+   "evidence": "severity major. Red at base: '... nowhere says that Donnelly's matrix M is the transpose of C (SPEC 2.9, 8.4): expected false to be true'. Green: 2 passed. The reproducer is unchanged plus one check that the convention is in beat 4. Fix: the beat 4 citation now reads '[Don08] (Theorem 5.2; Donnelly's matrix is C^T)'. Only the matrix differs, since he also fires positive numbers. Commit 6285172."
+  },
+  {
+   "item": "P4-RT-09-07: M6 beat 1 sets B2 against 'every road had a road back', but B2 is bidirected and M3 already showed a one-way road",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m6-road-back.test.ts > M6 beat 1 sets B2 against one road each way, since B2 is bidirected and M3 already showed a one-way road",
+   "evidence": "minor, in the file already being changed. Red at base: 'expected ... not to contain Until now every <Term a=\"roads\">road<...'. Green: 1 passed. Beat 1 now opens 'On A2 every road has exactly one road back.'. Adoption as for 09-02: B2 bidirected and the M3 one-way sentence are kept as observed facts. Commit 4271869."
+  },
+  {
+   "item": "P4-RT-08-02: M6 types the Coxeter numbers of A2, B2 and G2 (the round counts 3, 4, 6) and the move counts 8 and 12 instead of reading the golden file",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m6-typed-rounds.test.ts > M6 does not type the Coxeter numbers of A2, B2 and G2 (the round counts 3, 4, 6) or the move counts 8 and 12",
+   "evidence": "severity major. Red at base: 'expected [ …(7) ] to deeply equal []' (the 7 phrases). Green: 3 passed. The engine-and-golden test passes before and after. Fix: round counts come from {{types.<T>.coxeter_number}} in Tex and fmt() in props. Move counts come from B2_MOVES and G2_MOVES (2 * golden), printed in prose as words through inWords, so 'after eight moves' still reads the same. The part of 'P4-A5: typed numbers' that called them non-golden is withdrawn in the fragment. Commit cb9d232."
+  },
+  {
+   "item": "P4-RT-08-02 (sibling): the b4 prediction and the script lengths typed the same counts",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m6-typed-rounds.test.ts > the other round and move counts of beat 2 (the two scripts, the G2 prediction) are read from the golden file too",
+   "evidence": "Red at base: 12 typed counts listed ('After 8 moves', 'after 4 rounds' x4, 'needs 6 rounds', 'needs 12 moves', 'eight moves', 'twelve moves', 'scriptOf(8)', 'scriptOf(12)', 'alternation(8)'). Green: passed. Commit cb9d232."
+  },
+  {
+   "item": "P4-RT-08-05: two M6 challenge tools have captions that give a setting and an instruction but state no result",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m6-challenge-captions.test.ts > the two M6 challenge tools b11 and b13 have captions that state a result, not only a setting and an instruction",
+   "evidence": "severity major. The reproducer was a script that printed and asserted nothing; it became a source test. Red at base: 'b11 caption: expected ... not to be ...'. Green: 1 passed. Following the round 1 resolution (P3-RT-08-08), each caption states its point and not the answer. b11: 'every population it reaches is a long root population, with form value 6' (engine formValue; orbit confirmed with the oracle). b13: 'every weight 1, which passes on A2 and fails here: with three roads one way, the city weights must differ'. Commit 713047c."
+  },
+  {
+   "item": "P4-RT-13-03: M6 draws multiple roads as a Dynkin double or triple line with an arrow but never tells the primary reader how to read it",
+   "status": "fixed",
+   "test": "site/tests/e2e/M6.spec.ts > regressions > M6 draws multiple roads as a double or triple line with an arrow and tells the primary reader how to read it",
+   "evidence": "severity major. Red on the base build: '3 M6 figures draw a multiple road ... and no primary-reader sentence says how to read it'. Green: passed, within M6.spec.ts '30 passed'. Fix: beat 2 now says 'A double or triple line is two or three roads the way its arrowhead points, and one back.' Beat 3 says 'more roads run from the long city to the short one, as the arrowhead points.' (LO6; the test also checks this). Commit c837483. The word budget held: 1741 of 1748 after the trims of 8433e9c and 8c0fb03."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX 5.3 (nothing else changes on adoption)",
+   "what": "Three RT-09 reproducers (lengths, wildberger-range, road-back) asserted that their counterexamples do not exist, which can never pass. Their tests keep the computations with the observed values and assert the finding's expected, and their first tests now assert that the sentence as found is absent. Two reproducers of one cause share one file. The captions script and the two RT-13 scripts became a source test and a Playwright test. The RT-13 test reads data-anatomy and data-out=caption hooks, not section classes, and adds an LO6 check. The Donnelly test gained one check. One type fix in the lengths helper.",
+   "why": "Same handling as the round 1 adoption of P3-RT-09-02 (decisions/RT-FIX-P3-lesson-m5.md). Recorded in decisions/RT-FIX-P4-lesson-m6.md."
+  },
+  {
+   "spec": "RT-FIX 5.4 item 5 (keep the fix small)",
+   "what": "The fixes added about 40 words, against 1743 of M6.spec.ts's 1748-word budget. Repetitions elsewhere in M6 were trimmed (8433e9c, 8c0fb03) with no fact or citation lost. The page now measures 1741 and keeps room for the Atlas line.",
+   "why": "The budget assertion may not be weakened."
+  },
+  {
+   "spec": "RT-FIX 6 (green at every commit)",
+   "what": "Commits 4345046 to f2fc071 fail npm run check -w site with one ts(2345) error in the adopted test site/tests/unit/content-m6-root-lengths.test.ts. Runtime tests are unaffected. Fixed in 095e84e; HEAD is clean.",
+   "why": "I found it after committing, and rebase is forbidden."
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P4-lesson-m6.md",
+ "handoff": "Only m6-multiple-edges.mdx and tests changed, plus the fragment, all inside the cluster; M7, the shared content components and T10 were not touched. Proposals I did not follow, each for a reason: P4-RT-09-07's 'Until now every road was matched by exactly one road back' is still false given M3's one-way road. P4-RT-08-05's b13 caption ('three times') gives the answer. P4-RT-09-06 is stated as a short parenthesis, not M5's 19-word sentence, because of the word budget. The 'Lists compared' column stays dropped (P4-A5's recorded choice); the ranges are in the box's provenance line instead. For the lens rerun: the road counts 'two', 'three' are left as words because they define the board, as recorded in the fragment. Whole site-unit suite: 4 timeouts under load average 15 (links-internal, repo-ci-playwright-report, T03, T15); each passes alone."
+}

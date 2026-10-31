@@ -19,6 +19,9 @@
 //     question, draft, beat, figure, seen, lie-theory, links, sources; data-beat; data-provenance;
 //     data-challenge, data-kind, data-met, data-challenge-result (text "Goal reached."); data-source;
 //     data-unverified and a.unverified-mark (P0-A4 Unverified); data-item on the open-items page
+//   Challenge of the input kind (challenge 3; P1-A4 Challenge.svelte, a lesson component, not a
+//     tool): its text box and button, read by role and accessible name ("Your population, entries
+//     in label order", "Check"), and its retry note "Not this one. Try another population."
 //   this lesson's own markup: data-seen-statement
 //
 // Word-counting rule (test 4, as M0.spec.ts): the words of the <article> after removing every tool
@@ -62,6 +65,7 @@ interface TypeRecord {
   n_positive_roots: number;
   highest_root: number[];
   coxeter_number: number;
+  cartan: number[][];
 }
 interface KostantRecord {
   end_from_node: number[][];
@@ -70,8 +74,8 @@ interface KostantRecord {
 interface Golden {
   types: Record<string, TypeRecord>;
   kostant: Record<string, KostantRecord>;
-  layer_growth_examples: { label: string; layers: number; root_populations_found: number; new_per_layer: number[] }[];
-  affine: Record<string, { marks: number[] }>;
+  layer_growth_examples: { label: string; layers: number; root_populations_found: number; new_per_layer: number[]; cartan: number[][] }[];
+  affine: Record<string, { marks: number[]; constructor_name: string; cartan_node0_first: number[][] }>;
 }
 const GOLDEN = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8')) as Golden;
 const TRIANGLE = GOLDEN.layer_growth_examples.find((r) => r.label === 'triangle')!;
@@ -149,6 +153,12 @@ async function proseSentences(page: Page): Promise<string[]> {
     .filter((s) => s.length > 1);
 }
 
+/** Types a population into a challenge of the input kind and presses its Check button. */
+async function typeIntoChallenge(challenge: Locator, text: string): Promise<void> {
+  await challenge.getByRole('textbox', { name: 'Your population, entries in label order' }).fill(text);
+  await challenge.getByRole('button', { name: 'Check' }).click();
+}
+
 /** Answers a tool's prediction with "show me", so that the board is free. */
 async function showMe(page: Page, id: string): Promise<void> {
   await control(page, id, 'predictShow').click();
@@ -205,8 +215,11 @@ test.describe('without JavaScript', () => {
     const expected: Record<string, string> = {
       b1: String(GOLDEN.types.A2!.n_roots),
       b5: 'No, every start ends at the same population.',
-      b11: `(${FROZEN.join(', ')})`,
     };
+    // These are all the predictions of the page (RT-FIX P3-RT-13-09: b11 no longer carries one;
+    // challenge 3 reads the population typed into its own box).
+    const withPrediction = await page.locator('[data-tool]').evaluateAll((els) => els.filter((e) => e.querySelector('[data-prediction]') !== null).map((e) => e.getAttribute('data-instance')));
+    expect(withPrediction).toEqual(Object.keys(expected));
     for (const [id, answer] of Object.entries(expected)) {
       const block = tool(page, id).locator('[data-prediction]');
       await expect(block, id).toHaveCount(1);
@@ -403,30 +416,34 @@ test('challenge: E6 is not met by a play started at the highest root', async ({ 
 });
 
 test('challenge: a population no mutation changes', async ({ page }) => {
-  await page.goto(ROUTE);
-  const challenge = await challengeFor(page, 'b11');
-  await hydrate(page, 'b11');
-  await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
-  const boxes = control(page, 'b11', 'predictAnswer');
-  await expect(boxes).toHaveCount(FROZEN.length);
-  for (const [k, v] of FROZEN.entries()) await boxes.nth(k).fill(String(v));
-  await control(page, 'b11', 'predictCheck').click();
-  await expect(out(page, 'b11', 'predictResult')).toHaveText(/^Right/);
-  await expect(challenge.locator('[data-challenge-result]')).toHaveText('Goal reached.');
-  await expect(challenge).toHaveAttribute('data-met', 'true');
+  // The check reads the population typed into the challenge's own box, on the board named by
+  // affine.A2.constructor_name, whose matrix is the lesson's triangle.
+  expect(GOLDEN.affine.A2!.cartan_node0_first).toEqual(TRIANGLE.cartan);
+  // (1, 1, 1) and its multiples, a negative one included (SPEC 3 M1), each meet the goal.
+  for (const k of [1, 2, -1]) {
+    await page.goto(ROUTE);
+    const challenge = await challengeFor(page, 'b11');
+    await expect(challenge).toHaveAttribute('data-kind', 'input');
+    await hydrate(page, 'b11');
+    await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
+    await typeIntoChallenge(challenge, FROZEN.map((v) => v * k).join(', '));
+    await expect(challenge.locator('[data-challenge-result]'), `${k} times (${FROZEN.join(', ')})`).toHaveText('Goal reached.');
+    await expect(challenge).toHaveAttribute('data-met', 'true');
+  }
 });
 
 test('challenge: a wrong population is not accepted', async ({ page }) => {
   await page.goto(ROUTE);
   const challenge = await challengeFor(page, 'b11');
   await hydrate(page, 'b11');
-  const boxes = control(page, 'b11', 'predictAnswer');
   const wrong = FROZEN.map((v, k) => (k === 0 ? v : 0));
-  for (const [k, v] of wrong.entries()) await boxes.nth(k).fill(String(v));
-  await control(page, 'b11', 'predictCheck').click();
-  await expect(out(page, 'b11', 'predictResult')).toHaveText(/^Not quite/);
-  await page.waitForTimeout(300);
-  await expect(challenge.locator('[data-challenge-result]')).toHaveCount(0);
+  for (const typed of [wrong, FROZEN.map(() => 0)]) {
+    await typeIntoChallenge(challenge, typed.join(', '));
+    await expect(challenge).toContainText('Not this one. Try another population.');
+    await page.waitForTimeout(300);
+    await expect(challenge.locator('[data-challenge-result]'), typed.join(', ')).toHaveCount(0);
+    await expect(challenge).not.toHaveAttribute('data-met', 'true');
+  }
 });
 
 test('anatomy', async ({ page }) => {
@@ -597,4 +614,153 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, red team round 1). Each test is a lens reproducer adopted here; where a
+// finding also names another lesson, only the M1 part is adopted (the other parts are other fixes).
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from site/tests/unit/redteam-RT-08-computation-range.test.ts (lens RT-08), M1 part.
+  // regression: P3-RT-08-01
+  test('"verified by computation" is never stated over every board of finite type without a range', () => {
+    // The check behind Kostant's game (golden key kostant) covers the named types of rank at most 8.
+    const kostant = Object.keys(GOLDEN.kostant);
+    expect(kostant.length).toBe(32);
+    expect(kostant).not.toContain('A9');
+    // "verified by computation" followed by "every board" or "every such board" with no rank,
+    // group-size or named-board limit.
+    const OVERCLAIM = /verified by computation (for|on) every (such )?board(?! of finite type of rank)(?! whose group)(?! of rank)(?! the site offers)[^.;'`]*/g;
+    const hits = [...readFileSync(LESSON_PATH, 'utf8').matchAll(OVERCLAIM)].map((m) => m[0]);
+    expect(hits, 'm1-mutation.mdx claims a computation on every board').toEqual([]);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-07-kostant-range.test.ts (lens RT-09), M1 part.
+  // regression: P3-RT-09-07
+  test("M1 states the range of the Kostant's game checks as checked", () => {
+    const ranks = Object.keys(GOLDEN.kostant).map((t) => GOLDEN.types[t]!.cartan.length);
+    expect(Object.keys(GOLDEN.kostant).length).toBe(32);
+    expect(Math.max(...ranks)).toBe(8);
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    // SEEN_STARTS, the provenance of the Kostant statement of the Seen box.
+    const value = /export const SEEN_STARTS = '([^']*)'/.exec(source)?.[1] ?? '';
+    expect(value).toMatch(/^verified by computation/);
+    expect(value, `M1 prints "${value}"; the checks cover the types of rank at most 8 (SPEC 2.7, golden kostant)`).toMatch(/rank at most/);
+    expect(value).toMatch(/every starting city/);
+    // Beat 3: the clause that gives the provenance of the F13 sentence.
+    const beat3 = /<Beat n=\{3\}>([\s\S]*?)<\/Beat>/.exec(source)![1]!;
+    const clauses = beat3.split(/(?<=[.;])\s+/).filter((s) => /verified by computation/.test(s));
+    expect(clauses.length).toBeGreaterThan(0);
+    for (const clause of clauses) {
+      expect(clause, `M1 beat 3 prints "${clause}"; the checks cover rank at most 8`).toMatch(/rank at most/);
+      expect(clause).toMatch(/every starting city/);
+    }
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-03-lie-theory-kostant.test.ts (lens RT-09), M1 part.
+  // The reproducer held the page's sentence against the engine on B2; here the oracle's B2 play is
+  // the counterexample, and the sentence must carry the hypotheses of F13 that exclude it.
+  // regression: P3-RT-09-03
+  test("the Lie theory paragraph states Kostant's game with the hypotheses of F13", () => {
+    // oracle: python3 -c "import sys; sys.path.insert(0, 'reference'); import lie_games as L; print(L.kostant_play(L.cartan('B', 2), 0))"
+    // gives ((1, 2), [1]): on B2 from city 1 the one raising move adds two copies of the simple root
+    // of city 2 (SPEC 2.7 F13: exactly one only on a simply laced board). Golden kostant.B2 agrees.
+    expect(GOLDEN.kostant.B2!.end_from_node[0]).toEqual([1, 2]);
+    expect(GOLDEN.kostant.B2!.moves_from_node[0]).toBe(1);
+    const lie = /<LieTheory>([\s\S]*?)<\/LieTheory>/.exec(readFileSync(LESSON_PATH, 'utf8'))?.[1] ?? '';
+    const sentences = lie.split(/(?<=\.)\s+/).filter((s) => /Kostant's game/.test(s));
+    expect(sentences.length, "the Lie theory paragraph names Kostant's game").toBeGreaterThan(0);
+    for (const s of sentences) {
+      expect(s, `M1 Lie theory: "${s}" (SPEC 2.7 F13 holds on simply laced boards of finite type)`).toMatch(/simply laced/);
+      expect(s).toMatch(/finite type/);
+    }
+  });
+
+  // Adopted from site/tests/e2e/redteam-RT-13-links.spec.ts (lens RT-13, attack 17), the M1 case:
+  // the module's board is the board of its first figure (SPEC 3 M1 row 1: A2), and the sandbox link
+  // opens it (SPEC 8.2 item 7, "the sandbox with this module's board loaded").
+  // regression: P3-RT-13-05
+  test('links answer, fragments exist, and the sandbox opens A2, the board of the first figure', async ({ page, baseURL }) => {
+    test.setTimeout(120000);
+    const [boardName, n] = ['A2', 2] as const;
+    await page.goto(ROUTE);
+    const firstFigure = page.locator('[data-tool]').first();
+    const firstLabel = (await firstFigure.locator('figure').first().getAttribute('aria-label')) ?? (await firstFigure.innerText());
+    expect(firstLabel, 'the first figure is on the module board').toContain(boardName);
+    const hrefs = [...new Set(await page.locator('article a[href]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? '')))]
+      .filter((h) => h.startsWith('/') || h.startsWith('#'));
+    const problems: string[] = [];
+    for (const h of hrefs) {
+      const url = new URL(h, new URL(ROUTE, baseURL)).href;
+      const [path, frag] = url.split('#');
+      const res = await page.request.get(path!);
+      if (res.status() !== 200) { problems.push(`${h}: status ${res.status()}`); continue; }
+      if (frag && !(await res.text()).includes(`id="${frag}"`)) problems.push(`${h}: no element with id ${frag}`);
+    }
+    const sandbox = page.locator('[data-link="sandbox"]');
+    await expect(sandbox).toHaveCount(1);
+    await sandbox.click();
+    const r = page.locator('[data-tool="sandbox"]').first();
+    await expect(r).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+    const label = `${await r.locator('figure').first().getAttribute('aria-label')}`;
+    const nodes = await r.locator('button[data-node][data-board="populations"], button[data-node][data-board="numbers"]').evaluateAll((els) => new Set(els.map((e) => (e as HTMLElement).dataset.node)).size);
+    if (!label.includes(` ${boardName}`) || nodes !== n) problems.push(`sandbox opens "${label.slice(0, 80)}" with ${nodes} nodes; the module's board is ${boardName} with ${n}`);
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  // Adopted from site/tests/e2e/redteam-RT-13-challenges.spec.ts (lens RT-13, attack 11), the M1
+  // case. The reproducer typed into the prediction boxes of b11, which a first answer disables for
+  // good; challenge 3 is now graded by its own box (Challenge's input kind), and the same steps are
+  // taken there: a wrong population, then the right one.
+  // regression: P3-RT-13-09
+  test('challenge 3: after one wrong try the reader can still type (1, 1, 1) and meet the goal', async ({ page }) => {
+    await page.goto(ROUTE);
+    const challenge = await challengeFor(page, 'b11');
+    await hydrate(page, 'b11');
+    await typeIntoChallenge(challenge, '1, 1, 0');
+    await expect(challenge).toContainText('Not this one');
+    await expect(challenge).not.toHaveAttribute('data-met', 'true');
+    // The goal asks the reader to type the population: try again with the right one.
+    await expect(challenge.getByRole('textbox', { name: 'Your population, entries in label order' })).toBeEnabled({ timeout: 2000 });
+    await typeIntoChallenge(challenge, '1, 1, 1');
+    await expect(challenge).toHaveAttribute('data-met', 'true');
+  });
+
+  // Adopted from site/tests/e2e/redteam-RT-13-terms.spec.ts (lens RT-13, attack 13), on the M1 page
+  // (the reproducer walks M0 to M5; the first uses on M0 belong to another fix). SPEC 8.4: "Define
+  // every term on first use and link later uses to a glossary entry". A block is a prose paragraph
+  // or list item, or a figure's visible caption and outputs, in document order; the first block of
+  // M1 that uses a term must define it (that block or the next) or link the glossary.
+  // regression: P3-RT-13-06
+  test('every term is defined or linked at its first occurrence on M1', async ({ page }) => {
+    const TERMS: { term: string; use: RegExp; definition: RegExp }[] = [
+      { term: 'finite (finite type)', use: /\bfinite type\b/, definition: /closes up when it has finitely many root populations/ },
+      { term: 'affine', use: /\baffine\b/, definition: /the site calls them affine/ },
+      { term: 'highest root', use: /\bhighest root\b/, definition: /This end is the highest root of the board/ },
+    ];
+    await page.goto(ROUTE);
+    const all = await page.evaluate(() => {
+      const found: { text: string; glossary: boolean }[] = [];
+      const visible = (el: Element) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden' && !el.closest('details:not([open])');
+      const text = (el: Element) => { const c = el.cloneNode(true) as Element; c.querySelectorAll('.katex-mathml, details, [data-live], .visually-hidden').forEach((x) => x.remove()); return (c.textContent ?? '').replace(/\s+/g, ' ').trim(); };
+      for (const el of document.querySelectorAll('article p, article li, article figcaption, article [data-out]')) {
+        if (!visible(el)) continue;
+        if (el.matches('p, li') && el.querySelector('p, li')) continue;
+        if (el.closest('[data-anatomy="lie-theory"], [data-anatomy="sources"], [data-statements]')) continue;
+        const t = text(el);
+        if (t) found.push({ text: t, glossary: !!el.querySelector('a[href*="glossary"]') });
+      }
+      return found;
+    });
+    const problems: string[] = [];
+    for (const { term, use, definition } of TERMS) {
+      const first = all.findIndex((b) => use.test(b.text));
+      const def = all.findIndex((b) => definition.test(b.text));
+      if (first < 0) continue;
+      const ok = all[first]!.glossary || def === first || def === first + 1;
+      if (!ok) problems.push(`${term}: first used on M1 in "${all[first]!.text.slice(0, 160)}"; defined ${def < 0 ? 'nowhere on M1' : `in "${all[def]!.text.slice(0, 100)}"`}`);
+    }
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
 });

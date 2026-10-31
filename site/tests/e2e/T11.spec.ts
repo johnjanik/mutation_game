@@ -170,7 +170,28 @@ test('D5 with the swap folds to C4', async ({ page }) => {
   await bigNode(page, 5).click();
   expect(await valuesOf(bigNodes(page))).toEqual(e.big);
   expect(await valuesOf(foldedNodes(page))).toEqual(e.folded);
-  await expect(live(page)).toHaveText(/^Fired nodes 4 and 5\. Node 3 now 3, node 4 now minus 1, node 5 now minus 1\. Move 1\.$/);
+  await expect(live(page)).toHaveText('Fired nodes 4 and 5. Node 3 now 3, node 4 now minus 1, node 5 now minus 1. Move 1.');
+});
+
+// SPEC 7.5 A-4 fixes no sentence for a move that changes nothing on a board with more than four nodes;
+// the site reads it as the shared changedOnly does, the head and the move ("Fired node 3. Move 1."), and
+// T11 read "... Nothing changed. Move k." (two readings). Whole sentences, typed.
+// regression: RT-FIX residual (small-fixes confirmer, two readings of a move that changes nothing)
+test('D5: a symmetric move that changes nothing is read as the head and the move', async ({ page }) => {
+  // From (0, 1, 1, 0, 0) node 1 and the orbit {4, 5} hold 0: firing them changes nothing.
+  const e = expected('D5', [1, 2, 3, 5, 4], [0, 1, 1, 0, 0], [1, 5], 'firing');
+  expect(e.big).toEqual(['0', '1', '1', '0', '0']);
+  await open(page, 'g=D5&c=n&s=0,1,1,0,0');
+  await expect(out(page, 'notice')).toHaveCount(0);
+  await expect(control(page, 'symmetry')).toHaveValue('1.2.3.5.4');
+  await bigNode(page, 1).click();
+  await expect(root(page)).toHaveAttribute('data-moves', '1');
+  expect(await valuesOf(bigNodes(page))).toEqual(['0', '1', '1', '0', '0']);
+  await expect(live(page)).toHaveText('Fired node 1. Move 1.');
+  await bigNode(page, 5).click();
+  await expect(root(page)).toHaveAttribute('data-moves', '2');
+  expect(await valuesOf(bigNodes(page))).toEqual(e.big);
+  await expect(live(page)).toHaveText('Fired nodes 4 and 5. Move 2.');
 });
 
 test('the average tab on A5 shows B3 and C3', async ({ page }) => {
@@ -200,7 +221,11 @@ test('A4 with the flip: the fold tab says an orbit contains an edge and the aver
   // A click makes no move; the reader hears why.
   await bigNode(page, 2).click();
   await expect(root(page)).toHaveAttribute('data-moves', '0');
-  await expect(live(page)).toContainText(PHRASE);
+  // The whole sentence (RT-FIX residual, the P3-RT-11-08 sibling in phase 4): the engine's reason, which is
+  // the phrase of SPEC 4 T11, then the orbit that contains an edge.
+  const reason = fold(B('A4'), symmetryInPositions(B('A4'), [4, 3, 2, 1])).reason;
+  expect(reason).toBe(PHRASE);
+  await expect(live(page)).toHaveText(`This board does not fold by this symmetry: ${reason}. The orbit {2, 3} contains an edge.`);
   await root(page).locator('[data-tab="average"]').click();
   await expect(out(page, 'averaged-name')).toHaveText(r.averaged_roots_type);
   await expect(out(page, 'averaged-name')).toHaveText('BC2');
@@ -506,4 +531,33 @@ test('at 320 pixels the two boards stack and the page has no horizontal scroll',
   const folded = (await out(page, 'folded-board').boundingBox())!;
   expect(Math.abs(folded.y - big.y)).toBeLessThan(2);
   expect(folded.x).toBeGreaterThanOrEqual(big.x + big.width - 1);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, phase 4 red-team round)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  /** Safe integers written as strings, anywhere in the derived tables. */
+  function safeAsStrings(doc: unknown, path = ''): string[] {
+    const found: string[] = [];
+    if (typeof doc === 'string') {
+      if (/^-?\d+$/.test(doc) && Number.isSafeInteger(Number(doc))) found.push(`${path}=${JSON.stringify(doc)}`);
+    } else if (Array.isArray(doc)) doc.forEach((v, k) => found.push(...safeAsStrings(v, `${path}[${k}]`)));
+    else if (doc && typeof doc === 'object') for (const [k, v] of Object.entries(doc)) found.push(...safeAsStrings(v, `${path}.${k}`));
+    return found;
+  }
+
+  // SPEC 6.6 Data export: "all integers as JSON numbers when safe and as decimal strings otherwise"; the
+  // averaged classes' form values 1 and 2 are integers (a fraction such as 1/2 stays p/q text).
+  for (const query of ['', 'g=A5&y=5.4.3.2.1&w=1', 'g=D4&y=3.2.4.1']) {
+    // regression: P4-RT-04-02
+    test(`tools/fold/${query ? `?${query}` : ''}: no safe integer is written as a string in Download data`, async ({ page }) => {
+      await open(page, query);
+      await page.waitForTimeout(1500);
+      const [dl] = await Promise.all([page.waitForEvent('download'), control(page, 'downloadData').click()]);
+      const doc = JSON.parse(readFileSync((await dl.path())!, 'utf8')) as { derived: unknown };
+      expect(safeAsStrings(doc.derived, 'derived')).toEqual([]);
+    });
+  }
 });

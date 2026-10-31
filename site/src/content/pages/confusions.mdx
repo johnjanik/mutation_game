@@ -1,0 +1,141 @@
+---
+title: "Common confusions"
+phase: 6
+released: true
+description: "Statements about the mutation game and the numbers game that are sometimes made and are not right, each with its correction and the source of the correction."
+---
+import { G, Cite, Unverified } from '@components/content';
+import { linkIfReleased } from '@lib/pages/released';
+
+export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
+export const notQuiver = linkIfReleased({ kind: 'page', slug: 'not-quiver-mutation' });
+export const openProblem = linkIfReleased({ kind: 'page', slug: 'open-problem' });
+export const history = linkIfReleased({ kind: 'page', slug: 'history' });
+
+{/* P6-A6: the common confusions of module M10 (decision D16: the corrections of SPEC.md Appendix D stated
+    publicly as general confusions, with no reference to the document they were found in), followed by
+    the statements of Appendix F that the site must not repeat, stated in the same general form and
+    without naming where they were found. Thirteen sections with the hook data-confusion. The comparison
+    table of quiver mutation is not repeated: the first section links to the page that holds it. The
+    bridge sentence of SPEC.md 2.4(a) stands in every section that translates a population by a = Cp.
+    The comparison of orders in the section on E8 rests on open item E17 and is wrapped; the order of the
+    group is printed with G outside the wrapper. No tool and no script. */}
+
+This page takes statements about the two games of this site that are sometimes made and are not right, and corrects each one, with the source of the correction. A **board** is a small graph of **nodes** joined by **roads**. In the **mutation game** each node is a **city** holding a **population**, a whole number of Martians, or of anti-Martians when it is negative; a **mutation** at <Term a="city">city</Term> $i$ replaces its population $p_i$ by $-p_i$ plus one copy of the population of every other city for each road from that city into city $i$. In the **numbers game** each <Term a="node">node</Term> holds a number, and **firing** node $i$ sends its number down each road that leaves the node and then changes the sign of the number; in **legal play** a node fires only when its number is positive. The **Cartan matrix** $C$ of a board has $2$ on its diagonal, and its entry $C_{ij}$ is minus the number of <Term a="roads">roads</Term> from node $j$ into node $i$. Below, $e_i$ is the population with one Martian in city $i$ and none elsewhere, and $I$ is the identity matrix.{glossary ? <> The <a href={glossary}>glossary</a> gives every word of the site beside the words of other authors.</> : null}
+
+<section data-confusion="board-fixed">
+
+## The board does not change
+
+It is sometimes said that the <Term a="mutation-game">mutation game</Term> changes the board itself: that a mutation turns round the roads at a node and adds or removes roads between its neighbours. In fact a mutation changes the <Term a="population">population</Term> of the city that mutates and nothing else, and the <Term a="board">board</Term> is the same throughout the game. Wildberger's paper says so in its sections 2 and 5: "a mutation at A changes only the population of A" <Cite k="W20"/>. The rule that turns arrows round is modelled on the quiver mutation of Fomin and Zelevinsky <Cite k="FZ02"/>, a different operation that shares the name, and the mutation game is not a combinatorial shadow of it.{notQuiver ? <> The page <a href={notQuiver}>What mutation does not mean</a> sets the two operations side by side.</> : null}
+
+</section>
+
+<section data-confusion="mutation-rule">
+
+## A mutation changes one entry
+
+It is sometimes said that a mutation at node $i$ acts on the whole vector by the update $x\mapsto x-x_iC^{\mathsf T}e_i$. That update changes the sign of $x_i$ and also changes the entries of the neighbours of $i$: it is how the <Term a="numbers-game">numbers game</Term> fires node $i$ on the reversed board, the board with every road turned round, whose <Term a="cartan-matrix">Cartan matrix</Term> is $C^{\mathsf T}$. In fact Wildberger's mutation is
+
+$$x\mapsto x-(e_i^{\mathsf T}Cx)\,e_i,\qquad\text{that is}\qquad x_i\mapsto x_i-\sum_jC_{ij}x_j,$$
+
+which changes the one entry $x_i$ and leaves every neighbour alone (<Cite k="W20"/>, section 5). As a matrix, the mutation at city $i$ is $S_i=I-e_ie_i^{\mathsf T}C$.
+
+</section>
+
+<section data-confusion="not-the-same-game">
+
+## The two games differ even on simply laced boards
+
+It is sometimes said that on a simply laced board, where each pair of joined nodes has exactly one road each way, the mutation game and the numbers game are the same game. In fact they are different games. The mutation at node $i$ is $S_i=I-e_ie_i^{\mathsf T}C$ and the firing of node $i$ is $R_i=I-Ce_ie_i^{\mathsf T}$. On a simply laced board $C$ is symmetric and $R_i=S_i^{\mathsf T}$: the two moves are transposes of each other, and at every node joined to another they are different matrices, since the mutation changes one entry and the firing changes that entry and the entries of its neighbours.
+
+The correct relations are
+
+$$CS_i=R_iC\qquad\text{and}\qquad R_i(C)=S_i(C^{\mathsf T})^{\mathsf T},$$
+
+and both follow from the two matrix forms: $CS_i=C-Ce_ie_i^{\mathsf T}C=R_iC$, and the transpose of $S_i$ written for the matrix $C^{\mathsf T}$ is $R_i$ written for $C$. The first relation says: translate a population $p$ into the position $a=Cp$, and a mutation at city $i$ becomes the firing of node $i$. The number on node $i$ is the amount by which a mutation would lower city $i$. The second relation says that firing on a board is the transpose of mutating on the <Term a="reversed-board">reversed board</Term>.
+
+The statement that the mutation game on $C$ is the numbers game on $C^{\mathsf T}$ holds for the two actions as maps on dual spaces, each the adjoint of the other; it fails as a claim that the two games have the same <Term a="position">positions</Term> and the same moves. Wildberger states the duality as Proposition 0.3 of his manuscript, $p\,s_x\tau=p\,\tau r_x$ with $\tau=A-2I$ (<Cite k="W-MS"/>, pp. 31 and 32). His dual population records the gain that a mutation would bring, $q=-Cp$, where this site records the drop, $a=Cp$. Every move is linear, so the two records give the same games.
+
+</section>
+
+<section data-confusion="no-sign-condition">
+
+## A mutation needs no sign condition
+
+It is sometimes said that a city may mutate only when its population has a certain sign. In fact any city may <Term a="mutate">mutate</Term> at any time, whatever its population (<Cite k="W20"/>, section 5). A condition defines a variant of the game: allowing only <Term a="raising-move">raising moves</Term> gives <Term a="kostants-game">Kostant's game</Term>, which is attributed to Kostant, and on the side of the numbers, allowing only the firing of positive numbers gives <Term a="legal-play">legal play</Term>.
+
+</section>
+
+<section data-confusion="weyl-group-positions">
+
+## The positions of the numbers game
+
+It is sometimes said that the positions of the numbers game are the roots. In fact, from a generic start, one whose numbers are all positive, the positions that legal play reaches match the elements of the Weyl group one for one, the <Term a="weyl-group">Weyl group</Term> being the group generated by the moves (Donnelly <Cite k="Don08"/>, Theorem 2.8; verified by computation on the boards of finite type of rank at most eight whose Weyl group has at most 60000 elements). The roots are the positions of the mutation game, the <Term a="root-population">root populations</Term>. They appear in the numbers game as the numbers fired: in a complete legal play from such a start $a$, the numbers fired are the sums $\sum_i c_ia_i$, one for each positive root population $c$ of the reversed board, each exactly once (Donnelly <Cite k="Don08"/>, Remark 2.13 and Theorem 5.2; verified by computation from random starts with every number positive, on every board of finite type of rank at most eight).
+
+</section>
+
+<section data-confusion="lattices">
+
+## Which lattice each game lives in
+
+It is sometimes said that the numbers game lives on the root lattice and the mutation game on the coroot lattice. In fact populations are points of the root lattice, written in the coordinates of the simple roots, and the <Term a="numbers">numbers</Term> of the numbers game are points of the weight lattice, written in the coordinates of the fundamental weights. The <Term a="the-translator">translator</Term> $a=Cp$ carries the first lattice into the second, onto a sublattice whose index is $\det C$. The number on node $i$ is the amount by which a mutation would lower city $i$. This is the standard reading of the two games in Lie theory, and the one this site uses throughout.
+
+</section>
+
+<section data-confusion="weight-lattice-formula">
+
+## The reflection formula acts on populations
+
+It is sometimes said that the reflection formula $p_i\mapsto p_i-\sum_jC_{ij}p_j$ acts on the weight lattice. In fact it acts on root coordinates: it is the mutation of a population $p$, whose entries are the coordinates of a point along the simple roots. The same reflection acting on weights, written in the coordinates of the fundamental weights, is the firing move of the numbers game, $a_j\mapsto a_j-C_{ji}a_i$ for every node $j$, which turns $a_i$ into $-a_i$. Translate a population by $a=Cp$, and the two moves correspond. The number on node $i$ is the amount by which a mutation would lower city $i$. Wildberger gives the two moves side by side in <Cite k="W03c"/>, section 2.
+
+</section>
+
+<section data-confusion="b-c-naming">
+
+## Wildberger's lists name B and C the other way round
+
+It is sometimes said that a list of boards names $B_n$ and $C_n$ as Wildberger does, and is therefore swapped relative to Bourbaki, when the $B_3$ of that list is Bourbaki's $B_3$. In fact, from rank 3 on, it is Wildberger's own lists that exchange the two letters: his "$B_3$" is <G k="wildberger_lists.names.B3"/>, and in general his "$B_n$" is Bourbaki's $C_n$ with the node order reversed, and his "$C_n$" is Bourbaki's $B_n$ with the node order reversed (<Cite k="W20"/>, section 9; <Cite k="W-MS"/>, pp. 23 to 29; verified by computation from the printed lists). So a text that says it follows Wildberger's naming may in fact follow Bourbaki's. This site uses Bourbaki's names and numbering throughout.
+
+</section>
+
+<section data-confusion="one-way-not-finite">
+
+## A board with a one-way road is not of finite type
+
+It is sometimes said that an automatic test for finite type works on any board, roads that run one way included. In fact a test that reports finite type on a board with a road in one direction only is wrong. On the <Term a="one-way-board">one-way board</Term> with one road from city 1 to city 2 and none back, start from one Martian in city 1, the population <G k="one_way_counterexample.start"/>, and mutate the cities in the order <G k="one_way_counterexample.moves" as="word"/>: the populations are $(1,1)$ and then <G k="one_way_counterexample.result"/>, and the root populations of this board form an infinite set (verified by computation). The results on <Term a="finite">finite</Term> type, and the invariant form behind them, assume that every road has a road back (<Cite k="W20"/>, sections 5, 6, 8 and 9).
+
+</section>
+
+<section data-confusion="roots-positive-or-negative">
+
+## Root populations have one sign only when roads run both ways
+
+It is sometimes said that on any board every root population is all <Term a="martians">Martians</Term> or all <Term a="anti-martians">anti-Martians</Term>. In fact this fails on the <Term a="one-way-board">one-way board</Term> above: <G k="one_way_counterexample.result"/> holds an anti-Martian in city 1 and a Martian in city 2. It holds on every <Term a="bidirected-board">board whose roads all run both ways</Term>, where a <Term a="root-population">root population</Term> has no negative entry or no positive entry. That is a standard fact of the theory of Kac-Moody algebras, verified by computation for every board of finite type of rank at most eight. A proof of it that uses only the game is still wanted, {openProblem ? <>as <a href={openProblem}>the page on the Mutation Conjecture</a> explains</> : 'as the page on the Mutation Conjecture explains'}.
+
+</section>
+
+<section data-confusion="positive-definite">
+
+## Positive definite forms are not only those of A, D and E
+
+It is sometimes said that the <Term a="invariant">invariant</Term> form of a board is positive definite exactly for the boards of types $A$, $D$ and $E$. In fact the boards of types $B$, $C$, $F$ and $G$, which have multiple roads, have <Term a="positive-definite">positive definite</Term> forms too. For a connected board with an invariant form, the form is positive definite exactly when the board is of finite type, one of $A_n$, $B_n$, $C_n$, $D_n$, $E_6$, $E_7$, $E_8$, $F_4$, $G_2$ (<Cite k="W20"/>, Theorem 8.8; verified by computation for every type of rank at most eight). On the boards of types $A$, $D$ and $E$, where every road has exactly one road back, the <Term a="form-value">form</Term> is the Tits form of the graph.
+
+</section>
+
+<section data-confusion="e8-orthogonal-group">
+
+## The order of the Weyl group of $E_8$
+
+The Weyl group of $E_8$, the group generated by the moves on that board, has <G k="types.E8.weyl_order"/> elements (verified by computation). <Unverified item="E17" fallback="How this group compares with orthogonal groups over the field of two elements is still being checked for this site.">It is sometimes said that this group is isomorphic to an orthogonal group over the field of two elements. In fact the orders of the two groups differ by a factor of 2.</Unverified>
+
+</section>
+
+<section data-confusion="manuscript-date">
+
+## Wildberger's manuscript is undated
+
+It is sometimes said that Wildberger's manuscript on the mutation game dates from 2003. In fact it is undated: an unpublished manuscript, circulated c. 2001 to 2004 <Cite k="W-MS"/>. Its author cited it as a preprint of 2001, and later as in preparation, and the PDF of the copy read for this site carries the metadata date 25 November 2004.{history ? <> The <a href={history}>history page</a> places it among the other sources.</> : null}
+
+</section>

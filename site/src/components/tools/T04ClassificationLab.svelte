@@ -15,7 +15,7 @@
   // 'verdict', 'hunter'), caption, layers (default 40), and the plan properties boardPresets (the test
   // boards, read from the golden file at build time by components/board/editor/presets.ts) and hunter.
   import { untrack } from 'svelte';
-  import { CAPS } from '@two-games/engine';
+  import { CAPS, orbitGraph } from '@two-games/engine';
   import type { AnyBoard, OrbitGraph } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import BoardEditor from '../board/BoardEditor.svelte';
@@ -25,7 +25,7 @@
   import type { EditorChange, EditorPreset } from '../board/editor/types';
   import { decodeState, LINK_NOTICE } from '../../lib/urlCodec';
   import { exampleLoaded } from '../../lib/history';
-  import { engineCall } from '../../lib/worker';
+  import { engineCall, provide } from '../../lib/worker';
   import { integerOut, resolveBoard, type BoardSpec, type ToolState } from '../../lib/state';
   import type { Prediction } from '../../tools/types';
   import VerdictPanel from './t04/VerdictPanel.svelte';
@@ -33,6 +33,9 @@
   import { DEFAULT_LAYERS, counterHint, counterView, findMixed, hunterSentence, rootSearch, searchBounds, seedsOf } from './t04/counter';
   import { LAB_PRESETS, isLabPreset } from './t04/toolPresets';
   import { TOO_LONG_NOTICE, linkFits } from './t04/link';
+
+  // The engine function this tool calls by name through engineCall.
+  provide({ orbitGraph });
 
   interface Props {
     id?: string;
@@ -232,6 +235,10 @@
   // Keep counting (E-9 rule 1): a new search in the worker, never a continuation of the main one.
   // ------------------------------------------------------------------------------------------
 
+  /** The "keep counting" button and the counter around it, for the focus (A-1, WCAG 2.4.3). */
+  let keepButton: HTMLButtonElement | null = $state(null);
+  let counterSection: HTMLElement | null = $state(null);
+
   function keepCounting(announce: (t: string) => void): void {
     if (!canKeepCounting || counting) return;
     const b = theBoard;
@@ -243,6 +250,8 @@
     engineCall('orbitGraph', [b, seedsOf(b), 'mutation', CAPS.workerPositions, maxDepth] as never, counterHint(b, CAPS.workerPositions, false))
       .then((g) => {
         if (b !== theBoard) return;
+        // The button goes once the count is in; a focus left on it moves to the counter, never to the page.
+        if (keepButton !== null && document.activeElement === keepButton) counterSection?.focus();
         worker = { board: b, graph: g as OrbitGraph<unknown> };
         const v = counterView(g as OrbitGraph<unknown>, maxDepth, CAPS.workerPositions);
         announce(`Found ${v.found} root populations. ${v.stop ?? ''}`.trim());
@@ -250,6 +259,8 @@
       .catch((e: unknown) => {
         if (b !== theBoard) return;
         counterNotice = `The count could not be continued: ${e instanceof Error ? e.message : String(e)}`;
+        // A-4: each result is announced in the tool's one polite live region, this one too.
+        announce(counterNotice);
       })
       .finally(() => {
         counting = false;
@@ -323,7 +334,7 @@
 {/snippet}
 
 {#snippet counter(api: FrameApi)}
-  <section class="counter" aria-label="Root counter">
+  <section class="counter" aria-label="Root counter" tabindex="-1" bind:this={counterSection}>
     <p class="line">
       Root populations found: <span class="numeral" data-out="rootCount">{view.found}</span>{view.ended === 'complete' ? ', all of them' : ''}.
     </p>
@@ -345,8 +356,16 @@
       <p class="line" data-out="stopMessage">{view.stop}</p>
     {/if}
     {#if canKeepCounting}
-      <button type="button" class="control" data-control="keepCounting" disabled={!api.hydrated || counting} onclick={() => keepCounting(api.announce)}
-        >keep counting</button
+      <!-- While the count runs the button is done but keeps the focus (aria-disabled; disabled only before
+           hydration, 7.4); keepCounting() ignores a second press. -->
+      <button
+        type="button"
+        class="control"
+        data-control="keepCounting"
+        disabled={!api.hydrated}
+        aria-disabled={counting ? 'true' : undefined}
+        bind:this={keepButton}
+        onclick={() => keepCounting(api.announce)}>keep counting</button
       >
     {/if}
     {#if counting}
@@ -489,11 +508,13 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,
   .cell:focus-visible,
+  .counter:focus-visible,
   .switch input:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;

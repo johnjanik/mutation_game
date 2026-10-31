@@ -13,11 +13,12 @@
   // layers (ignored: T9 grows no set, 4.0 "Growth off the finite types" does not bind it), and the plan
   // property boardChoices (limits the picker; M1 row 3 passes ['A3', 'D4', 'E8']).
   import { untrack } from 'svelte';
-  import { CAPS, EngineOverflow } from '@two-games/engine';
+  import { CAPS, EngineOverflow, toLabels, toPositions } from '@two-games/engine';
   import type { AnyBoard, Board as EngineBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { nodePositions } from '../draw/layouts';
@@ -123,6 +124,12 @@
   /** Phase 2: a "play on" is running (in the worker); the board waits for it. */
   let busy = $state(false);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
 
   const touch = (): void => {
     version++;
@@ -185,7 +192,7 @@
   const layout = $derived(nodePositions(anyBoard));
   const px = $derived(toPixels(layout, 2 * MARGIN + layout.columns * REF_UNIT));
   const centres = $derived(px.centres.map(([x, y]) => [(x - MARGIN) / REF_UNIT, (y - MARGIN) / REF_UNIT] as [number, number]));
-  const markedPositions = $derived(new Set(panel === null ? [] : panel.marked.map((l) => anyBoard.labels.indexOf(l))));
+  const markedPositions = $derived(new Set(panel === null ? [] : toPositions(anyBoard, panel.marked)));
 
   // ------------------------------------------------------------------------------------------
   // Loading a state (a link, the back button, a picker, the start city)
@@ -225,7 +232,12 @@
       return;
     }
     notice = n;
-    if (encodeState(admitted) !== encodeState(toState(game))) load(admitted);
+    if (encodeState(admitted) === encodeState(toState(game))) return;
+    if (!predictionResolved && encodeState(admitted) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(admitted);
   }
 
   // Hydration: read the URL once with the instance prefix (6.6). Never a move by itself (4.0).
@@ -267,7 +279,8 @@
   }
 
   function step(announce: (t: string) => void): void {
-    if (frozen || busy) return;
+    // The state in which Step is aria-disabled (atEnd or busy): a press does nothing (RT-FIX P3-RT-05-09).
+    if (frozen || busy || atEnd) return;
     let k: number | null;
     try {
       k = stepPosition(game.board as EngineBoard<unknown>, game.current.pop!);
@@ -368,14 +381,13 @@
     announce(`One Martian in city ${label}.`);
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
+    return historyNames(g.moves.length, g.cursor, (k) => {
       const s = g.shownAt(k);
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: populations ${inLabelOrder(g.board, s.populations ?? []).map(spokenValue).join(', ')}`);
-    }
-    return out;
+      return `${k === 0 ? 'Start' : `After move ${k}`}: populations ${inLabelOrder(g.board, s.populations ?? []).map(spokenValue).join(', ')}`;
+    });
   });
 
   const display = (v: string): string => v.replace(/^-/, '−');
@@ -414,7 +426,7 @@
   <div class="t09" data-board-name={title} onkeydown={(e) => onKeydown(e, api.announce)}>
     <p class="line" data-out="goal" data-met={goalMet ? 'true' : 'false'}>Goal: make no city unhappy.</p>
     <p class="line" data-out="goalMet">{goalMet ? 'Goal reached.' : ''}</p>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     <div class="board-host">
@@ -437,7 +449,7 @@
               {@render glyph(MOOD_SHAPE[moodsNow[k]!], x + 0.3, y + 0.33, 0.07)}
             </g>
             {#if markedPositions.has(k)}
-              <g class="mark" data-mark={anyBoard.labels[k]}>
+              <g class="mark" data-mark={toLabels(anyBoard, [k])[0]}>
                 <circle cx={x} cy={y} r="0.42" />
                 <path d="M {x - 0.4} {y - 0.33} h 0.12 M {x - 0.34} {y - 0.39} v 0.12" />
               </g>
@@ -515,13 +527,24 @@
 {/snippet}
 
 {#snippet controls(api: FrameApi)}
-  <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || atEnd || busy} onclick={() => step(api.announce)}>Step</button>
+  <!-- A play control that its own press makes inactive (a play running, the end reached) keeps the focus:
+       aria-disabled, its handler doing nothing then; the disabled attribute only before hydration (7.4)
+       and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+  <button
+    type="button"
+    class="control"
+    data-control="step"
+    disabled={!api.hydrated || frozen}
+    aria-disabled={!frozen && (atEnd || busy) ? 'true' : undefined}
+    onclick={() => step(api.announce)}>Step</button
+  >
   <button
     type="button"
     class="control"
     data-control="playToEnd"
     data-play={playLabel.play}
-    disabled={playDisabled({ hydrated: api.hydrated, frozen, busy, atEnd, playOn: control === 'play on', cursor: cur().cursor })}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={!frozen && playDisabled({ hydrated: true, frozen: false, busy, atEnd, playOn: control === 'play on', cursor: cur().cursor }) ? 'true' : undefined}
     onclick={() => playToEnd(api.announce)}>{playLabel.text}</button
   >
   <label class="setting">
@@ -573,7 +596,7 @@
               data-table-node={l}
               disabled={!api.hydrated || frozen}
               aria-label="Mutate city {l}, population {spokenValue(popsInOrder[j]!)}, {MOOD_STATE[moodsInOrder[j]!]}"
-              onclick={() => act(anyBoard.labels.indexOf(l), api.announce)}>City {l}</button
+              onclick={() => act(toPositions(anyBoard, [l])[0]!, api.announce)}>City {l}</button
             >
           </th>
           <td class="numeral" data-table-value="population">{display(popsInOrder[j]!)}</td>
@@ -710,7 +733,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   /* Phase 2: the "add the city" link is a 44-pixel target like the buttons (A-7), placed at the start. */

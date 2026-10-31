@@ -539,13 +539,9 @@ beforeAll(async () => {
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     optimizeDeps: { noDiscovery: true, include: [] },
     plugins: [svelte({ configFile: false })],
-    resolve: {
-      alias: {
-        '@engine': join(SITE, '../packages/engine/src/index.ts'),
-        '@components': join(SITE, 'src/components'),
-        '@lib': join(SITE, 'src/lib'),
-      },
-    },
+    // The aliases of CONTRACTS.md 1 from their one declaration, the paths of site/tsconfig.json (RT-FIX
+    // P3-RT-12-05 and its residual; site/tests/unit/aliases-one-source.test.ts refuses a copy).
+    resolve: { tsconfigPaths: true },
   });
   renderFn = ((await server.ssrLoadModule('svelte/server')) as { render: typeof renderFn }).render;
   Component = ((await server.ssrLoadModule('/src/components/tools/T15AffinePlayground.svelte')) as { default: unknown }).default;

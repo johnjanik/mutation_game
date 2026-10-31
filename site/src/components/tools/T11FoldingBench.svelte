@@ -16,6 +16,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import OrbitOverlay from './t11/OrbitOverlay.svelte';
   import { shortcutOf } from '../board/keyboard';
@@ -99,6 +100,12 @@
   let notice = $state<string | null>(null);
   let busy = $state(false);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
   let generation = 0;
 
   const touch = (): void => {
@@ -117,7 +124,8 @@
   const boards = $derived(cur().boards());
   const bigValues = $derived(cur().bigValues());
   const foldedValues = $derived(cur().foldedValues());
-  const bigCanAct = $derived(frozen ? ctx.orbitOf.map(() => false) : cur().canAct());
+  const noneCanAct = $derived(ctx.orbitOf.map(() => false));
+  const bigCanAct = $derived(frozen ? noneCanAct : cur().canAct());
   const foldedCanAct = $derived(ctx.orbits.map(() => folds && !frozen));
   const toolState = $derived(cur().state());
   const isNumbers = $derived(cur().view === 'numbers');
@@ -157,10 +165,11 @@
     return `${first}${second}${averaged !== null ? `; averaged roots ${averaged.name}` : ''}.`;
   });
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const b = cur();
     const noun = isNumbers ? 'numbers' : 'populations';
-    return Array.from({ length: b.moves.length + 1 }, (_, k) => `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${spokenList(b.bigInLabelOrder(k))}`);
+    return historyNames(b.moves.length, b.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: ${noun} ${spokenList(b.bigInLabelOrder(k))}`);
   });
 
   // ------------------------------------------------------------------------------------------
@@ -212,7 +221,12 @@
   function readLink(): void {
     const { state, notice: n } = admitLink(window.location.search, defaults, instanceId);
     notice = n;
-    if (encodeState(state) !== encodeState(bench.state())) load(configOf(state));
+    if (encodeState(state) === encodeState(bench.state())) return;
+    if (!predictionResolved && encodeState(state) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(configOf(state));
   }
 
   // Hydration: read the URL once with the instance prefix (6.6).
@@ -344,10 +358,31 @@
   </ul>
 {/snippet}
 
+<!-- The big board with its orbits coloured: played on the fold tab; on the average tab (RT-FIX P4-MERGE-01) the
+     same drawing is the tab's default figure (4.0, 7.4: the SVG board with its values), with no node to act on. -->
+{#snippet bigPanel(api: FrameApi, play: boolean)}
+  <div class="panel" class:numbers={isNumbers} class:populations={!isNumbers} data-out="big-board">
+    <p class="panel-title">Big board {spec}</p>
+    <div class="board-host">
+      <OrbitOverlay board={anyBoard(boards.big)} colours={bigColours} {badges} />
+      <Board
+        board={anyBoard(boards.big)}
+        values={bigValues}
+        {game}
+        canAct={play ? bigCanAct : noneCanAct}
+        name="Big board {spec}"
+        disabled={!play || !predictionResolved || busy}
+        hintFor={tooltip(bigValues)}
+        onAct={(k) => act(ctx.orbitOf[k]!, api.announce)}
+      />
+    </div>
+  </div>
+{/snippet}
+
 {#snippet figure(api: FrameApi)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="t11" data-view={cur().view} data-tab-shown={tab} onkeydown={(e) => onKeydown(e, api.announce)}>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={bigLabels} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     <p class="line" data-out="symmetry">Symmetry of {spec}: <span class="numeral">{symmetryText(ctx)}</span>.</p>
@@ -381,22 +416,7 @@
           {/if}
         </p>
         <div class="boards">
-          <div class="panel" class:numbers={isNumbers} class:populations={!isNumbers} data-out="big-board">
-            <p class="panel-title">Big board {spec}</p>
-            <div class="board-host">
-              <OrbitOverlay board={anyBoard(boards.big)} colours={bigColours} {badges} />
-              <Board
-                board={anyBoard(boards.big)}
-                values={bigValues}
-                {game}
-                canAct={bigCanAct}
-                name="Big board {spec}"
-                disabled={!predictionResolved || busy}
-                hintFor={tooltip(bigValues)}
-                onAct={(k) => act(ctx.orbitOf[k]!, api.announce)}
-              />
-            </div>
-          </div>
+          {@render bigPanel(api, true)}
           {#if folds}
             <div class="panel" class:numbers={isNumbers} class:populations={!isNumbers} data-out="folded-board">
               <p class="panel-title">
@@ -443,6 +463,7 @@
               data-name={foldedName}>{@render typeset(foldedName)}</span
             >{/if}.
         </p>
+        {@render bigPanel(api, false)}
         <table class="classes" data-out="averaged-classes">
           <caption>Length classes of the averaged roots</caption>
           <thead>

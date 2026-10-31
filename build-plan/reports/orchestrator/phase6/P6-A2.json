@@ -1,0 +1,342 @@
+{
+ "agent": "P6-A2",
+ "status": "done",
+ "branch": "worktree-agent-a0ed324c409fb7744",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a0ed324c409fb7744",
+ "commits": [
+  "88bf77c P6-A2: satakeCatalogue and satakeRecord; satake golden test for 167 records",
+  "9d9f615 P6-A2: canonicalPair and matchCatalogue tests; folding quasi-split real forms",
+  "4b36f91 P6-A2: admissible_counts golden test; records computed once before the tests",
+  "72f89ab P6-A2: names.json holds the real forms, Cartan labels and restricted types",
+  "74ed5d7 P6-A2: decisions fragment; the assert of the C2 adjustment tested"
+ ],
+ "filesChanged": [
+  "packages/engine/src/satakeCatalogue.ts",
+  "packages/engine/src/index.ts",
+  "packages/engine/test/golden/p6b-satake-records.test.ts",
+  "packages/engine/test/golden/p6b-admissible-counts.test.ts",
+  "packages/engine/test/golden/p6b-quasi-split.test.ts",
+  "packages/engine/test/golden/p6b-match.test.ts",
+  "packages/engine/test/golden/p6b-guards.test.ts",
+  "scripts/names.mjs",
+  "site/tests/unit/names-catalogue.test.ts",
+  "decisions/P6-A2.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard dff494c; git log -1",
+   "exit": 0,
+   "summary": "HEAD is now at dff494c MERGE: pin the phase 6 export names; fold P6-A1's fragment; record stage 6.1 (P6-A1)"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed from the lockfile; node v22.22.0"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "all three match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "python3 scratchpad/p6-a2/shapes.py, oracle_canon.py, oracle_canon2.py",
+   "exit": 0,
+   "summary": "golden shapes printed (167 records, 27 keys in oracle order, 36 restricted names, 24 labels); canonical_pair and match_catalogue examples from the oracle match the test values"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npx vitest run --root packages/engine test/golden/p6b",
+   "exit": 0,
+   "summary": "Test Files 5 passed (5); Tests 136 passed (136) (before the C2-assert test; p6b-guards later 50 passed)"
+  },
+  {
+   "cmd": "npm test -w packages/engine",
+   "exit": 1,
+   "summary": "Test Files 1 failed | 85 passed (86); Tests 1 failed | 2666 passed (2667). The only failure is test/unit/p1-api.test.ts, the pinned export list (130 names against 126), as expected; requested from MERGE"
+  },
+  {
+   "cmd": "node -e (coverage.json: phase-6 keys and missingByPhase)",
+   "exit": 0,
+   "summary": "all five phase-6 keys present: satake, admissible_pairs, admissible_counts, satake_examples, folding[*].quasi_split_real_form; missingByPhase['6'] = []"
+  },
+  {
+   "cmd": "npm test (root: engine + site-unit), two runs",
+   "exit": 1,
+   "summary": "Test Files 2 failed | 177 passed (179); Tests 2 failed | 3643 passed (3645). The failures were p1-api.test.ts (expected) and site/tests/unit/tools/T12.test.ts 'on every node built, minusculeNodes agrees ...', which hit the 5000 ms timeout at load average 13 to 15 caused by other agents. Run alone, T12 passes 82/82 (that test 2891 ms)"
+  },
+  {
+   "cmd": "vitest run (whole suite) excluding P6-A2's new test files, scratch run-without.sh",
+   "exit": 1,
+   "summary": "8 failed | 170 passed files at load average 12 to 17: 7 timeouts at 5000 ms (T12 among them, also T03, T11, T15, history, two repo-playwright tests) plus p1-api. So the T12 timeout comes from load, not from P6-A2's files"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/names-catalogue.test.ts site/tests/unit/katex.test.ts",
+   "exit": 0,
+   "summary": "Test Files 2 passed (2); Tests 17 passed (17)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T10.test.ts site/tests/unit/katex.test.ts site/tests/unit/names-catalogue.test.ts site/tests/unit/scripts.test.ts",
+   "exit": 0,
+   "summary": "Test Files 4 passed (4); Tests 75 passed (75) (after the build had written names.json)"
+  },
+  {
+   "cmd": "npm run check -w site (astro check + svelte-check)",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings, 1 hint (existing, T06.spec.ts); svelte-check: 0 errors, 1 warning (existing, LayerChart.svelte)"
+  },
+  {
+   "cmd": "node scripts/names.mjs",
+   "exit": 0,
+   "summary": "names: 32 types, 167 real forms, 24 Cartan labels, 36 restricted types typeset with katex 0.16.47"
+  },
+  {
+   "cmd": "git status --porcelain site/src/generated",
+   "exit": 0,
+   "summary": "prints nothing (the directory stays ignored)"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "prebuild names line as above; [build] Complete!; links: 1292 internal links on 35 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "grep -n \"from '\" packages/engine/src/satakeCatalogue.ts",
+   "exit": 0,
+   "summary": "imports only ./board, ./errors, ./fold, ./guards, ./satake; packages/engine/package.json \"dependencies\": {} unchanged"
+  },
+  {
+   "cmd": "python3 scratchpad/p6-a2/mutate.py (21 deliberate breakages of satakeCatalogue.ts, each reverted)",
+   "exit": 0,
+   "summary": "21 of 21 caught by the p6b tests, among them: no C2 reversal, restricted_type renamed C2, tau g, t[i]=g[tau[g[i]]], involutions only, arrows through black nodes, entries instead of records. Restored: 136 passed"
+  },
+  {
+   "cmd": "vitest scratch bench (records.bench.ts, not committed)",
+   "exit": 0,
+   "summary": "satakeRecord and matchCatalogue on E7 and E8 timed, results under recordTimings"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "working tree clean"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "satake: every field of all 167 records, matched by dynkin_type and real_form (G6)",
+   "status": "pass",
+   "test": "packages/engine/test/golden/p6b-satake-records.test.ts > satake records > every field of every record"
+  },
+  {
+   "item": "167 records, none missing or extra; field names exactly those of 6.4 (G6)",
+   "status": "pass",
+   "test": "p6b-satake-records.test.ts > the 167 records and no others, > field names of a record: the 27 names of the golden record, in its order, and no other"
+  },
+  {
+   "item": "6.4 Names in rank 2: restricted_type B2, display and board C2 exactly for su(2,2), sp(4,R), sp(2,2), so*(8); orbits reversed against satake; display equals restricted_type everywhere else",
+   "status": "pass",
+   "test": "p6b-satake-records.test.ts > SPEC.md 6.4 rules > the C2 adjustment"
+  },
+  {
+   "item": "6.4 compact rule: lists empty, four type fields null, arrows []",
+   "status": "pass",
+   "test": "p6b-satake-records.test.ts > SPEC.md 6.4 rules > compact forms"
+  },
+  {
+   "item": "2.15: tau non-trivial with no arrow exactly so(p,2n-p) (p<=n-2, n-p odd) and the compact forms of A_n (n>=2), D_n (n odd), E6; arrows plus tau moving black nodes exactly su(p,q) (q-p>=3) and e6(-14)",
+   "status": "pass",
+   "test": "p6b-satake-records.test.ts > SPEC.md 6.4 rules > tau hidden by the drawing (SPEC.md 2.15 \"What the diagram does not show\")"
+  },
+  {
+   "item": "6.4: every catalogue entry is admissible",
+   "status": "pass",
+   "test": "p6b-satake-records.test.ts > the catalogue > every entry is admissible"
+  },
+  {
+   "item": "E-5: satakeCatalogue gives each type's entries in the golden order",
+   "status": "pass",
+   "test": "p6b-satake-records.test.ts > the catalogue > catalogue order: each type gives its entries in the order of the golden records of that type"
+  },
+  {
+   "item": "admissible_counts for every type (G6)",
+   "status": "pass",
+   "test": "p6b-admissible-counts.test.ts > admissible_counts > counts of every type: <T> (32 tests)"
+  },
+  {
+   "item": "166 classes and 167 records; the catalogue covers every class; the only coincidence is so(2,6) = so*(8) on D4 (G6)",
+   "status": "pass",
+   "test": "p6b-admissible-counts.test.ts > 167 records, 166 classes, > one coincidence, on D4, > the catalogue covers every class of admissible pairs, and nothing else"
+  },
+  {
+   "item": "folding[*].quasi_split_real_form for the nine rows, null for the order-3 symmetry (G6)",
+   "status": "pass",
+   "test": "p6b-quasi-split.test.ts > folding[*].quasi_split_real_form > quasi-split real form of every folding row"
+  },
+  {
+   "item": "satake_examples real_forms names through matchCatalogue (G6; key registered by P6-A1)",
+   "status": "pass",
+   "test": "p6b-match.test.ts > matchCatalogue > real forms of the twelve examples"
+  },
+  {
+   "item": "T13: D4 black 3,4 (also 1,3 and 1,4) with identity matches so(2,6) and so*(8), displays B2 and C2; A2 black 1 identity returns []",
+   "status": "pass",
+   "test": "p6b-match.test.ts > matchCatalogue > D4 black 3 and 4 matches both forms, > a non-admissible pair matches nothing"
+  },
+  {
+   "item": "5.5: canonicalPair examples; invariance under the symmetries; matchCatalogue of any image of an entry contains its record",
+   "status": "pass",
+   "test": "p6b-match.test.ts > canonicalPair > canonical pair examples, > invariance under the symmetries: ... (D4 every pair; every catalogue entry), > tau is conjugated as g tau g^-1 ...; matchCatalogue > every catalogue entry matches its own record, and so does every image of it under a symmetry: <T>"
+  },
+  {
+   "item": "5.6 and E-11: NeedsTwoWayRoads on fromAdjacency([[0,1],[0,0]]), NotFiniteType on A2~ (and C2~, G2~, D4^(3), pentagon), NotABoard on Q7, all EngineError",
+   "status": "pass",
+   "test": "p6b-guards.test.ts > one-way board, > affine board, > unknown name"
+  },
+  {
+   "item": "E-10: satakeRecord('A2', black [0], identity) throws NotAdmissible; matchCatalogue on that pair returns [] and does not throw",
+   "status": "pass",
+   "test": "p6b-guards.test.ts > NotAdmissible from satakeRecord"
+  },
+  {
+   "item": "malformed tau or black throws RangeError; arguments unchanged; unnamed board in matchCatalogue throws RangeError",
+   "status": "pass",
+   "test": "p6b-guards.test.ts > malformed diagrams, > arguments unchanged, > unnamed board"
+  },
+  {
+   "item": "7.3 and 6.5: names.json realForms, cartanLabels, restrictedTypes against the engine; html equals renderTex(tex, false) with <math; su*(4) alt sl(2,H); TeX of e6(-14) and sp(4,R); unknown spelling throws; names still the 32 type keys; katex.test.ts passes",
+   "status": "pass",
+   "test": "site/tests/unit/names-catalogue.test.ts > real forms, > Cartan labels, > restricted types, > the 32 type names are unchanged; site/tests/unit/katex.test.ts"
+  },
+  {
+   "item": "7.3: node scripts/names.mjs exits 0 and git status --porcelain site/src/generated prints nothing",
+   "status": "pass",
+   "test": "commandsRun (both pasted)"
+  },
+  {
+   "item": "CONTRACTS 2.1: dependencies {} unchanged; satakeCatalogue.ts imports only from src/",
+   "status": "pass",
+   "test": "grep -n \"from '\" packages/engine/src/satakeCatalogue.ts (commandsRun)"
+  },
+  {
+   "item": "tsc passes; engine suite passes; coverage.json lists all five phase-6 keys with missingByPhase['6'] empty (G6)",
+   "status": "fail",
+   "test": "tsc and coverage pass. The engine suite has one known failure, test/unit/p1-api.test.ts: the pinned export list is outside my files and its update is requested from MERGE"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "CONTRACTS 3",
+   "what": "satake_examples compared in p6b-match.test.ts (real_forms) without covers(); registered only by P6-A1",
+   "why": "the roster splits satake_examples between P6-A1 (verdicts) and P6-A2 (real_forms names, which need matchCatalogue)"
+  },
+  {
+   "spec": "P6-A2 instruction 5.2 (guards 'as the first statement')",
+   "what": "argument shape checks (RangeError) run before requireGcm/requireFinite; satakeRecord builds the board from its name first (NotABoard); both run before any computation",
+   "why": "the engine-wide order MERGE accepted for P6-A1 (shape, then kind, then class)"
+  },
+  {
+   "spec": "P6-A2 instruction 5.6 (plan for unnamed boards)",
+   "what": "matchCatalogue also throws the same RangeError when the board's matrix is not the standard matrix of its name",
+   "why": "defensive: a hand-made object carrying another board's name must not match the wrong catalogue; no named engine board is affected"
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE",
+   "what": "In packages/engine/test/unit/p1-api.test.ts append 'satakeCatalogue', 'satakeRecord', 'canonicalPair', 'matchCatalogue' to PHASE_6_NAMES. This is the only failing test of the engine suite on this branch."
+  },
+  {
+   "to": "MERGE",
+   "what": "Decide the satake_examples coverage deviation: p6b-match.test.ts reads real_forms without covers('satake_examples'); P6-A1's p6a-satake-examples.test.ts registers the key."
+  },
+  {
+   "to": "MERGE (owner of site/tests/unit/tools/T12.test.ts: P5-A2)",
+   "what": "Consider an explicit timeout on 'T12 cap and verdict > on every node built, minusculeNodes agrees ...'. The test takes 2.9 s alone at load average 14 and hit Vitest's 5000 ms default in both full npm test runs here. A run without P6-A2's files showed the same timeout, along with six others."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P6-A2.md",
+ "openQuestions": [
+  "Coverage: satake_examples is registered by P6-A1 (p6a-satake-examples.test.ts) and read without covers() by p6b-match.test.ts for real_forms. satake is registered by p6b-satake-records.test.ts while P6-A1's computed, restricted and property-9 files read it without covers().",
+  "matchCatalogue on a board without a name (custom finite board, sub-board, the unnamed C2 matrix, the sum of two A2) throws RangeError('matchCatalogue needs a board built by boardFromName'). The same applies to a board whose matrix is not its name's standard matrix (my addition). canonicalPair works on every finite board.",
+  "Error classes of satakeCatalogue and satakeRecord on names: unknown names (Q7, A0, B1, D3, E9, BC2, '') throw NotABoard from boardFromName. Affine, twisted and preset names (A2~, C2~, G2~, D4^(3), pentagon) throw NotFiniteType from the guard. Ranks beyond 8 follow the parametric rules.",
+  "names.json section names (realForms, cartanLabels, restrictedTypes) and the TeX of Cartan labels (\\text{A III}, \\text{compact}) are the plan's; please confirm.",
+  "Affine and twisted names (C2~, D4^(3)) are not in names.json, and texOfName('A4~') still throws. Should they belong there? P0-A3's note says P6-A2 extends texOfName to them, but its own test asserts the throw.",
+  "The README roster table (line 174) lists admissible_counts under P6-A1, while rosters/phase-6.json and this instruction give it to P6-A2. I followed the JSON; P6-A1 did not register it."
+ ],
+ "coverageKeys": {
+  "registeredByP6A2": [
+   "satake",
+   "admissible_counts",
+   "folding[*].quasi_split_real_form"
+  ],
+  "registeredByP6A1": [
+   "admissible_pairs",
+   "satake_examples"
+  ],
+  "allFivePhase6KeysInCoverageJson": true,
+  "missingByPhase6": []
+ },
+ "namesJson": {
+  "topLevelKeys": {
+   "katex": "0.16.47",
+   "names": 32,
+   "realForms": 167,
+   "cartanLabels": 24,
+   "restrictedTypes": 36
+  },
+  "cartanLabelTex": "\\text{<label>}, e.g. \\text{A III}, \\text{compact}",
+  "realFormTex": "sl(N,R) -> \\mathfrak{sl}(N,\\mathbb{R}); su*(N) -> \\mathfrak{su}^*(N); su/so/sp(p,q) and (N) -> \\mathfrak{su|so|sp}(...); so*(N) -> \\mathfrak{so}^*(N); sp(N,R) -> \\mathfrak{sp}(N,\\mathbb{R}); e6(-14) -> \\mathfrak{e}_{6(-14)} (likewise e7, e8, f4, g2)",
+  "alt": "su*(2m) entries carry alt: { text: 'sl(m,H)', tex: '\\mathfrak{sl}(m,\\mathbb{H})', html }: su*(4)/sl(2,H), su*(6)/sl(3,H), su*(8)/sl(4,H)",
+  "restrictedTypesTex": "texOfName, extended to BC followed by a rank: BC2 -> BC_{2}, C2 -> C_{2}",
+  "newExports": [
+   "texOfRealForm",
+   "altOfRealForm",
+   "texOfCartanLabel"
+  ]
+ },
+ "recordTimings": [
+  {
+   "real_form": "e7(7)",
+   "satakeRecordMedianMs": 11.43,
+   "matchCatalogueMedianMs": 6.91
+  },
+  {
+   "real_form": "e7(-5)",
+   "satakeRecordMedianMs": 6.45,
+   "matchCatalogueMedianMs": 4.77
+  },
+  {
+   "real_form": "e7(-25)",
+   "satakeRecordMedianMs": 2.29,
+   "matchCatalogueMedianMs": 2.92
+  },
+  {
+   "real_form": "e7(-133)",
+   "satakeRecordMedianMs": 5.34,
+   "matchCatalogueMedianMs": 4.15
+  },
+  {
+   "real_form": "e8(8)",
+   "satakeRecordMedianMs": 6.91,
+   "matchCatalogueMedianMs": 7.14
+  },
+  {
+   "real_form": "e8(-24)",
+   "satakeRecordMedianMs": 7.1,
+   "matchCatalogueMedianMs": 8.53
+  },
+  {
+   "real_form": "e8(-248)",
+   "satakeRecordMedianMs": 7.5,
+   "matchCatalogueMedianMs": 7.37
+  },
+  {
+   "machine": "cloud container, 4 processors, Node 22.22.0, median of 7 runs, at load average 8.4 from other agents (noisy). The scratch bench is not committed."
+  }
+ ],
+ "handoff": "For P6-A3 (T13): matchCatalogue(d) returns full SatakeRecords (positions, golden field names), in catalogue order, and never throws NotAdmissible. On D4 it returns two records (so(2,6) then so*(8), displays B2 and C2), [] for a pair that is not admissible, and RangeError for a board without a name. Typeset names are in site/src/generated/names.json: realForms[real_form] (with alt for su*(2m)), cartanLabels[cartan_label] and restrictedTypes[restricted_type_display]. For P6-A4 (Atlas): satakeCatalogue(name) then satakeRecord(name, entry) give every real form of a board at build time, with C2 already applied to restricted_board and restricted_orbits_in_bourbaki_order; print restricted_type_display."
+}

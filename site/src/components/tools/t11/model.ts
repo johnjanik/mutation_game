@@ -591,12 +591,13 @@ export function captionFor(ctx: FoldContext, tab: 'fold' | 'average'): string {
 // Announcements (A-4 punctuation; the wording for several nodes is the plan's, instruction 5.6)
 // ---------------------------------------------------------------------------------------------
 
-const cap = (w: string): string => w.charAt(0).toUpperCase() + w.slice(1);
-
 /**
- * One announcement per symmetric move. An orbit of one node uses the A-4 template unchanged. Several
- * nodes: "Fired nodes 1 and 3. Numbers now minus 1, 3, minus 1. Move 1." (populations: "Mutated cities
- * ..."); above four nodes the changed-nodes form of A-4. A move that changes nothing says so (plan).
+ * One announcement per symmetric move. An orbit of one node uses the A-4 template unchanged, through the
+ * site's moveAnnouncement. Several nodes: "Fired nodes 1 and 3. Numbers now minus 1, 3, minus 1. Move 1."
+ * (populations: "Mutated cities ..."); above four nodes the changed-nodes form of A-4, read by the site's
+ * one changedOnly after the head that names the orbit. A move that changes nothing reads as changedOnly
+ * reads it everywhere on the site: the head and the move, "Fired node 3. Move 1." (SPEC 7.5 A-4 fixes no
+ * sentence for it; T11's own "Nothing changed." is gone, RT-FIX residual).
  */
 export function announceSymmetric(bench: FoldBench, r: ActResult): string {
   const board = bench.ctx.board;
@@ -607,13 +608,16 @@ export function announceSymmetric(bench: FoldBench, r: ActResult): string {
   const pos = toPositions(board, order);
   const before = pos.map((p) => r.before[p]!);
   const after = pos.map((p) => r.after[p]!);
-  const changed = order.filter((_, k) => before[k] !== after[k]);
-  const head = r.labels.length === 1 ? `${verb} ${noun} ${r.labels[0]}.` : `${verb} ${numbers ? 'nodes' : 'cities'} ${joinAnd(r.labels.map(String))}.`;
-  if (board.n > 4 && changed.length === 0) return `${head} Nothing changed. Move ${r.move}.`;
   if (r.labels.length === 1) return moveAnnouncement(verb, order, r.labels[0]!, before, after, r.move);
+  const head = `${verb} ${numbers ? 'nodes' : 'cities'} ${joinAnd(r.labels.map(String))}.`;
   if (board.n <= 4) return `${head} ${numbers ? 'Numbers' : 'Populations'} now ${after.map((v) => speak(v)).join(', ')}. Move ${r.move}.`;
-  const parts = changed.map((l, k) => `${k === 0 ? cap(noun) : noun} ${l} now ${speak(after[order.indexOf(l)]!)}`);
-  return `${head} ${parts.join(', ')}. Move ${r.move}.`;
+  const changes = order.flatMap((l, k) => (before[k] !== after[k] ? [[l, after[k]!] as const] : []));
+  // changedOnly names one node in its head; the rest of its sentence (the changed nodes, the move) is
+  // the site's reading, kept as it is after T11's head for the orbit.
+  const one = announceTemplates.changedOnly(verb, r.labels[0]!, changes, r.move);
+  const oneHead = `${verb} ${noun} ${r.labels[0]}.`;
+  if (!one.startsWith(oneHead)) throw new Error(`changedOnly no longer starts with "${oneHead}": ${one}`);
+  return `${head}${one.slice(oneHead.length)}`;
 }
 
 /** "Undid move 4. Numbers now ..." (A-4), with the big board after `at` moves. */
@@ -698,7 +702,9 @@ export function exportData(bench: FoldBench): Record<string, unknown> {
         ? null
         : { name: ctx.foldedName, labels: [...ctx.folded.labels], cartan: cartanNumbers(ctx.folded), orbitsInBourbakiOrder: orbitsInBourbakiOrder(ctx) },
     foldMessage: ctx.message,
-    averaged: { name: avg.name, classes: avg.classes.map((c) => ({ ...c })) },
+    // A form value is the engine's exact text (CONTRACTS 2.4); an integer goes out by the integer rule, a
+    // fraction as p/q (RT-FIX P4-RT-04-02; decisions/RT-FIX-P3-export-long.md).
+    averaged: { name: avg.name, classes: avg.classes.map((c) => ({ ...c, form_value: /^-?\d+$/.test(c.form_value) ? integerOut(c.form_value) : c.form_value })) },
     averagedSimpleCartan: averagedSimpleCartan(ctx.board, ctx.sigma),
     bigPositions: upTo.map((k) => bench.bigInLabelOrder(k).map((v) => integerOut(v))),
     foldedPositions: ctx.folded === null ? null : upTo.map((k) => bench.foldedInLabelOrder(k).map((v) => integerOut(v))),

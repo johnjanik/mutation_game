@@ -1,0 +1,106 @@
+{
+ "lens": "RT-08",
+ "mode": "refute",
+ "verdicts": [
+  {
+   "findingId": "P4-RT-08-02",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.3 <G> bullet ('Every number in a lesson that has a golden value is written this way') and <Tex> bullet ('the only way a golden value enters a formula'); 8.4 ('Numbers that have a golden value are written with <G>, never typed'); 2.14 [V] ('The product of all mutations of one colour class followed by all of the other rotates this plane by exactly 2π/h'); golden types.A2/B2/G2.coxeter_number = 3, 4, 6. The passages support the finding's expected.",
+   "evidence": "At b9b8504, m6-multiple-edges.mdx line 90 reads 'B_2 is back at (2,1) after eight moves, when the round counter reads <Tex src=\"4\"/>'. The b3 caption (line 92) reads 'After 8 moves, 4 rounds'. Line 93 (b4 prediction and caption) reads 'after 4 rounds', 'needs 6 rounds, 12 moves' and '12 moves, 6 rounds'. Lines 88 and 183 read <Tex src=\"3\"/>, <Tex src=\"4\"/>, <Tex src=\"6\"/> 'as on A_2, B_2 and G_2'. On a rank-2 board an M6 round (one mutation at each of the two cities) is the two-colour product of 2.14. 2.14 [V] says that product rotates the Coxeter plane by 2π/h, so its order is h. M7's Lie theory paragraph says the same: c is 'of order the Coxeter number h'. Oracle (copies from the gate commit): alternating L.mutate at positions 0 and 1 returns A2 from (1,0) after 3 rounds, L.cartan('B',2) from (2,1) after 4 rounds (8 moves) and G2 from (1,2) after 6 rounds (12 moves). L.coxeter_number gives 3, 4 and 6, the same as golden coxeter_number. decisions/P4-A5.md 'typed numbers' (folded in DECISIONS.md line 2360) lists 'the round counts 3, 4, 6' among 'Numbers with no golden value'. The plan's instruction build-plan/agents/P4-A5-lesson-m6.md line 163 says the same. That reason is contradicted by 2.14 and the golden value. 7.3 and 8.4 carry no [D] mark, and RT-08 section 6 says a fragment's reason for a typed number is 'the place to check the reason'. No regression test covers M6: the P3-RT-08-05 regressions are in M2, M3 and M5 only. gate-G4.md records nothing on this.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 no sentence permits typing a golden number. R2 the finding reads 7.3 and 8.4 correctly; only the general pair statement of lines 88 and 183 (orders of S_iS_j, SPEC 2.2, no golden key) can be argued, and the B2 and G2 counts of lines 90 to 93 stand. R3 M6 is phase 4 at G4. R4 the oracle agrees with the finding (4 and 6 rounds, coxeter_number 4 and 6). R5 the P4-A5 logged decision rests on a wrong premise and departs from non-[D] text. R6 no record or regression test."
+  },
+  {
+   "findingId": "P4-RT-08-04",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.9 [D; open decision in section 10]: 'A credits page lists every third-party asset with title, author, source and licence, and the licences of bundled libraries and fonts.' 7.3: 'about and credits (phase 0, extended at each release)'. The sentence supports the finding's expected.",
+   "evidence": "The lockfile at b9b8504 lists clsx 2.1.1 (MIT) as a dependency of svelte 5.57.2 (\"clsx\": \"^2.1.1\"). No package.json names it. decisions/P0-A5.md 'the credits list is generated at build time' takes rows only from the dependencies and devDependencies of the three package.json files. RT-FIX-P3-pages added nanostores only. The regression site/tests/unit/dependencies-shipped.test.ts (// regression: P3-RT-08-10) checks only the nanostores row. The MERGE entry 'dependency records completed' attributes the client chunk to svelte and records no licence for clsx. The [D] on 7.9 covers how the page is built, but leaving out a bundled library's licence departs from the [D] text. On R3: 9.1 row 6 lists 'credits, licences', but 7.3 creates the page in phase 0 and extends it at each release. Release 0.5 (G3) has already happened, and round 1 confirmed P3-RT-08-10 on this same page at phase 3. The bundle content itself is for the reproducer to show.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 7.9 asks for the licences of bundled libraries and nothing excludes transitive ones. R2 the finding quotes 7.9 correctly. R3 the credits page is phase 0, extended at each release, and release 0.5 has passed. R4 not an oracle matter. R5 the P0-A5 package.json rule departs from the [D] text rather than lying within it. R6 the P3-RT-08-10 regression covers nanostores only."
+  },
+  {
+   "findingId": "P4-RT-08-05",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 8.1 P1: 'Each tool has a meaningful starting state and a caption that states its point.' CONTRACTS.md 7: 'Every tool has a caption prop stating the result it demonstrates (P1).' The passages support the finding.",
+   "evidence": "At b9b8504 the m6-multiple-edges.mdx b11 caption (line 202) reads 'One Martian in city 2 of G2, the long city; the challenge above names the population to reach.' The b13 caption (line 210) reads 'The builder on G2, with every weight 1, its meter reading the G2 board of the first challenge: set the weights and press Test.' Neither states a result. b12 on the same page does ('every population it reaches has form value 2'). The recorded resolution of the round 1 sibling, DECISIONS.md line 2722 (RT-FIX-P3-lesson-m5, P3-RT-08-08), requires challenge-tool captions to 'state the point of their tool and leave the answer ... unsaid'. 4.0 [D] lets the surrounding prose state the result, but 8.1 P1 still requires the caption itself to state the point. 9.2 gives the P1 check for tools to the owner, but 8.1 says the principles 'are requirements'. P4-A5's b13 repair entry records the caption's wording only, not an exemption. No regression test covers M6.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 4.0 [D] does not remove 8.1 P1's caption requirement. R2 the finding reads P1 and CONTRACTS 7 correctly. R3 M6 is phase 4. R4 n/a. R5 no [D] choice or logged exemption. R6 the P3-RT-08-08 regression covers M5 only."
+  },
+  {
+   "findingId": "P4-RT-08-06",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "R2. SPEC.md Appendix G, row '.coxeter_plane': 'rings ...; distinct_points; h_points_on_every_ring'. Golden types.E8.coxeter_plane.h_points_on_every_ring = true, rings = 8 pairs each of 30 roots, types.E8.coxeter_number = 30. SPEC 2.14: 'Every ring has exactly h roots only for ..., E8, ...'. SPEC 7.3 <G> bullet.",
+   "evidence": "M7 line 116 reads 'On E_8, where h is <G types.E8.coxeter_number/>, the <G n_roots/> roots lie on <G coxeter_plane.rings as=count/> circles of <G types.E8.coxeter_number/>'. Line 114 just before says 'the roots lie on circles each holding a multiple of h of them'. The sentence therefore states circles of h, and the golden file records, in its own field h_points_on_every_ring = true, that every E8 ring holds exactly h roots. The printed number is a golden value written through <G>, which is all 7.3 requires, and its field is the quantity the golden data pairs with the ring size on E8. The finding's D4 contrast does not apply: the sentence names E8 only, and the D4 sentence (line 118) and the b9 caption use rings as=count and distinct_points, not coxeter_number. The b8 caption and the Seen box (line 160) print the same E8 value under the same golden fact. The 'field differs from the sentence' standard is lens attack 13 (plan), not a sentence of 7.3.",
+   "severityAdjustment": "none",
+   "reason": "On E8 the golden file states that every ring holds exactly h roots (types.E8.coxeter_plane.h_points_on_every_ring = true), so 'circles of h' printed from types.E8.coxeter_number is the golden value of the quantity the sentence names. 7.3 is met, and the D4 case the finding invokes is not printed this way."
+  },
+  {
+   "findingId": "P4-RT-08-07",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "R6. reports/gate-G4.md section 9 (report commit 4e3e839, which names gate commit b9b8504): '5 numbers in the fallbacks of <Unverified> ...: M3 line 112 ('rank at most 8', '2500', and 8 again, with the word 'ten') ... The M3 fallback is carried to a polish pass (DECISIONS.md, \"MERGE: red-team round 1, residual fixes\")'. DECISIONS.md, 2026-10-24 'MERGE: red-team round 1, residual fixes': 'Carried to a polish pass: the M3 E4 fallback types 'rank at most 8', '2500' and 'ten''.",
+   "evidence": "The cause, the M3 E4 fallback at m3-classification.mdx line 112 typing 'of ten twisted affine boards', is already a known, tracked open item in the gate report and in the MERGE entry. The finding itself says 'DECISIONS.md (MERGE, round 1 residual fixes) carried it to a polish pass'. It is not a recurrence of a fixed case: the only P3-RT-08-05 regression in M3.spec.ts (line 796) covers 'and each arm one' (affine.D4.marks), not the E4 fallback, so R6's regression exception does not apply.",
+   "severityAdjustment": "none",
+   "reason": "the same cause (the word 'ten' in M3's E4 fallback) is recorded as an open item carried to a polish pass in reports/gate-G4.md section 9 and in DECISIONS.md 'MERGE: red-team round 1, residual fixes', and no regression test for it exists to make this a recurrence."
+  },
+  {
+   "findingId": "P4-RT-08-08",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 8.4: 'Every theorem-like statement carries its provenance.' 2.14 'Edge lengths': '... squared length a_i^2(α_i,α_i)=2d_ia_i^2 [V]. A uniform polytope needs a_i|α_i| to be the same for all ringed nodes ... [V]'. The passages support the finding.",
+   "evidence": "At b9b8504, m7-geometry.mdx line 105 (beat 5) states the edge-length rule and the uniformity condition with no <Cite> and no 'verified by computation' in the sentence or the paragraph. The five Seen statements (lines 156 to 160) cover coordinates, Wythoff, faces, the Coxeter plane and E8, not edge lengths. SPEC labels the rule [V], so by 0.3 it is not a definition (only unlabelled section 2 statements are). The paragraph gives no derivation (R_iλ = λ − a_iα_i is not stated), so the formula does not carry its own proof. decisions/P4-A6.md has no entry on beat 5's provenance. Nothing in gate-G4.md.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 no clause exempts it. R2 the statement is [V] in 2.14, so it is theorem-like and not a definition (0.3). R3 M7 is phase 4. R4 n/a. R5 no [D] or logged decision. R6 no record."
+  },
+  {
+   "findingId": "P4-RT-08-09",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.3 <Unverified> bullet: 'A release build ... renders a closed item's sentence unmarked'; 'A fallback is a weaker sentence that stays true however the item turns out'. Appendix E item 7: the counts of 1_22, 2_31, 2_41 and 1_42 'were typed from memory; look them up before the site calls them published values'. The passages support the finding.",
+   "evidence": "At b9b8504, M7 line 158 wraps 'The rule is of the kind described in [CKPS95]; it has not yet been compared with that paper.' under E7. Once the owner closes E7 (7.3: a date and the source that settled it), a release prints that clause unmarked, and it is then false. The fallback, 'checked by computation against exact convex hulls and against the face counts of the known polytopes', presents the counts the script compared with as the polytopes' face counts. For the four largest those counts are the open half of E7, so the sentence does not stay true in every outcome. Beat 3 (line 89) keeps the hedge 'as the checking script records them'. The wraps are recorded in decisions/P4-A6.md ('the two items of Appendix E'), but that is a builder's record, not a [D] or section 10 default, and it is the very wording challenged.",
+   "severityAdjustment": "raise to major",
+   "reason": "not refuted: R1 7.3 permits neither a status sentence as the wrapped claim nor a fallback that can become false. R2 the finding reads 7.3 and E7 correctly. R3 phase 4 lesson. R4 n/a. R5 the P4-A6 record is not [D]. R6 no record. Severity: a fallback that is not weaker breaks a behaviour 7.3 states, which is major under RED-TEAM-COMMON 4, and the lens's attack 15 grades it major."
+  },
+  {
+   "findingId": "P4-RT-08-10",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": false,
+   "citation": "SPEC.md 7.3: a release build 'prints a report of the open items and the pages that use them, which the owner reads at each release (section 9.1)'. 9.1 G4 owner's part: Appendix E items 7 and 9. The finding's second sentence ('should say what each page shows') goes beyond 7.3, but the cause stands.",
+   "evidence": "site/src/lib/unverifiedRegistry.ts at b9b8504 prints the console.warn line only when isNew, with the annotation taken from the first usage. M7 has two E7 wraps: beat 3 with no fallback, then the Seen box with one. So the line reads '(nothing shown)'. The registry's own logged design (DECISIONS.md, P0-A4 'release mode, unknown items, and the open-items report') says the annotation exists 'so that the report and the stderr line can say whether the fallback was shown', and here it says so wrongly. reports/gate-G4.md section 11 passes the error to the owner ('Appendix E item 7 ... open, nothing shown in a release build'), although the owner must read and accept fallback text (9.1 G6). P4-A6's request (4) to P0-A4 (DECISIONS.md line 2449) was not carried to any tracked list: the MERGE P4 wave 4.4 entry does not list it, and the gate report repeats the error rather than recording it.",
+   "severityAdjustment": "none",
+   "reason": "not refuted: R1 no sentence permits a false annotation. R2 7.3 does not require the annotation, but the report the owner reads states something false, contrary to the build's own logged purpose for it, so the cause stands. R3 the E7 wraps are phase 4. R4 n/a. R5 the P0-A4 per-pair design does not license a wrong label. R6 the P4-A6 request is not a tracked open item."
+  },
+  {
+   "findingId": "P4-RT-08-11",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "R1 and a logged decision. SPEC.md 7.3 <Cite> bullet: 'renders the key in square brackets as a link to that entry on the sources page, with the entry's text as the link's title'. DECISIONS.md '2026-10-10 P0-A4: the SOURCES.md parser (sources.ts)' (decisions/P0-A4.md line 20): citeTitle '... leaves `$...$` untouched'. The plan's rule in build-plan/agents/P0-A4-content-components.md line 139: '$…$ left as it stands (plan)'.",
+   "evidence": "SOURCES.md line 49 at b9b8504: '**[W03c]** N. J. Wildberger, \"A combinatorial construction of $G_2$\", *J. Lie Theory* 13 (2003), no. 1, 155-165.' The observed title is that entry's text with the emphasis removed and the formula as written, which is what 7.3 asks for. Keeping $...$ as it stands is a logged decision, kept unchanged by the later citeTitle fixes (RT-FIX-P3-pages and RT-FIX-P3-residual-content; MERGE residual entry 'citeTitle prints the first sentence ...'). 7.3's typesetting of $...$ applies to the sources page only. The finding's standard ('Raw TeX on the reader's side is a minor defect') is lens attack 34, not a sentence of SPEC.",
+   "severityAdjustment": "none",
+   "reason": "7.3 makes the entry's text the link title, and the title is the W03c entry's text with its formula as written in SOURCES.md, a behaviour logged by P0-A4 ('leaves $...$ untouched') under the plan's rule; no SPEC sentence requires the title to rewrite the formula."
+  },
+  {
+   "findingId": "P4-RT-08-12",
+   "mode": "refute",
+   "reproduced": null,
+   "refuted": true,
+   "citation": "R2. SPEC.md 4 T10 Showpiece: 'In the Coxeter plane of other types the tool states the number of distinct dots when it is smaller than the number of points'. T10 Acceptance: 'for the root polytope in the Coxeter plane ... the ring sizes, innermost first, equal types[T].coxeter_plane.rings'. 4.0 [D] 'Starts meaningful': 'A tool loads in a state that already shows something worth reading'.",
+   "evidence": "The finding observes the ring-sizes line in xyz views (/tools/geometry/ default A3 xyz, M7 b2, b4 to b7, b10 to b13). Both T10 sentences it relies on govern the Coxeter-plane view only: one is about distinct dots, the other about ring sizes in the Coxeter plane. Neither says what the ring-sizes output shows in another view. 4.0 [D] contains no sentence that 'tool outputs state what they show' or that an empty output must not be rendered. Its 'Starts meaningful' rule is met: the default figure shows the polytope. Output wording beyond the hooks is the builder's choice (4.0 [D] 'Property names beyond these are the builder's choice'). For the owner: the empty sentence is a real blemish, but no SPEC passage covers it.",
+   "severityAdjustment": "none",
+   "reason": "the passages cited govern T10's Coxeter-plane view (distinct dots, ring sizes there), and 4.0 [D] has no rule against an empty output in the xyz views where the finding observes the line, so the expected is not what the specification says."
+  }
+ ]
+}

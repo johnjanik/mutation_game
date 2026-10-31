@@ -1,0 +1,433 @@
+{
+ "agent": "P6-A3",
+ "status": "done",
+ "branch": "worktree-agent-a6a6821a7170be56f",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a6a6821a7170be56f",
+ "commits": [
+  "eef40b7 P6-A3: T13 model and golden-backed unit tests",
+  "e4e67d5 P6-A3: T13 static rendering and registry",
+  "d2b1a2a Merge branch 'claude/session-6a181f60-hzzoud' into worktree-agent-a6a6821a7170be56f (restrictedCoordinates, cac8b1e; no file of this task)",
+  "79fb67f P6-A3: T13 interaction, worker path, links",
+  "3c17fbd P6-A3: T13 browser and keyboard tests",
+  "3a37343 P6-A3: T13 positionNames through historyNames; an unused helper removed",
+  "7f81979 P6-A3: T13 main-thread data calls each in a task of their own",
+  "af66554 P6-A3: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/T13SatakeStudio.svelte",
+  "site/src/components/tools/t13/config.ts",
+  "site/src/components/tools/t13/model.ts",
+  "site/src/components/tools/t13/load.ts",
+  "site/src/components/tools/t13/link.ts",
+  "site/src/components/tools/t13/caption.ts",
+  "site/src/components/tools/t13/names.ts",
+  "site/src/components/tools/t13/satakeNames.ts",
+  "site/src/components/tools/t13/DecorationDiagram.svelte",
+  "site/src/components/tools/t13/RestrictedBoardView.svelte",
+  "site/src/components/tools/t13/ShadowPicture.svelte",
+  "site/src/components/tools/t13/RichText.svelte",
+  "site/src/tools/registry/T13.ts",
+  "site/src/tools/ToolIsland.astro (pre-approved: static import, 'satake' in HYDRATED, one client:idle line)",
+  "site/src/tools/offered.ts (pre-approved: satake: NAMED_TYPES)",
+  "site/tests/unit/tools/T13.test.ts",
+  "site/tests/e2e/T13.spec.ts",
+  "site/tests/e2e/T13-keyboard.spec.ts",
+  "decisions/P6-A3.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 89e37ec; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "head 89e37ec MERGE: fold P6-size's entries; dependencies installed"
+  },
+  {
+   "cmd": "git merge --no-edit claude/session-6a181f60-hzzoud",
+   "exit": 0,
+   "summary": "restrictedCoordinates (cac8b1e) merged; engine, decisions, embed, ToolFrame announcement; no conflict"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/tools/T13.test.ts",
+   "exit": 0,
+   "summary": "42 passed (42)"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/tools/T13.test.ts site/tests/unit/worker-provide.test.ts site/tests/unit/historyNames-cursor-only.test.ts",
+   "exit": 0,
+   "summary": "53 passed"
+  },
+  {
+   "cmd": "npm test (TMPDIR in scratch)",
+   "exit": 1,
+   "summary": "184 files, 3774 passed, 1 failed: registry-offered.test.ts 'a tool without a registry entry offers every board' expects boardsOffered('satake') to be 'all' (request to MERGE)"
+  },
+  {
+   "cmd": "npm test -w packages/engine",
+   "exit": 0,
+   "summary": "88 files, 2728 passed; coverage.json missingByPhase['6'] empty with phase 6 in force"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors 0 warnings; svelte-check 0 errors, 1 warning (t02/LayerChart.svelte, not mine)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "clean"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "53 pages built; /tools/satake and /embed/satake hydrated; links: 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7201",
+   "exit": 0,
+   "summary": "53 routes measured, 0 over budget; /tools/satake/ 85.0 kB, /embed/satake/ 85.0 kB"
+  },
+  {
+   "cmd": "playwright test T13.spec.ts T13-keyboard.spec.ts (scratch config, port 7200)",
+   "exit": 0,
+   "summary": "24 passed (1.0m)"
+  },
+  {
+   "cmd": "playwright test registry-outs.spec.ts registry-weight.spec.ts engine-weight.spec.ts",
+   "exit": 0,
+   "summary": "41 passed"
+  },
+  {
+   "cmd": "playwright test embed.spec.ts",
+   "exit": 0,
+   "summary": "92 passed"
+  },
+  {
+   "cmd": "playwright test embed nojs a11y engine-fallback worker-on-demand -g satake (final build)",
+   "exit": 0,
+   "summary": "15 passed; the full embed, engine-fallback and worker-on-demand sweep on the build before the last change: 209 passed"
+  },
+  {
+   "cmd": "unit mutants (scratch): C2 reversal removed; restrictedClick orbitIndex = k - 1",
+   "exit": 0,
+   "summary": "C2 mutant: 6 tests failed; orbit-lookup mutant: 4 failed (incl. the e6(-14) test); both restored"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "SPEC 4 T13: for every type the pairs accepted over all subsets and involutive symmetries equal admissible_pairs[T]",
+   "status": "pass",
+   "test": "site/tests/unit/tools/T13.test.ts > for every type the pairs the lights accept over all subsets and all involutive symmetries equal admissible_pairs"
+  },
+  {
+   "item": "SPEC 4 T13: every field of every satake record is reproduced (C2 records included)",
+   "status": "pass",
+   "test": "T13.test.ts > every field of every satake record is reproduced through the tool's data path; > the C2 adjustment: ..."
+  },
+  {
+   "item": "SPEC 4 T13: each composite word acts on shadows as the reflection of restricted_cartan",
+   "status": "pass",
+   "test": "T13.test.ts > each composite word acts on shadows as the reflection of restricted_cartan (every record of positive real rank, every root, every orbit)"
+  },
+  {
+   "item": "SPEC 4 T13: every satake_examples entry shows the recorded verdict for each light",
+   "status": "pass",
+   "test": "T13.test.ts > every satake_examples entry shows the recorded verdict for each light; T13.spec.ts > the lights preset opens on A2 with free decoration and its buttons load the five A3 examples of 2.15 with their verdicts"
+  },
+  {
+   "item": "SPEC 4 T13: on D4 with black nodes 3 and 4 both names are shown",
+   "status": "pass",
+   "test": "T13.test.ts > D4 with black nodes 3 and 4 gives so(2,6) with B2 and so*(8) with C2; T13.spec.ts > D4 with black nodes 3 and 4 shows both names, each with its restricted type"
+  },
+  {
+   "item": "Roster: A2 node 1 black, third light red with the fraction and the careful sentence",
+   "status": "pass",
+   "test": "T13.spec.ts > A2 with node 1 black: light 3 fails with minus 1/2 at node 2 and the careful sentence, and no data"
+  },
+  {
+   "item": "M9 beat 4: the tool never says theta is not an involution",
+   "status": "pass",
+   "test": "T13.test.ts > no sentence the tool writes contains \"not an involution\" for a failed condition 3; T13.spec.ts (A2 page text)"
+  },
+  {
+   "item": "Roster: A3 black 1 and 3 plays theta on (0,1,0)",
+   "status": "pass",
+   "test": "T13.spec.ts > play-theta on A3 with black nodes 1 and 3 takes (0,1,0) to (−1,−1,−1) in three stages; T13.test.ts > thetaStages ends at theta for every root of every catalogue record of rank at most 4; > the worked values of A.5"
+  },
+  {
+   "item": "Roster: E6 black 2,3,4,5 restricted board A2, multiplicity 8, composite move",
+   "status": "pass",
+   "test": "T13.spec.ts > E6 with black nodes 2, 3, 4, 5 shows restricted board A2 with multiplicity 8 and a composite move reflects the shadow"
+  },
+  {
+   "item": "Roster: A5 su(1,5) with the toggle",
+   "status": "pass",
+   "test": "T13.spec.ts > A5 su(1,5): only the arrow 1 to 5 is drawn until the toggle shows tau on black nodes 2 and 4"
+  },
+  {
+   "item": "Roster: D4 catalogue, six records, two the same form; loading so*(8)",
+   "status": "pass",
+   "test": "T13.spec.ts > the D4 catalogue lists six records and marks so(2,6) and so*(8) as one real form"
+  },
+  {
+   "item": "SPEC 4 T13 Decorate: involutions",
+   "status": "pass",
+   "test": "T13.test.ts > involutions lists exactly the identity, the flip on A_n and E6, the swap on D_n and the three swaps on D4"
+  },
+  {
+   "item": "When admissible, A.5 and B: data on su(1,3); shadows on su(1,2)",
+   "status": "pass",
+   "test": "T13.spec.ts > data on su(1,3): real rank 1, BC1, (4, 1), dim k 9, dim p 6, character −3; > shadows on su(1,2): ..."
+  },
+  {
+   "item": "When not admissible: satake and restrictedBoard never called",
+   "status": "pass",
+   "test": "T13.test.ts > satake and restrictedBoard are never called on a pair that is not admissible"
+  },
+  {
+   "item": "SPEC 6.7 through T13: three LaTeX forms from the catalogue",
+   "status": "pass",
+   "test": "T13.spec.ts > catalogue export gives the three LaTeX forms of 6.7"
+  },
+  {
+   "item": "Roster: E7 and E8 never compute Satake data on the main thread",
+   "status": "pass",
+   "test": "T13.test.ts > on E7 and E8 every satake, restrictedBoard, satakeRecord and matchCatalogue call is routed to the worker, and on E6 to the main thread; T13.spec.ts > picking E8 fetches the worker and shows the data, and the default route never fetches it"
+  },
+  {
+   "item": "6.6 validation and round trip",
+   "status": "pass",
+   "test": "T13.test.ts > the state round-trips through encodeState and decodeState with x and t only; T13.spec.ts > a t that is not an involutive symmetry loads the default state with the notice"
+  },
+  {
+   "item": "4.0 one case per kind of board",
+   "status": "pass",
+   "test": "T13.spec.ts > B3 so(2,5) and C3 sp(1,2) show their data; > the compact form of G2 shows real rank 0 and no restricted board (plus A_n, D4, E6, E8 above)"
+  },
+  {
+   "item": "4.0 test hooks",
+   "status": "pass",
+   "test": "T13.spec.ts > every node button carries data-node, data-board, data-value and data-can-act, and the root carries data-tool and data-moves"
+  },
+  {
+   "item": "G6 keyboard script",
+   "status": "pass",
+   "test": "T13-keyboard.spec.ts > keyboard only: paint nodes, choose tau and read the lights; > keyboard only: a restricted node plays its composite move and u undoes it"
+  },
+  {
+   "item": "7.4 no JavaScript",
+   "status": "pass",
+   "test": "T13.spec.ts > without JavaScript the default figure, lights, data, caption and table are present and the controls are disabled; nojs.spec.ts on tools/satake and embed/satake"
+  },
+  {
+   "item": "7.7 axe in both themes",
+   "status": "pass",
+   "test": "T13.spec.ts > no serious or critical axe violations on /tools/satake in both themes; a11y.spec.ts"
+  },
+  {
+   "item": "A-11: 320 pixels",
+   "status": "pass",
+   "test": "T13.spec.ts > at 320 pixels the panels stack and the page has no horizontal scroll"
+  },
+  {
+   "item": "7.4 embedding",
+   "status": "pass",
+   "test": "T13.spec.ts > the embed route accepts the same keys; embed.spec.ts"
+  },
+  {
+   "item": "Size: /tools/satake at most 90 kB",
+   "status": "pass",
+   "test": "npm run size -- --port 7201: /tools/satake/ 85.0 kB, /embed/satake/ 85.0 kB"
+  },
+  {
+   "item": "4.0 stated limits",
+   "status": "pass",
+   "test": "T13.test.ts > no text the model writes says not of finite type, stopped after or still running after; T13.spec.ts > on each of the 32 boards the split form shows complete data and no text says ..."
+  },
+  {
+   "item": "9.2 definition of done (exports, undo, reset, presets rendered at build time)",
+   "status": "pass",
+   "test": "T13.spec.ts > Copy link, Download data, Export SVG and Export PNG export the current diagram; T13-keyboard.spec.ts (undo and reset); T13.test.ts > each preset renders its state and its panel open at build time"
+  },
+  {
+   "item": "COMMON 4.3: tests fail when the C2 adjustment or the orbit lookup is broken",
+   "status": "pass",
+   "test": "scratch mutants on t13/model.ts (6 and 4 failures), restored"
+  },
+  {
+   "item": "Type checks",
+   "status": "pass",
+   "test": "npm run check -w site; npx tsc --noEmit -p packages/engine"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "instruction 5.8",
+   "what": "Shadow coordinates come from the engine's restrictedCoordinates (P6-A1 follow-up, merged at cac8b1e), read by orbit into the Bourbaki order of the drawn board",
+   "why": "SPEC 7.3: no solver in site code"
+  },
+  {
+   "spec": "instruction 5.3",
+   "what": "Instance properties override the preset's fields; a board property without black and tau gives the split form (M9 beat 1: board=\"A1\" with the default preset)",
+   "why": "plan rule, to be confirmed"
+  },
+  {
+   "spec": "4.0 / 6.6",
+   "what": "The link carries g, x and t only; root, theta stage, composite moves, panel and toggle are session state. ToolFrame's data-moves therefore stays 0; History's moveCounter counts the steps",
+   "why": "6.6 keeps the root of T13 out of a link; ToolFrame derives data-moves from state.moves"
+  },
+  {
+   "spec": "4.0 Test hooks",
+   "what": "Paint buttons carry data-colour and data-board=\"decoration\"; restricted nodes carry data-board=\"restricted\"",
+   "why": "4.0 names only populations and numbers; a third value keeps Challenge's reading of the game board clean"
+  },
+  {
+   "spec": "7.5 A-3, A-4",
+   "what": "Announcement wording as in decisions/P6-A3.md; restricted node names add ', shadow coordinate N' to the plan's name",
+   "why": "plan wording; A-3 names carry the value"
+  },
+  {
+   "spec": "CONTRACTS 3",
+   "what": "T13.test.ts compares through the harness but does not call covers() for satake, admissible_pairs or satake_examples",
+   "why": "each key is registered once, by the engine's golden files"
+  },
+  {
+   "spec": "instruction 4 (model)",
+   "what": "assembleData takes the diagram (d) instead of the board",
+   "why": "black_nodes, tau and arrows of the records are the reader's pair"
+  },
+  {
+   "spec": "instruction 5.12",
+   "what": "On the main thread satake, restrictedBoard and matchCatalogue each run in a task of their own; a compact pair skips restrictedBoard",
+   "why": "SPEC 7.6 main-thread work; long tasks measured on D8 and E6"
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE",
+   "what": "site/tests/unit/registry-offered.test.ts 'a tool without a registry entry offers every board' asserts boardsOffered('satake') === 'all'; T13 is now registered, so it fails. Use an id with no entry (after T14 none is left: an unknown id cast to ToolId)."
+  },
+  {
+   "to": "MERGE / P1-A2",
+   "what": "An optional ToolFrame prop for data-moves when the moves are not part of the state (T13 keeps its steps out of the link)."
+  },
+  {
+   "to": "MERGE",
+   "what": "E-9 sizing: with the processor slowed four times, satake and matchCatalogue on the split form of D8 are tasks of about 50 to 100 ms on the main thread (11.8 and 8.3 ms warm in Node). Decide whether whereToRun should send Satake data of rank 7 and 8 boards to the worker."
+  },
+  {
+   "to": "P6-A7",
+   "what": "Preset ids for M9: default (beat 1, with board=\"A1\"), play-theta, shadows, lights, data, restricted, catalogue, tau-on-black; the override rule above; the failure note's wording (decisions/P6-A3.md) so the lesson agrees; a Challenge such as { kind: 'out', name: 'verdict', equals: 'admissible' }."
+  },
+  {
+   "to": "P6-A2",
+   "what": "None: all 167 real-form names were found in satake-names.json."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P6-A3.md",
+ "openQuestions": [
+  "C2 drawing rule: draw by the record whose pair is the reader's, else the first record (D4 black 3, 4: so(2,6), B2).",
+  "Should E-9 send Satake data of the larger main-thread boards (D8, A8, B8, C8) to the worker? See requests.",
+  "An instance configured on E7 or E8 shows the server's data, then 'computing the data in the background' for a moment after hydration until the worker answers; build-time data are not handed to the island."
+ ],
+ "handoff": "T13 is registered (registry/T13.ts, offered.ts, ToolIsland.astro). Its data path lives in t13/model.ts and t13/load.ts and is checked against the oracle in T13.test.ts (42 tests, including all 167 records, all admissible pairs and the composite reflections). The browser and keyboard specs pass (24), as do the shared specs. The one red unit test, registry-offered.test.ts, belongs to MERGE (requests). /tools/satake is 85.0 of 90 kB; the typeset names load lazily after the first action.",
+ "dataOutNames": [
+  "caption",
+  "notice",
+  "noscript",
+  "exportNotice",
+  "citeText",
+  "moveCounter",
+  "historyStrip",
+  "historyCounter",
+  "predictResult",
+  "predictReveal",
+  "decoration",
+  "black-nodes",
+  "tau",
+  "arrows",
+  "game-board",
+  "symmetry-reason",
+  "light-1",
+  "light-2",
+  "light-3",
+  "reason-1",
+  "reason-2",
+  "reason-3",
+  "verdict",
+  "failure-note",
+  "examples",
+  "data-pending",
+  "real-form",
+  "cartan-label",
+  "restricted-type",
+  "real-rank",
+  "multiplicities",
+  "multiplicity-classes",
+  "dim-k",
+  "dim-p",
+  "character",
+  "shape",
+  "theta-word",
+  "theta-stage",
+  "theta-stages",
+  "theta-note",
+  "shadow",
+  "shadow-coordinates",
+  "shadow-picture",
+  "shadow-table",
+  "no-restricted-roots",
+  "restricted-board",
+  "restricted-name",
+  "restricted-name-note",
+  "composite-word",
+  "composite-length",
+  "catalogue",
+  "catalogue-row",
+  "same-form",
+  "extra hook: data-colour (also data-board=decoration/restricted, data-arrow, data-black-arrow, data-point, data-mult, data-double, data-chosen, data-panel-tab)"
+ ],
+ "planAdditions": [
+  "t13/config.ts",
+  "t13/load.ts",
+  "t13/link.ts",
+  "t13/caption.ts",
+  "t13/names.ts",
+  "t13/satakeNames.ts",
+  "t13/DecorationDiagram.svelte",
+  "t13/RestrictedBoardView.svelte",
+  "t13/ShadowPicture.svelte",
+  "t13/RichText.svelte"
+ ],
+ "defaultState": "/tools/satake: { board: 'A3', black: [2], tau: [3, 2, 1] } (su(1,3)), Data panel, root (0, 0, 1). After a board pick: the split form of the new board (no black node, tau the identity), the default root, empty history.",
+ "presets": {
+  "default": "A3, black [2], tau [3,2,1]; Data; default root; toggle off",
+  "play-theta": "A3, black [1,3], tau [1,2,3]; Play θ; root (0,1,0); toggle off",
+  "shadows": "A2, black [], tau [2,1]; Shadows; default root (0,1); toggle off",
+  "lights": "A2, black [], tau [1,2]; Examples (six 2.15 buttons); toggle off",
+  "data": "A3, black [2], tau [3,2,1]; Data; toggle off",
+  "restricted": "E6, black [2,3,4,5], tau identity; Restricted board; root alpha_6; toggle off",
+  "catalogue": "D4, black [], tau identity; Catalogue; toggle off",
+  "tau-on-black": "A5, black [2,3,4], tau [5,4,3,2,1]; Data; toggle on"
+ },
+ "reasonSentences": {
+  "not-a-symmetry": "τ is not a symmetry of the board (it breaks the roads at nodes 1, 2, 3, 4 and 5).",
+  "not-an-involution": "τ applied twice is not the identity (nodes 1, 2 and 3).",
+  "moves-black-set": "τ sends black node 1 to a white node, so it does not keep the black set.",
+  "differs-from-minus-wX": "On the black node 1, τ differs from −w_X.",
+  "not-an-integer": "At node 2 the number ⟨α_2, ρ_X^∨⟩ is −1/2, which is not an integer. (Several nodes: At node 3 ... is −3/2 and at node 5 ... is −1/2, which are not integers.)",
+  "failureNote": "This decoration is not the Satake diagram of any real form, so the Studio shows no data for it. [When conditions 1 and 2 hold:] Conditions 1 and 2 hold, and θ = −w_X∘τ can still be played: it permutes the roots, and playing it twice gives back the root. But no involution of the Lie algebra acts as this θ on the Cartan subalgebra and fixes the root vectors of the black nodes."
+ },
+ "announcementWording": {
+  "paint": "Node 1 painted black. Condition 1 holds, condition 2 holds, condition 3 fails. Not admissible.",
+  "tau": "τ exchanges 1 and 3. Condition 1 holds, condition 2 holds, condition 3 holds. Admissible.",
+  "thetaStage": "Stage 2 of θ. Populations now 1, 1, 1.",
+  "compositeMove": "Played the composite move of restricted node 2, 32 mutations. Shadow coordinates now 0, minus 1."
+ },
+ "workerUsage": "satake, restrictedBoard and matchCatalogue go through engineCall with { board, kind: 'satake' } and are provided by name in t13/load.ts. They reach the worker on E7 and E8 only. satakeRecord is not called. admissibility, theta, shadow2, restrictedCoordinates, satakeCatalogue, canonicalPair and the rest stay on the main thread.",
+ "c2Rule": "Each matched record gets the C2 adjustment on its own (display C2 and satake B2 give restricted board C2 and satake's Bourbaki orbits reversed). The board is drawn by the record whose black_nodes and tau equal the reader's pair, otherwise by the first record.",
+ "sizes": {
+  "/tools/satake/": "85.0 kB (limit 90)",
+  "/embed/satake/": "85.0 kB (limit 90)",
+  "all routes": "53 measured, 0 over budget"
+ }
+}

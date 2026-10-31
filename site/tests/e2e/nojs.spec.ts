@@ -8,8 +8,13 @@
 // <figcaption>, <details>, <table>; KaTeX's .katex and its <math> (A-12, plan addition). RT-FIX
 // P3-RT-06-03 adds: data-board-group and the drawing beside it, role="img", <img alt>, the node hooks
 // data-board, data-value, data-can-act, data-editor (the board editor), every data-out and data-moves
-// (compared with the hydrated default), data-hydrated, and the prediction's .answer-text.
-import { expect, test } from '@playwright/test';
+// (compared with the hydrated default), data-hydrated, and the prediction's .answer-text. RT-FIX
+// P4-MERGE-04 adds data-measured: a data-out whose text measures the reader's machine (T10's drawMs) is
+// compared by its presence, not its value. RT-FIX P4-RT-06-02 adds data-out="snapshot" (the SVG snapshot of a
+// canvas tool, 7.4) and reads whether a figure is visible. RT-FIX P5-RT-06-01 adds data-out="orbit-graph" with
+// data-drawn, data-positions, data-vertex, data-edge and data-layer-count, and a matrix's data-format,
+// data-rows, data-cols and its cells' data-row and data-col (T12's figure).
+import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { hydrateEveryIsland } from './hydrate';
 import { discoverRoutes } from './routes';
@@ -29,10 +34,12 @@ interface ToolReport {
   instance: string;
   frame: boolean;
   /** The kind of the tool's own default figure (see toolReport), or null when there is none. */
-  figure: 'board' | 'drawing' | 'img' | null;
+  figure: 'snapshot' | 'board' | 'drawing' | 'img' | null;
   textAlternative: boolean;
   /** Labels of the node buttons of a game board that lack a value or a hook of SPEC 4.0. */
   nodesWithoutValue: string[];
+  /** The data-out of each orbit drawing or matrix of the root that lacks its content (see toolReport). */
+  blankParts: string[];
   caption: string;
   enabledControls: string[];
   noscript: string;
@@ -52,28 +59,60 @@ interface ToolReport {
  * - a drawing with its own name: an element of role img with content and an aria-label,
  *   aria-labelledby or <title> (the meter, the kaleidoscope's plane, the Weyl graph, a chart);
  * - a snapshot: an <img> with a source and an alt text (7.4: T10, and T8 on its larger boards).
+ * A tool that draws on a canvas ships the SVG snapshot of its default view (7.4; data-out="snapshot", on the
+ * <svg> or around it), and that snapshot is then its default figure: visible, named, holding at least one point
+ * or segment; its other drawings (a board that sets its input, the canvas box hidden until the first canvas draw)
+ * do not stand for it (RT-FIX P4-RT-06-02). A figure that is not shown (hidden, display none) is none.
  * Every node button of a game board shows its value: the four hooks of 4.0, data-value not empty.
  * The board editor's nodes (inside data-editor) show no value and are left out of that check.
+ * The other parts of a figure hold their content (RT-FIX P5-RT-06-01; SPEC 4 T12: "the orbit drawn in layers
+ * ...; the matrices E_k, F_k, H_k shown as grids", a T12 root being accepted as "board" through its string
+ * viewer): an orbit drawing (data-out="orbit-graph") holds a vertex per position (data-positions) and at least
+ * one edge into each vertex below layer 0, or, when it is not drawn (above 300 positions), layer counts that
+ * add up to them; a matrix (data-format, data-rows, data-cols) holds every cell of a grid, and a value cell in
+ * each row of a list (or its one row "no nonzero entries").
  */
 function toolReport(root: Element): ToolReport {
   const outside = (el: Element): boolean => el.closest('details, noscript') === null;
+  const visible = (el: Element): boolean => (el as HTMLElement).checkVisibility?.() ?? true;
   const named = (el: Element | null): boolean =>
     !!el && ((el.getAttribute('aria-label') ?? '').trim() !== '' || (el.getAttribute('aria-labelledby') ?? '').trim() !== '');
   const boards = [...root.querySelectorAll('[data-board-group]')]
     .filter(outside)
+    .filter(visible)
     .filter((g) => g.querySelector('[data-node]') !== null && [...(g.parentElement?.children ?? [])].some((c) => c.tagName.toLowerCase() === 'svg' && c.childElementCount > 0));
   const drawings = [...root.querySelectorAll('[role="img"]')]
     .filter(outside)
+    .filter(visible)
     .filter((d) => d.childElementCount > 0 && (named(d) || d.querySelector(':scope > title') !== null));
   const imgs = [...root.querySelectorAll('img')].filter(
-    (i) => i.closest('noscript') === null && (i.getAttribute('src') ?? '').trim() !== '' && (i.getAttribute('alt') ?? '').trim() !== '',
+    (i) => i.closest('noscript') === null && visible(i) && (i.getAttribute('src') ?? '').trim() !== '' && (i.getAttribute('alt') ?? '').trim() !== '',
   );
-  const kind = boards.length > 0 ? 'board' : drawings.length > 0 ? 'drawing' : imgs.length > 0 ? 'img' : null;
-  const figureEl = boards[0] ?? drawings[0] ?? imgs[0] ?? null;
+  const snapshotHooks = [...root.querySelectorAll('[data-out="snapshot"]')].filter(outside);
+  const snapshots = snapshotHooks
+    .map((s) => (s.tagName.toLowerCase() === 'svg' ? s : s.querySelector('svg')))
+    .filter((s): s is Element => s !== null && visible(s) && (named(s) || s.querySelector(':scope > title') !== null))
+    .filter((s) => s.querySelector('circle, ellipse, line, path, polyline, polygon') !== null);
+  const kind =
+    snapshotHooks.length > 0
+      ? snapshots.length > 0
+        ? 'snapshot'
+        : null
+      : boards.length > 0
+        ? 'board'
+        : drawings.length > 0
+          ? 'drawing'
+          : imgs.length > 0
+            ? 'img'
+            : null;
+  const figureEl = snapshotHooks.length > 0 ? (snapshots[0] ?? null) : (boards[0] ?? drawings[0] ?? imgs[0] ?? null);
   const figure = figureEl?.closest('figure') ?? null;
   // A drawing and a snapshot are named by construction; a board by its group or by its <figure>.
   const textAlternative =
-    kind === 'drawing' || kind === 'img' || (kind === 'board' && (boards.some((g) => named(g)) || named(figure) || !!figure?.querySelector(':scope > figcaption')));
+    kind === 'snapshot' ||
+    kind === 'drawing' ||
+    kind === 'img' ||
+    (kind === 'board' && (boards.some((g) => named(g)) || named(figure) || !!figure?.querySelector(':scope > figcaption')));
   const gameNodes = boards.filter((g) => g.closest('[data-editor]') === null).flatMap((g) => [...g.querySelectorAll('[data-node]')]);
   const nodesWithoutValue = gameNodes
     .filter(
@@ -84,6 +123,23 @@ function toolReport(root: Element): ToolReport {
         !['true', 'false'].includes(b.getAttribute('data-can-act') ?? ''),
     )
     .map((b) => `${b.getAttribute('data-board') ?? '?'} ${b.getAttribute('data-node') ?? '?'}`);
+  const blankParts: string[] = [];
+  for (const g of [...root.querySelectorAll('[data-out="orbit-graph"]')].filter(outside)) {
+    const n = Number(g.getAttribute('data-positions'));
+    const full =
+      g.getAttribute('data-drawn') === 'true'
+        ? g.querySelectorAll('[data-vertex]').length === n && g.querySelectorAll('[data-edge]').length >= n - 1
+        : [...g.querySelectorAll('[data-layer-count]')].reduce((s, l) => s + Number(l.getAttribute('data-layer-count')), 0) === n;
+    if (!(n > 0 && full)) blankParts.push('orbit-graph');
+  }
+  for (const m of [...root.querySelectorAll('[data-format][data-rows][data-cols]')].filter(outside)) {
+    const cells = m.querySelectorAll('[data-row][data-col]').length;
+    const full =
+      m.getAttribute('data-format') === 'grid'
+        ? cells === Number(m.getAttribute('data-rows')) * Number(m.getAttribute('data-cols'))
+        : cells === m.querySelectorAll('tbody tr').length || (cells === 0 && m.querySelector('tbody td[colspan]') !== null);
+    if (!full) blankParts.push(m.getAttribute('data-out') ?? 'a matrix');
+  }
   const captionEl = root.querySelector('[data-out="caption"]') ?? root.closest('figure')?.querySelector(':scope > figcaption') ?? figure?.querySelector(':scope > figcaption') ?? null;
   const controls = [...root.querySelectorAll('button, input, select, textarea')];
   const enabledControls = controls.filter((c) => !c.matches(':disabled')).map((c) => c.outerHTML.slice(0, 120));
@@ -102,6 +158,7 @@ function toolReport(root: Element): ToolReport {
     figure: kind,
     textAlternative,
     nodesWithoutValue,
+    blankParts,
     caption: (captionEl?.textContent ?? '').trim(),
     enabledControls,
     noscript,
@@ -118,6 +175,7 @@ function figureProblems(report: ToolReport): string[] {
   if (report.figure === null) problems.push('default figure');
   if (!report.textAlternative) problems.push('text alternative of the figure');
   if (report.nodesWithoutValue.length > 0) problems.push(`values of the nodes ${report.nodesWithoutValue.join(', ')}`);
+  if (report.blankParts.length > 0) problems.push(`content of ${report.blankParts.join(', ')}`);
   return problems;
 }
 
@@ -204,7 +262,12 @@ interface StateHooks {
   /** data-node, data-board, data-value and data-can-act of every element carrying data-node. */
   nodes: string[];
   caption: string;
-  /** name=text of every data-out, on a ToolFrame tool (data-frame). */
+  /**
+   * name=text of every data-out, on a ToolFrame tool (data-frame). An output that measures the reader's
+   * machine (a drawing time) carries the attribute data-measured (RT-FIX P4-MERGE-04): it is not part of the
+   * default state, so it is listed as "name (measured)", which still requires the element, and the
+   * attribute, on both sides.
+   */
   outs: string[];
 }
 
@@ -220,7 +283,9 @@ function stateHooks(root: Element): StateHooks {
       .map((b) => ['data-node', 'data-board', 'data-value', 'data-can-act'].map((a) => `${a}=${b.getAttribute(a) ?? '-'}`).join(' ')),
     caption: text(root.querySelector('[data-out="caption"]') ?? root.closest('figure')?.querySelector(':scope > figcaption')),
     outs: root.hasAttribute('data-frame')
-      ? [...root.querySelectorAll('[data-out]')].filter(outside).map((o) => `${o.getAttribute('data-out') ?? ''}=${text(o)}`)
+      ? [...root.querySelectorAll('[data-out]')]
+          .filter(outside)
+          .map((o) => (o.hasAttribute('data-measured') ? `${o.getAttribute('data-out') ?? ''} (measured)` : `${o.getAttribute('data-out') ?? ''}=${text(o)}`))
       : [],
   };
 }
@@ -286,5 +351,189 @@ for (const route of ['tools/board/', 'modules/m0-start/']) {
     }
     expect.soft(passing, `${route}: roots whose blank figure nojs.spec.ts accepts as "the default figure"`).toEqual([]);
     expect.soft(predictionsAccepted, `${route}: emptied predictions nojs.spec.ts accepts`).toBe(0);
+  });
+}
+
+// regression: P4-MERGE-01
+test('M6 b10 (T11 on the Average preset, A5) has a default figure and a text alternative in its server markup', async ({ page }) => {
+  await page.goto('modules/m6-multiple-edges/');
+  const root = page.locator('[data-tool="fold"][data-instance="b10"]');
+  await expect(root).toHaveCount(1);
+  await expect(root.locator('[data-tab="average"]')).toHaveAttribute('aria-selected', 'true');
+  const report = await root.evaluate(toolReport);
+  expect(figureProblems(report), 'the Average tab: default figure and its text alternative').toEqual([]);
+  expect(report.figure).toBe('board');
+});
+
+// regression: P4-MERGE-02
+test('M7 prediction 0 has an answer (.answer-text) inside the <details> that follows it without JavaScript', async ({ page }) => {
+  await page.goto('modules/m7-geometry/');
+  const predictions = page.locator('[data-prediction]');
+  const n = await predictions.count();
+  expect(n, 'predictions on M7').toBeGreaterThan(0);
+  for (let k = 0; k < n; k++) {
+    const report = await predictions.nth(k).evaluate(predictionReport);
+    expect(predictionProblems(report), `prediction ${k}`).toEqual([]);
+  }
+});
+
+// regression: P4-MERGE-02
+test('M7 T10 predictions: the server markup holds the empty result line (data-out predictResult) of the hydrated prediction', async ({ page }) => {
+  await page.goto('modules/m7-geometry/');
+  const predictions = page.locator('[data-tool="geometry"] [data-prediction]');
+  const n = await predictions.count();
+  expect(n, 'T10 predictions on M7').toBeGreaterThan(0);
+  for (let k = 0; k < n; k++) {
+    const result = predictions.nth(k).locator('[data-out="predictResult"]');
+    await expect(result, `prediction ${k}: the result line`).toHaveCount(1);
+    await expect(result, `prediction ${k}: empty before an answer`).toHaveText('');
+  }
+});
+
+/** The text of the named data-out of the first root of a tool on a page, '' when absent. */
+async function outText(page: Page, tool: string, name: string): Promise<string> {
+  return page
+    .locator(`[data-tool="${tool}"]`)
+    .first()
+    .evaluate((root, n) => (root.querySelector(`[data-out="${n}"]`)?.textContent ?? '').replace(/\s+/g, ' ').trim(), name);
+}
+
+// regression: P4-MERGE-03
+test('T10 server markup shows data-out source and sharedEdges as the hydrated default fills them', async ({ page, browser }) => {
+  for (const route of ['modules/m7-geometry/', 'tools/geometry/']) {
+    await page.goto(route);
+    const server = { source: await outText(page, 'geometry', 'source'), sharedEdges: await outText(page, 'geometry', 'sharedEdges') };
+    const context = await browser.newContext({ javaScriptEnabled: true, viewport: { width: 360, height: 800 } });
+    try {
+      const live = await context.newPage();
+      await live.goto(route);
+      await hydrateEveryIsland(live);
+      await expect(live.locator('[data-tool="geometry"]').first()).toHaveAttribute('data-hydrated', 'true');
+      // The hydrated default fills both once the orbit has loaded.
+      await expect.poll(() => outText(live, 'geometry', 'source'), { message: `${route}: hydrated source` }).not.toBe('');
+      await expect.poll(() => outText(live, 'geometry', 'sharedEdges'), { message: `${route}: hydrated sharedEdges` }).not.toBe('');
+      const hydrated = { source: await outText(live, 'geometry', 'source'), sharedEdges: await outText(live, 'geometry', 'sharedEdges') };
+      expect(server, `${route}: the server markup against the hydrated default`).toEqual(hydrated);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// regression: P4-MERGE-04
+test('T10 drawMs is a measured time: present in the server markup and marked data-measured, so the default-state comparison reads its presence, not its value', async ({ page, browser }) => {
+  for (const route of ['modules/m7-geometry/', 'tools/geometry/']) {
+    await page.goto(route);
+    const roots = await page.locator('[data-tool="geometry"]').count();
+    expect(roots, `${route}: T10 roots`).toBeGreaterThan(0);
+    // Every T10 root has its drawMs element in the server markup, marked as a measurement.
+    await expect(page.locator('[data-tool="geometry"] [data-out="drawMs"]')).toHaveCount(roots);
+    await expect(page.locator('[data-tool="geometry"] [data-out="drawMs"][data-measured]')).toHaveCount(roots);
+    const server = await page.locator('[data-tool="geometry"]').first().evaluate(stateHooks);
+    expect(server.outs).toContain('drawMs (measured)');
+    const context = await browser.newContext({ javaScriptEnabled: true, viewport: { width: 360, height: 800 } });
+    try {
+      const live = await context.newPage();
+      await live.goto(route);
+      await hydrateEveryIsland(live);
+      // Hydrated, the element holds the time of this machine, still marked; the comparison sees its name only.
+      const first = live.locator('[data-tool="geometry"]').first();
+      await expect(first.locator('[data-out="drawMs"][data-measured]')).toHaveText(/^\d+\.\d$/);
+      expect((await first.evaluate(stateHooks)).outs).toContain('drawMs (measured)');
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// SPEC 7.4: "Tools that draw on a canvas (T10, ...) ship an SVG snapshot of their default view"; 4 T10: "Without
+// JavaScript the default projection is shown as an SVG image produced at build time". T10's default figure is
+// its snapshot (data-out="snapshot"), not the ring board that sets the rings nor the canvas box hidden until the
+// first canvas draw: a snapshot with every point and segment removed (its <svg>, <title> and <desc> kept) is
+// rejected by the figure check of the sweep, through the same functions.
+for (const [route, alsoRingBoard] of [
+  ['modules/m7-geometry/', false],
+  ['tools/geometry/', false],
+  ['modules/m7-geometry/', true],
+] as const) {
+  // regression: P4-RT-06-02
+  test(`nojs.spec.ts rejects a T10 snapshot with no point and no segment: ${route}${alsoRingBoard ? ', ring board removed too' : ''}`, async ({ page }) => {
+    await page.goto(route);
+    const roots = page.locator('[data-tool="geometry"]');
+    const n = await roots.count();
+    expect(n, `T10 roots on ${route}`).toBeGreaterThan(0);
+    // Blank every snapshot: no circle, no segment path; the <svg> with its title and description stays.
+    const removed = await page.evaluate((ringBoard) => {
+      let k = 0;
+      if (ringBoard) for (const g of document.querySelectorAll('[data-tool="geometry"] [data-board-group]')) g.remove();
+      for (const s of document.querySelectorAll('[data-tool="geometry"] [data-out="snapshot"] svg')) {
+        for (const e of s.querySelectorAll('circle, path, line, polyline, rect:not([id$="-page"])')) {
+          e.remove();
+          k++;
+        }
+      }
+      return k;
+    }, alsoRingBoard);
+    expect(removed, 'points and segments removed').toBeGreaterThan(0);
+    const accepted: string[] = [];
+    for (let k = 0; k < n; k++) {
+      const report = await roots.nth(k).evaluate(toolReport);
+      if (figureProblems(report).length === 0) accepted.push(`${report.instance || '(tool route)'} as "${report.figure}"`);
+    }
+    expect(accepted, `${route}: T10 roots whose blank snapshot nojs.spec.ts accepts as the default figure`).toEqual([]);
+  });
+}
+
+// SPEC 4.0 "Works before and without JavaScript" and 8.1 P1; RT-FIX-P3-nojs-phase4: the measured drawing time is
+// empty in the server markup, so no sentence states a drawing time without a number ("in ms").
+for (const route of ['tools/geometry/', 'modules/m7-geometry/']) {
+  // regression: P4-RT-06-03
+  test(`T10 shows no time sentence without a time before hydration: ${route}`, async ({ page }) => {
+    await page.goto(route);
+    const texts = await page.locator('[data-tool="geometry"]').evaluateAll((roots) =>
+      roots.map((r) => `${r.getAttribute('data-instance') || '(tool route)'}: ${(r as HTMLElement).innerText.replace(/\s+/g, ' ').trim()}`),
+    );
+    expect(texts.length).toBeGreaterThan(0);
+    const dangling = texts.filter((l) => /\bin\s+ms\b/.test(l)).map((l) => l.slice(0, l.indexOf(':')));
+    expect(dangling, `${route}: T10 roots that state a drawing time with no number`).toEqual([]);
+  });
+}
+
+/** Blanks the parts of T12's figure that no run without JavaScript read: the orbit's vertices and edges, the matrix cells. */
+function blankT12Figure(root: Element): { vertices: number; edges: number; cells: number } {
+  const vertices = [...root.querySelectorAll('[data-out="orbit-graph"] [data-vertex]')];
+  const edges = [...root.querySelectorAll('[data-out="orbit-graph"] [data-edge]')];
+  const cells = [...root.querySelectorAll('[data-row][data-col]')];
+  for (const e of [...vertices, ...edges, ...cells]) e.remove();
+  return { vertices: vertices.length, edges: edges.length, cells: cells.length };
+}
+
+// SPEC 7.4 "checks, for every lesson, that the text, every default figure and every table are present" and
+// 4 T12 (the orbit drawn in layers; the matrices as grids or lists): a T12 root whose orbit drawing and
+// matrices are blanked is rejected by the figure check of the sweep, through the same functions, as are the
+// per-instance checks of M8.spec.ts shown to miss it.
+for (const route of ['modules/m8-lie-algebras/']) {
+  // regression: P5-RT-06-01
+  test(`nojs.spec.ts rejects a T12 root whose orbit drawing and matrices are blank: ${route}`, async ({ page }) => {
+    await page.goto(route);
+    const roots = page.locator('[data-tool="rep"]');
+    const n = await roots.count();
+    expect(n, `T12 roots on ${route}`).toBeGreaterThan(0);
+    // Before the blanking: every root has an orbit with vertices and matrices with cells (the build is sound).
+    const removed = await roots.evaluateAll((rs, fn) => rs.map((r) => new Function(`return (${fn})`)()(r)), blankT12Figure.toString());
+    for (const [k, x] of removed.entries()) expect(x.vertices > 0 && x.cells > 0, `root ${k} had an orbit and matrices to blank: ${JSON.stringify(x)}`).toBe(true);
+    // After it, nothing of T12's orbit or matrices is left.
+    expect(await page.locator('[data-tool="rep"] [data-vertex], [data-tool="rep"] [data-row][data-col]').count()).toBe(0);
+    // The per-instance checks of M8.spec.ts that read the figure still pass on the blank roots.
+    for (let k = 0; k < n; k++) {
+      const root = roots.nth(k);
+      await expect(root.locator('[data-out="matrix-e"]')).toHaveCount(1);
+      await expect(root.locator('table[data-table="orbit"] caption')).toHaveCount(1);
+      await expect(root.locator('[data-out="dimension"]')).not.toHaveText('');
+    }
+    // This file's predicate.
+    const reports = await page.$$eval('[data-tool="rep"]', (rs, fn) => rs.map((r) => new Function(`return (${fn})`)()(r)), toolReport.toString());
+    const accepted = (reports as ToolReport[]).filter((r) => figureProblems(r).length === 0).map((r) => `${r.instance || '(tool route)'} as ${r.figure}`);
+    expect(accepted, `${route}: T12 roots with a blank orbit and blank matrices that nojs.spec.ts accepts as having their default figure`).toEqual([]);
   });
 }

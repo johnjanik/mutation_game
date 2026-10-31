@@ -2,12 +2,13 @@
 // build-plan/agents/P1-A7-t09-kostant.md, section 5.11). No DOM: the moods, the summary of a play and
 // its end panel, the recipe of 2.12, the reading of a link's start, the stated limit, the picker groups.
 // Every value comes from the engine (toNumbers, raisingNodes, mutate, raisingPlay, kostantPlay,
-// highestRoot, highestShortRoot, coxeterNumber, transposeBoard, toPopulation); nothing is typed.
+// highestRoot, highestShortRoot, coxeterNumber, coroot, transposeBoard, toPopulation); nothing is typed.
 // Positions inside, labels outside (E-7): starts, moves and the lists returned here are in label order.
 // These functions live in this module, not in the component's <script module>, because the site-unit
 // Vitest project does not compile .svelte files (decisions/P1-A3.md, decisions/P1-A7.md).
 import {
   CAPS,
+  coroot,
   coxeterNumber,
   highestRoot,
   highestShortRoot,
@@ -74,37 +75,27 @@ interface FiniteData {
   highest: string[];
   highestShort: string[] | null;
   h: number;
-  /** The coroot of the highest root and of the highest short root, by position (decimal text). */
-  corootOfHighest: string[];
-  corootOfHighestShort: string[] | null;
 }
 
-const finiteCache = new Map<string, FiniteData>();
-
 /**
- * Called only on named finite boards (E-11). The coroots without the form (plan, because `coroot` is
- * phase 2): on a simply laced board the coroot of a root is the root itself; otherwise the highest root
- * of the reversed board is the coroot of the highest SHORT root (F11) and the highest short root of the
- * reversed board is the coroot of the highest root (2.5: the coroots are the root populations of the
- * reversed board). P2-A7 may switch to coroot(board, end).
+ * Keyed on the board object, as the engine keeps classify's verdicts (E-11): boards are immutable, so an
+ * entry cannot go stale, and two boards never share one. A key made of the name, the arithmetic and the
+ * labels gave every unnamed custom board of one size the same entry, so a custom B3 loaded after a
+ * custom A3 got A3's highest root and Coxeter number (RT-FIX residual, the small-fixes confirmer).
  */
+const finiteCache = new WeakMap<object, FiniteData>();
+
+/** Called only on finite boards (E-11). */
 function finiteData(board: AnyBoard): FiniteData {
   const b = board as Board<unknown>;
-  const key = `${board.name ?? ''}|${typeof b.arith.zero}|${board.labels.join(',')}`;
+  const key: object = board;
   const hit = finiteCache.get(key);
   if (hit !== undefined) return hit;
   const show = (v: readonly unknown[]): string[] => v.map((x) => b.arith.show(x));
   const highest = show(highestRoot(b));
   const hs = highestShortRoot(b);
   const highestShort = hs === null ? null : show(hs);
-  let corootOfHighest = highest;
-  let corootOfHighestShort: string[] | null = null;
-  if (highestShort !== null) {
-    const rev = transposeBoard(b);
-    corootOfHighest = show(highestShortRoot(rev)!);
-    corootOfHighestShort = show(highestRoot(rev));
-  }
-  const data: FiniteData = { highest, highestShort, h: coxeterNumber(b), corootOfHighest, corootOfHighestShort };
+  const data: FiniteData = { highest, highestShort, h: coxeterNumber(b) };
   finiteCache.set(key, data);
   return data;
 }
@@ -152,16 +143,9 @@ export function endPanel<T>(board: Board<T>, end: readonly T[], moves: number): 
   let returnCounts: string[] | null = null;
   let b: string[] | null = null; // by position
   if (name !== null) {
-    // b = C^T beta^vee, that is b_j = sum_k beta^vee_k C_kj (SPEC 2.12).
-    const coroot = name === 'highest root' ? data.corootOfHighest : data.corootOfHighestShort!;
-    const cv = coroot.map((x) => BigInt(x));
-    const C = board.cartan as readonly (readonly unknown[])[];
-    b = [];
-    for (let j = 0; j < board.n; j++) {
-      let s = 0n;
-      for (let k = 0; k < board.n; k++) s += cv[k]! * BigInt(String(C[k]![j]));
-      b.push(s.toString());
-    }
+    // b_j = <beta^vee, alpha_j> (SPEC 2.12): the numbers of the coroot played as a population of the
+    // reversed board (2.5), all from the engine (coroot, transposeBoard, toNumbers).
+    b = show(toNumbers(transposeBoard(board), coroot(board, end)));
     returnCounts = inLabelOrder(board as AnyBoard, b);
   }
   const positive = a.map((x, k) => (board.arith.sign(x) > 0 ? k : -1)).filter((k) => k >= 0);
@@ -255,20 +239,6 @@ export function kostantSummary<T>(
     };
   }
   return { status: 'ended', word, ...endPanel(board, result.position, total) };
-}
-
-/**
- * The Cartan matrix of the recipe of 2.12, node 0 first: row 0 is (2, -b_1, ..., -b_n), column 0
- * below it is (-a_1, ..., -a_n), then C (in label order). Plan test against affine[T].cartan_node0_first.
- */
-export function recipeMatrix(board: AnyBoard, finalNumbers: readonly string[], returnCounts: readonly string[]): number[][] {
-  const order = toPositions(board, labelOrder(board));
-  const C = board.cartan as readonly (readonly (number | bigint)[])[];
-  const rows: number[][] = [[2, ...returnCounts.map((b) => -Number(b))]];
-  order.forEach((i, r) => {
-    rows.push([-Number(finalNumbers[r]), ...order.map((j) => Number(C[i]![j]))]);
-  });
-  return rows.map((row) => row.map((x) => (Object.is(x, -0) ? 0 : x)));
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -93,12 +93,14 @@ export const announceTemplates = {
   /**
    * Boards with more than four nodes read only the changed nodes (A-4):
    * "Fired node 4. Node 3 now 3, node 4 now minus 2, node 5 now 1. Move 7."
-   * The noun follows the verb: Fired with node, Mutated with city.
+   * The noun follows the verb: Fired with node, Mutated with city. A move that changes nothing has no
+   * changed node to read, so the clause is omitted: "Fired node 3. Move 1." (decisions/RT-FIX-P3-small-fixes.md).
    */
   changedOnly(verb: MoveVerb, label: number, changes: readonly (readonly [number, Speakable])[], move: number): string {
     const noun = verb === 'Fired' ? 'node' : 'city';
     const parts = changes.map(([l, v], k) => `${k === 0 ? capitalise(noun) : noun} ${l} now ${speak(v)}`);
-    return `${verb} ${noun} ${label}. ${parts.join(', ')}. Move ${move}.`;
+    const body = parts.length > 0 ? `${parts.join(', ')}. ` : '';
+    return `${verb} ${noun} ${label}. ${body}Move ${move}.`;
   },
 };
 

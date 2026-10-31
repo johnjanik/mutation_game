@@ -5,13 +5,12 @@
   // cursor, doing nothing when there is nothing to undo, redo or reset (plan). Above 50 positions
   // the strip becomes a slider with a counter; Undo and Redo remain its button equivalent (A-8).
   import type { HistoryProps } from './types';
+  import { STRIP_BUTTONS_MAX } from './historyNames';
 
   let { total, cursor, positionNames, hydrated, onUndo, onRedo, onReset, onScrub, frozen = false }: HistoryProps = $props();
   // P1-A5: `frozen` (a prediction step) disables every control; data-control hooks on the buttons.
   const off = $derived(!hydrated || frozen);
 
-  /** "A strip of more than 50 positions is shown as a slider with a counter" (4.0). */
-  const STRIP_BUTTONS_MAX = 50;
   const count = $derived(total + 1);
   const asSlider = $derived(count > STRIP_BUTTONS_MAX);
   const indices = $derived(Array.from({ length: count }, (_, k) => k));

@@ -1,0 +1,484 @@
+---
+// The Atlas page of one board (SPEC.md 4 T14; 3 M10 "The Atlas (T14) is a data sheet for every board, with a
+// switch between conventions"). Owner P6-A4. Every value comes from atlasData, computed by the engine while
+// Astro builds the page; nothing here reads the golden file, and no golden component or golden path appears (the Atlas is a
+// test of the engine, not a copy of the file). The page is static HTML: no island, no client directive, no
+// script of its own (7.6: the 15 kB of a page with no tool). Mathematics is typeset at build time by
+// renderTex (KaTeX with MathML, A-12); names come from the files of scripts/names.mjs (names.ts).
+//
+// The tool root (4.0 Test hooks; plan, decisions/P6-A4.md) is the opening figure: data-tool="atlas",
+// data-instance="", data-moves="" (no moves), holding the drawing of the board (role img with its text
+// alternative, A-10), the caption (data-out="caption") and the noscript line. The items follow it, in the
+// order of the T14 entry, each an h2 with its tool link; every value a criterion mentions is an element with
+// data-out and data-exact (the value as JSON in label order, integers beyond 2^53 as decimal strings), the
+// names listed in the registry's outs and at the top of site/tests/e2e/T14.spec.ts. The radio group of the
+// convention switch sits outside the root, since it is a control that works before and without JavaScript.
+//
+// Provenance (SPEC 8.4 "Every theorem-like statement carries its provenance"; repair after review): each
+// statement beside a value is followed by a line class="provenance" with data-provenance naming the place in
+// SPEC that gives it (F1 to F13 of 2.7, 2.4, 2.12, 6.4), worded as SPEC states it: "verified by computation"
+// with the range SPEC gives, and the citations SPEC names, never more.
+import Cite from '@components/content/Cite.astro';
+import { linkIfReleased } from '@lib/pages/released';
+import { renderTex } from '@lib/katex';
+import MatrixView from '@components/math/MatrixView.svelte';
+import AtlasDownloads from './AtlasDownloads.astro';
+import AtlasItem from './AtlasItem.astro';
+import ConventionSwitch from './ConventionSwitch.astro';
+import Diagram from './Diagram.svelte';
+import WildbergerNote from './WildbergerNote.astro';
+import { ROOT_LIST_CAP, type AtlasSheet } from './atlasData';
+import { boardDiagram, describeBoard } from './diagram';
+import { exact, list, longNumber, rational, tuple } from './format';
+import { cartanLabelName, realFormName, restrictedTypeName, typeName } from './names';
+
+interface Props {
+  sheet: AtlasSheet;
+  /** The absolute address of this page (the LaTeX file names it). */
+  pageUrl: string;
+}
+
+const { sheet, pageUrl } = Astro.props;
+const T = sheet.name;
+const name = typeName(T);
+const tex = (src: string): string => renderTex(src, false);
+const headers = sheet.labels.map(String);
+const n = sheet.rank;
+const lastLabel = sheet.labels[sheet.labels.length - 1]!;
+const games = sheet.completeGames === null ? null : longNumber(sheet.completeGames);
+const rankTwo = T === 'B2' || T === 'C2';
+const other = T === 'B2' ? 'C2' : 'B2';
+const otherHref = rankTwo ? linkIfReleased({ kind: 'atlas', board: other }) : null;
+const b2c2 = `${typeName('B2')}<span class="eq">=</span>${typeName('C2')}`;
+const marksEqual = sheet.affine.marks.every((m, k) => m === sheet.affine.comarks[k]);
+const listedAll = sheet.positiveRoots.length === sheet.nPositiveRoots;
+const caption =
+  `The data sheet of the board ${T}, computed by the site's engine when this page was built: its Cartan matrix in two conventions, ` +
+  `its roads, weights and roots, its highest roots, exponents and Weyl group, its affine board and its real forms. ` +
+  `Each item links to a tool that shows it with ${T} loaded, and the downloads at the end hold every value.`;
+const items: [string, string][] = [
+  ['cartan', 'Cartan matrix'],
+  ['roads', 'Roads'],
+  ['weights', 'Weights'],
+  ['roots', 'Roots'],
+  ['highest-roots', 'Highest roots'],
+  ['exponents', 'Exponents'],
+  ['coxeter-number', 'Coxeter number'],
+  ['weyl-order', 'Order of the Weyl group'],
+  ['det-cartan', 'Determinant of the Cartan matrix'],
+  ['minuscule-nodes', 'Minuscule nodes'],
+  ['minus-w0', 'Minus the longest element'],
+  ['orbit-sizes', 'Orbits of the fundamental weights'],
+  ['complete-games', 'Complete games'],
+  ['coxeter-plane', 'Rings in the Coxeter plane'],
+  ['affine', 'The affine board'],
+  ['real-forms', 'Real forms'],
+  ['downloads', 'Downloads'],
+];
+---
+<article class="atlas" data-atlas={T}>
+  <h1 data-board-name={T}><Fragment set:html={name} /> in the Atlas</h1>
+
+  <div class="atlas-root" data-tool="atlas" data-instance="" data-moves="">
+    <figure class="atlas-figure">
+      <div class="diagram-box"><Diagram diagram={boardDiagram(T, 48)} label={describeBoard(T)} /></div>
+      <figcaption data-out="caption">{caption}</figcaption>
+    </figure>
+    <p class="nojs"><noscript><span data-out="noscript">Everything on this page works without scripts, the switch between conventions and the downloads included.</span></noscript></p>
+  </div>
+
+  {rankTwo && (
+    <p class="rank-two" data-rank2-note>
+      <Fragment set:html={typeName('B2')} /> and <Fragment set:html={typeName('C2')} /> are one board with its two nodes exchanged, so the site writes
+      “<Fragment set:html={b2c2} />” where one name could mislead. This page keeps the name {T} and its numbering of the nodes;{' '}
+      {otherHref !== null ? <a href={otherHref} data-other-page={other}>the Atlas page of {other}</a> : <>the Atlas page of {other}</>} numbers them the other way.
+    </p>
+  )}
+
+  <nav class="atlas-contents" aria-label={`Items of the sheet of ${T}`}>
+    <ol>
+      {items.map(([id, title]) => <li><a href={`#${id}`}>{title}</a></li>)}
+    </ol>
+  </nav>
+
+  <p>
+    Nodes are numbered 1 to {lastLabel} as Bourbaki numbers them, and a vector lists one entry per node in that order. A
+    population lists the coefficients of a root along the simple roots; the numbers of a position are its Dynkin labels.
+  </p>
+
+  <AtlasItem id="cartan" title="Cartan matrix" link={sheet.links.cartan}>
+    <ConventionSwitch sheet={sheet} />
+    <WildbergerNote sheet={sheet} />
+  </AtlasItem>
+
+  <AtlasItem id="roads" title="Roads" link={sheet.links.roads}>
+    <p>
+      The number of roads from node <Fragment set:html={tex('i')} /> to node <Fragment set:html={tex('j')} /> is{' '}
+      <Fragment set:html={tex('A_{ij}=-C_{ji}')} />. Where the two counts differ, more roads run from the long node to the short node.
+    </p>
+    <div class="matrix-box" data-out="adjacency" data-exact={exact(sheet.adjacency)}>
+      <MatrixView caption={`Roads of ${T}, from row to column`} rowHeaders={headers} colHeaders={headers} dense={sheet.adjacency} format="grid" />
+    </div>
+  </AtlasItem>
+
+  <AtlasItem id="weights" title="Weights" link={sheet.links.weights}>
+    <p>
+      The weights <Fragment set:html={tex('d_i')} /> make <Fragment set:html={tex('d_iC_{ij}=d_jC_{ji}')} />, the least of them 1:{' '}
+      <span class="value" data-out="symmetrizer" data-exact={exact(sheet.symmetrizer)}>{tuple(sheet.symmetrizer.map(rational))}</span>.
+      The invariant form gives a simple root the squared length <Fragment set:html={tex('2d_i')} />, so a node with a larger weight is a longer root.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="roots" title="Roots" link={sheet.links.roots}>
+    <p>
+      {T} has <span class="value" data-out="n-roots" data-exact={exact(sheet.nRoots)}>{sheet.nRoots}</span> roots,{' '}
+      <span class="value" data-out="n-positive-roots" data-exact={exact(sheet.nPositiveRoots)}>{sheet.nPositiveRoots}</span> of them
+      positive; every other root is the negative of a positive one. The positive roots as populations, sorted by their total and
+      then lexicographically:
+    </p>
+    <ol class="roots" data-out="positive-roots" data-exact={exact(sheet.positiveRoots)}>
+      {sheet.positiveRoots.map((r) => <li>{tuple(r)}</li>)}
+    </ol>
+    <p data-roots-listed>
+      {listedAll
+        ? `All ${sheet.nPositiveRoots} positive roots are listed.`
+        : `The first ${sheet.positiveRoots.length} of the ${sheet.nPositiveRoots} positive roots are listed (at most ${ROOT_LIST_CAP} are).`}
+    </p>
+    <p class="provenance" data-provenance="F1">
+      That every root is a positive root or the negative of one is verified by computation for every board of finite type of
+      rank at most 8; <Cite k="W03a" /> states it for boards with single roads.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="highest-roots" title="Highest roots" link={sheet.links['highest-roots']}>
+    <p>
+      The highest root is <Fragment set:html={tex('\\theta=')} /><span class="value" data-out="highest-root" data-exact={exact(sheet.highestRoot)}>{tuple(sheet.highestRoot)}</span>,
+      the root population of largest form value that no mutation raises; its numbers are <Fragment set:html={tex('C\\theta=')} /><span class="value" data-out="numbers-of-highest-root" data-exact={exact(sheet.numbersOfHighestRoot)}>{tuple(sheet.numbersOfHighestRoot)}</span>.
+    </p>
+    {sheet.highestShortRoot !== null && sheet.numbersOfHighestShortRoot !== null ? (
+      <p>
+        The highest short root is <span class="value" data-out="highest-short-root" data-exact={exact(sheet.highestShortRoot)}>{tuple(sheet.highestShortRoot)}</span>,
+        with the numbers <span class="value" data-out="numbers-of-highest-short-root" data-exact={exact(sheet.numbersOfHighestShortRoot)}>{tuple(sheet.numbersOfHighestShortRoot)}</span>.
+        Kostant's game ends at the highest root when it starts from a long node and at the highest short root when it starts from a short node.
+      </p>
+    ) : (
+      <p>Every root of {T} has the same length, so there is no separate highest short root. Kostant's game ends at the highest root from every node.</p>
+    )}
+    <p class="provenance" data-provenance="F13">
+      Where Kostant's game ends is verified by computation for every board of finite type of rank at most 8; the game is
+      attributed to Kostant <Cite k="Che17" />.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="exponents" title="Exponents" link={sheet.links.exponents}>
+    <p>
+      The exponents are <span class="value" data-out="exponents" data-exact={exact(sheet.exponents)}>{list(sheet.exponents)}</span>. They are read off
+      the game from all ones: count how many times each value is fired, and read the counts sideways.
+    </p>
+    <p class="provenance" data-provenance="F7">
+      Reading the exponents off the game is verified by computation for every board of finite type of rank at most 8; the
+      theorem behind it is that of Shapiro, Steinberg, Kostant and Macdonald <Cite k="Ste59" /> <Cite k="Kos59" />.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="coxeter-number" link={sheet.links['coxeter-number']}>
+    <Fragment slot="title">Coxeter number <Fragment set:html={tex('h')} /></Fragment>
+    <p>
+      <Fragment set:html={tex('h=')} /><span class="value" data-out="coxeter-number" data-exact={exact(sheet.coxeterNumber)}>{sheet.coxeterNumber}</span>, one more than the
+      largest exponent.{' '}
+      {n >= 2 && (
+        <>
+          Colour the nodes with two colours so that joined nodes differ; from all ones, fire every node of one colour, then every node of the
+          other, and repeat, one round being the firing of one colour class. The game ends after exactly <Fragment set:html={tex('h')} /> rounds.
+        </>
+      )}
+    </p>
+    {n >= 2 ? (
+      <p class="provenance" data-provenance="F7 F8">
+        That <Fragment set:html={tex('h')} /> is one more than the largest exponent, and the number of rounds of the wave, are verified by
+        computation for every board of finite type of rank at most 8; the wave is in <Cite k="FZ03b" /> (Lemma 2.1) and <Cite k="Ste59" /> (6.3).
+      </p>
+    ) : (
+      <p class="provenance" data-provenance="F7">
+        That <Fragment set:html={tex('h')} /> is one more than the largest exponent is verified by computation for every board of finite type
+        of rank at most 8.
+      </p>
+    )}
+  </AtlasItem>
+
+  <AtlasItem id="weyl-order" link={sheet.links['weyl-order']}>
+    <Fragment slot="title">Order of the Weyl group <Fragment set:html={tex('|W|')} /></Fragment>
+    <p>
+      The Weyl group has <Fragment set:html={tex('|W|=')} /><span class="value" data-out="weyl-order" data-exact={exact(sheet.weylOrder)}>{sheet.weylOrder}</span> elements,
+      the product of the exponents each increased by one.
+    </p>
+    <p class="provenance" data-provenance="F7">
+      That the order is this product is verified by computation for every board of finite type of rank at most 8.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="det-cartan" link={sheet.links['det-cartan']}>
+    <Fragment slot="title">Determinant of the Cartan matrix <Fragment set:html={tex('\\det C')} /></Fragment>
+    <p>
+      <Fragment set:html={tex('\\det C=')} /><span class="value" data-out="det-cartan" data-exact={exact(sheet.detCartan)}>{rational(sheet.detCartan)}</span>.
+      The translation <Fragment set:html={tex('a=Cp')} /> sends the populations onto a sublattice of index <Fragment set:html={tex('\\det C')} />{' '}
+      in the positions of the numbers game.
+    </p>
+    <p class="provenance" data-provenance="2.4">
+      The index is a fact of linear algebra: an integer matrix with a nonzero determinant sends the integer vectors onto a sublattice
+      whose index is the absolute value of its determinant.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="minuscule-nodes" title="Minuscule nodes" link={sheet.links['minuscule-nodes']}>
+    <p>
+      Minuscule nodes: <span class="value" data-out="minuscule-nodes" data-exact={exact(sheet.minusculeNodes)}>{sheet.minusculeNodes.length === 0 ? 'none' : list(sheet.minusculeNodes)}</span>.
+      A node is minuscule when every number fired in the game from its fundamental weight is 1; there are <Fragment set:html={tex('\\det C-1')} /> of them.
+    </p>
+    <p class="provenance" data-provenance="F11">
+      Both statements are verified by computation for every node of every board of finite type of rank at most 8.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="minus-w0" link={sheet.links['minus-w0']}>
+    <Fragment slot="title">Minus the longest element, <Fragment set:html={tex('-w_0')} /></Fragment>
+    <p>
+      <Fragment set:html={tex('-w_0')} /> sends the nodes 1 to {lastLabel} to{' '}
+      <span class="value" data-out="minus-w0" data-exact={exact(sheet.minusW0)}>{tuple(sheet.minusW0)}</span>{sheet.minusW0Identity ? ', the identity' : ''}.
+      A complete game from numbers that are all positive ends at their negatives, moved by this permutation of the nodes.
+    </p>
+    <p class="provenance" data-provenance="F4">
+      This is verified by computation from all ones and from six random starts with every number positive, on every board of finite type of
+      rank at most 8.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="orbit-sizes" title="Orbits of the fundamental weights" link={sheet.links['orbit-sizes']}>
+    <p>
+      The orbit of the fundamental weight <Fragment set:html={tex('\\omega_i')} /> of each node, in the order of the nodes, has{' '}
+      <span class="value" data-out="fundamental-orbit-sizes" data-exact={exact(sheet.fundamentalOrbitSizes)}>{tuple(sheet.fundamentalOrbitSizes)}</span> positions.
+    </p>
+  </AtlasItem>
+
+  <AtlasItem id="complete-games" title="Complete games" link={sheet.links['complete-games']}>
+    {games === null ? (
+      <p>
+        <span data-out="complete-games" data-exact="null">The number of complete games from all ones is not offered for a group of more than 60000 elements; this group has {sheet.weylOrder}.</span>
+      </p>
+    ) : (
+      <>
+        <p>
+          A complete game from all ones can be played in{' '}
+          <span class="value" data-out="complete-games" data-exact={exact(sheet.completeGames)} data-long={games.long ? 'true' : undefined} title={games.long ? `${games.exact}, exactly` : undefined}>{games.shown}</span>{' '}
+          ways: the number of reduced words of the longest element.
+        </p>
+        <p class="provenance" data-provenance="F5">
+          That the complete games are the reduced words of the longest element is in <Cite k="Don08" /> (Theorem 2.8).
+        </p>
+        {games.long && (
+          <details class="exact" data-exact-value>
+            <summary>The exact value</summary>
+            <p><span class="value digits">{games.exact}</span> ({games.digits} digits)</p>
+          </details>
+        )}
+      </>
+    )}
+  </AtlasItem>
+
+  <AtlasItem id="coxeter-plane" title="Rings in the Coxeter plane" link={sheet.links['coxeter-plane']}>
+    {sheet.coxeterPlaneRings === null ? (
+      <p data-no-coxeter-plane>{T} has rank 1, so it has no Coxeter plane.</p>
+    ) : (
+      <>
+        <p>
+          Projected to the Coxeter plane, the roots of {T} lie on {sheet.coxeterPlaneRings.length} {sheet.coxeterPlaneRings.length === 1 ? 'ring' : 'rings'} round
+          the centre; innermost first they hold{' '}
+          <span class="value" data-out="coxeter-plane-rings" data-exact={exact(sheet.coxeterPlaneRings)}>{list(sheet.coxeterPlaneRings.map((r) => r[1]))}</span> roots.
+        </p>
+        <div class="table-box" tabindex="0" role="region" aria-label={`Rings of ${T} in the Coxeter plane`}>
+          <table class="rings">
+            <caption>Rings of {T} in the Coxeter plane, innermost first, with the radius rounded to six decimals</caption>
+            <thead><tr><th scope="col">Ring</th><th scope="col">Radius</th><th scope="col">Roots</th></tr></thead>
+            <tbody>
+              {sheet.coxeterPlaneRings.map(([r, k], i) => (
+                <tr><th scope="row">{i + 1}</th><td>{r.toFixed(6)}</td><td>{k}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    )}
+  </AtlasItem>
+
+  <AtlasItem id="affine" title="The affine board" link={sheet.links.affine}>
+    <p>
+      A node 0 added with <Fragment set:html={tex('\\alpha_0=\\delta-\\theta')} /> gives the affine board of {T}, recognised from its shape as{' '}
+      <span class="value affine-name" data-out="affine-name" data-exact={exact(sheet.affine.name)}>{sheet.affine.name}</span>{rankTwo && (<> (<Fragment set:html={b2c2} />)</>)}{sheet.affine.constructorName !== sheet.affine.name && (<>, with the numbering of {T}, under which it is built as <span class="value">{sheet.affine.constructorName}</span></>)}.
+      Its marks are the positive integers <Fragment set:html={tex('\\delta')} /> with <Fragment set:html={tex('C\\delta=0')} />, a population no mutation changes;
+      its comarks are the positive integers <Fragment set:html={tex('c')} /> with <Fragment set:html={tex('c^{\\mathsf T}C=0')} />, the weights of the level that no firing changes.{' '}
+      {marksEqual ? 'On a simply laced board marks and comarks coincide, as they do here.' : 'Here they differ, and reversing every road exchanges them.'}
+    </p>
+    <p class="provenance" data-provenance="2.12">
+      The marks and comarks, and how they are related, are verified by computation for the affine board of every board of finite type
+      of rank at most 8.
+    </p>
+    <div class="table-box" tabindex="0" role="region" aria-label={`Marks and comarks of the affine board of ${T}`}>
+      <table class="affine-table">
+        <caption>Marks and comarks of the affine board of {T}, node 0 first</caption>
+        <thead>
+          <tr><th scope="col">Node</th>{sheet.affine.labels.map((l) => <th scope="col">{l}</th>)}</tr>
+        </thead>
+        <tbody>
+          <tr data-out="marks" data-exact={exact(sheet.affine.marks)}><th scope="row">Marks</th>{sheet.affine.marks.map((m) => <td>{m}</td>)}</tr>
+          <tr data-out="comarks" data-exact={exact(sheet.affine.comarks)}><th scope="row">Comarks</th>{sheet.affine.comarks.map((m) => <td>{m}</td>)}</tr>
+        </tbody>
+      </table>
+    </div>
+  </AtlasItem>
+
+  <AtlasItem id="real-forms" title="Real forms" link={null}>
+    <p data-real-form-count>
+      {sheet.realFormCount === sheet.realForms.length ? (
+        <>The Satake catalogue lists {sheet.realForms.length} real forms of {T}, each with Cartan's label beside its name.</>
+      ) : (
+        <>The Satake catalogue lists {sheet.realForms.length} records for {T}, which make {sheet.realFormCount} real forms; each record has Cartan's label beside its name.</>
+      )}{' '}
+      Each opens in the Satake Studio with its black nodes and its involution <Fragment set:html={tex('\\tau')} />.
+    </p>
+    <ul class="real-forms" data-out="real-forms" data-exact={exact(sheet.realForms.map((f) => ({ cartan_label: f.cartanLabel, real_form: f.realForm, black_nodes: f.black, tau: f.tau })))}>
+      {sheet.realForms.map((f) => {
+        const display = realFormName(f.realForm);
+        const href = linkIfReleased({ kind: 'tool', id: f.link.tool, query: f.link.query });
+        const identity = f.tau.every((t, k) => t === sheet.labels[k]);
+        return (
+          <li data-real-form={f.realForm} data-cartan-label={f.cartanLabel}>
+            <span class="cartan-label"><Fragment set:html={cartanLabelName(f.cartanLabel)} /></span>:{' '}
+            <Fragment set:html={display.html} />{display.alt !== null && (<>, also shown as <Fragment set:html={display.alt} /></>)}.{' '}
+            {f.black.length === 0 ? 'No black node' : `Black ${f.black.length === 1 ? 'node' : 'nodes'} ${list(f.black)}`};{' '}
+            <Fragment set:html={tex('\\tau')} /> {identity ? 'the identity' : <>sends the nodes to {tuple(f.tau)}</>};{' '}
+            {f.restrictedTypeDisplay === null ? 'the compact form, with no restricted roots.' : <>restricted roots of type <Fragment set:html={restrictedTypeName(f.restrictedTypeDisplay)} />.</>}
+            {href !== null && <> <a href={href} data-tool-link={f.link.tool}>{f.link.text}</a></>}
+          </li>
+        );
+      })}
+    </ul>
+    {sheet.letter === 'C' && (
+      <p data-sp-note>
+        Some references write <Fragment set:html={tex('\\mathfrak{sp}(2p,2q)')} /> and <Fragment set:html={tex('\\mathfrak{sp}(8)')} /> for what is here{' '}
+        <Fragment set:html={tex('\\mathfrak{sp}(p,q)')} /> and <Fragment set:html={tex('\\mathfrak{sp}(4)')} />.
+      </p>
+    )}
+    {rankTwo && (
+      <p>
+        <Fragment set:html={typeName('B2')} /> and <Fragment set:html={typeName('C2')} /> each list the same three algebras under their two families of names;{' '}
+        {otherHref !== null ? <a href={`${otherHref}#real-forms`}>the real forms of {other}</a> : <>the real forms of {other}</>} are the same list under the other names.
+      </p>
+    )}
+    {sheet.coincidences.map((group) => (
+      <p data-coincidence={group.join(' ')}>
+        On <Fragment set:html={name} /> the records{' '}
+        {group.map((f, k) => (
+          <>{k === 0 ? '' : k === group.length - 1 ? ' and ' : ', '}<Fragment set:html={realFormName(f).html} /></>
+        ))}{' '}
+        are one real form, as verified by computation; {group.length === 2 ? 'both are' : 'all of them are'} listed.
+      </p>
+    ))}
+    <p class="provenance" data-provenance="6.4">
+      The catalogue is verified by computation: up to the symmetries of the board, its records are exactly the admissible pairs of black
+      nodes and involution, for every board of finite type of rank at most 8.
+    </p>
+  </AtlasItem>
+
+  <section class="atlas-item" id="downloads" aria-labelledby="downloads-heading" data-item="downloads">
+    <h2 id="downloads-heading">Downloads</h2>
+    <AtlasDownloads sheet={sheet} pageUrl={pageUrl} />
+  </section>
+</article>
+
+<style>
+  .atlas {
+    min-width: 0;
+  }
+  .atlas-figure {
+    margin: 0 0 16px;
+  }
+  .diagram-box {
+    max-width: 100%;
+    overflow-x: auto;
+    padding-block: 8px;
+  }
+  .atlas-figure figcaption {
+    margin-top: 8px;
+  }
+  .atlas-contents ol {
+    columns: 2 12rem;
+    padding-inline-start: 1.5em;
+    margin: 0;
+  }
+  .atlas-contents a {
+    display: inline-block;
+    min-height: 24px;
+    padding-block: 2px;
+  }
+  .value {
+    font-family: var(--font-numerals);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .roots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    gap: 0 16px;
+    padding-inline-start: 2.5em;
+    font-family: var(--font-numerals);
+    font-variant-numeric: tabular-nums;
+  }
+  .table-box {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .table-box:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .table-box table {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .table-box caption {
+    text-align: start;
+    padding-bottom: 4px;
+  }
+  .table-box th,
+  .table-box td {
+    padding: 2px 8px;
+    border: 1px solid var(--sign-zero-outline);
+    font-family: var(--font-numerals);
+    text-align: center;
+  }
+  .table-box th[scope='row'] {
+    text-align: start;
+    font-weight: normal;
+  }
+  .real-forms li {
+    margin-block: 8px;
+  }
+  .provenance {
+    font-size: 0.95em;
+  }
+  .real-forms a {
+    display: inline-block;
+    min-height: 24px;
+  }
+  .exact summary {
+    cursor: pointer;
+    min-height: 24px;
+  }
+  .exact summary:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .rank-two :global(.eq) {
+    padding-inline: 0.15em;
+  }
+</style>

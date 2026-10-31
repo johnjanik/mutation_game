@@ -8,14 +8,7 @@
 // the tool's own output lines, computed by the engine.
 
 /** The boards T10 offers, grouped by letter in the picker (SPEC 2.8; D19: named as the reader chose them). */
-export const T10_BOARDS = [
-  'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8',
-  'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8',
-  'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8',
-  'D4', 'D5', 'D6', 'D7', 'D8',
-  'E6', 'E7', 'E8',
-  'F4', 'G2',
-] as const;
+export { T10_BOARDS } from './boards';
 
 export type T10Graph = 'polytope' | 'moves';
 
@@ -97,6 +90,8 @@ export const T10_OUTS = [
   'notice',
   'noscript',
   'exportNotice',
+  // rendered after a click on Cite (P6-A5; MERGE, on P6-tikz's request)
+  'citeText',
   // T10: the figure
   'snapshot',
   'boardName',
@@ -127,6 +122,16 @@ export const T10_OUTS = [
   'legend',
   // T10: the table view
   'ringLimit',
+  // Predict.svelte, with a prediction (lesson instances such as M7 beats 4 and 7)
+  'predictResult',
+  'predictReveal',
 ] as const;
 
 export type T10Out = (typeof T10_OUTS)[number];
+
+/**
+ * The names of T10_OUTS rendered only when a property asks for them (a prediction), never by the tool's
+ * own state; the checks of "every name is rendered" on /tools/geometry/ leave them out (RT-FIX residual of
+ * P3-RT-10-06; site/tests/e2e/registry-outs.spec.ts checks them on a lesson instance).
+ */
+export const T10_PROP_ONLY_OUTS: readonly T10Out[] = ['predictResult', 'predictReveal'];

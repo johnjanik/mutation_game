@@ -1,0 +1,150 @@
+[
+ {
+  "id": "P4-RT-12-02",
+  "severity": "major",
+  "title": "npm run e2e fails in CI on every run: registry-weight.spec.ts reads built files by URL with the /<repo>/ base still in the path",
+  "location": "site/tests/e2e/registry-weight.spec.ts:36 (u.replace(/^\\//, '') strips only the leading slash) and :18 and :46 (join(site/dist, path))",
+  "claim": "The regression test of RT-FIX P3-RT-07-04 turns component-url values into file paths by dropping only the leading slash. At any non-root base it opens site/dist/<base>/_astro/..., which does not exist. In GitHub Actions the base is /mutation_game/, so ci.yml's 'Browser tests' step fails.",
+  "expected": "SPEC 7.8: ci.yml runs the tests of 7.7, and 7.2 item 10 says in CI the base follows from GITHUB_REPOSITORY. npm run e2e passes at the base ci.yml builds with, as it does at /.",
+  "observed": "With GITHUB_REPOSITORY=johnjanik/mutation_game, the build exits 0 and registry-weight.spec.ts fails with 'ENOENT: no such file or directory, open .../site/dist/mutation_game/_astro/client.svelte.XNJPo5Ip.js', in the full CI simulation and every time alone. On the root-base build the same spec passes (1 passed).",
+  "reproduction": "In a clean clone of b9b8504 plus this branch, after npm ci: PLAYWRIGHT_BROWSERS_PATH=<browsers> bash redteam/rt12-p4/redteam-RT-12-registry-weight-base.sh <clone> <logdir> 5220 prints 'ci registry-weight.spec.ts exit 1 -- Error: ENOENT ... site/dist/mutation_game/_astro/...' and 'root registry-weight.spec.ts exit 0'. Equivalent with the repository's own config: GITHUB_REPOSITORY=johnjanik/mutation_game npm run build && GITHUB_REPOSITORY=johnjanik/mutation_game npx playwright test site/tests/e2e/registry-weight.spec.ts. The whole ci.yml sequence: redteam/rt12-p4/redteam-RT-12-ci-sim.sh.",
+  "specRef": "SPEC.md 7.8 (ci.yml runs the tests of 7.7); 7.2 item 10; 7.7 npm run e2e",
+  "proposedFix": "Strip import.meta base from the URL (siteAndBase(process.env).base) and read from outDirFrom(process.env), as basepath.spec.ts does. Add the GITHUB_REPOSITORY base to a local check of the e2e suite.",
+  "reproducer": "redteam/rt12-p4/redteam-RT-12-registry-weight-base.sh; redteam/rt12-p4/redteam-RT-12-ci-sim.sh",
+  "lens": "RT-12",
+  "branch": "worktree-agent-a46ad407dca628b11",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-12-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.8 (ci.yml runs the tests of 7.7); 7.2 item 10; 7.7 npm run e2e",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1, detached in /home/user/mutation_game/.claude/worktrees/agent-a67d85204e2fe1592. Applied redteam/rt12-p4/redteam-RT-12-registry-weight-base.sh and redteam/rt12-p4/redteam-RT-12-ci-sim.sh. Also applied redteam/rt12-p4/redteam-RT-12-playwright.config.ts, which both scripts read by literal path ($HERE/...). None of the three exists at the gate; git status lists each as 'A'. Clean clone: git clone --no-hardlinks /home/user/mutation_game <S>/clone, checkout --detach b9b8504, npm ci --prefer-offline exit 0, status clean. Here <S> = /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt12-reproduce. Ran from <wt>: PLAYWRIGHT_BROWSERS_PATH=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/pw-browsers bash redteam/rt12-p4/redteam-RT-12-registry-weight-base.sh <S>/clone <S>/logs/f02 6240. The port 6240 replaces 5220; it is the script's port argument and my assigned port. Output: 'ci build exit 0' (32 pages built; 'links: 1040 internal links ... 0 problems'). 'ci registry-weight.spec.ts exit 1 -- Error: ENOENT: no such file or directory, open '<S>/clone/site/dist/mutation_game/_astro/client.svelte.XNJPo5Ip.js'', at registry-weight.spec.ts:46:23, test 'every tool route and lesson fetches no other tool presets before interaction', '1 failed'. 'root build exit 0'. 'root registry-weight.spec.ts exit 0 -- 1 passed (6.7s)'. Script exit 0. ENOENT does not depend on timing, so one run. Not run: the variant with the repository's own config (its webServer is on port 4321, which is forbidden here) and the full ci-sim.sh (the whole e2e suite on a shared machine). The primary command shows the claim. ci.yml sets no BASE_PATH ('BASE_PATH is not set here'), and siteAndBase gives /<repo>/ from GITHUB_REPOSITORY. Observed matches: the same path, site/dist/mutation_game/_astro/client.svelte.XNJPo5Ip.js, and root passes. The clone was cleaned afterwards and deleted at the end.",
+    "severityAdjustment": "raise to blocker",
+    "reason": "reproduced as stated; observed matches: at base /mutation_game/ the spec fails with ENOENT on site/dist/mutation_game/_astro/client.svelte.XNJPo5Ip.js, and at the root base it passes. SPEC 9.1 says the automatic part of the gate is run by the 7.7 commands 'in continuous integration once the repository is on GitHub', which it now is. So npm run e2e, a gate command, fails where 9.1 runs it, which is on the blocker list of RED-TEAM-COMMON 4."
+   },
+   "refute": {
+    "findingId": "P4-RT-12-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.2 item 10: 'otherwise, in CI, the values that follow from GITHUB_REPOSITORY (owner/repo gives https://owner.github.io and /repo/)'; 7.8: 'ci.yml runs on every pull request and on every push to the main branch: the tests of section 7.7'; 7.7 npm run e2e. The passages support the finding's expected.",
+    "evidence": "Read at b9b8504 (git show). site/tests/e2e/registry-weight.spec.ts:18 is \"const dist = fileURLToPath(new URL('../../dist/', import.meta.url))\". Line 36 is \"if (u) roots.push(u.replace(/^\\//, ''))\" (only the leading slash is dropped). Line 46 is \"readFileSync(join(dist, p), 'utf8')\", with no existence check on the roots. site/astro.config.mjs siteAndBase gives base `/${repo}/` from GITHUB_REPOSITORY and never reads CI. ci.yml sets no BASE_PATH; its comment says 'BASE_PATH is not set here: the build, astro preview, the e2e baseURL and size.mjs all take the base from siteAndBase (GITHUB_REPOSITORY gives /<repo>/)'. Its steps are 'Preview build: npm run build' and then 'Browser tests: npm run e2e'. playwright.config.ts ignores only basepath.spec.ts when BASE_PATH is unset, so registry-weight.spec.ts runs in CI at /mutation_game/. Records: the DECISIONS.md entry 'RT-FIX-P3-perf-b: the browser never loads the tool registry (P3-RT-07-04)' says nothing about the base. No fragment limits e2e to the root base. gate-G4.md ran 'npm run e2e' locally at the root base (891 passed) and records no CI run. The last GitHub ci run (39042340476 at aea18020) does not contain this spec ('exists on disk, but not in aea18020'), so CI has no history for it. The test is the RT-FIX regression for P3-RT-07-04 and is present at G4, so it is not a later-phase item. For severity: 9.1 says 'The automatic part is a set of tests, run by the commands of section 7.7: in continuous integration once the repository is on GitHub'. DECISIONS.md P0-A1 says 'the owner merges it into main on GitHub', and ci runs already exist on johnjanik/mutation_game.",
+    "severityAdjustment": "raise to blocker",
+    "reason": "not refuted: R1 no sentence limits e2e to the root base, and 7.2 item 10 and ci.yml's own comment put CI at /<repo>/; R2 the finding reads 7.2 item 10 and 7.8 correctly; R3 the spec is a regression test present at G4; R4 does not apply; R5 neither 7.7 nor 7.8 is [D] and no logged decision covers the base; R6 no record. If the claim holds, npm run e2e, a 7.7 command that 9.1 runs in CI once the repository is on GitHub, fails there. That is 'a gate command that fails', which RED-TEAM-COMMON 4 lists as a blocker."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-12-03",
+  "severity": "major",
+  "title": "On Node 22.12 to 22.17, which engines and SPEC 7.1 admit, npm run build exits 1 (postbuild links.mjs), and npm run size and lab exit 1: plain node imports astro.config.mjs, which imports a .ts file",
+  "location": "scripts/links.mjs:199, run by package.json:18 postbuild (new in RT-FIX P3-RT-12-01); scripts/size.mjs:344; scripts/lab.mjs:741; site/astro.config.mjs:11 (import of ./src/lib/unverifiedRegistry.ts)",
+  "claim": "Node strips TypeScript types by default only from 22.18. links.mjs, size.mjs and lab.mjs import site/astro.config.mjs with plain node, and that file imports unverifiedRegistry.ts, so on 22.12 to 22.17 they stop with ERR_UNKNOWN_FILE_EXTENSION. Since the round 1 fix put links.mjs in postbuild, this breaks npm run build itself, along with e2e:basepath. scripts/presets.mjs re-runs itself with --experimental-strip-types for exactly this range; the others do not.",
+  "expected": "CONTRACTS 1 engines '>=22.12'; SPEC 7.1 Node '22.12 or later (LTS line 22)' and 7.2 item 1 'requires Node 22.12 or later'. The commands of 7.7 succeed on every admitted Node.",
+  "observed": "On Node v22.12.0 (official binary, npm package node-linux-x64@22.12.0), npm run build builds 32 pages, then exits 1 with 'links: Unknown file extension \".ts\" for .../site/src/lib/unverifiedRegistry.ts'. node scripts/size.mjs exits 1 with the same message. node --experimental-strip-types scripts/links.mjs exits 0 ('1040 internal links ... 0 problems'). On 22.22 the same failure appears with node --no-experimental-strip-types scripts/links.mjs, which is the switch P4-A2's decision used to test presets.mjs's 22.12 to 22.17 path.",
+  "reproduction": "In a clean clone of b9b8504 plus this branch, after npm ci: bash redteam/rt12-p4/redteam-RT-12-node-minimum.sh <clone> <scratch>/node22.12 <scratch>/logs prints 'npm run build on Node 22.12.0: exit 1 -- links: Unknown file extension \".ts\" ...', 'node scripts/size.mjs: exit 1 ...' and 'node --experimental-strip-types scripts/links.mjs: exit 0'. Shortcut on Node 22.22: npm run build && node --no-experimental-strip-types scripts/links.mjs -> exit 1.",
+  "specRef": "SPEC.md 7.1 (Node row), 7.2 item 1, 7.7 commands; CONTRACTS.md 1 (engines >=22.12)",
+  "proposedFix": "Run the three scripts with --experimental-strip-types on Node below 22.18, as presets.mjs does, or move siteAndBase and outDirFrom into a plain .mjs module that the scripts import without the integration. Alternatively raise engines and .nvmrc to >=22.18 with a recorded decision.",
+  "reproducer": "redteam/rt12-p4/redteam-RT-12-node-minimum.sh",
+  "lens": "RT-12",
+  "branch": "worktree-agent-a46ad407dca628b11",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-12-03",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.1 (Node row), 7.2 item 1, 7.7 commands; CONTRACTS.md 1 (engines >=22.12)",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1, detached. Applied redteam/rt12-p4/redteam-RT-12-node-minimum.sh (not at the gate; status 'A'). Clean clone <S>/clone at b9b8504 with npm ci --prefer-offline exit 0, status clean. Here <S> = /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt12-reproduce. Ran from <wt>: bash redteam/rt12-p4/redteam-RT-12-node-minimum.sh <S>/clone <S>/node22.12 <S>/logs. The network allowed the script's own 'npm pack node-linux-x64@22.12.0 --pack-destination <S>/node22.12', so the official binary was used and the 22.22 shortcut was not needed. Output: 'node: v22.12.0'. 'npm run build on Node 22.12.0: exit 1 -- links: Unknown file extension \".ts\" for <S>/clone/site/src/lib/unverifiedRegistry.ts'. The build log has 'presets: Node v22.12.0, type stripping 'strip', resolve hook module.register', '32 page(s) built in 16.04s', then postbuild with the same links error. 'node scripts/links.mjs: exit 1 -- links: Unknown file extension \".ts\" ...'. 'node --experimental-strip-types scripts/links.mjs: exit 0 -- links: 1040 internal links on 32 pages of site/dist-node2212 checked, 0 problems'. 'node scripts/size.mjs: exit 1 -- size: Unknown file extension \".ts\" for .../site/src/lib/unverifiedRegistry.ts'. Observed matches the finding: build exits 1 after 32 pages, size exits 1, and the strip-types flag gives exit 0. The leftovers (site/dist-node2212 and generated files in the clone) were removed, and the binary and clone were deleted at the end.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: on the official Node v22.12.0, npm run build builds 32 pages and then exits 1 in postbuild with 'links: Unknown file extension \".ts\" for .../unverifiedRegistry.ts', node scripts/size.mjs exits 1 with the same error, and node --experimental-strip-types scripts/links.mjs exits 0."
+   },
+   "refute": {
+    "findingId": "P4-RT-12-03",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "CONTRACTS.md 1: package.json 'engines': {'node': '>=22.12'}; SPEC.md 7.1 [D] Node row: '22.12 or later (LTS line 22)'; 7.2 item 1: Astro 7 'requires Node 22.12 or later'; COMMON.md 3: 'Node must be 22.12 or later'. These admit 22.12 to 22.17, which the build does not support.",
+    "evidence": "Read at b9b8504. package.json has engines '>=22.12' and postbuild 'node scripts/links.mjs'. scripts/links.mjs:199, scripts/size.mjs:344 and scripts/lab.mjs:741 each run \"await import(pathToFileURL(join(SITE_DIR, 'astro.config.mjs')).href)\". site/astro.config.mjs:11 has \"import { openItemsReportIntegration } from './src/lib/unverifiedRegistry.ts'\" (there since bedcc94, phase 0). The build's own header in scripts/presets.mjs says 'Node 22.18 and later strip types by default ...; on Node 22.12 to 22.17 the script runs itself again once with --experimental-strip-types'. The plan for P4-A2, section 5.9, says 'on Node 22.12 to 22.17 the flag --experimental-strip-types is needed'. So the builders treated 22.12 to 22.17 as a supported range and handled it only in presets.mjs. DECISIONS.md 'P4-A2 (continuation): scripts/presets.mjs and how it loads the engine' records the re-execution for presets.mjs only. No entry raises engines or .nvmrc to 22.18, and none exempts links.mjs, size.mjs or lab.mjs. The [D] of 7.1 covers a choice within its text, and the text admits 22.12, so R5 does not apply. One ambiguity goes to the owner: the 7.1 column is 'Version to pin', and .nvmrc '22' resolves to a 22.18+ release in CI. But the engines field, COMMON 3 and the plan's own 22.12-to-22.17 branch all declare 22.12 supported. gate-G4.md recorded Node v22.22.0 only and has no note on this.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 no sentence permits a minimum above 22.12, and 7.1, 7.2 item 1, CONTRACTS 1 and COMMON 3 all say 22.12 or later; R2 the finding reads the engines contract correctly, and only the 'Version to pin' wording is ambiguous, with no sentence permitting the behaviour; R3 links.mjs in postbuild and size.mjs exist at G4; R4 does not apply; R5 the [D] of 7.1 admits 22.12 and no logged decision raises the minimum or exempts these scripts; R6 no record. Major fits: npm run build, size and lab fail on an admitted Node."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-12-04",
+  "severity": "minor",
+  "title": "npm run report presents the report of a release build that failed: the report is marked complete at astro:build:done, and postbuild's link check fails afterwards",
+  "location": "site/src/lib/unverifiedRegistry.ts:216-230 (complete: true written in astro:build:done); package.json:18 (postbuild runs after it); scripts/report.mjs:36-40 (checks only report.complete)",
+  "claim": "The round 1 fix rests on the build-done marker. Since RT-FIX P3-RT-12-01 a release build can still fail after that marker, in postbuild, and npm run report then accepts and prints its report as the release report.",
+  "expected": "The fix's own decision says 'a failed release build is never presented as the release report' (DECISIONS.md, RT-FIX-P3-toolchain-b, P3-RT-12-06). SPEC 7.3 and 7.7 describe the report of a release build.",
+  "observed": "Copy with one dead internal link: RELEASE=1 npm run build exits 1 ('links: 971 internal links on 32 pages of site/dist checked, 1 problems'). npm run report then exits 0 with 'report: open items report of 2026-10-24T12:54:02.049Z: 8 open items used on 8 pages, 0 unknown items'.",
+  "reproduction": "bash redteam/rt12-p4/redteam-RT-12-run-mutations.sh <clean clone of b9b8504 with npm ci> <scratch> deadlink prints 'deadlink: release-build exit 1' and 'deadlink: report exit 0'.",
+  "specRef": "SPEC.md 7.3 (<Unverified> report of a release build), 7.7 npm run report; DECISIONS.md RT-FIX-P3-toolchain-b 'a complete release report'",
+  "proposedFix": "Mark the report complete only after the link check (for example, links.mjs sets complete after it passes), or have report.mjs also require the postbuild's success marker.",
+  "reproducer": "redteam/rt12-p4/redteam-RT-12-run-mutations.sh; redteam/rt12-p4/redteam-RT-12-mutate.mjs; redteam/rt12-p4/mutations/deadlink.astro",
+  "lens": "RT-12",
+  "branch": "worktree-agent-a46ad407dca628b11",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-12-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.3 (<Unverified> report of a release build), 7.7 npm run report; DECISIONS.md RT-FIX-P3-toolchain-b 'a complete release report'",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1, detached. Applied redteam/rt12-p4/redteam-RT-12-run-mutations.sh, redteam/rt12-p4/redteam-RT-12-mutate.mjs and redteam/rt12-p4/mutations/deadlink.astro (none at the gate; status 'A' for each). Clean clone <S>/clone at b9b8504 with npm ci; build outputs from earlier runs were removed first, and status --ignored showed nothing but node_modules. Here <S> = /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt12-reproduce. Ran from <wt>: bash redteam/rt12-p4/redteam-RT-12-run-mutations.sh <S>/clone <S>/mut deadlink. Script exit 0. Output: 'mutated .../mut-deadlink: deadlink'. 'deadlink: preview-build exit 1'. 'deadlink: release-build exit 1'; its log has '32 page(s) built in 21.57s', '/redteam-rt12-deadlink/: /redteam-rt12-missing/: no such page or file in the build (a dead internal link)' and 'links: 971 internal links on 32 pages of site/dist checked, 1 problems'. 'deadlink: report exit 0' with 'report: open items report of 2026-10-24T13:25:09.442Z: 8 open items used on 8 pages, 0 unknown items; see reports/open-items-report.md'. The deterministic build failure needs one run. Observed matches the finding: the release build exits 1 with 971 links and 1 problem, and the report exits 0 with 8 open items on 8 pages; only the timestamp differs. The script deleted its mutated copy; logs are in <S>/mut/logs.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: RELEASE=1 npm run build exits 1 ('links: 971 internal links on 32 pages of site/dist checked, 1 problems'), and npm run report then exits 0, presenting 'open items report of ...: 8 open items used on 8 pages, 0 unknown items'."
+   },
+   "refute": {
+    "findingId": "P4-RT-12-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "DECISIONS.md 'RT-FIX-P3-toolchain-b: a complete release report (P3-RT-12-06)': 'Reason: a failed release build is never presented as the release report'; same fragment, 'the internal-link check of the build (P3-RT-12-01)': links.mjs runs as postbuild 'so a preview build, a release build ... all fail on a problem'; SPEC.md 7.7 'RELEASE=1 npm run build (a release build)'. The records support the finding's expected.",
+    "evidence": "Read at b9b8504. In site/src/lib/unverifiedRegistry.ts, 'astro:build:done' runs writeFiles(buildReport(mergedWithFile(), true)), which marks the report complete inside Astro. package.json then runs 'postbuild': 'node scripts/links.mjs' after the Astro build. scripts/report.mjs refuses a report only when it is missing, when mode is not 'release', when the .md is missing, or when 'report.complete !== true'. It never checks that the postbuild finished. SPEC 7.3 and 7.7 do not say what npm run report does after a failed release build; the P3-RT-12-06 decision itself says 'SPEC 7.3, 7.7 are silent'. The standard is therefore the logged decision, and its stated reason is broken when the release build fails in postbuild. Both decisions are in the same fragment, and neither accepts that a postbuild failure leaves complete: true. Section 9 of gate-G4.md has report exit 1 only because no release build ran. The round 1 files and the known-and-decided list are silent. This is a check that proves less than its record says (RED-TEAM-COMMON 2).",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 no sentence permits presenting a failed release build's report, and 9.1 G3 and G6 want 'a release build succeeds and prints its two reports'; R2 the finding quotes the decision's reason correctly and the postbuild is part of RELEASE=1 npm run build; R3 report.mjs, the complete marker and the postbuild all exist at G4; R4 does not apply; R5 the logged decisions record the mechanism, and their stated reason contradicts the behaviour; R6 no record. Minor fits, since SPEC is silent and the gap is in a check."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-08-10",
+  "severity": "minor",
+  "title": "Attack 3 (e): the release report on standard error says E7 shows 'nothing' on M7, although the page shows the E7 fallback; gate G4's owner's part repeats it",
+  "location": "site/src/lib/unverifiedRegistry.ts:203-207 (one line per item and page, decided by the first use only); reports/gate-G4.md section 11",
+  "claim": "M7 has two E7 wraps. The first, in beat 3, has no fallback; the second, in the Seen box, has one. The printed report takes the first, says '(nothing shown)', and the owner's checklist inherits the error. open-items-report.json is right (fallbackShown true).",
+  "expected": "SPEC 7.3: a release build 'prints a report of the open items and the pages that use them'. That report should say what each page shows.",
+  "observed": "'open item E7 used on /modules/m7-geometry/ (nothing shown)', while the release page contains <span class=\"unverified-fallback\" data-unverified=\"E7\">The rule was checked by computation ...</span>. P4-A6 asked P0-A4 for this fix (decisions/P4-A6.md, request 4); it is not done.",
+  "reproduction": "npm ci && OUT_DIR=/tmp/rt08-rel npm run build:release 2> /tmp/rt08-rel-stderr.txt && node redteam/redteam-RT-08-p4-release-report.mjs /tmp/rt08-rel-stderr.txt /tmp/rt08-rel (exit 1, one MISMATCH line for E7)",
+  "specRef": "SPEC.md 7.3 (release report); 9.1 G4 owner's part (items 7 and 9)",
+  "proposedFix": "Aggregate per (item, page): print 'fallback shown' when any use on the page shows a fallback, or print one line per use.",
+  "reproducer": "redteam/redteam-RT-08-p4-release-report.mjs",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a5ac953e1a01ff603",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-08-10",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.3 (release report); 9.1 G4 owner's part (items 7 and 9)",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Applied redteam/redteam-RT-08-p4-release-report.mjs (added). As the orchestrator directed, /tmp/rt08-rel was replaced by <scratch>=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt08-reproduce. Ran: OUT_DIR=<scratch>/rt08-rel npm --prefix <wt> run build:release 2> <scratch>/rt08-rel-stderr.txt > <scratch>/rt08-rel-stdout.txt && node redteam/redteam-RT-08-p4-release-report.mjs <scratch>/rt08-rel-stderr.txt <scratch>/rt08-rel. The stdout redirect only kept the build log out of the terminal. Exit 1. Output: 'MISMATCH: \"open item E7 used on /modules/m7-geometry/ (nothing shown)\" but /modules/m7-geometry/ shows 1 fallback(s) of E7 in its HTML', plus two info lines for E6 (T15), then '1 report line(s) disagree with the release pages'. stderr line 10: 'open item E7 used on /modules/m7-geometry/ (nothing shown)'. The release page has '<span class=\"unverified-fallback\" data-unverified=\"E7\" ...>The rule was checked by computation ...'. The gate report (commit 4e3e839, gate commit b9b8504) line 130 reads 'Appendix E item 7 (... used on /modules/m7-geometry/, open, nothing shown in a release build)'. The observed value matches.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: the release report says E7 shows nothing on M7 while the page shows the E7 fallback, and gate G4's owner checklist repeats it. A wrong report line is minor."
+   },
+   "refute": {
+    "findingId": "P4-RT-08-10",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.3: a release build 'prints a report of the open items and the pages that use them, which the owner reads at each release (section 9.1)'. 9.1 G4 owner's part: Appendix E items 7 and 9. The finding's second sentence ('should say what each page shows') goes beyond 7.3, but the cause stands.",
+    "evidence": "site/src/lib/unverifiedRegistry.ts at b9b8504 prints the console.warn line only when isNew, with the annotation taken from the first usage. M7 has two E7 wraps: beat 3 with no fallback, then the Seen box with one. So the line reads '(nothing shown)'. The registry's own logged design (DECISIONS.md, P0-A4 'release mode, unknown items, and the open-items report') says the annotation exists 'so that the report and the stderr line can say whether the fallback was shown', and here it says so wrongly. reports/gate-G4.md section 11 passes the error to the owner ('Appendix E item 7 ... open, nothing shown in a release build'), although the owner must read and accept fallback text (9.1 G6). P4-A6's request (4) to P0-A4 (DECISIONS.md line 2449) was not carried to any tracked list: the MERGE P4 wave 4.4 entry does not list it, and the gate report repeats the error rather than recording it.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 no sentence permits a false annotation. R2 7.3 does not require the annotation, but the report the owner reads states something false, contrary to the build's own logged purpose for it, so the cause stands. R3 the E7 wraps are phase 4. R4 n/a. R5 the P0-A4 per-pair design does not license a wrong label. R6 the P4-A6 request is not a tracked open item."
+   }
+  }
+ }
+]

@@ -12,9 +12,12 @@
 //   table:   data-table-board, data-table-node (the A-10 table's buttons)
 //   strip:   data-step (a strip button), data-control="historySlider"
 //   live:    [data-live] (ToolFrame's polite live region)
+//   lessons: data-prediction (the prediction block); on M5 the vertices of T8's graph, data-out="vertex"
+//            with data-layer (regressions)
 // data-out names (every one T1 renders; the registry's `outs`):
 //   caption, moveCounter, historyStrip, historyCounter, mode, gameOver, bridgeSentence, aCp, notice,
-//   limit, scriptCaption, roundCounter, goal, goalMet, goalNote, predictResult, predictReveal, noscript
+//   limit, scriptCaption, roundCounter, goal, goalMet, goalNote, predictResult, predictReveal, noscript,
+//   exportNotice (ToolFrame), colourClasses (property `panels`), formValue, level, lengths, fate
 //   (scriptCaption, roundCounter, goal, goalMet, goalNote, predictResult, predictReveal come only from
 //   properties, which a link cannot set; site/tests/unit/tools/T01.test.ts checks them by server render.)
 // data-control names: undo, redo, reset, step, playToEnd, next, picker, view, mode, predictAnswer,
@@ -219,6 +222,9 @@ test('hooks on every node and every registered out', async ({ page, browser, bas
   await expect(root(page)).toHaveAttribute('data-moves', '120');
   await collect(page);
   await open(page, 'g=A2&v=p&m=l&c=p&s=1,0');
+  // The Cite text appears after a click on Cite (P6-A5; MERGE, on P6-tikz's request).
+  await control(page, 'cite').click();
+  await expect(root(page).locator('[data-out="citeText"]')).toHaveCount(1);
   await collect(page);
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   const nojs = await context.newPage();
@@ -253,7 +259,10 @@ test('controls enabled after hydration', async ({ page }) => {
   }
   const buttons = root(page).locator('button[data-node]');
   for (let k = 0; k < (await buttons.count()); k++) await expect(buttons.nth(k)).toBeEnabled();
-  // Phase 1 offers Copy link and Download data only: no SVG, PNG or LaTeX export.
+  // Phase 1 offered Copy link and Download data only. Phase 2 added Export SVG and PNG under data-export
+  // (P2-A6); phase 6 adds Export LaTeX and Cite under data-control="latex" and "cite" (P6-A5, CONTRACTS 5.1),
+  // enabled after hydration like the controls above. No control carries the plan's earlier names.
+  for (const name of ['latex', 'cite']) await expect(control(page, name), name).toBeEnabled();
   for (const name of ['exportSvg', 'exportSVG', 'exportPng', 'exportPNG', 'exportLatex', 'exportLaTeX']) await expect(control(page, name)).toHaveCount(0);
 });
 
@@ -779,4 +788,159 @@ test('figure has a text alternative', async ({ page }) => {
   await expect(groups.nth(1)).toHaveAttribute('aria-label', 'Numbers board on A2');
   const label = await root(page).locator('figure').getAttribute('aria-label');
   expect(label).toBe('Game Board on A2, linked view, free play: populations 1, 0; numbers 2, minus 1.');
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // RT-07 attack 25 (adopted from the RT-07 lens, site/tests/e2e/redteam-RT-07-t1-move-cost.spec.ts):
+  // the cost of one move in T1 must not grow with the length of the play. SPEC 7.4 "Single source of
+  // truth": "While a tool runs it keeps the list of positions of the current play in memory and extends
+  // it by one position per move, so a move costs one engine call however long the play is." SPEC 7.6
+  // "Main-thread work": "No engine call on the main thread may become a long task (50 ms)". A play of
+  // 20000 moves is one press of "Play to the end" on a board that is not of finite type (the cap of
+  // SPEC 5.6, CAPS.playMoves), so no long link is needed.
+
+  /** The 12-cycle with the chord joining nodes 1 and 7 (the board of the benchmark of 7.6). */
+  function ringWithChord(): string {
+    const C: number[][] = Array.from({ length: 12 }, (_, i) => Array.from({ length: 12 }, (_, j) => (i === j ? 2 : 0)));
+    const join = (a: number, b: number): void => {
+      C[a - 1]![b - 1] = -1;
+      C[b - 1]![a - 1] = -1;
+    };
+    for (let k = 1; k <= 12; k++) join(k, (k % 12) + 1);
+    join(1, 7);
+    return `c:${C.map((r) => r.join(',')).join(';')}`;
+  }
+  const URL_LEGAL = `tools/board/?z=1&g=${ringWithChord()}&v=n&m=l&c=n&s=${Array(12).fill(1).join(',')}`;
+  const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[xs.length >> 1]!;
+
+  async function openTimed(page: Page): Promise<void> {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __lt: [number, number][] };
+      w.__lt = [];
+      new PerformanceObserver((l) => {
+        for (const e of l.getEntries()) w.__lt.push([e.startTime, e.duration]);
+      }).observe({ type: 'longtask', buffered: true });
+    });
+    await page.goto(URL_LEGAL);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+  }
+
+  /** Presses Step once from inside the page and returns the time until the reactive update has run. */
+  async function timedStep(page: Page): Promise<{ ms: number; longest: number }> {
+    return page.evaluate(async () => {
+      const w = window as unknown as { __lt: [number, number][] };
+      w.__lt = [];
+      const button = document.querySelector('[data-tool="board"] [data-control="step"]') as HTMLButtonElement;
+      const t = performance.now();
+      button.click();
+      await Promise.resolve();
+      await new Promise((r) => setTimeout(r, 0));
+      const ms = performance.now() - t;
+      await new Promise((r) => setTimeout(r, 300));
+      return { ms, longest: Math.max(0, ...w.__lt.map(([, d]) => d)) };
+    });
+  }
+
+  // regression: P3-RT-07-01
+  test('a Step press costs the same after 5 moves and after 20000 moves', async ({ page }) => {
+    test.setTimeout(180000);
+    await openTimed(page);
+    for (let i = 0; i < 5; i++) await timedStep(page);
+    const short: number[] = [];
+    for (let i = 0; i < 7; i++) short.push((await timedStep(page)).ms);
+    await page.locator('[data-tool="board"] [data-control="playToEnd"]').click();
+    await expect(root(page)).toHaveAttribute('data-moves', '20000', { timeout: 120000 });
+    const long: number[] = [];
+    const longest: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      const r = await timedStep(page);
+      long.push(r.ms);
+      longest.push(r.longest);
+    }
+    test.info().annotations.push({
+      type: 'P3-RT-07-01',
+      description: `step after 12 moves: median ${median(short).toFixed(1)} ms [${short.map((x) => x.toFixed(1)).join(', ')}]; after 20000 moves: median ${median(long).toFixed(1)} ms [${long.map((x) => x.toFixed(1)).join(', ')}]; longest long task per press [${longest.map((x) => x.toFixed(0)).join(', ')}]`,
+    });
+    // one engine call per move however long the play (7.4): allow noise, not a factor that grows with L
+    expect(median(long)).toBeLessThanOrEqual(median(short) * 2 + 5);
+    // no long task on the main thread for one move (7.6)
+    expect(median(longest)).toBeLessThanOrEqual(50);
+  });
+
+  // RT-13 (reader playtest), attacks 6 and 31, adopted from its reproducer: a shared link on a
+  // prediction instance. SPEC 4.0 Predict ("the correct answer computed by the engine"; "The board is
+  // frozen until the reader has answered or pressed "show me""). The links are encodeState's output
+  // for M0 b2 (A3, populations, free, start (1, 1, 0)) with the moves 2 (MOVED) and the start
+  // (2, 1, 0) (OTHER_START). Ignoring the link or withdrawing the prediction both satisfy the tests;
+  // T1 withdraws the prediction (decisions/RT-FIX-P3-follow-predict.md).
+  const MOVED = 'modules/m0-start/?b2.z=1&b2.g=A3&b2.v=p&b2.m=f&b2.c=p&b2.s=1,1,0&b2.w=2';
+  const OTHER_START = 'modules/m0-start/?b2.z=1&b2.g=A3&b2.v=p&b2.m=f&b2.c=p&b2.s=2,1,0&b2.w=';
+
+  async function b2Values(page: Page): Promise<string[]> {
+    return page.locator('[data-tool][data-instance="b2"] button[data-board="populations"][data-node]').evaluateAll((els) =>
+      (els as HTMLElement[]).sort((a, b) => Number(a.dataset.node) - Number(b.dataset.node)).map((e) => e.dataset.value ?? ''));
+  }
+
+  // regression: P3-RT-13-03
+  test('attack 6: a link that carries the predicted move does not load b2 past it with the prediction open', async ({ page }) => {
+    await page.goto(MOVED);
+    const t = page.locator('[data-tool][data-instance="b2"]');
+    await t.scrollIntoViewIfNeeded();
+    await expect(t).toHaveAttribute('data-hydrated', 'true');
+    const open = (await t.locator('[data-control="predictCheck"]').count()) > 0 && (await t.locator('[data-control="predictCheck"]').isEnabled());
+    const moved = (await t.getAttribute('data-moves')) !== '0';
+    expect({ open, moved, values: await b2Values(page) }, 'the board shows the answer while the question is still open').not.toMatchObject({ open: true, moved: true });
+  });
+
+  // regression: P3-RT-13-03
+  test('attack 31: a link that changes the start of b2 does not grade the configured answer against another board', async ({ page }) => {
+    await page.goto(OTHER_START);
+    const t = page.locator('[data-tool][data-instance="b2"]');
+    await t.scrollIntoViewIfNeeded();
+    await expect(t).toHaveAttribute('data-hydrated', 'true');
+    const shown = await b2Values(page);
+    const hasPrediction = (await t.locator('[data-prediction] [data-control="predictCheck"]').count()) > 0;
+    test.info().annotations.push({ type: 'observed', description: `board ${shown.join(',')}, prediction present ${hasPrediction}` });
+    if (!hasPrediction || shown.join(',') === '1,1,0') return; // the tool ignored the link or dropped the prediction: allowed
+    // the board shows (2, 1, 0): mutating city 2 gives 1 there (oracle mutate(A3, (2,1,0), city 2) = (2,1,0))
+    await t.locator('[data-control="predictAnswer"]').fill('0');
+    await t.locator('[data-control="predictCheck"]').click();
+    await expect(t.locator('[data-out="predictResult"]'), 'answer 0 is wrong for the board shown').not.toHaveText(/^Right/);
+  });
+
+  // The same cause on the other way a state reaches T1 from outside: a jump published by a linked tool.
+  // On M5 the Weyl Explorer b2 follows b1, whose prediction is open; activating a vertex of layer 1 sends
+  // b1 a play of one move.
+  // regression: P3-RT-13-03
+  test('a jump from a linked tool does not move the board past the configured state with the prediction open (M5 b1)', async ({ page }) => {
+    await page.goto('modules/m5-weyl/');
+    const b1 = page.locator('[data-tool][data-instance="b1"]');
+    await expect(b1).toHaveAttribute('data-hydrated', 'true');
+    await expect(b1.locator('[data-prediction] [data-control="predictCheck"]')).toHaveCount(1);
+    const b2 = page.locator('[data-tool][data-instance="b2"]');
+    await b2.scrollIntoViewIfNeeded();
+    await expect(b2).toHaveAttribute('data-hydrated', 'true');
+    await b2.locator('[data-out="vertex"][data-layer="1"]').first().click();
+    await expect(b1).toHaveAttribute('data-moves', '1');
+    const open = (await b1.locator('[data-control="predictCheck"]').count()) > 0 && (await b1.locator('[data-control="predictCheck"]').isEnabled());
+    expect(open, 'b1 moved by a jump while its question is still open').toBe(false);
+    // Unfrozen: the board plays as without a prediction.
+    await expect(b1.locator('button[data-board="numbers"][data-can-act="true"]').first()).toBeVisible();
+  });
+
+  // A link that names only the configured state leaves the prediction as it was.
+  // regression: P3-RT-13-03
+  test('a link equal to the configured state keeps the prediction open and the board frozen (M0 b2)', async ({ page }) => {
+    await page.goto('modules/m0-start/?b2.z=1&b2.g=A3&b2.v=p&b2.m=f&b2.c=p&b2.s=1,1,0&b2.w=');
+    const t = page.locator('[data-tool][data-instance="b2"]');
+    await t.scrollIntoViewIfNeeded();
+    await expect(t).toHaveAttribute('data-hydrated', 'true');
+    await expect(t.locator('[data-prediction] [data-control="predictCheck"]')).toBeEnabled();
+    await expect(t).toHaveAttribute('data-moves', '0');
+    expect(await b2Values(page)).toEqual(['1', '1', '0']);
+  });
 });

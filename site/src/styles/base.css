@@ -35,6 +35,17 @@ body {
   outline-offset: 2px;
 }
 
+/* RT-FIX P4-RT-06-01 (SPEC 7.4 "so a control never looks usable before it is"): a control that cannot act,
+   before hydration (the disabled attribute) or because it is done (aria-disabled="true"), looks it in every
+   tool and page: a dashed border, and its text toned towards the page (65 percent of the text colour, 5.4 to
+   1 on the light page and 6.9 to 1 on the dark one, so A-6 still holds). Every component styles its controls'
+   usable look with color and border, so these two declarations carry !important; the focus ring is left as
+   it is, since a done control keeps the focus (A-1, A-2). */
+:is(button, input, select, textarea):is(:disabled, [aria-disabled='true']) {
+  border-style: dashed !important;
+  color: color-mix(in srgb, var(--text) 65%, var(--page)) !important;
+}
+
 .numeral,
 [data-value] {
   font-family: var(--font-numerals);

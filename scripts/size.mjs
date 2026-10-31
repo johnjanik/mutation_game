@@ -137,7 +137,9 @@ export function dataToolValues(html) {
  * @returns {{ label: 'lesson' | 'tool' | 'no-tool' | 'one-board' | 'several-tools'; limitKb: number }}
  */
 export function classifyRoute(routePath, html) {
-  if (routePath.startsWith('/modules/')) return { label: 'lesson', limitKb: 120 };
+  // A lesson is a page below /modules/ (/modules/<slug>/); the module index /modules/ itself is not a
+  // lesson and is classified by its tools like any other page.
+  if (/^\/modules\/[^/]/.test(routePath)) return { label: 'lesson', limitKb: 120 };
   if (routePath.startsWith('/tools/') || routePath.startsWith('/embed/')) return { label: 'tool', limitKb: 90 };
   const tools = dataToolValues(html);
   if (tools.length === 0) return { label: 'no-tool', limitKb: 15 };
@@ -339,7 +341,9 @@ async function main() {
   }
   if (opts.help) { console.log(USAGE); process.exit(0); }
 
-  const config = await import(pathToFileURL(join(SITE_DIR, 'astro.config.mjs')).href);
+  // The functions of site/astro.config.mjs from their plain module, which plain Node 22.12 to 22.17
+  // loads (astro.config.mjs imports a .ts module; RT-FIX P4-RT-12-03).
+  const config = await import(pathToFileURL(join(SITE_DIR, 'src', 'lib', 'siteAndBase.mjs')).href);
   const base = opts.base ? config.normaliseBase(opts.base) : config.siteAndBase(process.env).base;
   const distDir = opts.dist ? resolve(process.cwd(), opts.dist) : resolve(SITE_DIR, config.outDirFrom(process.env));
   if (!existsSync(distDir)) {

@@ -1,0 +1,306 @@
+{
+ "agent": "rtfix-p4-m7",
+ "status": "done",
+ "branch": "worktree-agent-a6feef272ddb22ea1",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a6feef272ddb22ea1",
+ "base": "967118d23189fb1ac0190af9790884d1c897edc7",
+ "commits": [
+  "fe1e2e6 RT-FIX P4-RT-09-01 P4-RT-08-01: M7 states the geometry of 2.14 for the boards of finite type",
+  "7bdd407 RT-FIX P4-RT-08-09: M7's E7 wrap in the Seen box states the claim, not the item's status",
+  "df7c632 RT-FIX P4-RT-08-08: M7 beat 5 gives the provenance of the edge-length rule",
+  "59035ea RT-FIX P4-RT-09-04: M7 says make uniform starts from a multiple of (0, 1, sqrt 2)",
+  "d3c2459 RT-FIX P4-RT-09-03: M7's b12 goal admits exactly the answer its check reports",
+  "d2ede16 RT-FIX P4-RT-13-01: M7's sandbox link opens A2, the board of its first figure",
+  "32aa9ac RT-FIX P4-RT-13-02: one shared View component marks the view words of M0, M4 and M7",
+  "1cffa3b RT-FIX P4-RT-09-01 P4-RT-08-01 P4-RT-09-03 P4-RT-09-04 P4-RT-08-08 P4-RT-08-09 P4-RT-13-01 P4-RT-13-02: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/content/modules/m7-geometry.mdx",
+  "site/src/content/modules/m0-start.mdx",
+  "site/src/content/modules/m4-numbers.mdx",
+  "site/src/components/content/View.astro",
+  "site/src/components/content/index.ts",
+  "site/tests/e2e/M7.spec.ts",
+  "site/tests/unit/content-m7-finite-type.test.ts",
+  "site/tests/unit/content-m7-rank-range.test.ts",
+  "site/tests/unit/content-m7-e7-wrap.test.ts",
+  "site/tests/unit/content-m7-provenance.test.ts",
+  "decisions/RT-FIX-P4-lesson-m7.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 967118d",
+   "exit": 0,
+   "summary": "HEAD is now at 967118d"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-a6feef272ddb22ea1; worktree-agent-a6feef272ddb22ea1; 967118d23189fb1ac0190af9790884d1c897edc7"
+  },
+  {
+   "cmd": "shasum -a 256 reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: equal to CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 65 passed; Tests 2218 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-m7-finite-type.test.ts site/tests/unit/content-m7-rank-range.test.ts (red at base, as adopted)",
+   "exit": 1,
+   "summary": "Tests 4 failed | 1 passed (5): beat 2 says finite type expected false to be true; orbit of (1,0,0) on the triangle: expected true to be false; expected 'NotFiniteType' to be ''; rank-range lists lines 114, 156, 159"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-m7-e7-wrap.test.ts site/tests/unit/content-m7-provenance.test.ts (red at base)",
+   "exit": 1,
+   "summary": "Tests 2 failed (2): 'm7-geometry.mdx:158: the wrapped sentence states the open status of E7'; 'provenance in the paragraph: none; a Seen statement on edge lengths or uniform polytopes: none'"
+  },
+  {
+   "cmd": "npm run build (base)",
+   "exit": 0,
+   "summary": "32 pages; links: 1040 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch copy, port 7610> M7.spec.ts -g regressions (red at base)",
+   "exit": 1,
+   "summary": "4 failed, 1 passed: b12 Expected 'true' Received null; b7 uniform Expected '4' Received '2'; sandbox Expected 'A2' Received 'B3'; view words ['gs are numbers, so this module uses the Numbers view.']; control (1,1,0) passed"
+  },
+  {
+   "cmd": "npx playwright test ... M7.spec.ts -g 'word count' (base)",
+   "exit": 0,
+   "summary": "M7 prose words: 1786"
+  },
+  {
+   "cmd": "npm run build + npx playwright test ... M7.spec.ts at fe1e2e6",
+   "exit": 0,
+   "summary": "29 passed; 1786 words; unit 5 passed"
+  },
+  {
+   "cmd": "npm run build + npx playwright test ... M7.spec.ts at 7bdd407",
+   "exit": 0,
+   "summary": "29 passed; 1777 words; unit 6 passed"
+  },
+  {
+   "cmd": "npm run build + npx playwright test ... M7.spec.ts at df7c632",
+   "exit": 0,
+   "summary": "29 passed; 1795 words; unit 7 passed"
+  },
+  {
+   "cmd": "npm run build + npx playwright test ... M7.spec.ts at 59035ea",
+   "exit": 0,
+   "summary": "30 passed; 1798 words"
+  },
+  {
+   "cmd": "npm run build + npx playwright test ... M7.spec.ts at d3c2459",
+   "exit": 0,
+   "summary": "32 passed; 1798 words"
+  },
+  {
+   "cmd": "npm run build + npx playwright test ... M7.spec.ts at d2ede16",
+   "exit": 0,
+   "summary": "33 passed; 1798 words"
+  },
+  {
+   "cmd": "npm run check -w site (at 32aa9ac)",
+   "exit": 0,
+   "summary": "astro check 0 errors 0 warnings; svelte-check 0 errors (1 warning in t02/LayerChart.svelte that was already there)"
+  },
+  {
+   "cmd": "npm run build + npx playwright test ... M7.spec.ts M0.spec.ts M4.spec.ts at 32aa9ac",
+   "exit": 0,
+   "summary": "84 passed; M0 1685, M4 1767, M7 1798 words"
+  },
+  {
+   "cmd": "npx playwright test ... nojs.spec.ts a11y.spec.ts at 32aa9ac",
+   "exit": 0,
+   "summary": "105 passed (5.0m)"
+  },
+  {
+   "cmd": "diff of built view-word markup, base vs 32aa9ac",
+   "exit": 0,
+   "summary": "modules/m0-start/index.html identical byte for byte (cmp); M4's two view words now carry M0's inline styles"
+  },
+  {
+   "cmd": "scratch revert of m7-geometry.mdx to 967118d at HEAD, then npx vitest run --project site-unit content-m7-*.test.ts",
+   "exit": 1,
+   "summary": "Tests 6 failed | 1 passed (7)"
+  },
+  {
+   "cmd": "scratch revert, npm run build, npx playwright test ... M7.spec.ts -g regressions",
+   "exit": 1,
+   "summary": "4 failed, 1 passed (Expected 'true' Received null; '4' vs '2'; 'A2' vs 'B3'; view word unmarked); lesson restored with git checkout HEAD"
+  },
+  {
+   "cmd": "RELEASE=1 npm run build",
+   "exit": 0,
+   "summary": "'open item E7 used on /modules/m7-geometry/ (nothing shown)'; built M7 holds the fallback 'The attribution of this rule is being checked.'"
+  },
+  {
+   "cmd": "npm run build (final, clean tree)",
+   "exit": 0,
+   "summary": "32 page(s) built; links: 1040 internal links, 0 problems"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 0,
+   "summary": "Test Files 65 passed; Tests 2218 passed (baseline 2218)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "clean"
+  },
+  {
+   "cmd": "npm run check -w site (final)",
+   "exit": 0,
+   "summary": "0 errors, 0 warnings; svelte-check 0 errors"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-m7-finite-type, content-m7-rank-range, content-m7-e7-wrap, content-m7-provenance, content-components, numbers-in-prose-fallbacks",
+   "exit": 0,
+   "summary": "Test Files 6 passed; Tests 25 passed"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch copy, port 7610> M7.spec.ts M0.spec.ts M4.spec.ts nojs.spec.ts a11y.spec.ts (final)",
+   "exit": 0,
+   "summary": "189 passed (7.4m); M7 1798 words"
+  },
+  {
+   "cmd": "npx playwright test ... module-links.spec.ts registry-outs.spec.ts",
+   "exit": 0,
+   "summary": "32 passed"
+  },
+  {
+   "cmd": "grep -rn 'regression: P4-RT-' packages/engine/test site/tests",
+   "exit": 0,
+   "summary": "10 lines: 09-01 (x3), 08-01, 08-08, 08-09 in site/tests/unit; 09-03, 09-04, 13-01, 13-02 in site/tests/e2e/M7.spec.ts"
+  },
+  {
+   "cmd": "git diff --name-only 967118d..HEAD | grep -ci redteam; git ls-files | grep -i redteam",
+   "exit": 0,
+   "summary": "0 files added by the branch; git ls-files lists only the archive under build-plan/reports/orchestrator and build-plan/workflows that the base already has"
+  },
+  {
+   "cmd": "git diff --name-only 967118d..HEAD",
+   "exit": 0,
+   "summary": "the 11 files of filesChanged; no reference/, build-plan/, CONTRACTS.md, DECISIONS.md, CLAUDE.md, unverified.json, package files, configs, .github/, caps.ts, _harness.ts, reports/gate-"
+  },
+  {
+   "cmd": "grep of added diff lines for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' 'on:x='; count of U+2014 and U+2013 in the diff",
+   "exit": 1,
+   "summary": "no match; 0 em-dashes; 0 en-dashes"
+  },
+  {
+   "cmd": "git log --format=%s 967118d..HEAD",
+   "exit": 0,
+   "summary": "8 subjects, each starting 'RT-FIX P4-RT-'"
+  },
+  {
+   "cmd": "pkill -f 'port 7610'; ps check for astro on 7610",
+   "exit": 0,
+   "summary": "no preview running"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "empty"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P4-RT-09-01: M7 states the finite-type geometry of SPEC 2.14 for every board, and its verification for 'every board of rank two to eight' (blocker, unchanged by both verifiers)",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m7-finite-type.test.ts > the sentences that state the geometry of 2.14 name the boards of finite type (and the two triangle tests of the same file)",
+   "evidence": "Red at base 967118d: 3 failed (beat 2 never says finite type; on the triangle the orbit of (1,0,0) passed 5000 positions, 'expected true to be false'; euclideanBasis threw NotFiniteType, 'expected NotFiniteType to be empty'). These match the verifier's observed values. Green after fe1e2e6: 3 passed. Cause: beat 2, Seen 2, beat 6 and Seen 1 and 4 dropped the finite-type hypothesis and the range of 2.14. Fix: 'On a board of finite type' in beat 2 and Seen 2, and 'every board of finite type of rank two to eight' in beat 6 and Seen 1 and 4. Adoption: the reproducer's triangle assertions are kept while a sentence covers the triangle, and become the counterexample once it does not. A scratch revert at HEAD makes them red again."
+  },
+  {
+   "item": "P4-RT-08-01: M7 says its geometry facts were 'verified by computation on every board of rank two to eight' while the check covered only the finite types (blocker; DUPLICATE of P4-RT-09-01)",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m7-rank-range.test.ts > m7-geometry.mdx never claims a computation on 'every board of rank two to eight'",
+   "evidence": "Same cause and same commit (fe1e2e6) as P4-RT-09-01. Red at base: lines 114, 156 and 159 listed. Green after the fix: passed. Adopted unchanged apart from the name, the Run line and the regression comment."
+  },
+  {
+   "item": "P4-RT-09-03: M7's b12 challenge rejects a right answer: rings (2, 1, 0) on B3 give 24 vertices and 36 edges but only (1, 1, 0) is accepted (lens: blocker; both verifiers: major)",
+   "status": "fixed",
+   "test": "site/tests/e2e/M7.spec.ts > regressions > M7 b12 challenge rejects the rings (2, 1, 0), which give 24 vertices and 36 edges",
+   "evidence": "Red at base: Expected 'true', Received null after (2,1,0), with vertexCount 24, edgeCount 36, fVector '24, 36, 14' and edgeLengths '4, 16'. The control test passed. Green after d3c2459: passed, control passed, full M7.spec.ts 32 passed. Cause: the goal ('Find rings on B3, other than those of beat 5, ...') admitted every (a,b,0) and (0,a,b) other than (0,1,1), and even excluded (1,1,0), which beat 5 names. The check polytopeName = 'truncated octahedron' is met by B3 (1,1,0) alone. The goal now reads 'Move the rings of one to another pair of nodes of B3, keeping 24 vertices and 36 edges.', whose only answer is (1,1,0). The check is unchanged. Adoption: the reproducer's 'met at (2,1,0)' assertion holds while the goal admits those rings; once the goal asks for rings of one, the test asserts silence on that near miss."
+  },
+  {
+   "item": "P4-RT-09-04: M7 says make uniform replays from (0, 1, √2); the studio replays from (0, 1/√2, 1) and its edge-length readout contradicts the caption (major)",
+   "status": "fixed",
+   "test": "site/tests/e2e/M7.spec.ts > regressions > M7 b7 make uniform draws from the start its caption and beat 5 state",
+   "evidence": "Red at base: Expected '4', Received '2', as the verifier observed. Green after 59035ea: passed, full M7 30 passed. Cause: the lesson named a start T10 does not use (T10 uses c = largest ring, decisions/P4-A3.md). Beat 5 and the b7 caption now say 'a multiple of (0, 1, √2)', which holds for every c. T10 is unchanged. Adoption: the expected value (4 in the reproducer) is computed from the start each sentence names, and a 'multiple of' start is held to its one edge length."
+  },
+  {
+   "item": "P4-RT-08-08: M7 beat 5 states the edge-length rule and the condition for a uniform polytope with no provenance (major)",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m7-provenance.test.ts > M7 beat 5 states the edge-length rule and the condition for a uniform polytope with their provenance",
+   "evidence": "Red at base: 'provenance in the paragraph: none; a Seen statement on edge lengths or uniform polytopes: none', as the script printed. Green after df7c632: passed. Fix: 'verified by computation on A3, B3, C3, D4, F4, G2 and E6', the range of verify.py section 11, and the uniform condition stated as its consequence ('So ... only when'). The script reproducer became a test with the same criterion."
+  },
+  {
+   "item": "P4-RT-08-09: in M7's Seen box the E7 wrap states the item's open status, and its fallback drops the hedge on the face counts (lens: minor; refuter raised to major)",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m7-e7-wrap.test.ts > in the Seen box the E7 wrap states the claim that closing the item settles, and its fallback keeps the hedge on the face counts",
+   "evidence": "Red at base: 'm7-geometry.mdx:158: the wrapped sentence states the open status of E7'. Green after 7bdd407: passed. The wrap is now 'The rule is of the kind described in [CKPS95].' with the fallback 'The attribution of this rule is being checked.'. RELEASE=1 build: the fallback shows. The 'E7 and E9 are wrapped' test still passes."
+  },
+  {
+   "item": "P4-RT-13-01: M7's sandbox link opens B3, not the module's first board A2 (major)",
+   "status": "fixed",
+   "test": "site/tests/e2e/M7.spec.ts > regressions > m7-geometry closes with the sandbox on its first board A2",
+   "evidence": "Red at base: Expected 'A2', Received 'B3'. Green after d2ede16: passed, full M7 33 passed. Fix: <ModuleLinks module={7} board=\"A2\" />, recorded in the fragment as replacing P4-A6's entry. The anatomy test's g=B3 assertion now asserts g=A2. The first figure's board is read from T10's boardName data-name instead of the island props."
+  },
+  {
+   "item": "P4-RT-13-02: M7 names the Numbers view in prose with neither the accent underline nor the icon (major)",
+   "status": "fixed",
+   "test": "site/tests/e2e/M7.spec.ts > regressions > m7-geometry: every prose naming of a view is underlined in its accent with its icon",
+   "evidence": "Red at base: ['gs are numbers, so this module uses the Numbers view.'] unmarked. Green after 32aa9ac: passed, and it also checks that the marked word has the accent underline, the icon and the text colour. Cause: the view-word helper was local to M0 (View) and M4 (ViewWord). Fix: site/src/components/content/View.astro, exported by the content barrel and used by M0, M4 and M7. M0's built HTML is byte-identical. M0.spec.ts and M4.spec.ts pass unchanged (50 passed)."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "CONTRACTS.md 7 (content components G, Tex, Unverified, Cite)",
+   "what": "The barrel @components/content also exports View (site/src/components/content/View.astro). No existing name, prop or file changes.",
+   "why": "The orchestrator asked for a shared content component for P4-RT-13-02, and round 1 requested it (decisions/RT-FIX-P3-lesson-m0.md, -m4.md)."
+  },
+  {
+   "spec": "RT-FIX.md 5.5 (no changed expected value in an existing test)",
+   "what": "In M7.spec.ts > anatomy of 8.2, the sandbox href assertion changed from g=B3 to g=A2, with its comment.",
+   "why": "The assertion pinned the behaviour P4-RT-13-01 corrects. Round 1 did the same for M4 (3682286)."
+  },
+  {
+   "spec": "RT-FIX.md 5.3 (adoption changes names and paths only)",
+   "what": "Several reproducers held the page's claim against the engine or tool, so they could never pass: RT-09 finite-type tests 2 and 3, the RT-09 b12 test, and the RT-09 uniform test. Their assertions are kept while the page makes the claim and switch to the counterexample afterwards. RT-09 test 1, which asserted that the old sentences were present, now asserts the finite-type wording. Golden numbers are read from the golden file, as M7.spec.ts requires.",
+   "why": "Precedent: decisions/RT-FIX-P3-lesson-m1.md. Every adopted test was red at base and under a scratch revert at HEAD."
+  },
+  {
+   "spec": "RT-FIX.md 5.4 item 5 (keep the fix small)",
+   "what": "Four phrases of M7 named by no finding were cut: beat 1 'Floating point enters only here.', beat 2 'of the studio', beat 3 'in whole numbers' and 'also', beat 6 'and the default view from rank four on'.",
+   "why": "SPEC 8.2 caps a lesson at 1800 words. The fixes add words and the base stood at 1786; the result is 1798."
+  },
+  {
+   "spec": "cluster lesson M7",
+   "what": "Changed m0-start.mdx and m4-numbers.mdx (they import View) and site/src/components/content/.",
+   "why": "Named in the orchestrator's note for P4-RT-13-02."
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P4-lesson-m7.md",
+ "openQuestions": [
+  "For the owner: SPEC 2.14 labels the edge-length rule [V] with no range, which by 0.3 reads as 'every type of rank at most 8', but verify.py section 11 checks it on A3, B3, C3, D4, F4, G2 and E6 only. M7 now states those seven boards.",
+  "M7 stands at 1798 of 1800 words. Any later addition needs a cut."
+ ],
+ "handoff": "Files outside the M7 lesson: site/src/components/content/View.astro and index.ts (new export View), and the M0 and M4 lessons, which now import View. M0's HTML is unchanged. M4's view words take M0's inline styles, and the existing view-word tests of M0.spec.ts and M4.spec.ts pass unchanged. No T10, Challenge or M6 file was touched and no T10 change is needed. Proposed fixes not followed: P4-RT-09-03's fVector + board + node-3 check, because Challenge's out kind reads one output, and a new kind is the open board-aware request to P1-A4 (MERGE P4 wave 4.4); the goal was reworded instead, as the lens's second option. P4-RT-08-08's 'every board of finite type of rank at most eight' would overstate verify.py's seven boards. P4-RT-08-09's fallback was shortened to its second half, because the first half repeated the clause just before the wrap. For the lens rerun: b12's goal is now 'Move the rings of one to another pair of nodes of B3, keeping 24 vertices and 36 edges.', so (2,1,0) is a near miss by design."
+}

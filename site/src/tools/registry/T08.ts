@@ -24,6 +24,8 @@ export const T08_OUTS = [
   'layerSizes',
   'vertex',
   'edge',
+  'vertexDetails', // the details panel (t08/VertexDetails.svelte), never empty (RT-FIX P3-RT-10-06)
+  'canvas', // the drawing above 192 elements, after hydration (t08/WeylGraph.svelte; RT-FIX P3-RT-10-06)
   'vertexPosition',
   'vertexWord',
   'separatingRoots',
@@ -40,6 +42,7 @@ export const T08_OUTS = [
   'notice',
   'noscript',
   'exportNotice',
+  'citeText', // ToolFrame, after a click on Cite (P6-A5)
   'moveCounter',
   'historyStrip',
   'historyCounter',

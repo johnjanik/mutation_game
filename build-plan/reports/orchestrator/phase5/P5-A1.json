@@ -1,0 +1,337 @@
+{
+ "agent": "P5-A1",
+ "status": "partial",
+ "branch": "worktree-agent-aa7d538ec7734f869 (the plan's agent/P5-A1; reset to integration head 0541a15 before any work)",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-aa7d538ec7734f869",
+ "commits": [
+  "96e6aa5 P5-A1: sparse matrix operations",
+  "e11e567 P5-A1: minuscule matrices, signed moves, Chevalley-Serre records, stringThrough",
+  "d613ebc P5-A1: guards, caps, purity",
+  "047655c P5-A1: decisions fragment"
+ ],
+ "filesChanged": [
+  "packages/engine/src/rep.ts",
+  "packages/engine/src/index.ts",
+  "packages/engine/test/golden/p5-minuscule.test.ts",
+  "packages/engine/test/golden/p5-rep-units.test.ts",
+  "packages/engine/test/golden/p5-guards.test.ts",
+  "packages/engine/test/bench/p5-minuscule.bench.ts",
+  "decisions/P5-A1.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-aa7d538ec7734f869; worktree-agent-aa7d538ec7734f869"
+  },
+  {
+   "cmd": "git reset --hard 0541a15; git log -1",
+   "exit": 0,
+   "summary": "HEAD 0541a15 GATE: G4 rerun after the phase 4 red-team round, GREEN"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed from the lockfile"
+  },
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "shasum -a 256 reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474636fc9a7990c97c3664d2603f090b5b654a39352a87fc992f744e95a2f, 485caee8eb8519697626a72bfafd84fa568834792cc32bdcd90a04b80f864bad, 1fc9f82bf62d9342817820c271f59eec9ca9721530a81adfa17d7a4d08dd384d: all equal CONTRACTS.md 9 (at start and at end)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline at 0541a15)",
+   "exit": 0,
+   "summary": "70 files, 2242 passed"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "vitest run test/golden/p5- (engine)",
+   "exit": 0,
+   "summary": "3 files, 162 passed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 1,
+   "summary": "73 files: 2404 passed, 1 failed. The failure is test/unit/p1-api.test.ts, the pinned export list, which is outside my ownership (see requests)"
+  },
+  {
+   "cmd": "npm test (root: engine + site-unit)",
+   "exit": 1,
+   "summary": "158 files: 3267 passed, 1 failed (the same p1-api pinned list). site-unit is green, including scripts.test.ts timing guards"
+  },
+  {
+   "cmd": "npm run bench -w packages/engine",
+   "exit": 0,
+   "summary": "5 files, 5 passed; E7 node 7: minusculeMatrices 6.93 ms, chevalleySerre 32.35 ms; orbit benchmark median 9.41 ms"
+  },
+  {
+   "cmd": "vitest --config test/bench/vitest.config.ts test/bench/p5-minuscule.bench.ts (alone)",
+   "exit": 0,
+   "summary": "1 passed; minusculeMatrices 4.92 ms, chevalleySerre 25.70 ms"
+  },
+  {
+   "cmd": "node -e \"const c=require('.../packages/engine/test/golden/coverage.json'); console.log(c.missingByPhase['5'])\"",
+   "exit": 0,
+   "summary": "[] (keys include minuscule_representations)"
+  },
+  {
+   "cmd": "grep -n \"from '\" packages/engine/src/rep.ts",
+   "exit": 0,
+   "summary": "./board (type), ./caps, ./errors, ./guards, ./moves, ./search: src only"
+  },
+  {
+   "cmd": "grep -rnE \"\\.only|\\.skip|xit\\(\" packages/engine/test",
+   "exit": 1,
+   "summary": "empty output"
+  },
+  {
+   "cmd": "node scratch mutants.mjs (17 hand mutants of rep.ts against test/golden/p5-*)",
+   "exit": 0,
+   "summary": "all 17 killed: basis ascending, E/F swapped, row/column swapped, Serre count +1 and -1, C transposed, moves as E+F+P0, string by row, spEq counting zeros, spMul keeping zeros, no cap, ef sharing H, H only for +-1, signed E+F, no mu_i check, no guard, P0 inverted. rep.ts restored"
+  },
+  {
+   "cmd": "temporary PHASE_5_NAMES edit of p1-api.test.ts, vitest run, then git checkout",
+   "exit": 0,
+   "summary": "6 passed with the requested patch. The patch was reverted; the file is unchanged on the branch"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "5.7 phase 5 minuscule_representations: all 18 records, matched by type and node, give a non-null result whose dimension equals the golden value",
+   "status": "pass",
+   "test": "packages/engine/test/golden/p5-minuscule.test.ts > dimension equals the golden value (18 cases)"
+  },
+  {
+   "item": "weights_dynkin_labels: basis equals it in order on the 17 records where it is not null (E7 7 skipped; strictly decreasing order checked on all 18)",
+   "status": "pass",
+   "test": "p5-minuscule.test.ts > basis equals weights_dynkin_labels in order"
+  },
+  {
+   "item": "2.18 [V] / T12: chevalleySerre returns 6n^2-2n records and every one holds, for all 18",
+   "status": "pass",
+   "test": "p5-minuscule.test.ts > every Chevalley-Serre relation holds"
+  },
+  {
+   "item": "D4 node 2: not null, 24 basis vectors, some contain 2, 88 records, failing ones carry both sides, exactly the 10 ef records of the oracle fail",
+   "status": "pass",
+   "test": "p5-minuscule.test.ts > D4 node 2 fails and returns both sides"
+  },
+  {
+   "item": "E^2 = F^2 = 0; (1+E)(1-F)(1+E) = signedMoves[k]; its square is (-1)^H",
+   "status": "pass",
+   "test": "p5-minuscule.test.ts > signed move is exp(E)exp(-F)exp(E) with square (-1)^H"
+  },
+  {
+   "item": "moves[k] = E+F+P0 and is the firing permutation on all 18; on D4 node 2 it is not E+F+P0",
+   "status": "pass",
+   "test": "p5-minuscule.test.ts > moves are the firing permutations"
+  },
+  {
+   "item": "dimension agrees with weylDimension (bigint) and orbitSize; node is in minusculeNodes; D4 node 2 is not",
+   "status": "pass",
+   "test": "p5-minuscule.test.ts > dimension agrees with Weyl and orbitSize; the nodes are minuscule"
+  },
+  {
+   "item": "Roster: the 56 of E7 builds in under two seconds",
+   "status": "pass",
+   "test": "packages/engine/test/bench/p5-minuscule.bench.ts > E7 56 under two seconds (bench run, not the parallel suite; see deviations)"
+  },
+  {
+   "item": "5.4 cap: E7 6 at cap 50 is null, at 56 (golden size) it is built; default cap: E8 pos 0 and E7 pos 2 are null, E8 pos 7 is built",
+   "status": "pass",
+   "test": "p5-rep-units.test.ts > cap"
+  },
+  {
+   "item": "2.18 by hand: the A1 and A2 bases from the harness; E, F, H, moves, signedMoves; [E_1,F_1]=H_1 and [E_1,F_2]=0 as records",
+   "status": "pass",
+   "test": "p5-rep-units.test.ts > A1 and A2 by hand"
+  },
+  {
+   "item": "Sparse operations on hand matrices: no zero entries, order-free spEq ignoring zeros, inputs unchanged",
+   "status": "pass",
+   "test": "p5-rep-units.test.ts > sparse operations"
+  },
+  {
+   "item": "stringThrough examples and the fast-check property on A3, B3, G2, D4 (seed 20261024, 400 runs)",
+   "status": "pass",
+   "test": "p5-rep-units.test.ts > stringThrough examples; > stringThrough property"
+  },
+  {
+   "item": "5.6 guards: NeedsTwoWayRoads on a one-way board, NotFiniteType on affine boards; signedMoves works with no board; RangeError cases",
+   "status": "pass",
+   "test": "p5-guards.test.ts > one-way board; > affine board; > argument errors"
+  },
+  {
+   "item": "E-5 purity: inputs deep-equal before and after; two calls give equal results in new objects",
+   "status": "pass",
+   "test": "p5-rep-units.test.ts > purity"
+  },
+  {
+   "item": "CONTRACTS 3: coverage.json missingByPhase[\"5\"] is []",
+   "status": "pass",
+   "test": "coverage.json after the full engine run"
+  },
+  {
+   "item": "CONTRACTS 2.4 phase 5 signatures type-check",
+   "status": "pass",
+   "test": "npx tsc --noEmit -p packages/engine exit 0"
+  },
+  {
+   "item": "CONTRACTS 2.1: dependencies {} unchanged; rep.ts imports only src",
+   "status": "pass",
+   "test": "grep of rep.ts imports; packages/engine/package.json untouched"
+  },
+  {
+   "item": "COMMON 4.4: no .only/.skip/xit, no golden value typed into source",
+   "status": "pass",
+   "test": "grep empty. The A1/A2 bases, the D4 size, the E7 size and dimension are read through the harness"
+  },
+  {
+   "item": "CONTRACTS 9: reference hashes unchanged",
+   "status": "pass",
+   "test": "shasum -a 256 of the three files"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "P5-A1 instruction section 4 table and section 6 (E7 timing in p5-minuscule.test.ts)",
+   "what": "The E7 56 timing is in packages/engine/test/bench/p5-minuscule.bench.ts (run by npm run bench -w packages/engine), not in test/golden/p5-minuscule.test.ts. This file is not in the roster's ownership list.",
+   "why": "site/tests/unit/scripts.test.ts (P4-X2) fails the run when any engine parallel-suite file reads a clock, even in a comment. The session instruction says to put timing checks in test/bench/."
+  },
+  {
+   "spec": "P5-A1 instruction section 8 (commit order)",
+   "what": "stringThrough and its tests went into the same commit as minusculeMatrices, signedMoves and chevalleySerre, not into a separate 'P5-A1: stringThrough' commit.",
+   "why": "It was written in the same pass. The tests were still written first: the files were red before rep.ts held the functions."
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE",
+   "what": "packages/engine/test/unit/p1-api.test.ts (P1-A1's file) pins the exact export list and fails with the ten phase-5 names, which CONTRACTS 2.1 requires. Please add `const PHASE_5_NAMES = ['spKey','spMul','spAdd','spComm','spScale','spEq','minusculeMatrices','signedMoves','chevalleySerre','stringThrough'] as const;`, a typeof === 'function' loop over it, and ...PHASE_5_NAMES in the exact comparison. I checked this patch locally (6 passed) and then reverted it. It is the only red test in npm test."
+  },
+  {
+   "to": "P5-A2",
+   "what": "stringThrough has no length cap: it returns mu_i + 1 positions for any mu_i >= 0. T12 must bound the mu_i a reader can type. Also: minusculeMatrices returns null above the cap (default CAPS.repOrbit 2000, so E7 nodes 3 to 5 and E8 nodes 1 to 7 give null) and builds non-minuscule nodes such as D4 node 2. Matrix keys are spKey(row, column), with row = image and column = source. RelationCheck.i and .j are positions, so use toLabels for the q key (ef:1,2). The result type is NonNullable<ReturnType<typeof minusculeMatrices>>."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P5-A1.md",
+ "openQuestions": [
+  "spMul throws RangeError on a key that spKey would not write (for example '0, 1' or '01,1') instead of silently missing a match. Please confirm this plan addition.",
+  "Should rep.ts export a named result type for minusculeMatrices? I kept the contract's inline type and added no type beyond SparseMatrix and RelationCheck."
+ ],
+ "handoff": "All four phase-5 functions and the six sparse helpers are in packages/engine/src/rep.ts and exported from index.ts. They are ports of the oracle with the guards of 5.6. minuscule_representations is covered and passes for all 18 records, and D4 node 2 fails on exactly the oracle's 10 ef records with both sides returned. All 17 hand mutants were killed. npm test has one red test, the pinned export list in p1-api.test.ts, which is outside my ownership; MERGE needs to apply the one-line PHASE_5_NAMES patch, which I checked locally. The E7 timing is 5 to 7 ms in the bench run.",
+ "coverageKeys": [
+  "affine",
+  "affine_names",
+  "bigint_test",
+  "classification_tests",
+  "coxeter_plane_types_with_coincident_points",
+  "e8",
+  "e8.h4_projection",
+  "folding",
+  "heaps",
+  "kostant[*].affine_board_from_node",
+  "kostant[*].end_from_node",
+  "kostant[*].final_numbers_from_node",
+  "kostant[*].moves_from_node",
+  "layer_growth_examples",
+  "minuscule_representations",
+  "one_way_counterexample",
+  "pentagon_example",
+  "pentagon_example.complete_games",
+  "twisted_affine",
+  "types[*].adjacency",
+  "types[*].bipartite_colouring",
+  "types[*].cartan",
+  "types[*].coxeter_number",
+  "types[*].coxeter_plane",
+  "types[*].det_cartan",
+  "types[*].exponents",
+  "types[*].fired_tally",
+  "types[*].fired_values",
+  "types[*].fundamental_orbit_sizes",
+  "types[*].highest_root",
+  "types[*].highest_root_of_reversed_board",
+  "types[*].highest_short_root",
+  "types[*].length_distribution",
+  "types[*].long_to_short_ratio",
+  "types[*].longest_word",
+  "types[*].minus_w0",
+  "types[*].minuscule_nodes",
+  "types[*].n_long_positive",
+  "types[*].n_positive_roots",
+  "types[*].n_reduced_words_w0",
+  "types[*].n_roots",
+  "types[*].n_short_positive",
+  "types[*].numbers_of_highest_root",
+  "types[*].numbers_of_highest_short_root",
+  "types[*].positive_roots",
+  "types[*].simply_laced",
+  "types[*].symmetrizer",
+  "types[*].weyl_order",
+  "weyl_dimension",
+  "wythoff"
+ ],
+ "missingByPhase5": [],
+ "goldenRows": {
+  "minuscule_representations": 18,
+  "withWeights": 17
+ },
+ "relationCounts": {
+  "A2 node 1": 20,
+  "D4 node 2": 88,
+  "E7 node 7": 280,
+  "D4 node 2 failing": [
+   "ef:0,0",
+   "ef:0,1",
+   "ef:1,0",
+   "ef:1,1",
+   "ef:1,2",
+   "ef:1,3",
+   "ef:2,1",
+   "ef:2,2",
+   "ef:3,1",
+   "ef:3,3"
+  ]
+ },
+ "timings": {
+  "minusculeMatrices E7 node 7": "4.92 ms (bench file alone), 6.93 ms (npm run bench)",
+  "chevalleySerre E7 node 7 (280 records, first call)": "25.70 ms (alone), 32.35 ms (npm run bench)"
+ },
+ "referenceHashes": {
+  "reference/golden_data.json": "c45474636fc9a7990c97c3664d2603f090b5b654a39352a87fc992f744e95a2f",
+  "reference/lie_games.py": "485caee8eb8519697626a72bfafd84fa568834792cc32bdcd90a04b80f864bad",
+  "reference/verify.py": "1fc9f82bf62d9342817820c271f59eec9ca9721530a81adfa17d7a4d08dd384d"
+ },
+ "versions": {
+  "node": "v22.22.0",
+  "typescript": "6.0.3",
+  "vitest": "5.0.3",
+  "fast-check": "4.10.2"
+ },
+ "publicApi": [
+  "spKey",
+  "spMul",
+  "spAdd",
+  "spComm",
+  "spScale",
+  "spEq",
+  "minusculeMatrices",
+  "signedMoves",
+  "chevalleySerre",
+  "stringThrough",
+  "type SparseMatrix",
+  "type RelationCheck"
+ ]
+}

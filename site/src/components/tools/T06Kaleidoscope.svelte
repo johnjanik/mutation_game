@@ -18,6 +18,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import Frac from '../math/Frac.svelte';
   import { shortcutOf } from '../board/keyboard';
@@ -142,14 +143,10 @@
     if (h === null || h.kind !== 'root' || h.board !== name || !Array.isArray(h.value)) return null;
     return h.value.join(',');
   });
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const gm = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= gm.moves.length; k++) {
-      const s = gm.readoutAt(k);
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: numbers ${s.numbers.map(spoken).join(', ')}`);
-    }
-    return out;
+    return historyNames(gm.moves.length, gm.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: numbers ${gm.readoutAt(k).numbers.map(spoken).join(', ')}`);
   });
 
   /** Exact digits in the tooltip of a long number (4.0 Long numbers), by position. */
@@ -294,17 +291,18 @@
     {#if r.offView}
       <p class="line off-view" data-out="offView">The point lies outside the drawn window; its numbers and its population are shown below.</p>
     {/if}
+    <!-- Each name starts with the button's visible text (WCAG 2.5.3 Label in Name; RT-FIX P4-RT-05-07). -->
     <div class="place" role="group" aria-label="Place the point">
-      <button type="button" class="control" data-control="a1-minus" disabled={!active} aria-label="Move the point: number at node 1 minus 1" onclick={() => step(0, -1, api.announce)}
+      <button type="button" class="control" data-control="a1-minus" disabled={!active} aria-label="a1 − 1: move the point, number at node 1 minus 1" onclick={() => step(0, -1, api.announce)}
         ><i>a</i><sub>1</sub> − 1</button
       >
-      <button type="button" class="control" data-control="a1-plus" disabled={!active} aria-label="Move the point: number at node 1 plus 1" onclick={() => step(0, 1, api.announce)}
+      <button type="button" class="control" data-control="a1-plus" disabled={!active} aria-label="a1 + 1: move the point, number at node 1 plus 1" onclick={() => step(0, 1, api.announce)}
         ><i>a</i><sub>1</sub> + 1</button
       >
-      <button type="button" class="control" data-control="a2-minus" disabled={!active} aria-label="Move the point: number at node 2 minus 1" onclick={() => step(1, -1, api.announce)}
+      <button type="button" class="control" data-control="a2-minus" disabled={!active} aria-label="a2 − 1: move the point, number at node 2 minus 1" onclick={() => step(1, -1, api.announce)}
         ><i>a</i><sub>2</sub> − 1</button
       >
-      <button type="button" class="control" data-control="a2-plus" disabled={!active} aria-label="Move the point: number at node 2 plus 1" onclick={() => step(1, 1, api.announce)}
+      <button type="button" class="control" data-control="a2-plus" disabled={!active} aria-label="a2 + 1: move the point, number at node 2 plus 1" onclick={() => step(1, 1, api.announce)}
         ><i>a</i><sub>2</sub> + 1</button
       >
     </div>

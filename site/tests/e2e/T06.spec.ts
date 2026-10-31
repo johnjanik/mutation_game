@@ -451,4 +451,26 @@ test.describe('regressions', () => {
     const { doc } = await downloadData(page);
     expect(doc.derived.population).toEqual([1, 1]);
   });
+
+  // Adopted from the RT-05 phase 4 reproducer (SPEC 7.5 target WCAG 2.2 AA; 2.5.3 Label in Name): the four
+  // placement buttons showed "a1 − 1" and so on but were named "Move the point: number at node 1 minus 1", so
+  // a speech-input user who says what a button shows reached nothing. The reproducer's T10 case belongs to
+  // the T10 fixer of the round. Reads data-tool, data-hydrated, data-control and the aria-label.
+  // regression: P4-RT-05-07
+  test('every labelled control of tools/mirror/ has its visible text in its name (WCAG 2.5.3)', async ({ page }) => {
+    await page.goto('tools/mirror/');
+    await page.locator('[data-tool="mirror"][data-hydrated="true"]').waitFor();
+    await page.waitForTimeout(500);
+    const rows = await page.evaluate((t) => {
+      const norm = (s: string): string => s.replace(/\s+/g, ' ').trim().toLowerCase();
+      return [...document.querySelectorAll(`[data-tool="${t}"] button[aria-label][data-control]`)].map((b) => ({
+        control: (b as HTMLElement).dataset.control!,
+        visible: norm((b as HTMLElement).innerText),
+        name: norm(b.getAttribute('aria-label')!),
+      }));
+    }, 'mirror');
+    expect(rows.length, 'controls with an aria-label found').toBeGreaterThan(0);
+    const bad = rows.filter((r) => r.visible !== '' && !r.name.includes(r.visible)).map((r) => `${r.control}: shows "${r.visible}", named "${r.name}"`);
+    expect(bad, 'tools/mirror/: accessible names that do not contain the visible label').toEqual([]);
+  });
 });

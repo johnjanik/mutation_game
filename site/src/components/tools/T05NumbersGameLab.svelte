@@ -11,12 +11,13 @@
   // (numbers only), start, moves, caption, preset (default, tally, wave, compared, dimension),
   // prediction, linkTo (ignored: T5 follows no tool), layers (ignored: T5 grows no set of positions),
   // and T5's own: tab, lambda (also a state field), firstColour, secondMoves, boardChoices.
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { coxeterNumber } from '@two-games/engine';
   import type { AnyBoard } from '@two-games/engine';
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { nodePositions } from '../draw/layouts';
@@ -134,6 +135,12 @@
   let fundamentalChoice = $state(0);
   let version = $state(0);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction is a question about the configured state (SPEC 4.0 Predict). A link or the back button
+   * that loads another state before the reader has answered withdraws it (as T1 does), so that no question
+   * stands over a board it does not describe.
+   */
+  let predictionWithdrawn = $state(false);
 
   const touch = (): void => {
     version++;
@@ -179,6 +186,9 @@
   const classes = $derived(colourClasses(named));
   const h = $derived(coxeterNumber(named));
   const waveText = $derived(waveNote(wave, progress));
+  // The end of the game (or, on the wave tab, of the wave): Step and Play to the end are aria-disabled and
+  // their handlers do nothing, by this one predicate (RT-FIX P3-RT-05-09).
+  const playDone = $derived(ended || (tab === 'wave' && (!progress.follows || progress.nextEnd === null)));
   const colourByPosition = $derived(Array.from({ length: n }, (_, k) => (classes[0].positions.includes(k) ? 0 : 1)));
 
   // Two games compared (F3).
@@ -210,13 +220,10 @@
     `Numbers Game Lab on ${title}: numbers ${inLabelOrder(named, shown).map(spokenValue).join(', ')} after ${applied.length} ${applied.length === 1 ? 'move' : 'moves'}.`,
   );
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: numbers ${g.valuesInLabelOrder(k).map(spokenValue).join(', ')}`);
-    }
-    return out;
+    return historyNames(g.moves.length, g.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: numbers ${g.valuesInLabelOrder(k).map(spokenValue).join(', ')}`);
   });
 
   // The wave's shapes over the board, in the same box and grid units as Board.svelte (6.1).
@@ -253,6 +260,10 @@
     if (encodeState(admitted.state) === encodeState(toolState)) return;
     const s = admitted.state;
     const sameAsAuthor = encodeState(s) === encodeState(defaults);
+    if (!sameAsAuthor && !predictionResolved) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
     load({ board: String(s.board), start: s.start ?? [], moves: s.moves ?? [], lambda: s.lambda }, sameAsAuthor ? author.second : []);
   }
 
@@ -299,7 +310,7 @@
 
   /** Step: in the wave tab, one round of the wave; elsewhere the lowest legal node (E-5). */
   function step(announce: (t: string) => void): void {
-    if (frozen) return;
+    if (frozen || playDone) return;
     if (tab === 'wave') {
       waveStep(announce);
       return;
@@ -322,7 +333,7 @@
 
   /** Play to the end: one engine call (play), or in the wave tab the rest of the wave's word. */
   function playToEnd(announce: (t: string) => void): void {
-    if (frozen || ended) return;
+    if (frozen || playDone) return;
     if (tab === 'wave') {
       const p = progress;
       if (!p.follows || p.nextEnd === null) return;
@@ -388,6 +399,7 @@
   }
 
   function stepB(announce: (t: string) => void): void {
+    if (frozen || gameB.gameOver) return;
     const k = gameB.stepPosition('highest');
     if (k !== null) actB(k, announce);
   }
@@ -446,6 +458,22 @@
     if (!customValid) return;
     const start = customEntries as (number | string)[];
     setStart(start, startKindOf(start), announce);
+  }
+
+  /** The wave's tab panel and the start chooser: where the focus goes when its own press removes a control. */
+  let panelEl: HTMLElement | null = $state(null);
+  let startKindEl: HTMLSelectElement | null = $state(null);
+
+  /**
+   * A control whose own press removes it ("Start the wave from all ones" once the wave can start; "Use this
+   * start" when the start is all ones or a fundamental weight) hands a focus left on it to `target`, inside
+   * the tool, never to the page (A-1, WCAG 2.4.3; RT-FIX P4-RT-05-01, as T4's keep counting).
+   */
+  function keepFocusIn(control: HTMLElement, target: HTMLElement | null): void {
+    if (document.activeElement !== control) return;
+    void tick().then(() => {
+      if (!control.isConnected) target?.focus();
+    });
   }
 
   function startWave(announce: (t: string) => void): void {
@@ -536,7 +564,7 @@
 {#snippet figure(api: FrameApi)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="t05" data-board-name={title} onkeydown={(e) => onKeydown(e, api.announce)}>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     <p class="line" data-out="startKind" data-kind={startKindOf(cur().start)}>
@@ -601,7 +629,15 @@
         >
       {/each}
     </div>
-    <div class="panel" role="tabpanel" id="{instanceId || 'numbers'}-panel" aria-labelledby="{instanceId || 'numbers'}-tab-{tab}" data-panel={tab}>
+    <div
+      class="panel"
+      role="tabpanel"
+      id="{instanceId || 'numbers'}-panel"
+      aria-labelledby="{instanceId || 'numbers'}-tab-{tab}"
+      data-panel={tab}
+      tabindex="-1"
+      bind:this={panelEl}
+    >
       {#if tab === 'tape'}
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
         <div tabindex="0" role="group" aria-label="Tape table" class="scrollbox">
@@ -693,7 +729,16 @@
           <p class="line" data-out="waveLegal" data-legal={wave.legal ? 'true' : 'false'}>{wave.legal ? 'Every firing of the wave is legal.' : 'Some firing of the wave is not legal.'}</p>
           {#if waveText !== null}
             <p class="line" data-out="waveNote">{waveText}</p>
-            <button type="button" class="control" data-control="startWave" disabled={!api.hydrated || frozen} onclick={() => startWave(api.announce)}>Start the wave from all ones</button>
+            <button
+              type="button"
+              class="control"
+              data-control="startWave"
+              disabled={!api.hydrated || frozen}
+              onclick={(e) => {
+                keepFocusIn(e.currentTarget, panelEl);
+                startWave(api.announce);
+              }}>Start the wave from all ones</button
+            >
           {/if}
         {/if}
         <ol class="rounds">
@@ -715,8 +760,25 @@
             onAct={(k) => actB(k, api.announce)}
           />
           <div class="row-b">
-            <button type="button" class="control" data-control="stepB" disabled={!api.hydrated || frozen || curB().gameOver} onclick={() => stepB(api.announce)}>Step B</button>
-            <button type="button" class="control" data-control="playToEndB" disabled={!api.hydrated || frozen || curB().gameOver} onclick={() => playToEndB(api.announce)}>Play B to the end</button>
+            <!-- At the end of game B the two controls are done but keep the focus (A-1, WCAG 2.4.3; RT-FIX
+                 P4-RT-05-01): aria-disabled, the handlers doing nothing then; disabled only before hydration
+                 (7.4) and while a prediction freezes the board. -->
+            <button
+              type="button"
+              class="control"
+              data-control="stepB"
+              disabled={!api.hydrated || frozen}
+              aria-disabled={!frozen && curB().gameOver ? 'true' : undefined}
+              onclick={() => stepB(api.announce)}>Step B</button
+            >
+            <button
+              type="button"
+              class="control"
+              data-control="playToEndB"
+              disabled={!api.hydrated || frozen}
+              aria-disabled={!frozen && curB().gameOver ? 'true' : undefined}
+              onclick={() => playToEndB(api.announce)}>Play B to the end</button
+            >
             <button type="button" class="control" data-control="resetB" disabled={!api.hydrated || frozen} onclick={() => resetB(api.announce)}>Reset B</button>
           </div>
         </div>
@@ -799,11 +861,16 @@
 
 {#snippet controls(api: FrameApi)}
   {@const waveTab = tab === 'wave'}
+  <!-- At the end of the game (or of the wave) the two controls are done but keep the focus the reader left
+       on them: aria-disabled, the handlers doing nothing then; disabled only before hydration (7.4) and
+       while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+  {@const done = !frozen && playDone}
   <button
     type="button"
     class="control"
     data-control="step"
-    disabled={!api.hydrated || frozen || ended || (waveTab && (!progress.follows || progress.nextEnd === null))}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={done ? 'true' : undefined}
     onclick={() => step(api.announce)}>{waveTab ? 'Step one round' : 'Step'}</button
   >
   <button
@@ -811,12 +878,13 @@
     class="control"
     data-control="playToEnd"
     data-play="end"
-    disabled={!api.hydrated || frozen || ended || (waveTab && (!progress.follows || progress.nextEnd === null))}
+    disabled={!api.hydrated || frozen}
+    aria-disabled={done ? 'true' : undefined}
     onclick={() => playToEnd(api.announce)}>Play to the end</button
   >
   <label class="setting">
     <span>Start</span>
-    <select data-control="startKind" disabled={!api.hydrated || frozen} onchange={(e) => pickStartKind(e.currentTarget.value as StartKind, api.announce)}>
+    <select data-control="startKind" disabled={!api.hydrated || frozen} bind:this={startKindEl} onchange={(e) => pickStartKind(e.currentTarget.value as StartKind, api.announce)}>
       <option value="ones" selected={startKind === 'ones'}>all ones</option>
       <option value="fundamental" selected={startKind === 'fundamental'}>a fundamental weight</option>
       <option value="custom" selected={startKind === 'custom'}>custom</option>
@@ -840,7 +908,16 @@
           <input type="text" inputmode="numeric" size="4" data-control="customEntry" data-entry-node={l} bind:value={customDraft[k]} disabled={!api.hydrated || frozen} />
         </label>
       {/each}
-      <button type="button" class="control" data-control="customStart" disabled={!api.hydrated || frozen || !customValid} onclick={() => applyCustom(api.announce)}>Use this start</button>
+      <button
+        type="button"
+        class="control"
+        data-control="customStart"
+        disabled={!api.hydrated || frozen || !customValid}
+        onclick={(e) => {
+          keepFocusIn(e.currentTarget, startKindEl);
+          applyCustom(api.announce);
+        }}>Use this start</button
+      >
     </span>
   {/if}
   <label class="setting">
@@ -1037,7 +1114,8 @@
     text-decoration: underline;
   }
   .tab:disabled,
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .tab:focus-visible,

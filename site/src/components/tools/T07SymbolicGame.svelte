@@ -184,6 +184,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import LinearForm, { formSpoken } from '../math/LinearForm.svelte';
   import T07SymbolicBoard from './T07SymbolicBoard.svelte';
@@ -303,18 +304,16 @@
     afterMove(announce, moveSentence('numbers', game.labels, r.label, before, game.shown, game.cursor));
   }
 
+  // At the end of the game Step and Play to the end are aria-disabled (atEnd) and do nothing: no move and
+  // nothing said, since the move that ended the game already said "Game over" (A-4; RT-FIX P3-RT-05-09).
   function step(announce: (t: string) => void): void {
-    if (frozen) return;
+    if (frozen || atEnd) return;
     const k = game.stepPosition();
-    if (k === null) {
-      if (game.gameOver) announce(gameOverSentence(game.cursor));
-      return;
-    }
-    act(k, announce);
+    if (k !== null) act(k, announce);
   }
 
   function playToEnd(announce: (t: string) => void): void {
-    if (frozen || game.stepPosition() === null) return;
+    if (frozen || atEnd || game.stepPosition() === null) return;
     // Every offered board is finite: at most N <= 120 moves, on the main thread (E-9).
     const outcome = game.playToEnd();
     touch();
@@ -359,13 +358,10 @@
     load(t07State(name, onesStart(resolveBoard(name)), []));
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: numbers ${inLabelOrder(g.board, g.shownAt(k).numbers).map(spokenValue).join(', ')}`);
-    }
-    return out;
+    return historyNames(g.moves.length, g.cursor, (k) => `${k === 0 ? 'Start' : `After move ${k}`}: numbers ${inLabelOrder(g.board, g.shownAt(k).numbers).map(spokenValue).join(', ')}`);
   });
 
   /** A signed value as text with the true minus sign, shortened above 12 digits (4.0 Long numbers). */
@@ -401,7 +397,7 @@
         />
       </section>
       <section class="panel symbolic" data-out="symbolicBoard" aria-label="Letters">
-        <p class="panel-title">{@render icon(POPULATIONS_ICON)} Letters</p>
+        <p class="panel-title">{@render icon(NUMBERS_ICON)} Letters</p>
         <T07SymbolicBoard board={symBoard} entries={sym.entries} {signs} name="Symbolic board on {title}, following the numbers board" />
       </section>
     </div>
@@ -472,9 +468,23 @@
 {/snippet}
 
 {#snippet controls(api: FrameApi)}
-  <button type="button" class="control" data-control="step" disabled={!api.hydrated || frozen || atEnd} onclick={() => step(api.announce)}>Step</button>
-  <button type="button" class="control" data-control="playToEnd" disabled={!api.hydrated || frozen || atEnd} onclick={() => playToEnd(api.announce)}
-    >Play to the end</button
+  <!-- At the end of the game the two controls are done but keep the focus: aria-disabled; disabled only
+       before hydration (7.4) and while a prediction freezes the board (A-1, WCAG 2.4.3). -->
+  <button
+    type="button"
+    class="control"
+    data-control="step"
+    disabled={!api.hydrated || frozen}
+    aria-disabled={!frozen && atEnd ? 'true' : undefined}
+    onclick={() => step(api.announce)}>Step</button
+  >
+  <button
+    type="button"
+    class="control"
+    data-control="playToEnd"
+    disabled={!api.hydrated || frozen}
+    aria-disabled={!frozen && atEnd ? 'true' : undefined}
+    onclick={() => playToEnd(api.announce)}>Play to the end</button
   >
   <label class="setting">
     <span>Board</span>
@@ -508,12 +518,18 @@
           <td class="numeral exact" data-table-value={shownNumbers[p]}>{shownNumbers[p]!.replace(/^-/, '−')}</td>
           <td data-form={labelText(symBoard, sym.entries[p]!)}><LinearForm coeffs={sym.entries[p]!} labels={symBoard.labels} /></td>
           <td>
+            <!-- A legal fire makes the fired number negative, so the pressed button is done but keeps the focus
+                 (A-1, WCAG 2.4.3; RT-FIX P4-RT-05-01): aria-disabled while the node cannot be fired, the press
+                 doing nothing then; disabled only before hydration (7.4) and while a prediction freezes the board. -->
             <button
               type="button"
               class="cell"
               data-table-node={game.labels[p]}
-              disabled={!api.hydrated || frozen || !canAct[p]}
-              onclick={() => act(p, api.announce)}>Fire node {game.labels[p]}</button
+              disabled={!api.hydrated || frozen}
+              aria-disabled={!frozen && !canAct[p] ? 'true' : undefined}
+              onclick={() => {
+                if (canAct[p]) act(p, api.announce);
+              }}>Fire node {game.labels[p]}</button
             >
           </td>
         </tr>
@@ -579,8 +595,9 @@
   .panel.numbers {
     box-shadow: inset 0 0 0 2px var(--accent-numbers);
   }
+  /* The right board plays the numbers game with letters (SPEC 4 T7): the Numbers accent (6.3, 8.3). */
   .panel.symbolic {
-    box-shadow: inset 0 0 0 2px var(--accent-populations);
+    box-shadow: inset 0 0 0 2px var(--accent-numbers);
   }
   .panel-title {
     display: flex;
@@ -652,7 +669,8 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  .control:disabled {
+  .control:disabled,
+  .control[aria-disabled='true'] {
     cursor: default;
   }
   .control:focus-visible,

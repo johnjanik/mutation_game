@@ -1,0 +1,299 @@
+{
+ "agent": "P6-A1",
+ "status": "done",
+ "branch": "worktree-agent-a77bfa7b89bd8ccc4",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a77bfa7b89bd8ccc4",
+ "commits": [
+  "84a5b88 P6-A1: theta, shadow2, admissibility with Reason records; admissible_pairs and satake_examples",
+  "44e431c P6-A1: restrictedBoard tests: composite words reflect shadows and commute with theta; Bourbaki labels",
+  "489a438 P6-A1: satake computed fields of all 167 records, invariants, A.5, e6(-26), refusals, special shapes",
+  "322994e P6-A1: property 9 (theta is an involution and permutes the roots); E7 and E8 satake timings in the bench run",
+  "c2b8bb1 P6-A1: theta stage order pinned where tau moves the black set",
+  "8a413c9 P6-A1: decisions fragment"
+ ],
+ "filesChanged": [
+  "packages/engine/src/satake.ts",
+  "packages/engine/src/index.ts",
+  "packages/engine/test/golden/p6a-admissible-pairs.test.ts",
+  "packages/engine/test/golden/p6a-satake-examples.test.ts",
+  "packages/engine/test/golden/p6a-satake-computed.test.ts",
+  "packages/engine/test/golden/p6a-restricted.test.ts",
+  "packages/engine/test/golden/p6a-guards.test.ts",
+  "packages/engine/test/properties/p9-theta.test.ts",
+  "packages/engine/test/unit/reasons.test.ts",
+  "packages/engine/test/bench/p6a-satake.bench.ts",
+  "decisions/P6-A1.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 5d16e79; git log -1",
+   "exit": 0,
+   "summary": "HEAD is now at 5d16e79 Red team phase 5 round: closed (G5 rerun GREEN)"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed from the lockfile; node v22.22.0"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "all three match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors (src and test)"
+  },
+  {
+   "cmd": "npm test -w packages/engine",
+   "exit": 1,
+   "summary": "Test Files 1 failed | 80 passed (81); Tests 1 failed | 2529 passed (2530). The one failure is test/unit/p1-api.test.ts, the pinned export list (126 names against 121), expected and requested from MERGE"
+  },
+  {
+   "cmd": "npm test (root: engine + site-unit)",
+   "exit": 1,
+   "summary": "Test Files 1 failed | 172 passed (173); Tests 1 failed | 3501 passed (3502); the same single p1-api.test.ts failure; site-unit all green, scripts.test.ts clock guard included"
+  },
+  {
+   "cmd": "npm run bench -w packages/engine",
+   "exit": 0,
+   "summary": "Test Files 6 passed (6); orbit benchmark median 8.44 ms (threshold 25 ms); Satake timings below"
+  },
+  {
+   "cmd": "node -e \"const c=require('packages/engine/test/golden/coverage.json'); console.log(c.keys.filter(...), c.missingByPhase['6'])\"",
+   "exit": 0,
+   "summary": "phase-6 keys registered: [admissible_pairs, satake_examples]; missingByPhase['6'] = [satake, admissible_counts, folding[*].quasi_split_real_form] (P6-A2's)"
+  },
+  {
+   "cmd": "grep -n \"from '\" packages/engine/src/satake.ts",
+   "exit": 0,
+   "summary": "imports only ./arith, ./board, ./caps, ./classify, ./errors, ./finite, ./fold, ./guards, ./moves, ./rational, ./restrictedType, ./search; package.json \"dependencies\": {} unchanged"
+  },
+  {
+   "cmd": "python3 scratchpad/p6-a1/mutate.py (17 deliberate breakages of satake.ts and one of the test, each reverted)",
+   "exit": 0,
+   "summary": "16 of 17 caught after one test was strengthened; the uncaught one (removing the check for a repeated black node) changes no behaviour, because subBoard throws RangeError too"
+  },
+  {
+   "cmd": "python3 scratchpad/p6-a1/oracle_checks.py, oracle_theta_order.py",
+   "exit": 0,
+   "summary": "oracle values for reasons, A.5, the G2 shadows, the stage order of theta and the A2+A2 split form"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "admissible_pairs for all 32 types, as a set",
+   "status": "pass",
+   "test": "packages/engine/test/golden/p6a-admissible-pairs.test.ts > admissible pairs of every type equal the golden set: <T> (32 tests)"
+  },
+  {
+   "item": "satake_examples verdicts: three conditions judged independently, admissible, symmetry true, reason codes",
+   "status": "pass",
+   "test": "p6a-satake-examples.test.ts > verdicts of the twelve examples, > reason codes of the failed conditions"
+  },
+  {
+   "item": "all 167 satake records: every computed field from rank to restricted_reflection_word_lengths, with the C2 exception of 6.4",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > computed fields of every record"
+  },
+  {
+   "item": "real rank equals the dimension of the span of the shadows",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > real rank is the dimension of the span of the shadows"
+  },
+  {
+   "item": "dimension identities (dim_k + dim_p = dim_g, character, sum of roots times mult)",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > dimension identities"
+  },
+  {
+   "item": "roots_compact_imaginary = 2 |Phi_X^+|; zero shadows are exactly the black roots",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > zero shadows are the black roots"
+  },
+  {
+   "item": "Appendix A.5: su(1,2), su*(4), su(1,3)",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > Appendix A.5"
+  },
+  {
+   "item": "e6(-26): 12-letter w_X, reduced lengths [8, 8], board A2, multiplicity 8",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > e6(-26)"
+  },
+  {
+   "item": "NotAdmissible (an EngineError carrying the Admissibility) on A2 black 1 and every non-admissible row; theta on A2 black 1 is -s1",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > refuses non-admissible pairs, > theta on A2 black 1 is -s1; p6a-satake-examples.test.ts > satake and restrictedBoard refuse every non-admissible example with NotAdmissible"
+  },
+  {
+   "item": "G2 generalized pairs refused with NotAdmissible before classifyRestricted is reached",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > G2 generalized pairs are refused (spy on classifyRestricted)"
+  },
+  {
+   "item": "quasi-split forms restrict to the averaged roots (folding rows of order 2)",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > quasi-split forms restrict to the averaged roots"
+  },
+  {
+   "item": "composite words act on shadows as the reflections of restricted_cartan (135 records)",
+   "status": "pass",
+   "test": "p6a-restricted.test.ts > composite words reflect the shadows"
+  },
+  {
+   "item": "composite words commute with theta",
+   "status": "pass",
+   "test": "p6a-restricted.test.ts > composite words commute with theta"
+  },
+  {
+   "item": "restrictedBoard agrees with satake; reduced length l(w_{X u O}) - l(w_X)",
+   "status": "pass",
+   "test": "p6a-restricted.test.ts > restricted board agrees with satake, > each composite word is w_X followed by the longest word of X u O..."
+  },
+  {
+   "item": "restricted board labels in Bourbaki order; e6(-14) orbits [[1,6],[2]] and Bourbaki order [[2],[1,6]]",
+   "status": "pass",
+   "test": "p6a-restricted.test.ts > restricted board labels in Bourbaki order, > e6(-14): orbit order and Bourbaki order differ"
+  },
+  {
+   "item": "special shapes: split forms theta = -1 and multiplicities 1; compact forms theta = 1 on roots and no restricted roots",
+   "status": "pass",
+   "test": "p6a-satake-computed.test.ts > split forms have theta = -1, > compact forms have theta = 1 on roots"
+  },
+  {
+   "item": "property 9: theta(theta(p)) = p and theta permutes the roots",
+   "status": "pass",
+   "test": "test/properties/p9-theta.test.ts > theta is an involution, > theta permutes the roots (seed 20261025)"
+  },
+  {
+   "item": "Reason for A3 black 1: {code not-an-integer, nodes [1], value '-1/2'}; positions on a relabelled board",
+   "status": "pass",
+   "test": "test/unit/reasons.test.ts > A3 black 1, > positions on a relabelled board"
+  },
+  {
+   "item": "every Reason code is produced",
+   "status": "pass",
+   "test": "test/unit/reasons.test.ts > each of the five codes is produced, and only failed items have an entry"
+  },
+  {
+   "item": "5.6 guards: NeedsTwoWayRoads on fromAdjacency([[0,1],[0,0]]), NotFiniteType on A2~, both EngineError, all five functions",
+   "status": "pass",
+   "test": "p6a-guards.test.ts > one-way board, > affine board"
+  },
+  {
+   "item": "malformed tau or black throws RangeError; arguments unchanged",
+   "status": "pass",
+   "test": "p6a-guards.test.ts > malformed diagrams, > arguments unchanged"
+  },
+  {
+   "item": "E7 and E8 satake timings reported",
+   "status": "pass",
+   "test": "packages/engine/test/bench/p6a-satake.bench.ts (bench run, not in npm test, nothing asserted on a duration)"
+  },
+  {
+   "item": "dependencies {} unchanged; satake.ts imports only src/",
+   "status": "pass",
+   "test": "grep -n \"from '\" packages/engine/src/satake.ts (in commandsRun)"
+  },
+  {
+   "item": "tsc passes; engine suite passes; admissible_pairs and satake_examples in coverage.json",
+   "status": "fail",
+   "test": "tsc and coverage pass; the engine suite has the one known failure test/unit/p1-api.test.ts (pinned export list, outside my files; requested from MERGE)"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "CONTRACTS 3",
+   "what": "satake compared in three P6-A1 files without covers(); registered only by P6-A2",
+   "why": "the roster splits the record between P6-A1 and P6-A2"
+  },
+  {
+   "spec": "P6-A1 instruction 5.2 (guards 'as the first statement')",
+   "what": "argument shape checks (RangeError) run before requireGcm/requireFinite; both run before any computation",
+   "why": "this is the engine-wide order P2-A1 recorded and P3-A1, P4-A1 and P5-A1 kept; no acceptance test depends on it"
+  },
+  {
+   "spec": "P6-A1 instruction section 4 table and acceptance (timing in p6a-satake-computed.test.ts)",
+   "what": "the E7/E8 timing lives in packages/engine/test/bench/p6a-satake.bench.ts",
+   "why": "site/tests/unit/scripts.test.ts fails the run when the engine's parallel suite reads a clock; the orchestrator's environment note sends timings to test/bench"
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE",
+   "what": "In packages/engine/test/unit/p1-api.test.ts add const PHASE_6_NAMES = ['theta', 'shadow2', 'admissibility', 'satake', 'restrictedBoard'] as const; a typeof === 'function' loop over it, and ...PHASE_6_NAMES in the exact Object.keys comparison (P6-A2 will append satakeCatalogue, satakeRecord, canonicalPair, matchCatalogue). This is the only failing test of npm test."
+  },
+  {
+   "to": "MERGE",
+   "what": "Decide the coverage deviation: who registers 'satake' (plan: P6-A2's full-record file) given that P6-A1's computed, restricted and property-9 files read golden.satake without covers()."
+  },
+  {
+   "to": "MERGE",
+   "what": "Accept or reverse the check order (argument RangeError before the guards) in satake.ts."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P6-A1.md",
+ "openQuestions": [
+  "The satake coverage deviation: golden.satake is read without covers() in p6a-satake-computed.test.ts, p6a-restricted.test.ts and p9-theta.test.ts; only P6-A2's file is planned to register 'satake'.",
+  "Who registers which phase-6 keys: P6-A1 registers admissible_pairs and satake_examples. satake, admissible_counts and folding[*].quasi_split_real_form are left to P6-A2, and P6-A2's real_forms check reads satake_examples without registering it again.",
+  "The value format of not-an-integer when several nodes fail: the fractions in the order of nodes, joined by '; ' (A5 black 1,2,4: nodes [2,4], value '-3/2; -1/2').",
+  "The nodes of the plan readings: not-a-symmetry gives the positions i for which some j has C[tau i][tau j] != C[i][j]; not-an-involution gives the positions with tau(tau(i)) != i and takes precedence; moves-black-set gives the black positions whose image is white.",
+  "The empty restricted board of a compact form: orbits, simpleRestrictedRoots2, cartan and compositeWords are [], the board has n 0, labels [] and no name; satake's restricted_cartan is [] (not null).",
+  "The plan says satake on the split form of A2+A2 gives restricted_board null. In the oracle, satake raises ValueError ('unrecognised simply-laced system', 4, 12) in classify_restricted first. The engine follows the oracle and throws EngineError; restrictedBoard gives labels 1..4 and no name. This is not pinned in a test (trap 22)."
+ ],
+ "satakeTimings": [
+  {
+   "real_form": "e7(7)",
+   "medianMs": 6.89
+  },
+  {
+   "real_form": "e7(-5)",
+   "medianMs": 3.13
+  },
+  {
+   "real_form": "e7(-25)",
+   "medianMs": 2.02
+  },
+  {
+   "real_form": "e7(-133)",
+   "medianMs": 2.45
+  },
+  {
+   "real_form": "e8(8)",
+   "medianMs": 7.48
+  },
+  {
+   "real_form": "e8(-24)",
+   "medianMs": 3.74
+  },
+  {
+   "real_form": "e8(-248)",
+   "medianMs": 7.26
+  },
+  {
+   "machine": "cloud container, 4 processors, Node 22.22.0, npm run bench -w packages/engine run alone (load average 2.3 to 4.4); a first run alone at load 0.5 to 1.6 gave 2.03 to 7.67 ms; restrictedBoard 0.31 to 1.72 ms"
+  }
+ ],
+ "coverageKeys": {
+  "registered": [
+   "admissible_pairs",
+   "satake_examples"
+  ],
+  "leftToP6A2": [
+   "satake",
+   "admissible_counts",
+   "folding[*].quasi_split_real_form"
+  ]
+ },
+ "reasonConventions": {
+  "symmetry": "{ code: 'not-a-symmetry', nodes: positions i (increasing) for which some j has C[tau[i]][tau[j]] != C[i][j] }",
+  "condition_1": "{ code: 'not-an-involution', nodes: positions i with tau[tau[i]] != i } when tau^2 != 1 (takes precedence); else { code: 'moves-black-set', nodes: black positions i with tau[i] white }",
+  "condition_2": "{ code: 'differs-from-minus-wX', nodes: black positions i with w_X(e_i) != -e_tau(i) }",
+  "condition_3": "{ code: 'not-an-integer', nodes: white tau-fixed positions with non-integer <alpha_i, rho_X^vee>, value: ratToString of the fraction; with several nodes the fractions in node order joined by '; ' }",
+  "general": "an entry only for each failed item, keys in the order symmetry, condition_1, condition_2, condition_3; nodes are positions (convert with toLabels); value only on not-an-integer"
+ },
+ "handoff": "For P6-A2: satake returns restricted_board 'B2' for every rank 2 system with two lengths and lists restricted_orbits_in_bourbaki_order in identify's order. The C2 renaming and reversal are satakeRecord's. satake_examples is already registered, and restrictedBoard(d).board carries labels in Bourbaki order. For P6-A3: admissibility never throws on a well-formed permutation of a finite board. satake and restrictedBoard throw NotAdmissible with the Admissibility in data and the message 'not admissible: <first failed key>'. Composite words are played left to right on populations with applyWord(board, p, word, 'mutation'), and shadow2 returns doubled shadows; write the reason sentences from reasonConventions."
+}

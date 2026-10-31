@@ -1,0 +1,177 @@
+[
+ {
+  "id": "P6-RT-09-01",
+  "severity": "blocker",
+  "title": "Glossary rows 35 and 36 define 'highest root' and 'root poset' by facts of simply laced boards, false on B, C, F, G",
+  "location": "site/src/content/pages/glossary.mdx:318-323 (row 35, dfn highest-root) and :326-331 (row 36, dfn root-poset); route /glossary/#highest-root, #root-poset (preview and release); linked from M1 beats 3 and 4 and M2",
+  "claim": "The glossary drops M1's hypothesis ('a board of finite type with single roads', E8) and defines 'highest root' as 'On a board of finite type, the root population at which no mutation raises any city.' It defines 'root poset' as 'The positive root populations of a board, arranged by total population, with an edge from one to another wherever a mutation raises a city.' On B, C, F, G the first picks out two populations and the second is not the root poset.",
+  "expected": "SPEC 2.6: 'Highest root theta: the root population of largest form value that no mutation raises; unique [V]'. F13: on B, C, F, G, Kostant's game from a short node ends at the highest short root. SPEC 4 T2 and 2.16 call the raising-edge picture the Hasse diagram of the root poset only 'on a simply laced board of finite type'.",
+  "observed": "Oracle (redteam-RT-09-p6-oracle.py): the root populations raised by no mutation are two on each board: B2 (1,1),(1,2); B3 (1,1,1),(1,2,2); C3 (1,2,1),(2,2,1); F4 (1,2,3,2),(2,3,4,2); G2 (2,1),(3,2). The highest short root satisfies the glossary's definition of the highest root. On B2 the raising edges are (1,0)->(1,2) (a rise of 2) and (0,1)->(1,1), while the root poset's covering relations are (1,0)<(1,1), (0,1)<(1,1), (1,1)<(1,2). On G2 the raising edges include (0,1)->(3,1).",
+  "reproduction": "From a clean checkout of f07eec6 plus the reproducer: npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts -t 'P6-RT-09-01'. Both tests fail at the assertion that quotes the definition (source, no build needed). Oracle values: python3 redteam/RT-09/redteam-RT-09-p6-oracle.py reference.",
+  "specRef": "SPEC 2.6 (Highest root row); 2.7 F13; 4 T2 ('On a simply laced board of finite type every such edge raises by 1 and the picture is the Hasse diagram of the root poset. On B, C, F, G a rise of 2 or 3 occurs'); 2.16; RT-09 attacks 1, 15, 31",
+  "proposedFix": "Row 35: 'the root population of largest form value at which no mutation raises any city (on a board with single roads, the only one)'. Row 36: scope to 'a board of finite type with single roads', as M1 beat 4 does.",
+  "reproducer": "site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts (describe P6-RT-09-01); redteam/RT-09/redteam-RT-09-p6-oracle.py",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a59a82db3a362f1d9",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-09-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 2.6 (Highest root row); 2.7 F13; 4 T2 ('On a simply laced board of finite type every such edge raises by 1 and the picture is the Hasse diagram of the root poset. On B, C, F, G a rise of 2 or 3 occurs'); 2.16; RT-09 attacks 1, 15, 31",
+    "evidence": "pwd = git rev-parse --show-toplevel = /home/user/mutation_game/.claude/worktrees/agent-a4acc41964ce944db (branch worktree-agent-a4acc41964ce944db, HEAD aea18020 before detaching). Ran 'git checkout --detach f07eec66a8b80d249101630305ef6d2d23882738'; HEAD is now f07eec66a8b80d249101630305ef6d2d23882738 and status was clean. Lens branch worktree-agent-a59a82db3a362f1d9 = 0c04ca99. I checked that the reproducer paths were not at the gate commit (cat-file: 'does not exist'), then applied site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts and redteam/RT-09/redteam-RT-09-p6-oracle.py. status --porcelain: 'A  redteam/RT-09/redteam-RT-09-p6-oracle.py' / 'A  site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts'. The test imports only @engine and reads glossary.mdx and history.mdx at the gate commit, and no redteam/ file. npm --prefix <wt> ci --prefer-offline: 'added 764 packages'. Ran from <wt>: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts -t 'P6-RT-09-01'; exit 1; 'Tests 2 failed | 3 skipped (5)'. The toBe on each definition passed, so the text is at the gate commit. Test 1 failed at line 73: 'glossary \"On a board of finite type, the root population at which no mutation raises any city.\": on B2 the highest short root (1,1) is also a root population at which no mutation raises any city ... expected [] to not deeply equal []'. Test 2 failed at line 97: received ['(0,1)->(1,1)','(1,0)->(1,2)'], expected Hasse ['(0,1)->(1,1)','(1,0)->(1,1)','(1,1)->(1,2)']. Ran: python3 redteam/RT-09/redteam-RT-09-p6-oracle.py reference; exit 0. It printed B2 [(1,1),(1,2)]; B3 [(1,1,1),(1,2,2)]; C3 [(1,2,1),(2,2,1)]; F4 [(1,2,3,2),(2,3,4,2)]; G2 [(2,1),(3,2)]; A3 and D4 one each; G2 raising edges include ((0,1),(3,1),3). I also wrote my own check, scratchpad/verify-p6-rt09-reproduce/own_oracle.py, which imports reference/lie_games by absolute path with no -I. It uses L.roots, L.mutate, L.highest_root, L.highest_short_root and L.gram. Result: count = 2 on each of B2, B3, C3, F4 and G2, with the same tuples. The norms are 2 and 4 (6 on G2), and the larger is highest_root in every case. B2 raising edges [((0,1),(1,1),1), ((1,0),(1,2),2)]; B2 Hasse covers [((0,1),(1,1)), ((1,0),(1,1)), ((1,1),(1,2))]; G2 raising edges include ((0,1),(3,1),3). Observed matches the finding on every value. Tree after the run: only the applied files plus an ignored reference/__pycache__/ left by the un-isolated Python import. No tracked file under reference/ changed, and I deleted that cache in cleanup. The branch also adds 11 other redteam/RT-09 files and site/tests/unit/redteam-RT-09-p6-retest-p5.test.ts, which I did not apply.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: on B2, B3, C3, F4 and G2 two root populations are raised by no mutation (the highest root and the highest short root), and the B2 raising edges (0,1)->(1,1) and (1,0)->(1,2) are not the root poset's covering relations; this is a wrong mathematical statement presented as fact, which is a blocker under RED-TEAM-COMMON 4."
+   },
+   "refute": {
+    "findingId": "P6-RT-09-01",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 2.6, row 'Highest root θ: the root population of largest form value that no mutation raises | unique [V]'; SPEC 2.7 F13 ('On B, C, F, G the play ends at the highest root when i is a long node and at the highest short root when i is a short node'); SPEC 4 T2 and 2.16 limit the Hasse-diagram claim to 'a simply laced board of finite type'; oracle lie_games.highest_short_root (its docstring says a finite board has one dominant positive root when simply laced and two otherwise); golden kostant.B2.end_from_node = [[1,2],[1,1]]. All of these support the finding's expected.",
+    "evidence": "Read at f07eec6: glossary.mdx:319, row 35: 'On a board of finite type, the root population at which no mutation raises any city.' Row 36 (:327): 'The positive root populations of a board, arranged by total population, with an edge from one to another wherever a mutation raises a city.' Its Lie theory column is 'root poset'. Neither row comes from Appendix C, which has no row for either term. P6-A8 added them (decisions/P6-A8.md, 'new glossary anchors'). M1 beat 3 on the site gives the definition only in the context of E8, and M1 beat 4 limits the root poset to 'a board of finite type with single roads'. Oracle (python3 -I on copies of reference/ taken from the gate commit, positions): the positive roots p with every entry of dynkin_labels(C,p) >= 0 are B2 [(1,1),(1,2)], B3 [(1,1,1),(1,2,2)], C3 [(1,2,1),(2,2,1)], F4 [(1,2,3,2),(2,3,4,2)] and G2 [(2,1),(3,2)], against one each on A3 and D4. The form values are 2 and 4 (6 on G2). highest_root and highest_short_root return the larger and the smaller of each pair. Raising edges on B2 with L.mutate: (0,1)->(1,1) rise 1 and (1,0)->(1,2) rise 2. The root-poset covers are (0,1)<(1,1), (1,0)<(1,1) and (1,1)<(1,2). On G2 there is the edge (0,1)->(3,1) with rise 3. All of this equals the finding's observed. golden kostant.B2.end_from_node = [[1,2],[1,1]], so there are two ends, both raised by no mutation. No [D] covers the rows. No MERGE ruling, P6-A8 entry or known-and-decided item addresses them. reports/gate-G6.md names gate commit f07eec6 and records no open item on the glossary's definitions. No earlier phase 6 round exists.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, because no passage permits the definition; 2.6 adds 'of largest form value' and T2 and 2.16 confine the poset claim to simply laced boards. R2 failed, because the finding reads 2.6, F13 and T2 correctly and the row itself says 'On a board of finite type'. R3 failed, because the rows are P6-A8's phase 6 completion, at gate G6. R4 failed, because the oracle (highest_short_root, golden kostant end_from_node) confirms two dominant roots on B, C, F, G and the non-Hasse raising edges. R5 failed: there is no [D] and no recorded decision. R6 failed: there is no record. The severity stays blocker, since a mathematical definition that is wrong on 16 of the 32 types is a mathematical statement presented as fact that is wrong."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-13-01",
+  "severity": "blocker",
+  "title": "The glossary defines the highest root by a rule that also gives the highest short root on 16 of the 32 boards of finite type",
+  "location": "site/src/content/pages/glossary.mdx:319 (/glossary/#highest-root; added by P6-A8, commit 6e2da9c)",
+  "claim": "The new definition reads 'On a board of finite type, the root population at which no mutation raises any city.' On B_n, C_n, F4 and G2 two root populations satisfy this: the highest root and the highest short root. A reader who applies the rule as written can call the highest short root 'the highest root'.",
+  "expected": "SPEC 2.7 and 4 T9 distinguish the highest root from the highest short root (T9: 'the highest root, or the highest short root after a start at a short city'). The rule is unique only on simply laced boards, which is the context of M1 beat 3, where the sentence was first used for E8.",
+  "observed": "Oracle (lie_games.mutate on cartan(letter,n) over roots): B3 gives [(1,2,2), (1,1,1)]; C3 gives [(1,2,1), (2,2,1)]; F4 gives [(2,3,4,2), (1,2,3,2)]; G2 gives [(2,1), (3,2)]. In all, 16 of 32 boards have two such roots. On /atlas/B3/ the highest root is (1,2,2) and (1,1,1) is named the highest short root.",
+  "reproduction": "npm ci; npm run build; python3 redteam/redteam-RT-13-p6-oracle-highest.py reference site/dist (it prints the glossary's definition and the roots per board; exits 1)",
+  "specRef": "SPEC 2.7; 4 T9 ('the highest root, or the highest short root after a start at a short city'); 8.4 'Define every term'; RED-TEAM-COMMON 4 ('a mathematical statement presented as fact that is wrong')",
+  "proposedFix": "Restrict the definition to boards with single roads, or say 'the root population of largest form value at which no mutation raises any city', as the Atlas pages do. Add 'highest short root' to the entry.",
+  "reproducer": "redteam/redteam-RT-13-p6-oracle-highest.py",
+  "lens": "RT-13",
+  "branch": "worktree-agent-a46277fe7c5321fb3",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-13-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 2.7; 4 T9 ('the highest root, or the highest short root after a start at a short city'); 8.4 'Define every term'; RED-TEAM-COMMON 4 ('a mathematical statement presented as fact that is wrong')",
+    "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-aca20141e88212061, started at aea1802 on worktree-agent-aca20141e88212061, clean; 'git checkout --detach f07eec66a8b80d249101630305ef6d2d23882738', HEAD f07eec66a8b80d249101630305ef6d2d23882738. node v22.22.0. The lens branch worktree-agent-a46277fe7c5321fb3 (c2fb509) only adds files (30) and changes nothing that exists at the gate commit. I applied redteam/redteam-RT-13-p6-oracle-highest.py together with the reproducers of findings 02 to 06, because none of them affects another's run. None exists at the gate commit. git status --porcelain: 9 lines 'A  ...' (redteam/redteam-RT-13-p6-{dimk.mjs,m9-reveal-only.mjs,oracle-highest.py,playwright.config.ts,read.mjs,realrank.mjs,serve.mjs}, site/tests/e2e/redteam-RT-13-p6-{atlas-captions,m9-leak}.spec.ts). 'npm --prefix <wt> ci --prefer-offline': exit 0. 'npm run build': exit 0, '90 page(s) built', 'links: 3998 internal links on 90 pages of site/dist checked, 0 problems'. Ran 'python3 redteam/redteam-RT-13-p6-oracle-highest.py reference site/dist': exit 1. Output: 'glossary, highest root: \"On a board of finite type, the root population at which no mutation raises any city.\"' / 'B3: roots at which no mutation raises any city: [(1, 2, 2), (1, 1, 1)]; highest root (1, 2, 2); highest short root (1, 1, 1)   <-- not unique' / 'C3: ... [(1, 2, 1), (2, 2, 1)]; highest root (2, 2, 1); highest short root (1, 2, 1)' / 'F4: ... [(2, 3, 4, 2), (1, 2, 3, 2)]' / 'G2: ... [(2, 1), (3, 2)]; highest root (3, 2); highest short root (2, 1)' / '16 of 32 boards of finite type have more than one root population at which no mutation raises any city'. The 16 boards are B2 to B8, C2 to C8, F4 and G2. All A, D and E boards are unique. Observed matches: B3, C3, F4 and G2 lists, and 16 of 32. Supporting check: site/dist/atlas/B3/index.html has data-out=\"highest-root\" '(1, 2, 2' and 'highest short root is ... data-exact=\"[1,1,1]\" (1, 1, 1)'. Left behind: an untracked, git-ignored reference/__pycache__/ from importing lie_games. No tracked file under reference/ changed, and I deleted the cache.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: the glossary's definition picks out two root populations on 16 of 32 finite-type boards (B3 (1,2,2) and (1,1,1); C3 (1,2,1) and (2,2,1); F4 (2,3,4,2) and (1,2,3,2); G2 (2,1) and (3,2)). The rubric counts a wrong mathematical statement presented as fact as a blocker."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-09-03",
+  "severity": "minor",
+  "title": "Glossary row 64 says the shape of a Wythoff polytope depends only on which nodes are ringed; SPEC says its combinatorics",
+  "location": "site/src/content/pages/glossary.mdx:550-555 (row 64, dfn wythoffs-construction, data-claim span); route /glossary/#wythoffs-construction",
+  "claim": "'Its shape depends only on which nodes are ringed' is false of the shape. Two orbits with the same ringed nodes have the same face counts but different ratios of edge lengths, which the glossary's own 'uniform' entry and M7 rely on.",
+  "expected": "SPEC 2.14: 'The convex hull of the orbit of lambda is a polytope whose combinatorics depend only on which nodes are ringed'; edge squared length 2 d_i a_i^2.",
+  "observed": "Oracle (redteam-RT-09-p6-wythoff.py): B3 (0,1,1) and (0,2,1) both have f-vector (24, 36, 14). Their squared edge lengths are {2, 4} and {2, 16}, ratios 2 against 8.",
+  "reproduction": "npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts -t 'P6-RT-09-03'; python3 redteam/RT-09/redteam-RT-09-p6-wythoff.py reference",
+  "specRef": "SPEC 2.14 'Orbit polytopes'; RT-09 attacks 25, 31",
+  "proposedFix": "'Which faces it has depends only on which nodes are ringed; the edge lengths depend on the numbers.'",
+  "reproducer": "site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts (describe P6-RT-09-03); redteam/RT-09/redteam-RT-09-p6-wythoff.py",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a59a82db3a362f1d9",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-09-03",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 2.14 'Orbit polytopes'; RT-09 attacks 25, 31",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied from worktree-agent-a59a82db3a362f1d9: site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts and redteam/RT-09/redteam-RT-09-p6-wythoff.py, which were not at the gate commit. The oracle script for 01 and 02 was also present and is not used by this run. status --porcelain: 'A  redteam/RT-09/redteam-RT-09-p6-oracle.py' / 'A  redteam/RT-09/redteam-RT-09-p6-wythoff.py' / 'A  site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts'. npm ci --prefer-offline: ok. Ran from <wt>: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts -t 'P6-RT-09-03'; exit 1; 'Tests 1 failed | 4 skipped (5)'. The definition contains 'Its shape depends only on which nodes are ringed', and the squared edge lengths [[2,4],[2,16]] matched. It failed at line 114: 'glossary \"Wythoff's construction\": \"The construction of a polytope as the convex hull of the orbit of a position with no negative number, drawn in Euclidean coordinates. Its shape depends only on which nodes are ringed (, ).\". On B3 the orbits of (0,1,1) and (0,2,1) ... same face counts (24, 36, 14) but squared edge lengths 2 and 4 against 2 and 16 ... expected true to be false'. Ran: python3 redteam/RT-09/redteam-RT-09-p6-wythoff.py reference; exit 0. Output: '[0, 1, 1] f-vector [24, 36, 14, 1] squared edge lengths ['2', '4'] ratio 2' / '[0, 2, 1] f-vector [24, 36, 14, 1] squared edge lengths ['2', '16'] ratio 8'. My own script (no -I) gives L.symmetrizer(B3) = [2,2,1]. L.wythoff_f_vector gives [24,36,14,1] for both orbits, both have 24 vertices (L.orbit with L.fire) and 36 edges (L.wythoff_edges). The squared edge lengths by L.weight_inner are {2,4} (ratio 2) and {2,16} (ratio 8). Observed matches the finding. Tree after the run: only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: B3 (0,1,1) and (0,2,1) both have f-vector (24,36,14) with squared edge lengths {2,4} against {2,16} (ratios 2 and 8), so the 'shape' sentence is false while the SPEC 2.14 'combinatorics' version holds. No adjustment: the rubric does not settle the level, since read geometrically the sentence is a wrong mathematical statement (blocker list) and read as loose wording for combinatorics it is wording (minor list); the owner can judge."
+   },
+   "refute": {
+    "findingId": "P6-RT-09-03",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 2.14 'Orbit polytopes': 'a polytope whose combinatorics depend only on which nodes are ringed'; and in the same section, 'the integer orbit (0,1,1) has the right combinatorics and edges of two lengths [V]'; 'Edge lengths: ... squared length a_i^2(α_i,α_i)=2d_i a_i^2 [V]'; golden wythoff_note. These support the finding's expected.",
+    "evidence": "Read at f07eec6: glossary.mdx:551, row 64: '<span data-claim>Its shape depends only on which nodes are ringed (Cox35, CKPS95).</span>'. P6-A8.json lists it as a statement with that provenance. Oracle with B = gram(cartan('B',3)): wythoff_f_vector gives [24,36,14,1] for both (0,1,1) and (0,2,1). The squared form lengths over wythoff_edges are {2,4} and {2,16}, ratios 2 and 8, as observed. golden wythoff_note: 'edge from lambda to s_i lambda has squared length a_i^2 (alpha_i, alpha_i); uniform needs a_i |alpha_i| constant on ringed nodes'. SPEC uses 'shape' only for tableaux, for 'Special shapes' of Satake diagrams and for M7's question, never as a synonym for combinatorics. The [D] of 2.14 covers only 'make uniform'. The same words appear in M7 beat 2 (phase 4). round-p4/out/RT-09.json noted them as 'Not reported, imprecise wording'. That was a note, not a finding, ruling or decision, so R6 cannot use it. No DECISIONS.md entry addresses the word.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, because 2.14 says combinatorics and contrasts it with edge lengths. R2 failed, because the finding quotes 2.14 exactly. R3 failed, because row 64 is phase 6 (P6-A8). R4 failed, because the oracle confirms equal f-vectors and unequal edge ratios. R5 failed: the [D] of 2.14 covers make uniform only. R6 failed: the phase 4 note is not a tracked open item. The severity stays minor, since 'shape' admits a combinatorial reading and the rubric's 'wording' fits."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-09-04",
+  "severity": "minor",
+  "title": "M10 says the Atlas switch prints the Cartan matrix 'as this site, Kac and SageMath write it' on every board; the Atlas legend was repaired away from this claim",
+  "location": "site/src/content/modules/m10-atlas.mdx:55 (li data-hub-item=\"atlas\"); route /modules/m10-atlas/ (preview and release)",
+  "claim": "The hub states that the switch prints the matrix as Kac writes it, for every board. On E6 Kac numbers the nodes differently [S2], and on E7, E8, G2 [U], so the printed matrix is not Kac's.",
+  "expected": "SPEC 2.9: 'Kac numbers the nodes of E6, E7, E8 and G2 differently ([S2] for E6, [U] for the rest)'. DECISIONS.md, 'P6-A4: the convention switch says nothing of Kac's numbering outside E4 (repair after review)', changed the Atlas legend to 'in the convention of' for this reason.",
+  "observed": "Hub sentence: 'with a switch that prints the Cartan matrix as this site, Kac and SageMath write it or as Bourbaki and Humphreys write it, transposed'. The Atlas legend reads 'Show the Cartan matrix in the convention of', and the E6, E7, E8 and G2 pages wrap Kac's numbering in E4.",
+  "reproduction": "npm ci --prefer-offline; npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts -t 'P6-RT-09-04'",
+  "specRef": "SPEC 2.9 (SageMath; Kac row); RT-09 attack 32; DECISIONS.md P6-A4 repair entry",
+  "proposedFix": "'with a switch between the convention of this site, Kac and SageMath and that of Bourbaki and Humphreys, who print the transpose'.",
+  "reproducer": "site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts (describe P6-RT-09-04)",
+  "lens": "RT-09",
+  "branch": "worktree-agent-a59a82db3a362f1d9",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-09-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 2.9 (SageMath; Kac row); RT-09 attack 32; DECISIONS.md P6-A4 repair entry",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied from worktree-agent-a59a82db3a362f1d9: site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts, the only path named. The oracle script was also present and is not used by this run. status --porcelain: 'A  redteam/RT-09/redteam-RT-09-p6-oracle.py' / 'A  site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts'. npm ci --prefer-offline: ok. Ran from <wt>: npx vitest run --project site-unit site/tests/unit/redteam-RT-09-p6-glossary-history.test.ts -t 'P6-RT-09-04'; exit 1; 'Tests 1 failed | 4 skipped (5)'. These assertions passed first: SPEC.md contains 'Kac numbers the nodes of $E_6$, $E_7$, $E_8$ and $G_2$ differently ([S2] for $E_6$, [U] for the rest)', ConventionSwitch.astro contains '<legend>Show the Cartan matrix in the convention of</legend>', and it contains '<Unverified item=\"E4\"'. It then failed at line 131: 'M10 hub, atlas item: \"The Atlas gives each named board ... with a switch that prints the Cartan matrix as this site, Kac and SageMath write it or as Bourbaki and Humphreys write it, transposed, ...\" ... expected true to be false'. By grep: m10-atlas.mdx line 55 holds the sentence; DECISIONS.md line 4230 '## 2026-10-25 P6-A4: the convention switch says nothing of Kac's numbering outside E4 (repair after review)'; atlasData.ts:407 sets kacNumbering for E6, E7, E8 and G2, and ConventionSwitch.astro:52-56 wraps the Kac note in <Unverified item=\"E4\">. Observed matches the finding. Tree after the run: only the applied files. Cleanup: node_modules and the ignored reference/__pycache__ deleted. site/node_modules, packages/engine/node_modules and site/dist never existed, and no preview server was started. Final status --porcelain --ignored: the three applied files only.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: the M10 hub says the switch 'prints the Cartan matrix as this site, Kac and SageMath write it', while the Atlas legend reads 'Show the Cartan matrix in the convention of' and the Kac-numbering note for E6, E7, E8 and G2 is wrapped in E4 (DECISIONS.md P6-A4 repair); the run shows a wording claim at minor, as stated."
+   },
+   "refute": {
+    "findingId": "P6-RT-09-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 2.9, row 'SageMath; Kac [Kac90]': 'same matrix. Kac numbers the nodes of E6, E7, E8 and G2 differently ([S2] for E6, [U] for the rest)'; DECISIONS.md 'MERGE: P6-A4 reviewed; rulings; merge checks after T13 and T14', ruling (b); DECISIONS.md 'P6-A4: the convention switch says nothing of Kac's numbering outside E4 (repair after review)'. The ruling reads the same wording the finding's way.",
+    "evidence": "Read at f07eec6: m10-atlas.mdx:55, li data-hub-item='atlas': 'with a switch that prints the Cartan matrix as this site, Kac and SageMath write it or as Bourbaki and Humphreys write it, transposed'. Tried R2 and R1: 2.9's translation cell says 'same matrix' for Kac, which could support a convention-only reading. But the same cell goes straight on to say that Kac numbers E6 [S2] and E7, E8, G2 [U] differently. MERGE ruling (b) on P6-A4 held that the legend 'Show the Cartan matrix as it is printed by' with the option 'This site, Kac and SageMath' says outside the E4 wrapper that 'Kac prints this matrix with this numbering' (P6-A4-review.json: 'Together these say Kac prints this exact matrix'). It required the legend 'in the convention of'. The hub's 'prints ... as ... Kac ... write it' is the wording that ruling rejected. decisions/P6-A8.md ('the hub items') claims the sentence 'says nothing of Kac's numbering (E4)'. That is the builder's own reading, and no MERGE ruling confirms it for the hub. MERGE 'P6 stage 6.3' merged P6-A8 without ruling on this sentence. The known-and-decided list holds nothing on it. M10 is phase 6. gate-G6 has no record of it.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 and R2 failed, because 2.9's 'same matrix' is qualified in the same cell by Kac's different numbering, and MERGE ruling (b) read the equivalent legend wording as a claim about Kac's printed matrix. R3 failed, because M10 is phase 6. R4 does not apply, since this is a statement about a source, not an oracle value. R5 failed: P6-A8's self-assessment is not a ruling, and no [D] applies. R6 failed: there is no record. Severity: the rubric does not clearly name a claim about a book's numbering. Minor fits 'wording'. For the owner, the P6-A4 review graded the same wording on the Atlas legend as a major."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-10-03",
+  "severity": "major",
+  "title": "M10 links no later use of a glossary term, and the later-use spec leaves M10 out although its comment names the M10 hub",
+  "location": "site/src/content/modules/m10-atlas.mdx (no Term helper; 0 links to glossary/#...); site/tests/e2e/glossary-later-uses.spec.ts:29-46 (comment 'The lessons M0 to M9 and the reference pages named by SPEC 3 M10 and the M10 hub (P6-A8)', but ROUTES has no 'modules/m10-atlas/')",
+  "claim": "The phase-6 claim 'later uses linked on every lesson and reference page' does not hold for M10, a released module. It uses board 9 times, 'numbers game' twice, 'Kostant's game' twice and 'finite' (in 'board of finite type') twice, all in the glossary's sense, with no glossary link. No test checks M10 for this rule.",
+  "expected": "SPEC 8.4: 'Define every term on first use and link later uses to a glossary entry'. 9.2: a lesson 'follows the writing rules of section 8.4'. M10 is exempt only from predictions and challenges ('M10 is reference pages and has none').",
+  "observed": "On the built page: 'board (#board): 9 uses, no glossary link', 'Kostant's game (#kostants-game): 2 uses', 'numbers game (#numbers-game): 2 uses', 'finite (#finite): 2 uses'; '0 glossary links on the page'. M9 in the same build has 27.",
+  "reproduction": "npm ci; npm run build; python3 redteam/redteam-RT-10-p6-m10-terms.py site/dist/modules/m10-atlas/index.html site/dist/glossary/index.html (exit 1)",
+  "specRef": "SPEC.md 8.4 bullet 1; 9.2 (lesson definition of done); 3 M10; DECISIONS.md P6-terms 'the shared spec glossary-later-uses.spec.ts' (scope M0 to M9 and five reference pages)",
+  "proposedFix": "Add the Term helper to M10 and link a later use of board, numbers game, Kostant's game and finite type. Add 'modules/m10-atlas/' to ROUTES of glossary-later-uses.spec.ts.",
+  "reproducer": "redteam/redteam-RT-10-p6-m10-terms.py",
+  "lens": "RT-10",
+  "branch": "worktree-agent-a689e5f789a50ceae",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-10-03",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 8.4 bullet 1; 9.2 (lesson definition of done); 3 M10; DECISIONS.md P6-terms 'the shared spec glossary-later-uses.spec.ts' (scope M0 to M9 and five reference pages)",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied worktree-agent-a689e5f789a50ceae:redteam/redteam-RT-10-p6-m10-terms.py, which does not exist at the gate commit; git status listed 'A  redteam/redteam-RT-10-p6-m10-terms.py'. Ran npm ci --prefer-offline (exit 0) and npm run build (exit 0). Ran python3 redteam/redteam-RT-10-p6-m10-terms.py site/dist/modules/m10-atlas/index.html site/dist/glossary/index.html; exit 1. Output: 'board (#board): 9 uses, no glossary link', 'finite (#finite): 2 uses, no glossary link', 'Kostant's game (#kostants-game): 2 uses, no glossary link', 'numbers (#numbers): 4 uses, no glossary link', 'numbers game (#numbers-game): 2 uses, no glossary link', 'word (#word): 2 uses, no glossary link', '0 glossary links on the page'. As a comparison I ran the same script on site/dist/modules/m9-real-forms/index.html: '27 glossary links on the page'. A grep of the whole built M10 page finds 0 href to /glossary/#. grep of site/tests/e2e/glossary-later-uses.spec.ts finds 'modules/m9-real-forms/' at line 40 and no m10 route. Observed matches the finding: board 9, Kostant's game 2, numbers game 2, finite 2, 0 links on M10, 27 on M9. After the run the tree held only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: M10 has 0 glossary links while board (9 uses), numbers game (2), Kostant's game (2) and finite (2) are used unlinked, and M9 in the same build has 27"
+   },
+   "refute": {
+    "findingId": "P6-RT-10-03",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 8.4 bullet 1: 'Define every term on first use and link later uses to a glossary entry'. SPEC 9.2: for a lesson '(M10 is reference pages and has none); it follows the writing rules of section 8.4'. SPEC 3 M10. The passage supports the finding's expected.",
+    "evidence": "9.2 exempts M10 only from predictions and challenges ('M10 is reference pages and has none'). The same sentence then says it 'follows the writing rules of section 8.4', and 8.4 bullet 1 has no qualifier. 8.4 is not [D], and no section 10 default touches it (D14 covers house style 'as proposed'). Records: 'MERGE: P6 stage 6.3, P6-A7 (M9) and P6-A8 (M10 and the glossary)' sends to P6-terms 'the same later-use rule as a shared spec over every lesson M0 to M9 and the reference pages'. 'P6-terms: the shared spec glossary-later-uses.spec.ts' and 'MERGE: P6-terms ...' name the 15 routes (M0 to M9 and history, confusions, open-problem, not-quiver-mutation, about). None of these says M10 is exempt. They only leave it out of the scope. P6-A8's anatomy entry (no beats, no Seen box, no sources) says nothing about glossary links. The known-and-decided list holds 'one markup for a defined term distinct from bold' and 'M10's question', neither of which covers links on later uses. I read m10-atlas.mdx at f07eec6 and counted 'board' in its glossary sense 8 times in the figcaption and hub items, 9 with the question. 'finite type' appears 2 times, 'numbers game' 2 times (glossary item and credit line) and 'Kostant's game' 2 times (history item and credit line). The file imports no Term helper. Nothing in the record contradicts the finding's observed.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, because 8.4 bullet 1 is unqualified and 9.2 binds M10 to 8.4 while exempting it only from predictions and challenges; R2 failed, because the finding reads 8.4 and 9.2 correctly; R3 failed, because M10 is phase 6, at G6; R4 does not apply; R5 failed, because 8.4 is not [D], there is no section 10 default, and MERGE's P6-terms scope leaves M10 out without a recorded exemption; R6 failed, because nothing is on record (first phase 6 round, no gate-G6 open item). A broken prose rule of 8.4 is major, so no adjustment."
+   }
+  }
+ }
+]

@@ -1,0 +1,37 @@
+# Phase 6 build: status (orchestrator)
+
+- Start: 2026-10-25, after gate G5 green on 6cd2c06 (report commit 3a3d195; the phase 5 red-team round closed in 5d16e79).
+- Stage 6.1 (base 5d16e79), running: P6-A1 engine phase 6A (satake.ts), P6-A5 LaTeX export, embed routes and Cite (ports 7100-7103), P6-A6 history, confusions, credits, version footer (ports 7110-7113).
+- To come: 6.1b P6-A2 (catalogue, records, names; after P6-A1); 6.2 P6-A3 T13 and P6-A4 T14; 6.3 P6-A7 M9 and P6-A8 M10; 6.4 gate G6 with release 1.0 (the owner tags).
+- Size budget to watch: /tools/rep/ 87.9 of 90 kB; ToolFrame changes land on every tool route.
+- P6-A1 done and merged (87a2665; records dff494c): 81 engine files, all 167 satake records' computed fields, admissible_pairs, satake_examples, property 9; E7/E8 satake 2 to 8 ms. Review running on dff494c.
+- Stage 6.1b started on dff494c: P6-A2 (satakeCatalogue.ts, names).
+- P6-A1 reviewed (5 minors; rulings in DECISIONS.md); repair running on 9c47155.
+- P6-A5 merged (84960fc with request R1: src/tools/ToolIsland.astro shared by /tools/ and /embed/); P6-A2 merged (da9e368); P6-A6 merged (e947205). Merge checks after P6-A5 running (build 49 pages, 0 link problems).
+- Reviews running: P6-A2 (on da9e368), P6-A5 and P6-A6 (on e947205).
+- Carried for later stages: T2 and T10 tikz exports for the owner's G6 LaTeX compile; 'citeText' in registry outs; T16's static export import; the M10 hub slugs (history, confusions, credits) for P6-A8.
+- Merge check after P6-A5 (84960fc build): 49 pages, 337 e2e passed; npm run size FAILED: /tools/rep/ and /embed/rep/ 90.4 kB. Cause: site/src/lib/worker.ts spreads the whole engine namespace into engineApi, so every route using engineCall ships every engine module; satake.ts added about 2.3 kB to every route ('/' 48.6 to 50.9). Size repair P6-size running on f2177d7 (callers provide their functions; fallback dynamic import).
+- P6-A6 repaired and merged (518fd2b; records 9a7d7a5): the blocker (footer required on /embed/) and the eleven review points fixed.
+- P6-size merged (89e37ec with records): worker.ts provide(), engineAll fallback chunk, moduleSideEffects for the engine; every route with scripts 6.6 to 11.3 kB lighter; /tools/rep/ 84.8, /tools/sandbox/ 79.1 on its base; CONTRACTS.md 4 gains provide. Merge checks running on 89e37ec (reports/merge-p6-size-89e37ec/).
+- P6-A5 repair running on 96bfbb6 (ports 7190-7193).
+- Stage 6.2 started on 89e37ec: P6-A3 T13 (ports 7200-7203), P6-A4 T14 (ports 7210-7213), and a P6-A1 follow-up adding restrictedCoordinates(d, rb, shadow2) to satake.ts for T13's shadow picture (no browser). T13 merges the integration branch once the helper lands.
+- Still to assign: T2 and T10 latexForExport (tikz-graph, tikz-points) for the owner's G6 compile, after the P6-A5 repair merges.
+- Merge checks on 89e37ec: tests, typecheck, build green; size 51 routes, 0 over; e2e 1340 passed, 2 failed under load (T08 F4 long task 53 ms; T15 capped-play announcement race), both 3 of 3 alone.
+- P6-A1 follow-up merged (c029e25): restrictedCoordinates; T13 told to merge the integration branch.
+- P6-A5 repair merged (c027f67). Targeted merge checks running on c027f67 (reports/merge-p6-a5r-c027f67/).
+- Running: P6-A3 T13, P6-A4 T14 (base 89e37ec); a review of P6-size (on c027f67, ports 7160-7163); P6-tikz (T2 tikz-graph and T10 tikz-points via latexForExport, LaTeX samples for G6 under LATEX_SAMPLES_DIR, 'citeText' in every registry's outs; base c027f67, ports 7220-7223).
+- Targeted merge checks on c027f67 green: npm test 183 files, 3733 passed; typecheck and build; 252 e2e passed (embed, export, T16, toolframe-hydration, registry-outs, registry-weight, engine-weight, engine-fallback, pages-6); size 51 routes, 0 over (/tools/sandbox/ 72.5, /tools/rep/ 84.7 kB).
+- P6-tikz merged (f6de3c3; records 3800e06, with citeText in T01_OUTS and T10_OUTS by MERGE). Targeted checks on it: build, typecheck, size (51 routes, 0 over) and 236 e2e green; npm test 2 timeouts under load (repo-ci-playwright-report, T15 level), both pass alone.
+- P6-size reviewed (2 minors; rulings eed623c); its repair running on eed623c (ports 7170-7173), told to merge T13 and add T13's row to the new interaction test.
+- P6-A3 T13 merged (fcba468; records add4487): /tools/satake/ 85.0 kB; registry-offered.test.ts fixed by MERGE. Full merge checks running on add4487 (reports/merge-p6-a3-add4487/); review of T13 running (ports 7230-7233). P6-A4 T14 still building.
+- P6-A4 T14 merged (26d0c87; records 149eee2; released, M7, M8 tests changed by MERGE on its request). Full merge checks on 149eee2: npm test 3906 passed, build, typecheck, size (88 routes, 0 over); e2e 1603 passed, 5 failed under load, 4 of them pass alone (the M8 axe scan at its 120 s limit is the fifth, known).
+- Reviews: T13 (2 majors, 9 minors; rulings 038ad94), T14 (2 majors, 10 minors; rulings 9d85868). Repairs running: P6-A3 (base 038ad94, ports 7200-7203), P6-A4 (base 9d85868, ports 7210-7213; also the Atlas link in Nav.astro and pages.spec's route-scaled time limit).
+- P6-size repair merged (00d6a64; records 60919e8). Targeted checks on 60919e8 green: npm test 3921 passed, build, typecheck, size 88 routes 0 over, 175 e2e passed (engine-fallback, engine-weight, T13, T14, registry-outs).
+- Stage 6.3 started on 149eee2: P6-A7 M9 (ports 7250-7253), P6-A8 M10 and glossary (ports 7260-7263).
+- P6-A8 M10 done (branch worktree-agent-ae904fbd426092717 kept, worktree removed; report phase6/P6-A8.json): the hub, the glossary at 83 entries (57 new). Held until M9 merges (roster order). Its merge needs: pages.spec.ts glossary count 26 to 'at least 26'; Term links on later uses of the new terms on M8 and /not-quiver-mutation/ (M8.spec.ts 'later uses of a term link to the glossary' is generic over every glossary entry; M0 and M1 use fixed lists); M10.spec.ts rerun after M9 (M9's bold words mapped in STRONG_TO_ANCHOR).
+- M9 merged (c88d8ec) and M10 merged (21d6632), records 2d9ff51 and after; M8.spec and pages.spec adjusted by MERGE. P6-terms running on 2d9ff51 (ports 7270-7273): later-use glossary links, M10.spec's M9 terms, a shared later-use spec.
+- P6-A3 and P6-A4 repairs merged (2aec442, 1b6b278); worker drop-on-failure (1e0b98d); M9.spec next link to M10; P6-terms merged with the four blocked pairs unblocked by MERGE. Full merge checks before the gate running.
+- Gate G6 run 1 on f07eec6 (tag gate-G6-candidate, report d59af4a): RED. Failed: the C8 hydration test of T12 (median 53 ms) and the lab on every route (20 of 89 over TBT, /glossary/ 432 ms). Everything else passed, archives built.
+- Phase 6 red-team round launched: 13 lenses at f07eec6 (round-p6/, ports 5510-5633). Then verifiers, fix clusters (with the T12 C8 hydration), confirmations, merge, gate rerun.
+- Round progress (2026-10-26): 11 of 13 lenses reported (RT-04 and RT-12 still running); verified RT-01 to RT-03, RT-05 to RT-11; RT-13 verifiers running. Tally in round-p6/out/TALLY.md. Disk filled once (node compile cache and old scratch directories deleted; 16 GB free).
+- First fix clusters running on 9b24eea: latex (P6-RT-10-01, 03-03; ports 7300-7303), t12-t5 (the G6 T12 hydration failure as a product repair, P6-RT-11-03, 03-01; ports 7310-7313), shared-a11y (P6-RT-05-01, 05-02, 05-04, 06-01; ports 7320-7323). The T13, content, Atlas and worker-wire clusters wait for RT-04, RT-12 and RT-13.

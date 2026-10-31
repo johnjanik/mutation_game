@@ -1,0 +1,57 @@
+---
+// The downloads of an Atlas page (SPEC.md 4 T14 "Downloads: JSON, CSV, LaTeX"; 4.0 "Share and export",
+// "Long numbers": the exact digits in every export). Owner P6-A4. The three files are written at build time
+// (downloads.ts) and offered as data URIs with the download attribute (plan), so they work without
+// JavaScript and need no endpoint file. Base64 keeps the files byte for byte (UTF-8) and keeps the HTML
+// smaller than percent-encoding the JSON would. File names atlas-<board>.json, .csv, .tex (plan).
+// Hooks: data-download="json" | "csv" | "latex".
+import type { AtlasSheet } from './atlasData';
+import { atlasCsv, atlasJson, atlasLatex } from './downloads';
+
+interface Props {
+  sheet: AtlasSheet;
+  /** The address of this page, written in the comment line of the LaTeX file. */
+  pageUrl: string;
+}
+
+const { sheet, pageUrl } = Astro.props;
+const dataUri = (type: string, text: string): string => `data:${type};charset=utf-8;base64,${Buffer.from(text, 'utf8').toString('base64')}`;
+const files = [
+  {
+    kind: 'json',
+    file: `atlas-${sheet.name}.json`,
+    href: dataUri('application/json', atlasJson(sheet)),
+    text: `Download the data of ${sheet.name} as JSON`,
+    what: 'every value of this page, with the version of the engine and of the site',
+  },
+  {
+    kind: 'csv',
+    file: `atlas-${sheet.name}.csv`,
+    href: dataUri('text/csv', atlasCsv(sheet)),
+    text: `Download the data of ${sheet.name} as CSV`,
+    what: 'one row per value, in the columns item, label and value',
+  },
+  {
+    kind: 'latex',
+    file: `atlas-${sheet.name}.tex`,
+    href: dataUri('application/x-tex', atlasLatex(sheet, pageUrl)),
+    text: `Download the diagrams of ${sheet.name} as LaTeX`,
+    what: 'the diagram of the board and the Satake diagram of each real form, for the dynkin-diagrams package',
+  },
+];
+---
+<ul class="downloads">
+  {files.map((f) => (
+    <li>
+      <a href={f.href} download={f.file} data-download={f.kind}>{f.text}</a>: {f.what}.
+    </li>
+  ))}
+</ul>
+
+<style>
+  .downloads a {
+    display: inline-block;
+    min-height: 24px;
+    padding-block: 4px;
+  }
+</style>

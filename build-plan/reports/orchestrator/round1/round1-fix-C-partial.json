@@ -1,0 +1,812 @@
+[
+ {
+  "label": "",
+  "value": {
+   "agent": "RT-FIX-P3-nojs-phase4",
+   "status": "done",
+   "branch": "worktree-wf_cdc94632-3e2-1",
+   "worktree": "/home/user/mutation_game/.claude/worktrees/wf_cdc94632-3e2-1",
+   "commits": [
+    "03c5e93 RT-FIX P4-MERGE-01: the Average tab of T11 draws the big board with its orbits",
+    "43936b3 RT-FIX P4-MERGE-02: T10's prediction stand-in uses Predict.svelte's markup",
+    "4b0af5f RT-FIX P4-MERGE-03: T10's server markup loads the orbit as the browser does",
+    "d6e855f RT-FIX P4-MERGE-04: measured outputs carry data-measured",
+    "cc7ff67 RT-FIX P4-MERGE-01 P4-MERGE-03 P4-MERGE-04: decisions fragment"
+   ],
+   "filesChanged": [
+    "site/src/components/tools/T11FoldingBench.svelte",
+    "site/src/components/tools/T10GeometryStudio.svelte",
+    "site/src/components/tools/t10/snapshot.ts",
+    "site/src/components/draw/DrawTimeProbe.svelte",
+    "site/tests/e2e/nojs.spec.ts",
+    "site/tests/unit/tools/T10.test.ts",
+    "decisions/RT-FIX-P3-nojs-phase4.md"
+   ],
+   "commandsRun": [
+    {
+     "cmd": "node --version",
+     "exit": 0,
+     "summary": "v22.22.0"
+    },
+    {
+     "cmd": "git merge --ff-only f9244a829538706191508e957d33787250132a55; git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+     "exit": 0,
+     "summary": "fast-forwarded; /home/user/mutation_game/.claude/worktrees/wf_cdc94632-3e2-1; worktree-wf_cdc94632-3e2-1; base f9244a829538706191508e957d33787250132a55"
+    },
+    {
+     "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+     "exit": 0,
+     "summary": "c45474...5a2f, 485cae...864bad, 1fc9f8...384d: all three equal CONTRACTS.md 9"
+    },
+    {
+     "cmd": "npm ci --prefer-offline",
+     "exit": 0,
+     "summary": "installed (node_modules was absent)"
+    },
+    {
+     "cmd": "npm test -w packages/engine (baseline, base f9244a8)",
+     "exit": 0,
+     "summary": "Test Files 60 passed (60); Tests 2190 passed (2190). A first run under machine load had 1 failed | 2189 passed, not reproduced on the rerun (timing noise of the shared machine)"
+    },
+    {
+     "cmd": "npm run build (base)",
+     "exit": 0,
+     "summary": "32 page(s) built"
+    },
+    {
+     "cmd": "playwright test -c <scratch config, port 7600> nojs.spec.ts (base)",
+     "exit": 1,
+     "summary": "4 failed, 63 passed: every route renders without JavaScript: m6-multiple-edges (tool 9 fold: default figure, text alternative) and m7-geometry (prediction 0: the answer in the <details>); the server markup shows the default state's values: m7-geometry root 0 and tools/geometry root 0 (source= vs preset, sharedEdges= vs 4 / 12, drawMs= vs a time). All four findings still fail on the base"
+    },
+    {
+     "cmd": "playwright test nojs.spec.ts -g 'M6 b10|M7 prediction 0|T10 server markup|T10 drawMs' (adopted regression tests, base build)",
+     "exit": 1,
+     "summary": "4 failed: P4-MERGE-01 Received [default figure, text alternative of the figure]; P4-MERGE-02 prediction 0 Received [the answer in the <details>]; P4-MERGE-03 m7 server {sharedEdges: '', source: ''} vs hydrated {sharedEdges: '4', source: 'preset'}; P4-MERGE-04 drawMs[data-measured] Expected 13 Received 0"
+    },
+    {
+     "cmd": "playwright test nojs.spec.ts (after the first fixes)",
+     "exit": 1,
+     "summary": "1 failed, 70 passed: m7-geometry root 3 (geometry b4) hydrated has predictResult= that the server markup of T10's prediction stand-in lacks (sibling of P4-MERGE-02)"
+    },
+    {
+     "cmd": "playwright test nojs.spec.ts -g 'result line' (sibling regression test, build without the predictResult line)",
+     "exit": 1,
+     "summary": "1 failed: prediction 0: the result line Expected 1 Received 0"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit T10.test.ts T11.test.ts presets.test.ts presets-size.test.ts (first run after the fix)",
+     "exit": 1,
+     "summary": "1 failed | 75 passed: T10.test.ts server rendering matched the old bare <p>4</p>; strengthened to require <span class=\"answer-text\">4</span>"
+    },
+    {
+     "cmd": "npm run size -- --port 7601 (base, rebuilt with the source reverted)",
+     "exit": 0,
+     "summary": "/tools/geometry/ 89.7 kB, /modules/m7-geometry/ 89.7, /tools/fold/ 81.6; 32 routes, 0 over budget"
+    },
+    {
+     "cmd": "npm test -w packages/engine (final)",
+     "exit": 0,
+     "summary": "Test Files 60 passed (60); Tests 2190 passed (2190), equal to the baseline"
+    },
+    {
+     "cmd": "npx tsc --noEmit -p packages/engine",
+     "exit": 0,
+     "summary": "no errors"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T10.test.ts site/tests/unit/tools/T11.test.ts site/tests/unit/presets.test.ts site/tests/unit/presets-size.test.ts (final)",
+     "exit": 0,
+     "summary": "Test Files 4 passed (4); Tests 76 passed (76)"
+    },
+    {
+     "cmd": "npm run check -w site (final)",
+     "exit": 0,
+     "summary": "astro check: 0 errors, 0 warnings, 1 hint (T06.spec.ts, pre-existing); svelte-check: 0 errors, 1 warning (t02/LayerChart.svelte, pre-existing)"
+    },
+    {
+     "cmd": "npm run build (final)",
+     "exit": 0,
+     "summary": "32 page(s) built"
+    },
+    {
+     "cmd": "playwright test nojs.spec.ts (final)",
+     "exit": 0,
+     "summary": "72 passed (67 of the base plus the 5 regression tests)"
+    },
+    {
+     "cmd": "playwright test a11y.spec.ts (final)",
+     "exit": 0,
+     "summary": "33 passed"
+    },
+    {
+     "cmd": "playwright test T10.spec.ts (final)",
+     "exit": 0,
+     "summary": "27 passed"
+    },
+    {
+     "cmd": "playwright test T11.spec.ts (final)",
+     "exit": 0,
+     "summary": "22 passed"
+    },
+    {
+     "cmd": "playwright test M6.spec.ts (final)",
+     "exit": 0,
+     "summary": "29 passed"
+    },
+    {
+     "cmd": "playwright test M7.spec.ts (final)",
+     "exit": 0,
+     "summary": "29 passed"
+    },
+    {
+     "cmd": "playwright test draw-time.spec.ts (final; DrawTimeProbe changed)",
+     "exit": 0,
+     "summary": "1 passed"
+    },
+    {
+     "cmd": "npm run size -- --port 7601 (final)",
+     "exit": 0,
+     "summary": "/tools/geometry/ 89.8 kB of 90, /modules/m7-geometry/ 89.8 of 120, /tools/fold/ 81.7 of 90, /modules/m6-multiple-edges/ 80.2 of 120; 32 routes measured, 0 over budget"
+    },
+    {
+     "cmd": "git diff --name-only f9244a8..HEAD",
+     "exit": 0,
+     "summary": "7 files: decisions fragment, 4 site components, nojs.spec.ts, T10.test.ts; none of the forbidden paths"
+    },
+    {
+     "cmd": "grep the branch diff for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' ' on:' and the em-dash",
+     "exit": 1,
+     "summary": "no match"
+    },
+    {
+     "cmd": "git log --format=%s f9244a8..HEAD",
+     "exit": 0,
+     "summary": "5 subjects, each begins RT-FIX P4-MERGE-0x"
+    },
+    {
+     "cmd": "git ls-files | grep -i redteam",
+     "exit": 0,
+     "summary": "only build-plan/workflows/redteam-phase.js, present on the base, not added by this branch"
+    },
+    {
+     "cmd": "grep -rn 'regression: P4-MERGE-' site/tests",
+     "exit": 0,
+     "summary": "5 lines in site/tests/e2e/nojs.spec.ts (01, 02, 02, 03, 04)"
+    },
+    {
+     "cmd": "pgrep -fl 'preview --port 760[0-3]'",
+     "exit": 1,
+     "summary": "no preview server running"
+    },
+    {
+     "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+     "exit": 0,
+     "summary": "removed; status empty"
+    }
+   ],
+   "acceptance": [
+    {
+     "item": "P4-MERGE-01: M6 b10 (T11 on the Average preset, A5) has no default figure and no text alternative in its server markup",
+     "status": "fixed",
+     "test": "site/tests/e2e/nojs.spec.ts > M6 b10 (T11 on the Average preset, A5) has a default figure and a text alternative in its server markup"
+    },
+    {
+     "item": "P4-MERGE-02: M7 prediction 0 has no answer (.answer-text) inside the <details> that follows it without JavaScript",
+     "status": "fixed",
+     "test": "site/tests/e2e/nojs.spec.ts > M7 prediction 0 has an answer (.answer-text) inside the <details> that follows it without JavaScript"
+    },
+    {
+     "item": "P4-MERGE-02 (sibling): T10's prediction stand-in lacks the empty result line (data-out predictResult) that the hydrated Predict shows, so the server markup of M7 b4 differs from its hydrated default",
+     "status": "fixed",
+     "test": "site/tests/e2e/nojs.spec.ts > M7 T10 predictions: the server markup holds the empty result line (data-out predictResult) of the hydrated prediction"
+    },
+    {
+     "item": "P4-MERGE-03: T10 server markup leaves data-out source and sharedEdges empty where the hydrated default fills them",
+     "status": "fixed",
+     "test": "site/tests/e2e/nojs.spec.ts > T10 server markup shows data-out source and sharedEdges as the hydrated default fills them"
+    },
+    {
+     "item": "P4-MERGE-04: T10 drawMs is a measured time: the server markup cannot show it, so the default-state comparison fails on every T10 route",
+     "status": "fixed",
+     "test": "site/tests/e2e/nojs.spec.ts > T10 drawMs is a measured time: present in the server markup and marked data-measured, so the default-state comparison reads its presence, not its value"
+    }
+   ],
+   "deviations": [
+    {
+     "spec": "SPEC 4.0 Test hooks; CONTRACTS.md 5.1 and 5.2",
+     "what": "A new attribute data-measured on data-out elements that hold a time measured on the reader's machine (T10 drawMs; the draw-time probe's drawTime, drawTimes, firstDrawTime). No hook, data-out name, prop or string was renamed or removed.",
+     "why": "P4-MERGE-04: the orchestrator required the measured-output rule of nojs.spec.ts to be driven by a documented attribute on the element. It is recorded in decisions/RT-FIX-P3-nojs-phase4.md for MERGE to fold, and to list in CONTRACTS 5.1/5.2 if MERGE counts it as a hook."
+    }
+   ],
+   "decisionsFragment": "decisions/RT-FIX-P3-nojs-phase4.md",
+   "handoff": "All four findings still failed on base f9244a8 (nojs.spec.ts: 4 failed, 63 passed). Each regression test was red with the finding's observed value, and the final build is green: nojs.spec.ts 72 passed; a11y, T10, T11, M6, M7 and draw-time specs all pass; size has 0 routes over budget, with /tools/geometry/ at 89.8 of 90 kB. The base on this machine measured 89.7, not 89.2, so this branch adds 0.1 kB. Causes:\n- P4-MERGE-01: T11's Average tab drew no board. It now draws the same big-board panel with its orbit overlay, display only (no node can act).\n- P4-MERGE-02: T10's build-time stand-in for Predict.svelte put the answer in a bare <p>. It now uses .answer-text and also has the empty predictResult line. That missing line showed up as a further failure on M7 b4 once root 0 passed, and it has its own sibling test.\n- P4-MERGE-03: at build time T10 computed its orbit instead of reading the data file the browser loads, and it hid the source until hydration. t10/snapshot.ts now reads site/public/presets/T10/ through an SSR-only import.meta.glob and runs the browser's own loadPlan. A configuration that would wait for 'Draw the orbit' also starts waiting on the server.\n- P4-MERGE-04: measured times now carry data-measured. The stateHooks rule in nojs.spec.ts lists such an output as 'name (measured)', so the element is still required on both sides.\nAll changed files are in the site area (tools, draw/DrawTimeProbe, site tests). None are in another cluster's engine or library files. The only test change outside the new regression tests is that rule, plus one T10.test.ts regex made stricter to require .answer-text. No finding needs a decision."
+  }
+ },
+ {
+  "label": "",
+  "value": {
+   "agent": "RT-FIX-P3-small-fixes",
+   "status": "done",
+   "branch": "worktree-wf_cdc94632-3e2-3",
+   "worktree": "/home/user/mutation_game/.claude/worktrees/wf_cdc94632-3e2-3",
+   "commits": [
+    "586d99f RT-FIX P3-RT-10-05: T9 takes the road counts back to the new city from the engine",
+    "0c6f212 RT-FIX P3-RT-10-05: T9 converts labels to positions only through toPositions (residual)",
+    "c7126fa RT-FIX P3-RT-05-08: a move that changes nothing reads without an empty clause",
+    "e460a8f RT-FIX P3-RT-05-10: T7's Letters panel carries the Numbers icon and accent",
+    "fd4dbb0 RT-FIX P3-RT-03-01 (residual): the road selects show a held count above four",
+    "9271516 RT-FIX P3-RT-10-05 P3-RT-05-08 P3-RT-05-10: decisions fragment of the small-fixes cluster"
+   ],
+   "filesChanged": [
+    "site/src/components/tools/t09/kostant.ts",
+    "site/src/components/tools/T09Kostant.svelte",
+    "site/src/lib/a11y.ts",
+    "site/src/components/tools/T07SymbolicGame.svelte",
+    "site/src/components/board/BoardEditor.svelte",
+    "site/tests/unit/tools/T09.test.ts",
+    "site/tests/unit/a11y-changed-only.test.ts",
+    "site/tests/e2e/T07.spec.ts",
+    "site/tests/e2e/T16.spec.ts",
+    "decisions/RT-FIX-P3-small-fixes.md"
+   ],
+   "commandsRun": [
+    {
+     "cmd": "node --version",
+     "exit": 0,
+     "summary": "v22.22.0"
+    },
+    {
+     "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+     "exit": 0,
+     "summary": "/home/user/mutation_game/.claude/worktrees/wf_cdc94632-3e2-3; worktree-wf_cdc94632-3e2-3; base f9244a829538706191508e957d33787250132a55 (ff-only merge was already at it)"
+    },
+    {
+     "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+     "exit": 0,
+     "summary": "c45474..2f, 485cae..ad, 1fc9f8..4d: all three match CONTRACTS.md 9"
+    },
+    {
+     "cmd": "npm ci --prefer-offline",
+     "exit": 0,
+     "summary": "installed"
+    },
+    {
+     "cmd": "npm test -w packages/engine (baseline, before any change)",
+     "exit": 0,
+     "summary": "Test Files 60 passed (60); Tests 2190 passed (2190)"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/redteam-RT-10-t09-math.test.ts site/tests/unit/redteam-RT-05-changed-only.test.ts (lens reproducers, red at base)",
+     "exit": 1,
+     "summary": "Tests 4 failed (4): line 162 'for (let k = 0; k < board.n; k++) s += cv[k]! * BigInt(String(C[k]![j]));'; 'Fired node 3. . Move 1.'; 'Mutated city 3. . Move 1.'"
+    },
+    {
+     "cmd": "npm run build (base)",
+     "exit": 0,
+     "summary": "32 page(s) built"
+    },
+    {
+     "cmd": "PLAYWRIGHT_BROWSERS_PATH=... npx playwright test -c <scratch>/playwright.config.mjs redteam-RT-05-view-icons T16.spec.ts -g 'Populations icon and accent|held count above four' (red at base)",
+     "exit": 1,
+     "summary": "2 failed: panel \"Letters\" (data-board=numbers) carries the Populations city icon, Expected false Received true; roadsBack Expected \"5\" Received \"\""
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T09.test.ts -t regressions (adopted tests against base kostant.ts and base T09Kostant.svelte)",
+     "exit": 1,
+     "summary": "Tests 3 failed | 1 passed: Cartan product at line 162; board.cartan read at kostant.ts 158 and 266; labels.indexOf at T09Kostant.svelte 188 and 576"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T09.test.ts (after both T9 fixes)",
+     "exit": 0,
+     "summary": "Tests 23 passed (23), incl. return counts vs affine[T].cartan_node0_first for 125 long starts"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T09-phase2.test.ts",
+     "exit": 0,
+     "summary": "Tests 23 passed (23)"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/a11y-changed-only.test.ts (adopted, red before fix)",
+     "exit": 1,
+     "summary": "Tests 4 failed (4): 'Fired node 3. . Move 1.', 'Mutated city 3. . Move 1.'"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/a11y-changed-only.test.ts site/tests/unit/a11y.test.ts site/tests/unit/a11y-extensions.test.ts (after fix)",
+     "exit": 0,
+     "summary": "Test Files 3 passed (3); Tests 20 passed (20)"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit boardEditor T04 T07 T16 T01 T02 T11 T15 unit files",
+     "exit": 0,
+     "summary": "Test Files 8 passed (8); Tests 186 passed (186)"
+    },
+    {
+     "cmd": "npm run build with base T07SymbolicGame.svelte, then playwright T07.spec.ts -g regressions (adopted test red)",
+     "exit": 1,
+     "summary": "1 failed: panel \"Letters\" (data-board=numbers) carries the Populations city icon, Expected false Received true"
+    },
+    {
+     "cmd": "playwright T07.spec.ts T16.spec.ts -g regressions (after fixes)",
+     "exit": 0,
+     "summary": "5 passed"
+    },
+    {
+     "cmd": "npm run build (clean committed tree)",
+     "exit": 0,
+     "summary": "32 page(s) built"
+    },
+    {
+     "cmd": "PLAYWRIGHT_BROWSERS_PATH=... npx playwright test -c <scratch>/playwright.config.mjs T01 T02 T04 T07 T09 T11 T15 T16 a11y nojs (port 7640)",
+     "exit": 1,
+     "summary": "292 passed, 4 failed (5.2m); the 4 are nojs on modules/m6-multiple-edges (T11 Average figure), modules/m7-geometry (prediction 0 answer; T10 server markup) and tools/geometry (T10 server markup): the deferred findings P4-MERGE-01 to 04, files this branch does not touch"
+    },
+    {
+     "cmd": "npm test -w packages/engine (after)",
+     "exit": 0,
+     "summary": "Test Files 60 passed (60); Tests 2190 passed (2190), equal to baseline"
+    },
+    {
+     "cmd": "npx tsc --noEmit -p packages/engine",
+     "exit": 0,
+     "summary": "no errors"
+    },
+    {
+     "cmd": "npm run check -w site",
+     "exit": 0,
+     "summary": "astro check 0 errors 0 warnings; svelte-check 1072 files 0 errors 1 warning (t02/LayerChart.svelte, pre-existing)"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit",
+     "exit": 0,
+     "summary": "Test Files 51 passed (51); Tests 707 passed (707)"
+    },
+    {
+     "cmd": "git diff base..HEAD added lines | grep -E '.only(|.skip(|xit(|toBeCloseTo|console.log|: any|astro dev|export let|$:|on:x=|em-dash'",
+     "exit": 1,
+     "summary": "no match"
+    },
+    {
+     "cmd": "git ls-files | grep -i redteam",
+     "exit": 0,
+     "summary": "only build-plan/workflows/redteam-phase.js, present at base; no redteam file added"
+    },
+    {
+     "cmd": "git diff --name-only base..HEAD",
+     "exit": 0,
+     "summary": "10 files, none of reference/, build-plan/, CONTRACTS.md, DECISIONS.md, CLAUDE.md, package.json, lockfile, playwright.config.ts, caps.ts, _harness.ts"
+    },
+    {
+     "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep -fl 'astro preview'",
+     "exit": 0,
+     "summary": "status empty; no preview running (pgrep matched only its own shell)"
+    }
+   ],
+   "acceptance": [
+    {
+     "item": "P3-RT-10-05: T9 computes the road counts back to the new city itself (C^T times the coroot) instead of calling the engine",
+     "status": "fixed",
+     "test": "site/tests/unit/tools/T09.test.ts > regressions > T9 computes no Cartan product itself: t09/kostant.ts does not multiply entries of board.cartan; and > T9 reads no entry of a Cartan matrix outside the engine"
+    },
+    {
+     "item": "P3-RT-05-08: Attack 15: a move that changes nothing on more than four nodes is announced 'Fired node 3. . Move 1.'",
+     "status": "fixed",
+     "test": "site/tests/unit/a11y-changed-only.test.ts > changed-only sentence when nothing changed (A-4, five nodes) (4 tests, incl. 'a move that changes nothing reads the move and its number only')"
+    },
+    {
+     "item": "P3-RT-05-10: Attack 38: T7's numbers-game 'Letters' board carries the Populations icon and accent",
+     "status": "fixed",
+     "test": "site/tests/e2e/T07.spec.ts > regressions > the Populations icon and accent mark only the Populations view (T7 /tools/symbolic/)"
+    },
+    {
+     "item": "P3-RT-10-05 (residual): T09Kostant.svelte converted labels to positions with labels.indexOf (lines 188 and 576) instead of toPositions",
+     "status": "fixed",
+     "test": "site/tests/unit/tools/T09.test.ts > regressions > T9 converts labels to positions only through toPositions"
+    },
+    {
+     "item": "P3-RT-03-01 (residual, assigned by the orchestrator): T16 editor showed an empty roadsBack select for a link board with 5 roads one way",
+     "status": "fixed",
+     "test": "site/tests/e2e/T16.spec.ts > regressions > the road selects show a held count above four without offering it"
+    }
+   ],
+   "deviations": [
+    {
+     "spec": "RT-FIX 6 (commit subjects name a finding id of the cluster)",
+     "what": "Commit fd4dbb0 is titled 'RT-FIX P3-RT-03-01 (residual): ...'. P3-RT-03-01 belongs to the drawing cluster.",
+     "why": "The T16 roadsBack residual was assigned to this cluster by the orchestrator, but none of its three findings caused it. It comes from P3-RT-03-01's refusal of imports above four roads, so the subject names that finding."
+    },
+    {
+     "spec": "RT-FIX 5.4 item 1 (files outside the cluster area)",
+     "what": "site/src/lib/a11y.ts and site/src/components/board/BoardEditor.svelte are shared files. a11y.ts is used by every tool that announces moves, and BoardEditor is used by T4 and T16.",
+     "why": "These files hold the causes. The only change in a11y.ts is that an empty change list leaves out the clause. BoardEditor only adds a disabled option when the held count is above 4."
+    }
+   ],
+   "decisionsFragment": "decisions/RT-FIX-P3-small-fixes.md",
+   "handoff": "All three findings are fixed, along with the two residuals. Each fix has a regression test that failed at base f9244a8 and passes now; this list holds every red and green run. P3-RT-10-05: T9's return counts are now toNumbers(transposeBoard(board), coroot(board, end)), built only from existing CONTRACTS 2.4 exports, so no engine export was added. The finding's own fix was right. recipeMatrix was used only by tests, so it moved unchanged out of t09/kostant.ts into site/tests/unit/tools/T09.test.ts, and no T9 source reads board.cartan any more. P3-RT-05-08: changedOnly now leaves out the empty clause ('Fired node 3. Move 1.'), and every other A-4 sentence is unchanged. T11 still says '... Nothing changed. Move k.', as decisions/P4-A4.md records, so the site has two readings and the owner should pick one. P3-RT-05-10: T7's Letters panel now uses NUMBERS_ICON and --accent-numbers. T16 residual: the road selects show a held count above 4 as a disabled option and still offer only 0 to 4. Export, the refused import and the round trip after lowering are covered by the test and described in the fragment. Shared files changed outside the T-tool areas are site/src/lib/a11y.ts and site/src/components/board/BoardEditor.svelte; MERGE should check them for conflicts with other fixers. Open questions, not fixed here: labels.indexOf still converts labels to positions in other places: T01GameBoard.svelte 315 and 662, T03FormFinder.svelte 304 and 429, T04ClassificationLab.svelte 307, T05NumbersGameLab.svelte 315, 330 and 866, t05/dimension.ts 55 and 63, T15AffinePlayground.svelte 705, T16Sandbox.svelte 536, BoardEditor.svelte 198, board/keyboard.ts 45, draw/layouts.ts 87 and lib/urlCodec.ts 222. These are E-7 rule breaks that need their own finding. While the other direction holds more than 4, the editor refuses a change to the first direction because setRoads checks both counts. The select then returns to the held count, so the reader must lower the held count first. The 4 nojs failures seen (m6, m7, tools/geometry) are the deferred P4-MERGE-01 to 04 and are not caused by this branch."
+  }
+ },
+ {
+  "label": "",
+  "value": {
+   "agent": "RT-FIX-P3-follow-predict",
+   "status": "done",
+   "branch": "worktree-wf_cdc94632-3e2-2",
+   "worktree": "/home/user/mutation_game/.claude/worktrees/wf_cdc94632-3e2-2",
+   "commits": [
+    "d3c29d6 RT-FIX P3-RT-13-10: one full stop after an answer that ends a sentence",
+    "5a83fc1 RT-FIX P3-RT-05-09: answering a prediction keeps the focus on the pressed button",
+    "cdecd2d RT-FIX P3-RT-13-04: a following garden holds the whole play of the board",
+    "5fbc593 RT-FIX P3-RT-13-03: a state loaded from outside withdraws an open prediction",
+    "2230087 RT-FIX P3-RT-13-04: T8 follows a linked board by extending the game it holds",
+    "17efddc RT-FIX P3-RT-13-04: a follower's engine moves per move of its leader are counted",
+    "a2c7eab RT-FIX P3-RT-05-09: a frozen Weyl graph keeps its tab stop",
+    "5a6c1e0 RT-FIX P3-RT-05-09: keep counting keeps the focus, and a failed count is announced",
+    "0d42a32 RT-FIX P3-RT-05-09: a play control keeps the focus when its own press ends or runs the play",
+    "cbbee8f RT-FIX P3-RT-13-03: every tool with a prediction withdraws it when a link loads another state",
+    "041bf11 RT-FIX P3-RT-13-03 P3-RT-13-04 P3-RT-05-09: decisions fragment"
+   ],
+   "filesChanged": [
+    "site/src/components/board/Predict.svelte",
+    "site/src/components/tools/T01GameBoard.svelte",
+    "site/src/components/tools/T02OrbitGarden.svelte",
+    "site/src/components/tools/T03FormFinder.svelte",
+    "site/src/components/tools/T04ClassificationLab.svelte",
+    "site/src/components/tools/T05NumbersGameLab.svelte",
+    "site/src/components/tools/T07SymbolicGame.svelte",
+    "site/src/components/tools/T08WeylExplorer.svelte",
+    "site/src/components/tools/T09Kostant.svelte",
+    "site/src/components/tools/T10GeometryStudio.svelte",
+    "site/src/components/tools/T11FoldingBench.svelte",
+    "site/src/components/tools/T15AffinePlayground.svelte",
+    "site/src/components/tools/t02/follow.ts",
+    "site/src/components/tools/t08/WeylGraph.svelte",
+    "site/src/components/tools/t08/link.ts",
+    "site/tests/e2e/T01.spec.ts",
+    "site/tests/e2e/T02.spec.ts",
+    "site/tests/e2e/T04.spec.ts",
+    "site/tests/e2e/T08.spec.ts",
+    "site/tests/e2e/engineMoves.ts",
+    "site/tests/e2e/play-focus.spec.ts",
+    "site/tests/e2e/predict-focus.spec.ts",
+    "site/tests/e2e/predict-result.spec.ts",
+    "site/tests/e2e/prediction-links.spec.ts",
+    "site/tests/unit/tools/T02.test.ts",
+    "site/tests/unit/tools/T08.test.ts",
+    "decisions/RT-FIX-P3-follow-predict.md"
+   ],
+   "commandsRun": [
+    {
+     "cmd": "git merge --ff-only f9244a829538706191508e957d33787250132a55",
+     "exit": 0,
+     "summary": "fast-forward from ec6b0bf to f9244a8 (base)"
+    },
+    {
+     "cmd": "node --version",
+     "exit": 0,
+     "summary": "v22.22.0"
+    },
+    {
+     "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+     "exit": 0,
+     "summary": "/home/user/mutation_game/.claude/worktrees/wf_cdc94632-3e2-2; worktree-wf_cdc94632-3e2-2; f9244a829538706191508e957d33787250132a55"
+    },
+    {
+     "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+     "exit": 0,
+     "summary": "c4547463...a2f, 485caee8...bad, 1fc9f82b...84d: equal to CONTRACTS.md 9"
+    },
+    {
+     "cmd": "npm ci --prefer-offline",
+     "exit": 0,
+     "summary": "installed from the lockfile"
+    },
+    {
+     "cmd": "npm test -w packages/engine (baseline)",
+     "exit": 0,
+     "summary": "Test Files 60 passed (60); Tests 2190 passed (2190)"
+    },
+    {
+     "cmd": "npm run build (base)",
+     "exit": 0,
+     "summary": "32 page(s) built"
+    },
+    {
+     "cmd": "npx playwright test -c <scratch config, port 7620> redteam-RT-13-follow redteam-RT-13-prediction-links redteam-RT-05-predict-focus (base)",
+     "exit": 1,
+     "summary": "6 failed, 2 passed: M4 found Expected 3 Received 1; M1 play-first Expected 6 Received 1; attack 6 Received {moved:true, open:true, values:[1,0,0]}; attack 31 Received 'Right: 0.'; focus after Check and after Show me Expected not BODY; M5 control and M1 hydrated-first pass"
+    },
+    {
+     "cmd": "npx playwright test redteam-RT-05-predict-focus redteam-RT-13-answers -g 'focus|one sentence' (base)",
+     "exit": 1,
+     "summary": "4 failed: 'Right: No, every start ends at the same population..' and 'Right: No, it is not a root population..'; activeElement BODY twice"
+    },
+    {
+     "cmd": "npx playwright test predict-result (base build, adopted file)",
+     "exit": 1,
+     "summary": "3 failed (the two adopted cases and the added not-quite/shown/live case, all with '..')"
+    },
+    {
+     "cmd": "npm run build; npx playwright test predict-result M0 M1 M2 (after the full-stop fix)",
+     "exit": 0,
+     "summary": "67 passed"
+    },
+    {
+     "cmd": "npm run check -w site (after each commit)",
+     "exit": 0,
+     "summary": "0 ERRORS 1 WARNINGS (the existing t02/LayerChart.svelte warning)"
+    },
+    {
+     "cmd": "npm run build; npx playwright test predict-focus predict-result frozen-board M0..M5 (after the focus fix)",
+     "exit": 0,
+     "summary": "146 passed"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T02.test.ts",
+     "exit": 0,
+     "summary": "35 passed (followPlay test included)"
+    },
+    {
+     "cmd": "npm run build; npx playwright test T02.spec M1.spec M4.spec (after the garden fix)",
+     "exit": 0,
+     "summary": "72 passed (adopted M1 and M4 reproducer tests included)"
+    },
+    {
+     "cmd": "npx playwright test T01.spec -g regressions (build before the T1 fix)",
+     "exit": 1,
+     "summary": "3 failed, 1 passed: attack 6 Received {moved:true, open:true}; attack 31 'Right: 0.'; M5 jump Expected false Received true; the unchanged-link guard passes"
+    },
+    {
+     "cmd": "npm run build; npx playwright test T01.spec M0 M5 M6 frozen-board (after the T1 fix)",
+     "exit": 0,
+     "summary": "127 passed"
+    },
+    {
+     "cmd": "npx playwright test T02.spec T08.spec -g 'engine moves' (build before the T8 change)",
+     "exit": 1,
+     "summary": "T08 M5 count failed: Expected 43 Received 52; T02 M1 and M2 counts pass"
+    },
+    {
+     "cmd": "npm run build; npx playwright test T08.spec -g 'same engine moves' (after the T8 change)",
+     "exit": 0,
+     "summary": "1 passed"
+    },
+    {
+     "cmd": "npm run build with a deliberate partial revert of P3-RT-04-04 (T2 safeReplay, T3 null); npx playwright test T02.spec -g 'engine moves'; then git checkout of both files",
+     "exit": 1,
+     "summary": "2 failed: M1 Expected 3 Received 602; M2 Expected 4 Received 603 (the new test bites the revert)"
+    },
+    {
+     "cmd": "npm run build (restored); npx playwright test T08.spec T02.spec T03.spec M5.spec",
+     "exit": 0,
+     "summary": "81 passed"
+    },
+    {
+     "cmd": "probe: engine move counts on the fixed build, M1 and M2, 1 and 600 moves",
+     "exit": 0,
+     "summary": "2, 2, 2, 2"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T08.test.ts -t 'frozen graph' (base WeylGraph)",
+     "exit": 1,
+     "summary": "1 failed: 'A3, frozen after hydration: expected <button ... disabled ...> not to match /\\sdisabled/'"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T08.test.ts (fixed)",
+     "exit": 0,
+     "summary": "26 passed"
+    },
+    {
+     "cmd": "npx playwright test T04.spec -g 'keeps the focus|could not be continued' (build before the T4 change)",
+     "exit": 1,
+     "summary": "2 failed: focus while counting not on keepCounting; live region 'Counting in the background.' without the notice"
+    },
+    {
+     "cmd": "npm run build; npx playwright test T04.spec M3.spec T08.spec (after the T4 and WeylGraph changes)",
+     "exit": 0,
+     "summary": "59 passed"
+    },
+    {
+     "cmd": "npx playwright test play-focus (build before the play-control change)",
+     "exit": 1,
+     "summary": "8 failed: activeElement BODY after Enter on playToEnd/step/playOn in T1 (3 cases), T5, T7, T8, T9, T15"
+    },
+    {
+     "cmd": "npm run build; npx playwright test play-focus T01 T05 T07 T08 T09 T15 phase2-additions (final play-control form)",
+     "exit": 1,
+     "summary": "181 passed, 1 failed: T08 'picking F4 ... without a long task' (timing); passed when rerun alone"
+    },
+    {
+     "cmd": "npx playwright test M0..M7 (port 7622, after the play-control change)",
+     "exit": 0,
+     "summary": "193 passed"
+    },
+    {
+     "cmd": "npx playwright test prediction-links (build before the sibling fixes)",
+     "exit": 1,
+     "summary": "7 failed, 2 passed: M1 b5, M2 b5, M3 b4 and b8, M4 b8, M5 b9, M6 b7, M7 b4 and b7 each Received {moved:true, open:true}; M0 (T1 only) passes"
+    },
+    {
+     "cmd": "npm run build; npx playwright test prediction-links (after the sibling fixes)",
+     "exit": 0,
+     "summary": "9 passed"
+    },
+    {
+     "cmd": "npx playwright test T03 T05 T09 T10 T11 T15 (after the sibling fixes)",
+     "exit": 1,
+     "summary": "134 passed, 2 failed: T05 and T10 long-task timing tests at load 14.5; rerun alone: 3 passed"
+    },
+    {
+     "cmd": "npx playwright test M1..M7 (final build)",
+     "exit": 0,
+     "summary": "173 passed"
+    },
+    {
+     "cmd": "npx playwright test nojs a11y frozen-board board-keyboard toolframe-hydration worker-on-demand (final build)",
+     "exit": 1,
+     "summary": "164 passed, 4 failed in nojs.spec.ts: M6 tool 9 default figure, M7 prediction details, M7 and tools/geometry hydrated default"
+    },
+    {
+     "cmd": "npm run build of the base tree (git archive f9244a8) in scratch; npx playwright test nojs.spec on port 7623",
+     "exit": 1,
+     "summary": "the same 4 failed, 63 passed: not caused by this branch (the documented phase-4 no-JavaScript failures)"
+    },
+    {
+     "cmd": "npx playwright test T01 T02 T03 T04 T07 T08 predict-focus predict-result play-focus phase2-additions M0 (final build)",
+     "exit": 1,
+     "summary": "197 passed, 1 failed: T08 'picking F4 without a long task' (timing)"
+    },
+    {
+     "cmd": "f4compare.sh: T08 'picking F4' 8 runs on the base copy and 8 on this branch, interleaved, load 13 to 18",
+     "exit": 1,
+     "summary": "base 2 of 8 failed (72, 76 ms); branch 3 of 8 failed (110, 132, 176 ms); noisy on both"
+    },
+    {
+     "cmd": "npx vitest run --project site-unit",
+     "exit": 0,
+     "summary": "Test Files 50 passed (50); Tests 703 passed (703)"
+    },
+    {
+     "cmd": "npm test -w packages/engine (final)",
+     "exit": 0,
+     "summary": "Test Files 60 passed (60); Tests 2190 passed (2190), equal to the baseline"
+    },
+    {
+     "cmd": "npx tsc --noEmit -p packages/engine",
+     "exit": 0,
+     "summary": "no errors"
+    },
+    {
+     "cmd": "npm run check -w site (final)",
+     "exit": 0,
+     "summary": "0 errors; svelte-check 0 ERRORS 1 WARNINGS (existing)"
+    },
+    {
+     "cmd": "grep of the branch diff for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' 'on:' and the em-dash",
+     "exit": 1,
+     "summary": "nothing found"
+    },
+    {
+     "cmd": "git ls-files | grep -i redteam",
+     "exit": 0,
+     "summary": "build-plan/workflows/redteam-phase.js only (a plan file present at the base)"
+    },
+    {
+     "cmd": "git log --format=%s base..HEAD | grep -v '^RT-FIX P3-RT-'",
+     "exit": 1,
+     "summary": "nothing: every subject begins with RT-FIX and a finding id"
+    },
+    {
+     "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+     "exit": 0,
+     "summary": "empty; no preview server left on ports 7620 to 7623"
+    }
+   ],
+   "acceptance": [
+    {
+     "item": "P3-RT-13-04: Attack 9: T2 in 'follow' mode loses every move the linked board made before the garden hydrated (M1 shows 1 population, not 6; M4 shows 1 position, not 3)",
+     "status": "fixed",
+     "test": "site/tests/e2e/T02.spec.ts > regressions > a follower that hydrates after the board was played > M4 beat 5: playing b6 first, then scrolling to the garden b7, counts the 3 positions of the orbit of (1, 0); ... > M1 beat 1: play first, then scroll to the garden: the garden counts the 6 populations the board visited; site/tests/unit/tools/T02.test.ts > regressions > followPlay is followStart and one followStep per move: the garden holds the whole play"
+    },
+    {
+     "item": "P3-RT-13-04 (sibling): T8 subscribed to followToolState inside a tracked effect and rebuilt its game from the whole followed play on every move",
+     "status": "fixed",
+     "test": "site/tests/e2e/T08.spec.ts > regressions > M5: one move of b1 costs the following T8 b2 the same engine moves after 1 move and after 4; site/tests/unit/tools/T08.test.ts > regressions > followMoves extends the held game, keeps every position held, and leaves another game to a load"
+    },
+    {
+     "item": "P3-RT-04-04 (strengthened test, orchestrator's note b): a partial revert of the follower fix passed every follower test",
+     "status": "fixed",
+     "test": "site/tests/e2e/T02.spec.ts > regressions > engine moves of one move of the leader do not grow with the play > modules/m1-mutation/: T2 garden b2 following b1; > modules/m2-form/: T3 meter b2 following b1"
+    },
+    {
+     "item": "P3-RT-13-03: Attacks 6 and 31: a link applied to a prediction instance keeps the prediction open (M0 b2 loads past the predicted move, or on another start, and grades 0 as right)",
+     "status": "fixed",
+     "test": "site/tests/e2e/T01.spec.ts > regressions > attack 6: a link that carries the predicted move does not load b2 past it with the prediction open; > attack 31: a link that changes the start of b2 does not grade the configured answer against another board; > a jump from a linked tool does not move the board past the configured state with the prediction open (M5 b1); > a link equal to the configured state keeps the prediction open and the board frozen (M0 b2)"
+    },
+    {
+     "item": "P3-RT-13-03 (sibling): T3, T5, T9, T10, T11 and T15 kept a prediction open under a copied link of another state",
+     "status": "fixed",
+     "test": "site/tests/e2e/prediction-links.spec.ts > <each lesson with a prediction>: a copied link of a prediction instance never shows another state under the open question"
+    },
+    {
+     "item": "P3-RT-13-10: Attacks 4 and 29: a right choice prediction ending in a full stop is reported with two full stops",
+     "status": "fixed",
+     "test": "site/tests/e2e/predict-result.spec.ts > modules/m1-mutation/ b5: the result line of a right choice reads as one sentence; > modules/m2-form/ b5: the result line of a right choice reads as one sentence; > modules/m1-mutation/ b5: the wrong-choice line, the shown line and the spoken sentence have one full stop"
+    },
+    {
+     "item": "P3-RT-05-09: Attacks 2, 9: answering a prediction drops the focus to <body>",
+     "status": "fixed",
+     "test": "site/tests/e2e/predict-focus.spec.ts > focus is kept after answering a prediction with Check (M0 b2); > focus is kept after \"Show me\" (M0 b2)"
+    },
+    {
+     "item": "P3-RT-05-09 (sibling): T8's WeylGraph gave its vertex buttons and its focus button the disabled attribute while frozen",
+     "status": "fixed",
+     "test": "site/tests/unit/tools/T08.test.ts > regressions > a frozen graph keeps its tab stop: aria-disabled after hydration, disabled only before (A3 and F4)"
+    },
+    {
+     "item": "P3-RT-05-09 (sibling): T4's keep counting dropped the focus to <body>, and the counter notice was not announced",
+     "status": "fixed",
+     "test": "site/tests/e2e/T04.spec.ts > regressions > keep counting keeps the focus in the Classification Lab while it counts and after (/tools/lab/, star with five arms); > a count that could not be continued is announced in the live region (/tools/lab/)"
+    },
+    {
+     "item": "P3-RT-05-09 (sibling): Step, Play to the end and Play on of T1, T5, T7, T8, T9, T15 dropped the focus when their own press ended the game or ran the play in the worker (busy)",
+     "status": "fixed",
+     "test": "site/tests/e2e/play-focus.spec.ts > <eight cases>: the pressed control keeps the focus"
+    }
+   ],
+   "deviations": [
+    {
+     "spec": "CONTRACTS.md 5.2 (Playwright tests read only data-* hooks and the live region)",
+     "what": "Three regression tests (T02.spec.ts M1 and M2, T08.spec.ts M5) also read the browser's precise coverage counts through site/tests/e2e/engineMoves.ts to count the engine's moves per move of the leader.",
+     "why": "The orchestrator asked for a test that fails on the partial revert of P3-RT-04-04; durations could not tell a replay from an extension (47.2 against 48.3 ms), the move count can (602 against 2). Recorded in decisions/RT-FIX-P3-follow-predict.md."
+    },
+    {
+     "spec": "RT-FIX 5.4 item 1 (files outside the cluster's named locations)",
+     "what": "Besides Predict.svelte, T01GameBoard.svelte and T02OrbitGarden.svelte, the siblings changed T03, T04, T05, T07, T08 (and t08/WeylGraph.svelte, t08/link.ts), T09, T10, T11 and T15.",
+     "why": "Same causes as P3-RT-13-03 (a link over an open prediction) and P3-RT-05-09 (a control made inactive with the disabled attribute after hydration), and the orchestrator's notes (a) and the residual list."
+    }
+   ],
+   "decisionsFragment": "decisions/RT-FIX-P3-follow-predict.md",
+   "handoff": "Base f9244a8. Every file changed is under site/src/components/{board,tools} and site/tests plus the fragment; no engine, reference, contract or config file was touched. Expect conflicts with group B fixers only in the tool components touched for siblings (T03, T04, T05, T07, T08, T09, T10, T11, T15), where each change is a few lines. The adopted reproducers live in T01.spec.ts, T02.spec.ts, predict-focus.spec.ts and predict-result.spec.ts. The lens should know three things. First, P3-RT-13-04's proposedFix was right; the cause was restartFollow, which every load and the switch to follow use. Second, P3-RT-13-03 is fixed by withdrawing the prediction rather than ignoring the link, in T1 (link, back button, jumps) and in six sibling tools. Third, nojs.spec.ts still fails its 4 known phase-4 cases, which also fail on the base. T08's 'picking F4 without a long task' timing test is noisy under load on the base and on this branch."
+  }
+ },
+ {
+  "label": "",
+  "value": {
+   "branch": "worktree-wf_cdc94632-3e2-1",
+   "results": [
+    {
+     "findingId": "P4-MERGE-01",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "Tested at cc7ff67 after a build in worktree wf_cdc94632-3e2-5. I ran the original reproducer, the integration branch's nojs.spec.ts, from a scratch copy against the fix build. 'every route renders without JavaScript: modules/m6-multiple-edges/' passes, so tool 9 (fold, b10, Average tab) now has a default figure and a text alternative in its server markup. Regression test: nojs.spec.ts:302, 'M6 b10 (T11 on the Average preset, A5) has a default figure and a text alternative in its server markup'. It passes on the fix build. I reverted site/src/components/tools/T11FoldingBench.svelte to f9244a8 and rebuilt. The regression test then fails with Received [\"default figure\", \"text alternative of the figure\"], the finding's observed value, and the original every-route check for m6 fails the same way. Restoring the file made both green again. Cause of the fix: the Average tab now renders the same big-board panel (data-out=big-board, OrbitOverlay, Board named 'Big board A5') with data-can-act=false and the board disabled. That fits SPEC 4 T11 and 4.0 (a default figure for every tool)."
+    },
+    {
+     "findingId": "P4-MERGE-02",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original base nojs.spec.ts, run against the fix build, passes 'every route renders without JavaScript: modules/m7-geometry/': prediction 0 now has .answer-text inside its <details>. There are two regression tests. nojs.spec.ts:313 checks every M7 prediction for the answer and the reveal. nojs.spec.ts:325 is the sibling: each T10 prediction stand-in has the empty data-out=predictResult line. The unit test site/tests/unit/tools/T10.test.ts:990 was also made stricter to require <span class=\"answer-text\">4</span>. All pass on the fix build. I reverted the stand-in hunk of T10GeometryStudio.svelte (the bare <p> answer, no predictResult line) and rebuilt. Test :313 then fails with ['the answer in the <details>'], the finding's observed value. Test :325 fails with 'Expected 1 Received 0'. The m7 default-state comparison fails on the missing 'predictResult='. The T10.test.ts server-rendering test fails because the regex no longer matches. Restoring the file made all of them green again."
+    },
+    {
+     "findingId": "P4-MERGE-03",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "The original base nojs.spec.ts, run against the fix build, no longer differs on source or sharedEdges for modules/m7-geometry/ root 0 or tools/geometry/ root 0. The only remaining difference is drawMs, which belongs to P4-MERGE-04. Regression test: nojs.spec.ts:346, 'T10 server markup shows data-out source and sharedEdges as the hydrated default fills them'. It passes on the fix build. I reverted site/src/components/tools/t10/snapshot.ts to 43936b3 and restored the old initialOrbit line and the 'api.hydrated &&' source condition in T10GeometryStudio.svelte, then rebuilt. The regression test then fails with server {sharedEdges:'', source:''} against hydrated {sharedEdges:'4', source:'preset'}. The default-state comparison fails with source=/sharedEdges= against preset and 4 on m7, and against preset and 12 on tools/geometry: exactly the finding. Restoring the files made them green again. The preset JSON is read only at build time: no preset data or preset file names appear in site/dist/_astro, and npm run size reports 0 routes over budget."
+    },
+    {
+     "findingId": "P4-MERGE-04",
+     "fixed": true,
+     "regressionTestPresent": true,
+     "evidence": "T10's data-out=drawMs now carries data-measured. The stateHooks comparison in nojs.spec.ts lists any element with that attribute as 'name (measured)', so the element must exist on both sides but its value is not compared. The rule reads the attribute, not a list of names, as the finding proposed. As the finding's own fix expects, the unmodified base nojs.spec.ts still fails on 'drawMs=' against '4.1' and '5.7' on m7-geometry and tools/geometry, because its rule compares by value. With the fixed spec, every route passes. Regression test: nojs.spec.ts:368, 'T10 drawMs is a measured time...'. It passes on the fix build. I removed data-measured from T10's drawMs span and rebuilt. The regression test then fails at drawMs[data-measured] with 'Expected 13 Received 0'. The default-state comparison on m7-geometry and tools/geometry fails with 'drawMs=' against '3.7' and '5.6', the finding's observed failure. Restoring the file made them green again. dev/draw-time stayed green with the attribute removed, because DrawTimeProbe is not a ToolFrame tool and its data-out values are not compared."
+    }
+   ],
+   "sideEffects": [
+    "None of the checks failed. At cc7ff67 the full Playwright suite on Chromium had 761 passed, 2 skipped and 0 failed. The two skips are the WebKit and Firefox cases of mathml.spec.ts, which cannot run on this machine. nojs.spec.ts alone: 72 passed. npm test (engine and site-unit): 110 files, 2890 tests passed. npm run check -w site: 0 errors, 0 warnings. npm run build: 32 pages.",
+    "The size budget is nearly used up. /tools/geometry/ measures 89.8 kB against its 90 kB limit and /modules/m7-geometry/ 89.8 against 120. /tools/fold/ is 81.7 of 90 and /modules/m6-multiple-edges/ 80.2 of 120. 0 routes are over budget, but the geometry tool route has 0.2 kB left. The fixer reports the base at 89.7.",
+    "There is a new attribute, data-measured, on data-out elements: T10 drawMs, and drawTime, drawTimes and firstDrawTime in DrawTimeProbe. It is not in the hook list of SPEC 4.0 or CONTRACTS.md 5.1/5.2. The fixer logs it as a deviation in decisions/RT-FIX-P3-nojs-phase4.md for MERGE to fold in. No existing hook, data-out name, prop or string was renamed or removed.",
+    "T10 server rendering changed. snapshot.ts now reads site/public/presets/T10/*.json at build time through an SSR-only import.meta.glob and applies the browser's loadPlan. A configuration that is waiting for 'Draw the orbit' now starts in the wait state on the server too, and data-out=source is filled before hydration. The nojs default-state comparison passes on every route, and no preset data reaches the client bundle.",
+    "The Average tab of T11 now shows the big board as a display-only figure: every node has data-can-act=false, the board is disabled, and clicking does nothing. This is a behaviour change on that tab, recorded in the decisions fragment. T11, M6, a11y and frozen-board specs pass.",
+    "Nothing outside the site was touched: no change to reference/golden_data.json, lie_games.py, verify.py, packages/engine or the conventions. The branch diff is the decisions fragment, 4 site components, nojs.spec.ts and T10.test.ts, with no em-dashes.",
+    "I committed nothing. The worktree wf_cdc94632-3e2-5 is detached at cc7ff67. node_modules, packages/engine/node_modules and site/dist are deleted and git status --porcelain is empty. No preview server is left running on ports 8000 to 8003."
+   ]
+  }
+ }
+]

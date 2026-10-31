@@ -36,6 +36,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
+import { boardFromName, classify, highestRoot, kostantPlay, play } from '../../../packages/engine/src/index';
+import type { Board } from '../../../packages/engine/src/index';
 import { distDir } from './routes';
 
 const ROUTE = 'modules/m3-classification/';
@@ -68,12 +70,13 @@ const TOOLS: [string, Kind][] = [
 const BEAT_OF: Record<string, number> = { b1: 1, b2: 2, b3: 2, b4: 3, b5: 3, b6: 4, b7: 4, b8: 5, b9: 6 };
 
 interface Golden {
-  types: Record<string, { n_roots: number; highest_root: number[]; numbers_of_highest_root: number[] }>;
+  types: Record<string, { n_roots: number; highest_root: number[]; numbers_of_highest_root: number[]; cartan: number[][] }>;
   kostant: Record<string, { end_from_node: number[][]; moves_from_node: number[]; final_numbers_from_node: number[][]; affine_board_from_node: string[] }>;
   layer_growth_examples: { label: string; layers: number; root_populations_found: number; new_per_layer: number[] }[];
   affine: Record<string, { name: string; marks: number[] }>;
   classification_tests: { label: string; spectral_radius_4_decimals: string | null }[];
   one_way_counterexample: { cartan: number[][]; start: number[]; moves: number[]; result: number[] };
+  pentagon_example: { start: number[]; moves: number; level: number };
 }
 const GOLDEN = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8')) as Golden;
 const growth = (label: string): Golden['layer_growth_examples'][number] => GOLDEN.layer_growth_examples.find((r) => r.label === label)!;
@@ -653,4 +656,188 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (RT-FIX, red team round 1). Each test is a lens reproducer adopted here; where a
+// finding also names another lesson, only the M3 part is adopted (the other parts are other fixes).
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from site/tests/unit/redteam-RT-09-01-m3-numbers-game-ends.test.ts (lens RT-09). The
+  // reproducer held the page's sentence against the engine on the pentagon; here the engine's
+  // pentagon game is the counterexample, and the sentence must carry the hypotheses of [DE08]
+  // Theorem 2.1 that exclude it (SOURCES.md [DE08]: "a connected integer-weighted graph has a
+  // terminating game from some nonzero dominant start exactly when it is a Dynkin diagram of finite
+  // type"; a dominant start has no negative number, SPEC 2.9 row [DE08], Appendix C).
+  // regression: P3-RT-09-01
+  test("M3 beat 7 quotes Donnelly and Eriksson's theorem with its hypothesis", async ({ page }) => {
+    // oracle: play_fate(board_from_name('A4~')[0], (1,-2,3,-4,1)) ends after 14 moves (golden pentagon_example).
+    const pentagon = boardFromName('pentagon') as Board<unknown>;
+    const record = classify(pentagon);
+    expect(record.length, 'the pentagon is one connected component').toBe(1);
+    expect(record[0]!.class).toBe('affine');
+    const start = GOLDEN.pentagon_example.start;
+    expect(start).toEqual([1, -2, 3, -4, 1]);
+    const r = play(pentagon, start.map((x) => pentagon.arith.fromInt(x)));
+    expect(r.status).toBe('ended');
+    expect(r.moves).toBe(GOLDEN.pentagon_example.moves);
+    // A game from all zeros ends at once on every board, the pentagon included.
+    const zero = play(pentagon, start.map(() => pentagon.arith.fromInt(0)));
+    expect(zero.status).toBe('ended');
+    expect(zero.moves).toBe(0);
+    // So the sentence must exclude a start with a negative number and the start of all zeros, and
+    // speak of boards with roads both ways, as [DE08] does.
+    expect(start.some((x) => x < 0), 'the counterexample start has a negative number').toBe(true);
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    const beat7 = /<Beat n=\{7\}>([\s\S]*?)<\/Beat>/.exec(source)![1]!;
+    const quoted = beat7.split(/(?<=\.)\s+/).filter((s) => s.includes('<Cite k="DE08"/>'));
+    expect(quoted.length, 'beat 7 cites [DE08]').toBe(1);
+    const sentence = quoted[0]!;
+    expect(sentence, 'M3 beat 7 must not quote [DE08] with "a suitable start"').not.toMatch(/suitable start/);
+    expect(sentence, `M3 beat 7: "${sentence}" must name a start with no negative number`).toMatch(/no negative (number|one)/);
+    expect(sentence, `M3 beat 7: "${sentence}" must exclude the start of all zeros`).toMatch(/start with a positive number/);
+    expect(sentence, `M3 beat 7: "${sentence}" must speak of boards with roads both ways`).toMatch(/connected board with roads both ways/);
+    expect(sentence).toMatch(/finite type/);
+    // The built page prints the same hypotheses.
+    await page.goto(ROUTE);
+    const printed = (await proseSentences(page, '[data-beat="7"]')).filter((s) => s.includes('Donnelly and Eriksson'));
+    expect(printed.length).toBe(1);
+    expect(printed[0]).toMatch(/connected board with roads both ways .*start with a positive number and no negative one/);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-08-computation-range.test.ts (lens RT-08), M3 part (the
+  // open-problem page and M1 are other fixes).
+  // regression: P3-RT-08-01
+  test('"verified by computation" is never stated over every board of finite type without a range', () => {
+    // The check behind Kostant's game and its affine recipe (golden key kostant) covers the named types
+    // of rank at most 8.
+    const kostant = Object.keys(GOLDEN.kostant);
+    expect(kostant.length).toBe(32);
+    expect(kostant).not.toContain('A9');
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    // "verified by computation" followed by "every board" or "every such board" with no rank,
+    // group-size or named-board limit.
+    const OVERCLAIM = /verified by computation (for|on) every (such )?board(?! of finite type of rank)(?! whose group)(?! of rank)(?! the site offers)[^.;'`]*/g;
+    const hits = [...source.matchAll(OVERCLAIM)].map((m) => m[0]);
+    expect(hits, 'm3-classification.mdx claims a computation on every board').toEqual([]);
+    // Beat 5: the recipe sentence does not claim every board of finite type.
+    expect(source).not.toMatch(/from every board of finite type and every starting city, as verified by computation/);
+    // The E4 fallback: the computed check is not stated for every board of finite type.
+    expect(source, 'm3 E4 fallback').not.toMatch(/that the script checking this site has tried, no root population mixes Martians and anti-Martians: every board of finite type,/);
+    const e4 = /<Unverified item="E4" fallback="([^"]*)"/.exec(source)?.[1] ?? '';
+    expect(e4, 'the E4 fallback names the range of the finite types checked').toMatch(/every board of finite type of rank at most 8/);
+    // Beat 5: every clause that gives a provenance by computation states the range checked.
+    const beat5 = /<Beat n=\{5\}>([\s\S]*?)<\/Beat>/.exec(source)![1]!;
+    const clauses = beat5.split(/(?<=[.;])\s+/).filter((s) => /verified by computation/.test(s));
+    expect(clauses.length).toBeGreaterThan(0);
+    for (const clause of clauses) {
+      expect(clause, `M3 beat 5 prints "${clause}"; the checks cover rank at most 8`).toMatch(/rank at most/);
+      expect(clause).toMatch(/every starting city/);
+    }
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-07-kostant-range.test.ts (lens RT-09), M3 part.
+  // regression: P3-RT-09-07
+  test("M3 states the range of the Kostant's game checks as checked", () => {
+    const ranks = Object.keys(GOLDEN.kostant).map((t) => GOLDEN.types[t]!.cartan.length);
+    expect(Object.keys(GOLDEN.kostant).length).toBe(32);
+    expect(Math.max(...ranks)).toBe(8);
+    // SEEN_KOSTANT, the provenance of the Kostant recipe in the Seen box.
+    const value = /export const SEEN_KOSTANT = '([^']*)'/.exec(readFileSync(LESSON_PATH, 'utf8'))?.[1] ?? '';
+    expect(value).toMatch(/^verified by computation/);
+    expect(value, `m3-classification.mdx prints "${value}"; the checks cover the types of rank at most 8 (SPEC 2.7, golden kostant)`).toMatch(/rank at most/);
+    expect(value).toMatch(/every starting city/);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-09-03-lie-theory-kostant.test.ts (lens RT-09), M3 part.
+  // The reproducer held the page's sentence against the engine on B3; here the engine's B3 play is
+  // the counterexample, and the sentence must carry the hypotheses of F13 that exclude it.
+  // regression: P3-RT-09-03
+  test("the Lie theory paragraph states Kostant's game with the hypotheses of F13", () => {
+    // oracle: kostant_play(cartan('B',3), 2) ends at (1,1,1); highest_root(cartan('B',3)) is (1,2,2);
+    // golden kostant.B3.affine_board_from_node[2] is D4^(2), a twisted board (SPEC 2.7 F13, 2.12).
+    const B3 = boardFromName('B3') as Board<unknown>;
+    const r = kostantPlay(B3, 2); // from one Martian in city 3, the short node
+    const end = r.position.map((x) => Number(B3.arith.toBig(x)));
+    const theta = highestRoot(B3).map((x) => Number(B3.arith.toBig(x)));
+    expect(theta).toEqual([1, 2, 2]);
+    expect(end).toEqual(GOLDEN.kostant.B3!.end_from_node[2]);
+    expect(end, 'on B3 from city 3 the play ends at the highest short root, not at theta').not.toEqual(theta);
+    expect(GOLDEN.kostant.B3!.affine_board_from_node[2]).toBe('D4^(2)');
+    const lie = /<LieTheory>([\s\S]*?)<\/LieTheory>/.exec(readFileSync(LESSON_PATH, 'utf8'))?.[1] ?? '';
+    const sentences = lie.split(/(?<=\.)\s+/).filter((s) => /Kostant's game/.test(s));
+    expect(sentences.length, "the Lie theory paragraph names Kostant's game").toBeGreaterThan(0);
+    for (const s of sentences) {
+      expect(s, `M3 Lie theory: "${s}" (SPEC 2.7 F13: the highest root on simply laced boards of finite type)`).toMatch(/simply laced/);
+      expect(s).toMatch(/finite type/);
+    }
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-08-fallback-weaker.test.ts (lens RT-08, attack 15). SPEC
+  // 7.3: "A fallback is a weaker sentence that stays true however the item turns out". Of [BrH] only
+  // the section title and page were read (SOURCES.md 11.5), so the E10 fallback may say nothing about
+  // what the book contains.
+  // regression: P3-RT-08-07
+  test('the E10 fallback does not assert what the unread book contains', () => {
+    const SOURCES = readFileSync(fileURLToPath(new URL('../../../SOURCES.md', import.meta.url)), 'utf8');
+    expect(SOURCES).toMatch(/\*\*\[BrH\]\*\*[^\n]*\[S, section title and page\]\. The underlying theorem is due to J\. H\. Smith \(1970\); that citation is \[U\]\./);
+    const fb = (readFileSync(LESSON_PATH, 'utf8').match(/<Unverified item="E10" fallback="([^"]*)"/) ?? [])[1] ?? '';
+    expect(fb.trim(), 'E10 has a fallback').not.toBe('');
+    // Observed at 69546f0: "their book names the original source of that list, which this site has not yet checked."
+    expect(fb).not.toMatch(/book names the original source/);
+    // Nor any other statement about the book or its authors.
+    expect(fb).not.toMatch(/\bbook\b|\btheir\b|Brouwer|Haemers/i);
+  });
+
+  // Adopted from site/tests/unit/redteam-RT-08-number-words.test.ts (lens RT-08, attack 12), the M3
+  // case (the M2 and M5 cases are other fixes). SPEC 8.4: "Numbers that have a golden value are
+  // written with <G>, never typed".
+  // regression: P3-RT-08-05
+  test('m3-classification.mdx: "and each arm one" states affine.D4.marks[0] as a typed word', async ({ page }) => {
+    // affine.D4.marks[0] is the quantity the phrase states: the frozen population on an arm of the star.
+    expect(GOLDEN.affine.D4!.marks[0], 'affine.D4.marks[0] is the quantity the phrase states').toBe(1);
+    const source = readFileSync(LESSON_PATH, 'utf8');
+    // Observed at 69546f0: the phrase is in the source, typed.
+    expect(source.includes('and each arm one'), 'm3-classification.mdx types affine.D4.marks[0] as a word').toBe(false);
+    // The arms' entry is written through <G> with a path of an arm of the star (cities 0, 1, 3, 4).
+    const beat3 = /<Beat n=\{3\}>([\s\S]*?)<\/Beat>/.exec(source)![1]!;
+    expect(beat3).toMatch(/each arm <G k="affine\.D4\.marks\[[0134]\]"\/>/);
+    // The built page prints the golden value there.
+    await page.goto(ROUTE);
+    const sentence = (await proseSentences(page, '[data-beat="3"]')).find((s) => s.includes('each arm')) ?? '';
+    expect(sentence).toContain(`so it holds ${MARKS_STAR[2]} and each arm ${MARKS_STAR[0]}:`);
+  });
+
+  // Adopted from site/tests/e2e/redteam-RT-13-links.spec.ts (lens RT-13, attack 17), the M3 case:
+  // the module's board is the board of its first figure (SPEC 3 M3 row 1: T4 with the path A3), and
+  // the sandbox link opens it (SPEC 8.2 item 7, "the sandbox with this module's board loaded").
+  // regression: P3-RT-13-05
+  test('links answer, fragments exist, and the sandbox opens A3, the board of the first figure', async ({ page, baseURL }) => {
+    test.setTimeout(120000);
+    const [boardName, n] = ['A3', 3] as const;
+    await page.goto(ROUTE);
+    const firstFigure = page.locator('[data-tool]').first();
+    const firstLabel = (await firstFigure.locator('figure').first().getAttribute('aria-label')) ?? (await firstFigure.innerText());
+    expect(firstLabel, 'the first figure is on the module board').toContain(boardName);
+    const hrefs = [...new Set(await page.locator('article a[href]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? '')))]
+      .filter((h) => h.startsWith('/') || h.startsWith('#'));
+    const problems: string[] = [];
+    for (const h of hrefs) {
+      const url = new URL(h, new URL(ROUTE, baseURL)).href;
+      const [path, frag] = url.split('#');
+      const res = await page.request.get(path!);
+      if (res.status() !== 200) { problems.push(`${h}: status ${res.status()}`); continue; }
+      if (frag && !(await res.text()).includes(`id="${frag}"`)) problems.push(`${h}: no element with id ${frag}`);
+    }
+    const sandbox = page.locator('[data-link="sandbox"]');
+    await expect(sandbox).toHaveCount(1);
+    await sandbox.click();
+    const r = page.locator('[data-tool="sandbox"]').first();
+    await expect(r).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+    const label = `${await r.locator('figure').first().getAttribute('aria-label')}`;
+    const nodes = await r.locator('button[data-node][data-board="populations"], button[data-node][data-board="numbers"]').evaluateAll((els) => new Set(els.map((e) => (e as HTMLElement).dataset.node)).size);
+    if (!label.includes(` ${boardName}`) || nodes !== n) problems.push(`sandbox opens "${label.slice(0, 80)}" with ${nodes} nodes; the module's board is ${boardName} with ${n}`);
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
 });

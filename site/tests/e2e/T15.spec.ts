@@ -127,10 +127,15 @@ test('frozen population: every city is happy and a Martian wakes the board', asy
   await expect(out(page, 'boardName')).toHaveText('square');
   await expect(nodes(page)).toHaveCount(4);
   expect(await values(page)).toEqual(['1', '1', '1', '1']);
+  const labels: string[] = [];
   for (const b of await nodes(page).all()) {
     await expect(b).toHaveAttribute('data-board', 'populations');
-    expect(await b.getAttribute('aria-label')).toMatch(/^City \d, population 1, mutation would change nothing$/);
+    // regression: P4-RT-11-03 (the A-3 name whole, with the label of this button's data-node)
+    const label = (await b.getAttribute('data-node'))!;
+    labels.push(label);
+    await expect(b).toHaveAttribute('aria-label', `City ${label}, population 1, mutation would change nothing`);
   }
+  expect([...labels].sort()).toEqual(['1', '2', '3', '4']); // the square's labels (E-7), each on one button
   await expect(out(page, 'verdict')).toContainText('affine');
   await expect(out(page, 'moods')).toContainText('Every city is happy');
   // A mutation at the marks changes nothing, but it is a move.

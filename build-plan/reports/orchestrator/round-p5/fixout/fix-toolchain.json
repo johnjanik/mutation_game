@@ -1,0 +1,170 @@
+{
+ "agent": "rtfix-p5-toolchain",
+ "status": "done",
+ "branch": "worktree-agent-a995e9219b7169083",
+ "base": "3f9bb33",
+ "commits": [
+  "f6f395a RT-FIX P5-RT-12-01: the first command of the prebuild holds the release report",
+  "1be761a RT-FIX P5-RT-12-01: decisions fragment"
+ ],
+ "filesChanged": [
+  "scripts/katex-assets.mjs",
+  "site/src/lib/openItemsReport.mjs",
+  "site/src/lib/unverifiedRegistry.ts",
+  "site/tests/unit/report-prebuild-failure.test.ts",
+  "decisions/RT-FIX-P5-toolchain.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git reset --hard 3f9bb33; git rev-parse --show-toplevel; git branch --show-current",
+   "exit": 0,
+   "summary": "HEAD 3f9bb33; worktree /home/user/mutation_game/.claude/worktrees/agent-a995e9219b7169083; branch worktree-agent-a995e9219b7169083"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "all three match CONTRACTS.md 9 (c4547463..., 485caee8..., 1fc9f82b...)"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "73 files, 2411 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/report-prebuild-failure.test.ts (red, at base)",
+   "exit": 1,
+   "summary": "3 failed | 2 passed (5); 'report: open items report of 2026-10-25T05:42:55.612Z: 1 open items used on 1 pages, 0 unknown items; see reports/open-items-report.md: expected +0 to be 1'"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/report-prebuild-failure.test.ts (green, after fix)",
+   "exit": 0,
+   "summary": "5 passed (5)"
+  },
+  {
+   "cmd": "mutation: holdForReleaseBuild moved after copyKatexAssets in katex-assets.mjs, then the adopted test",
+   "exit": 1,
+   "summary": "3 failed | 2 passed; restored, 5 passed"
+  },
+  {
+   "cmd": "mutation: holdForReleaseBuild keeps linkCheck, then the adopted test",
+   "exit": 1,
+   "summary": "1 failed | 4 passed (the hand-run link check case); restored, 5 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit report-prebuild-failure links-release-report report-partial-release katex scripts scripts-plain-node unverified-report-lines content-components (twice)",
+   "exit": 0,
+   "summary": "8 files, 68 passed; the P4-RT-12-04 tests pass and were not changed"
+  },
+  {
+   "cmd": "npm run typecheck",
+   "exit": 0,
+   "summary": "tsc engine clean; astro check 0 errors 0 warnings 1 hint; svelte-check 0 errors, 1 pre-existing warning"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 0,
+   "summary": "160 files, 3338 passed"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/dist-release npm run build",
+   "exit": 0,
+   "summary": "prebuild, Astro build, 'links: 1203 internal links on 34 pages ... checked, 0 problems'"
+  },
+  {
+   "cmd": "npm run report",
+   "exit": 0,
+   "summary": "report: open items report of 2026-10-25T05:51:52.253Z: 8 open items used on 9 pages, 0 unknown items"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-repro bash <scratch>/stale-report.sh <worktree> <scratch>/repro-logs (the lens reproducer, after the fix)",
+   "exit": 0,
+   "summary": "1. exit 0, report complete; 3. exit 1 in the prebuild (presets: SyntaxError ERR_INVALID_TYPESCRIPT_SYNTAX in rep.ts); 4. npm run report exit 1: 'comes from a release build that did not finish'; report complete false; the two edited files restored, git status empty"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/dist-release npm run build; npm run report",
+   "exit": 0,
+   "summary": "build exit 0 (1203 links, 0 problems); report exit 0, 8 open items on 9 pages"
+  },
+  {
+   "cmd": "npm run build (preview); npm run report",
+   "exit": 0,
+   "summary": "build exit 0, 'links: 1286 internal links on 35 pages of site/dist checked, 0 problems'; report exit 0 with the same release report (a preview build leaves it untouched)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after fix, run alongside astro check and site unit tests, load about 11)",
+   "exit": 1,
+   "summary": "1 failed | 2410 passed; no engine file changed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after fix, alone)",
+   "exit": 0,
+   "summary": "73 files, 2411 passed (baseline 2411)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "clean"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "0 errors, 0 warnings, 1 hint; svelte-check 0 errors"
+  },
+  {
+   "cmd": "npx vitest list --project site-unit | grep -c report-prebuild-failure",
+   "exit": 0,
+   "summary": "5 (the include pattern finds the new file)"
+  },
+  {
+   "cmd": "git diff --name-only 3f9bb33..HEAD",
+   "exit": 0,
+   "summary": "the 5 files above; none of reference/, build-plan/, root package.json, lockfile, .gitignore, playwright.config.ts, vitest config, .github/, caps.ts, _harness.ts, reports/gate-"
+  },
+  {
+   "cmd": "git ls-files | grep -i redteam",
+   "exit": 0,
+   "summary": "only archived reproducers under build-plan/ that were already at base; the branch adds none"
+  },
+  {
+   "cmd": "python3 diffgrep.py branch.diff (.only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on: em-dash)",
+   "exit": 0,
+   "summary": "0 hits for each pattern in 231 added lines"
+  },
+  {
+   "cmd": "git log --format=%s 3f9bb33..HEAD",
+   "exit": 0,
+   "summary": "both subjects begin 'RT-FIX P5-RT-12-01:'"
+  },
+  {
+   "cmd": "grep -rn 'regression: P5-RT-' site/tests",
+   "exit": 0,
+   "summary": "2 lines in site/tests/unit/report-prebuild-failure.test.ts"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep -fl 'port 693'",
+   "exit": 0,
+   "summary": "porcelain empty; no preview server on my ports (none was started)"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P5-RT-12-01: npm run report presents the report of an earlier release build when the latest release build failed in the prebuild step",
+   "status": "fixed",
+   "test": "site/tests/unit/report-prebuild-failure.test.ts > npm run report refuses the report of an earlier release build when the latest release build failed in the prebuild (also: > a link check run by hand after a release build that failed in the prebuild does not complete the earlier report)",
+   "evidence": "Severity minor (no verifier adjustment). Red at base 3f9bb33: 3 failed | 2 passed (5), with 'report: open items report of 2026-10-25T05:42:55.612Z: 1 open items used on 1 pages, 0 unknown items; ...: expected +0 to be 1', which is the observed exit 0 with the earlier report. The test runs the root prebuild line by the shell, as npm does, in a scratch copy of the repository, and that line fails in its first command. Green: 5 passed. Cause: the report was held as incomplete only from astro:build:start on, so nothing marked it before the prebuild, which DECISIONS.md RT-FIX-P4-toolchain counts as part of the release build. Fix: holdForReleaseBuild in site/src/lib/openItemsReport.mjs is now the first statement of scripts/katex-assets.mjs, the first command of the prebuild. In a release build it marks an existing release report complete:false and drops its linkCheck. The test bites under two mutations: the hold moved after the KaTeX copy gives 3 failed, and keeping linkCheck gives 1 failed. Rerunning the lens reproducer after the fix: step 3 exit 1 in the prebuild, step 4 npm run report exit 1 with 'did not finish'. The P4-RT-12-04 tests pass unchanged. Release build and npm run report: exit 0. Commit f6f395a."
+  }
+ ],
+ "deviations": [],
+ "decisionsFragment": "decisions/RT-FIX-P5-toolchain.md",
+ "handoff": "scripts/katex-assets.mjs (P0-A3's script, the first command of the prebuild) now imports site/src/lib/openItemsReport.mjs and calls holdForReleaseBuild before it looks for KaTeX. Root package.json, the prebuild line (asserted exactly by scripts.test.ts) and scripts/report.mjs are unchanged. I followed the first proposedFix and did not add a marker file for report.mjs. When the lens reruns redteam-RT-12-stale-report.sh, step 4 should exit 1. After a prebuild failure, the existing wording of the refusal ('comes from a release build that did not finish') and of the Markdown 'Incomplete' line describes the latest release build, not the earlier build that wrote the report; I left the wording as it was because tests assert 'did not finish'. One engine-suite run failed 1 of 2411 while it ran alongside astro check and fixture builds (load about 11); no engine file changed, and the rerun alone passed 2411."
+}

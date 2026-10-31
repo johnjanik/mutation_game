@@ -1,0 +1,340 @@
+{
+ "agent": "P6-A5",
+ "status": "partial",
+ "branch": "worktree-agent-ab829ac107acc8bb7",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-ab829ac107acc8bb7",
+ "commits": [
+  "94900dd P6-A5: exportLaTeX for dynkin-diagrams with the three forms of 6.7, TikZ forms, latexFile and citeText",
+  "e6f7e13 P6-A5: Export LaTeX and Cite in ToolFrame",
+  "81dbd02 P6-A5: embed route over the shared table of hydrated tools, and embed.spec.ts",
+  "17e2e63 P6-A5: name the LaTeX button's hook data-control=\"latex\"",
+  "2d8a57f P6-A5: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/lib/export.ts",
+  "site/src/components/board/ToolFrame.svelte",
+  "site/src/pages/embed/[tool].astro",
+  "site/tests/unit/latex.test.ts",
+  "site/tests/e2e/embed.spec.ts",
+  "decisions/P6-A5.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 5d16e79; git log -1",
+   "exit": 0,
+   "summary": "HEAD 5d16e79 Red team phase 5 round: closed (G5 rerun GREEN)"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed; node v22.22.0"
+  },
+  {
+   "cmd": "npm run build (integration head, before any change)",
+   "exit": 0,
+   "summary": "35 page(s) built; links: 1292 internal links on 35 pages, 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7101 (integration head)",
+   "exit": 0,
+   "summary": "35 routes measured, 0 over budget; /tools/rep/ 87912 B, /tools/sandbox/ 83741 B, /tools/board/ 74621 B"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/latex.test.ts (against the integration head's export.ts)",
+   "exit": 1,
+   "summary": "15 failed (exportLaTeX is not a function): the tests fail before the code exists"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/latex.test.ts export.test.ts export-svg.test.ts",
+   "exit": 0,
+   "summary": "26 passed (3 files)"
+  },
+  {
+   "cmd": "mutation: involutions option dropped, then latex.test.ts",
+   "exit": 1,
+   "summary": "3 failed, including 'the three forms of SPEC 6.7 byte for byte'"
+  },
+  {
+   "cmd": "mutation: every tau pair drawn (black nodes included), then latex.test.ts",
+   "exit": 1,
+   "summary": "3 failed, including 'tau on black nodes is never exported'"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/toolframe.test.ts",
+   "exit": 1,
+   "summary": "1 failed | 1 passed: 'expected 14 to be 12' at line 72 (the button count, request below); with the count +2 locally, 2 passed (reverted)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings, 1 hint (pre-existing T06.spec.ts); svelte-check: 0 errors, 1 warning (pre-existing t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm test (TMPDIR in scratch)",
+   "exit": 1,
+   "summary": "Tests 2 failed | 3405 passed (3407): toolframe.test.ts button count (request) and T03.test.ts 'meter is constant along 1000 random free moves' timed out at 5000 ms under load average 15; an earlier full run had only the toolframe failure (3406 passed), and T03.test.ts rerun alone: 21 passed"
+  },
+  {
+   "cmd": "npm run build (branch, committed state)",
+   "exit": 0,
+   "summary": "35 page(s) built; '[embed] no /embed/<id> route built: site/src/tools/ToolIsland.astro ... does not exist (P6-A5 request R1)'; links: 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c pw-local.config.ts embed.spec.ts export.spec.ts T01.spec.ts toolframe-hydration.spec.ts registry-outs.spec.ts registry-weight.spec.ts nojs.spec.ts (port 7100, committed state)",
+   "exit": 0,
+   "summary": "200 passed (2.4m)"
+  },
+  {
+   "cmd": "npx playwright test -c pw-local.config.ts nojs.spec.ts a11y.spec.ts (all routes, committed state before the hook rename)",
+   "exit": 0,
+   "summary": "120 passed (4.7m)"
+  },
+  {
+   "cmd": "npx playwright test -c pw-local.config.ts T01 T02 T15 T16 disabled-look table-reflow worker-on-demand history-no-write-on-load (before the hook rename)",
+   "exit": 1,
+   "summary": "196 passed, 1 failed: T01.spec.ts 'controls enabled after hydration' asserts no data-control named exportLatex; hook renamed to 'latex', then T01.spec.ts passed in the 200-test run above"
+  },
+  {
+   "cmd": "npm run size -- --port 7101 (branch, committed state)",
+   "exit": 0,
+   "summary": "35 routes, 0 over budget; every tool route and lesson +260 to +265 B (board 74621->74883, rep 87912->88175, m8 87912->88175, numbers 77295->77560, geometry 81961->82222, weyl 80506->80768, affine 73571->73836, fold 72754->73017, form 74728->74990, garden 70726->70988, kostant 73534->73794, lab 70431->70694, mirror 72885->73146, symbolic 73923->74188); sandbox 83741->86183 (+2442, T16 imports export.ts statically); / and pages without a tool unchanged"
+  },
+  {
+   "cmd": "npm run build with request R1 applied in scratch (src/tools/ToolIsland.astro + thin [tool].astro, not committed)",
+   "exit": 0,
+   "summary": "49 page(s) built incl. 14 /embed/<id>; each embed page has an astro-island client=\"idle\"; links: 1420 on 49 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c pw-local.config.ts embed.spec.ts (scratch R1 state)",
+   "exit": 0,
+   "summary": "70 passed (1.3m)"
+  },
+  {
+   "cmd": "npx playwright test -c pw-local.config.ts nojs.spec.ts a11y.spec.ts worker-on-demand.spec.ts -g embed/ (scratch R1 state)",
+   "exit": 0,
+   "summary": "56 passed"
+  },
+  {
+   "cmd": "npm run size -- --port 7101 (scratch R1 state)",
+   "exit": 0,
+   "summary": "49 routes, 0 over budget; each /embed/<id> equals its /tools/<id> byte for byte (board 74883, rep 88175, sandbox 86183)"
+  },
+  {
+   "cmd": "node iframe-debug2.mjs (scratch: /embed/board inside an <iframe>, astro preview on 7100)",
+   "exit": 0,
+   "summary": "{moves:2, v1:1, v2:-2, nav:0, 'Open on the site' href followed a move to w=1.2.1}; preview stopped, ports 7100-7103 free"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "Roster / G6: the three forms of 6.7 reproduced exactly",
+   "status": "pass",
+   "test": "site/tests/unit/latex.test.ts > the three forms of SPEC 6.7 byte for byte"
+  },
+  {
+   "item": "One mark per node in Bourbaki order for every satake record (167, Appendix B included)",
+   "status": "pass",
+   "test": "latex.test.ts > one mark per node in Bourbaki order for every satake record"
+  },
+  {
+   "item": "SPEC 6.7 arrows as an option, equal to the golden arrows",
+   "status": "pass",
+   "test": "latex.test.ts > the involutions option equals the golden arrows for every satake record"
+  },
+  {
+   "item": "SPEC 2.15 arrows between white nodes only",
+   "status": "pass",
+   "test": "latex.test.ts > tau on black nodes is never exported"
+  },
+  {
+   "item": "SPEC 6.7 named diagrams not used",
+   "status": "pass",
+   "test": "latex.test.ts > no named diagram syntax"
+  },
+  {
+   "item": "Undecorated export of each of the 32 types (B2, C2 kept)",
+   "status": "pass",
+   "test": "latex.test.ts > undecorated diagram for each of the 32 types"
+  },
+  {
+   "item": "Refusals throw RangeError",
+   "status": "pass",
+   "test": "latex.test.ts > invalid dynkin data throws RangeError"
+  },
+  {
+   "item": "SPEC 6.7 orbit graphs and projections as plain TikZ coordinates",
+   "status": "pass",
+   "test": "latex.test.ts > tikz-graph writes one node per vertex and one draw per edge; tikz-points writes plain coordinates; coordinates have at most four decimals and no minus zero"
+  },
+  {
+   "item": "SPEC 4.0 Long numbers: exact digits in every export",
+   "status": "pass",
+   "test": "latex.test.ts > labels keep every digit"
+  },
+  {
+   "item": "latexFile names its package and link",
+   "status": "pass",
+   "test": "latex.test.ts > the downloaded file names its package and link"
+  },
+  {
+   "item": "SPEC 7.4 Cite: page title, site version, date, link",
+   "status": "pass",
+   "test": "latex.test.ts > citeText holds title, site name, version, date and link; the text of Cite is composed at the click; site/tests/e2e/embed.spec.ts > Cite gives the page title, the commit, the date and the link; Cite on a lesson gives the lesson title and the instance link"
+  },
+  {
+   "item": "SPEC 6.6/7.4 a link carries no site version",
+   "status": "pass",
+   "test": "embed.spec.ts > the cited link carries no site version"
+  },
+  {
+   "item": "CONTRACTS 5.1 Export LaTeX and Cite",
+   "status": "pass",
+   "test": "embed.spec.ts > Export LaTeX downloads the diagram of the board; Export LaTeX on a board with no form of SPEC 6.7 shows the notice; Cite without a clipboard shows the text and says so"
+  },
+  {
+   "item": "SPEC 4.0/7.4 controls disabled until hydration; nojs.spec.ts, toolframe.test.ts, export.spec.ts stay green",
+   "status": "fail",
+   "test": "embed.spec.ts > Export LaTeX and Cite are disabled without JavaScript (and ... enabled after hydration): pass; nojs.spec.ts, export.spec.ts, export-svg.test.ts, toolframe-hydration.spec.ts: pass; toolframe.test.ts > server render fails only at its button count (14 vs 12), request to MERGE as for P2-A6"
+  },
+  {
+   "item": "SPEC 7.5 A-1 keyboard; A-7/A-11 at 320 pixels",
+   "status": "pass",
+   "test": "embed.spec.ts > Export LaTeX and Cite work from the keyboard; Export LaTeX and Cite fit at 320 pixels"
+  },
+  {
+   "item": "Roster: every embed route renders and hydrates; SPEC 7.4 every tool has /embed/<tool>",
+   "status": "fail",
+   "test": "BLOCKED on request R1 (the hydration table lives inside pages/tools/[tool].astro; the instruction forbids copying it). embed.spec.ts > every registered tool has an embed route once the shared table of hydrated tools exists, and none before: pass (committed: no route); embed route renders and hydrates: <id> (generated per route): 14 passed with R1 applied in scratch, 0 generated as committed"
+  },
+  {
+   "item": "Roster: /embed/board?g=A2&... loads the state",
+   "status": "fail",
+   "test": "BLOCKED on R1. embed.spec.ts > the A2 state loads on the embed route (board): passed with R1 in scratch; not generated as committed"
+  },
+  {
+   "item": "SPEC 6.6 validation on an embed route",
+   "status": "fail",
+   "test": "BLOCKED on R1. embed.spec.ts > an unreadable link on an embed route shows the notice and the default state (board): passed with R1 in scratch"
+  },
+  {
+   "item": "SPEC 7.4 embed routes without JavaScript",
+   "status": "fail",
+   "test": "BLOCKED on R1. embed.spec.ts > embed routes render without JavaScript: <id>: 14 passed with R1 in scratch (nojs.spec.ts also covers /embed/*: it skips no route)"
+  },
+  {
+   "item": "SPEC 7.7 axe on embed routes",
+   "status": "fail",
+   "test": "BLOCKED on R1. embed.spec.ts > embed routes pass axe: <id>: 14 passed with R1 in scratch; a11y.spec.ts on embed routes passed too"
+  },
+  {
+   "item": "SPEC 7.8 no external request on an embed route",
+   "status": "fail",
+   "test": "BLOCKED on R1. embed.spec.ts > an embed route makes no external request: <id>: 14 passed with R1 in scratch"
+  },
+  {
+   "item": "SPEC 7.6 sizes",
+   "status": "pass",
+   "test": "npm run size: 0 over budget (committed: 35 routes; with R1: 49 routes, embed routes equal their tool routes, scripts/size.mjs already classes /embed/* as the 90 kB tool row)"
+  },
+  {
+   "item": "export.ts loads in Node without a DOM",
+   "status": "pass",
+   "test": "latex.test.ts > the export module loads in Node without a DOM"
+  },
+  {
+   "item": "COMMON 4.3: tests fail when the behaviour is removed",
+   "status": "pass",
+   "test": "mutations: option dropped -> the three-forms test fails; every pair drawn -> the tau-on-black test fails"
+  },
+  {
+   "item": "Type checks",
+   "status": "pass",
+   "test": "npm run check -w site: 0 errors"
+  },
+  {
+   "item": "Owner's part of G6: one exported LaTeX file of each kind compiled",
+   "status": "not-automated",
+   "test": "G6 owner's part (SPEC 9.1, 6.7); no TeX in the build"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "CONTRACTS 5.1",
+   "what": "New optional ToolFrame prop latexForExport?: LatexChoice | (() => LatexChoice | null), additive",
+   "why": "Instruction 5.4: lets a tool choose the LaTeX export; default is the diagram of a named finite board"
+  },
+  {
+   "spec": "CONTRACTS 4",
+   "what": "export.ts adds the types DynkinExportData, TikzGraphData, TikzPointsData, LatexKind, LatexChoice, CiteParts and the helpers latexFile, citeText, citationTitle, localIsoDate, defaultLatexExport, latexDownload, citation, isDynkinType and the constants SITE_NAME, NOTHING_TO_EXPORT_LATEX; exportLaTeX has the contract signature exactly",
+   "why": "Instruction 5.1 to 5.4 (plan helpers); latexDownload and citation keep ToolFrame's shared code small (about 120 B less gzip on every tool route)"
+  },
+  {
+   "spec": "instruction 5.4 hook names",
+   "what": "data-control=\"latex\" and data-control=\"cite\" instead of data-export=\"latex\"",
+   "why": "export.spec.ts counts [data-export],[data-export-option] == 4; data-control=\"exportLatex\" failed T01.spec.ts's stale phase 1 guard listing 'exportLatex'. Disclosed in decisions/P6-A5.md"
+  },
+  {
+   "spec": "instruction 5.4",
+   "what": "data-out=\"citeText\" is rendered only after a Cite click",
+   "why": "registry-outs.spec.ts requires every data-out name of a default state to be in each registry's outs (tool agents' files)"
+  },
+  {
+   "spec": "instruction 5.2",
+   "what": "A directed tikz-graph edge is \\draw[->] (a) -- (b); not '->' instead of '--'",
+   "why": "\\draw (a) -> (b); is not a TikZ path and would not compile at the owner's G6 check"
+  },
+  {
+   "spec": "instruction 5.5",
+   "what": "pages/embed/[tool].astro reads src/tools/ToolIsland.astro through import.meta.glob and builds no route until that file exists",
+   "why": "The hydration table is inside pages/tools/[tool].astro and may not be copied (instruction 5.5); built against request R1 as COMMON 4.2 asks"
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE (for P1-A2's area, pages/tools/[tool].astro; orchestrator if MERGE may not)",
+   "what": "R1: move the hydration table of pages/tools/[tool].astro unchanged into site/src/tools/ToolIsland.astro (the static imports, HYDRATED, the unhydrated fallback with its warning, toolProps = { id: '', caption, preset: 'default' }, the per-tool lines; interface Props { entry: ToolRegistryEntry; caption: string }) and render <ToolIsland entry={entry} caption={caption} /> inside div.tool-route of [tool].astro. The embed routes then appear with no further edit and embed.spec.ts's per-route tests run; T13/T14 add their import and line to ToolIsland.astro only. Verified with exactly this change in a scratch build: embed.spec.ts 70 passed, nojs/a11y/worker-on-demand on /embed/* 56 passed, size 0 over budget. Needed before stage 6.2 (P6-A3 and P6-A4 test /embed/satake and /embed/atlas)."
+  },
+  {
+   "to": "MERGE",
+   "what": "site/tests/unit/toolframe.test.ts line 72: expect(buttons.length).toBe(2 + 3 + 1 + 2 + 2 + 2 + 2); // nodes, undo/redo/reset, step, copy/download, export svg/png (P2-A6), export latex/cite (P6-A5), table (same kind of request as P2-A6's, carried out in 19db83e)"
+  },
+  {
+   "to": "MERGE for P1-A5",
+   "what": "T01.spec.ts line 260 is a stale phase 1 guard (no control named exportSvg, exportPng, exportLatex ...); update it to the controls of the current phase"
+  },
+  {
+   "to": "MERGE for every tool agent (registry files)",
+   "what": "add 'citeText' to the outs of every registry entry (ToolFrame renders it after a Cite click; CONTRACTS 5.2 'every data-out name the tool renders')"
+  },
+  {
+   "to": "MERGE for P1-A6 (T02OrbitGarden.svelte) and P4-A3 (T10GeometryStudio.svelte), optionally T8 and T6",
+   "what": "pass latexForExport with a tikz-graph (orbit graph, centimetres, y up) and a tikz-points (projection), so one LaTeX file of each kind exists for the owner's G6 compile"
+  },
+  {
+   "to": "MERGE for P2-A5 (T16Sandbox.svelte)",
+   "what": "import exportJSON with a dynamic import() on the click, as ToolFrame does: T16's static import puts all of export.ts (now with the LaTeX code) in /tools/sandbox's first fetch (+2442 B, 86183 of 90000)"
+  },
+  {
+   "to": "MERGE / P1-A4",
+   "what": "a shared site-name constant read by the layouts and export.ts (the name is typed in Base, Page, Lesson, index; export.ts defines SITE_NAME once)"
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P6-A5.md",
+ "openQuestions": [
+  "Should affine, twisted or custom boards ever have a dynkin export (now refused, notice 'nothing to export as LaTeX')?",
+  "Should the downloaded .tex be a standalone document rather than a snippet to \\input?",
+  "Is the date in the Cite text the reader's access date (as built) or should it be the build date?",
+  "T14: should /embed/atlas exist, and is 'renders and hydrates' read as hydration only where a tool frame exists (as built)?",
+  "The instruction says nojs.spec.ts skips /embed/*; on the integration head it skips no route, so it will scan the embed routes once R1 lands."
+ ],
+ "handoff": "exportLaTeX (three forms of 6.7 byte for byte, all 167 satake records, TikZ kinds), latexFile, the Cite text and ToolFrame's Export LaTeX and Cite buttons are done and tested. The embed route is written but builds no route until request R1 moves the hydration table from pages/tools/[tool].astro into src/tools/ToolIsland.astro; with R1 applied in scratch every embed test passed. Before merging, MERGE should apply the toolframe.test.ts count request; every tool route grows about 263 B gzip, sandbox 2442 B.",
+ "latexSamples": {
+  "e6(-14)": "\\dynkin[involutions={16}] E{oo***o}",
+  "e7(-5)": "\\dynkin E{o*oo*o*}",
+  "su(2,4)": "\\dynkin[involutions={15;24}] A{oo*oo}",
+  "su(4)": "\\dynkin A{***}",
+  "so(1,7)": "\\dynkin D{o***}",
+  "E8 undecorated": "\\dynkin E{oooooooo}"
+ }
+}

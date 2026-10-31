@@ -1,0 +1,187 @@
+[
+ {
+  "id": "P4-RT-05-01",
+  "severity": "major",
+  "title": "Attacks 2 and 9, retest of P3-RT-05-09: eight controls that their own press makes inactive still take the HTML disabled attribute or leave the page, so keyboard focus falls to <body>",
+  "location": "T10GeometryStudio.svelte:1198 (rotateReset disabled={!api.hydrated || rotation === null}) and :996-1003 (drawOrbit inside {#if orbit.kind === 'wait'}); T02OrbitGarden.svelte:639-640 (grow disabled={!growable}, showTotal disabled={totalShown}); T07SymbolicGame.svelte:525 (table button disabled={... || !canAct[p]}); T05NumbersGameLab.svelte:729-730 (stepB, playToEndB disabled={... || curB().gameOver}); board/BoardEditor.svelte:364-365 (addNode, removeNode disabled={off || reason !== ''}); lesson/Challenge.svelte:107-108 (input and Check disabled={!hydrated || met})",
+  "claim": "The aria-disabled remedy recorded in RT-FIX-P3-follow-predict and RT-FIX-P3-residual-tools reached only the controls it lists. Eight other controls lose the focus to the document when the reader's own press makes them inactive.",
+  "expected": "DECISIONS.md, RT-FIX-P3-follow-predict: 'after hydration a control that its own press makes inactive keeps the focus'. SPEC 7.5 A-1 (WCAG 2.4.3). After the press, document.activeElement is the pressed control or another element inside the tool.",
+  "observed": "document.activeElement is BODY after Enter on each of these:\n- T10 'No rotation' (/tools/geometry/?g=D4, after Rotate +10).\n- T10 'Draw the orbit' (/tools/geometry/?g=E8&r=0.1.0.0.0.0.0.0).\n- T2 'Show total' (/tools/garden/).\n- T2 'Grow one layer' at the last layer.\n- T7 table button 'Fire node 1' (/tools/symbolic/, data-moves 1). Every legal fire makes the fired node non-positive, so T7's A-10 table view loses the focus after nearly every move.\n- T5 'Play B to the end' (/modules/m4-numbers/ b3, after Reset B).\n- The board editor's 'Add node' at the largest board and 'Remove node' at the smallest (/tools/sandbox/).\n- The Challenge input on /modules/m1-mutation/ after the accepted answer '1, 1, 1' and Enter.",
+  "reproduction": "From a clean checkout of b9b8504 plus the reproducer: npm ci --prefer-offline && npm run build && npx playwright test site/tests/e2e/redteam-RT-05-p4-ownpress-focus.spec.ts (8 tests fail). In this container PLAYWRIGHT_BROWSERS_PATH pointed at the scratch browsers, and a copy of playwright.config.ts served astro preview on port 5062.",
+  "specRef": "SPEC 7.5 A-1 (criteria 2.1.1, 2.4.3); DECISIONS.md 'RT-FIX-P3-follow-predict: done controls keep the focus' and 'RT-FIX-P3-residual-tools: an aria-disabled control ignores activation'",
+  "proposedFix": "Apply the recorded pattern to each control: aria-disabled after hydration with the handler returning in that state. Where the control leaves the DOM (Draw the orbit), move the focus to a tabindex=-1 element inside the tool, as T4's keep counting does.",
+  "reproducer": "site/tests/e2e/redteam-RT-05-p4-ownpress-focus.spec.ts",
+  "lens": "RT-05",
+  "branch": "worktree-agent-aabc584b26c56d8cb",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-05-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 7.5 A-1 (criteria 2.1.1, 2.4.3); DECISIONS.md 'RT-FIX-P3-follow-predict: done controls keep the focus' and 'RT-FIX-P3-residual-tools: an aria-disabled control ignores activation'",
+    "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a589ca33ce5d039d4, started on branch worktree-agent-a589ca33ce5d039d4 at aea1802, clean. Detached at HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. Node v22.22.0. Applied from worktree-agent-aabc584b26c56d8cb (bcdfc2a) with 'git checkout <branch> -- <path>': all 7 site/tests/e2e/redteam-RT-05-p4-*.spec.ts files. None exists at the gate commit. The diff of the branch against the gate (diff --stat) adds only these 7 files, and each run filters to one file. The only import is ./hydrate (site/tests/e2e/hydrate.ts), which exists at the gate. git status --porcelain showed 7 'A  site/tests/e2e/redteam-RT-05-p4-...' lines. 'npm --prefix <wt> ci --prefer-offline' exited 0. 'npm --prefix <wt> run build' exited 0 ('32 page(s) built', 'links: ... 0 problems'); it ran once for all findings, since the applied files are tests only. Config: a copy of playwright.config.ts at /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-rt05-reproduce/playwright.config.ts with PORT 6084, as the verify instructions require. Because the copy sits outside the worktree, it also uses absolute paths for the @playwright/test and site/astro.config.mjs imports, testDir and webServer cwd. Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <copy> site/tests/e2e/redteam-RT-05-p4-ownpress-focus.spec.ts. Exit 1, '8 failed'. Every failure is at expect(focusAfter(page)).not.toBe('BODY'), with 'Expected: not \"BODY\"': T10 'No rotation' (?g=D4); T10 'Draw the orbit' (?g=E8&r=0.1.0.0.0.0.0.0); T2 'Show total'; T2 'Grow one layer' (after toBeDisabled passed); T7 table 'Fire node 1' (after data-moves=1 passed); T5 'Play to the end B' on M4 b3 (after toBeDisabled passed); board editor 'Add node' (spec line 114); Challenge on M1 (after data-met=true passed). The test stops at 'Add node', so its 'Remove node' half (lines 116-118) did not run. A second run was made because of the fixed waits (load average 4.6): exit 1, the same 8 failures, 8 'Expected: not \"BODY\"' lines. Comparison: the observed matches the finding (document.activeElement is BODY) for every listed control except 'Remove node', which was not reached. After the run, the tree held only the 7 applied files. test-results/, site/dist, site/.astro, site/public/katex, site/src/generated and node_modules were removed, and nothing listens on 6084.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: activeElement is BODY after Enter on 8 controls in 2 runs ('Remove node' half not reached because the same test fails first at 'Add node'); a stated behaviour (DECISIONS RT-FIX-P3-follow-predict) is wrong, which is major under the rubric"
+   },
+   "refute": {
+    "findingId": "P4-RT-05-01",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "decisions/RT-FIX-P3-follow-predict.md (also in DECISIONS.md), '2026-10-17 RT-FIX-P3-follow-predict: done controls keep the focus': 'after hydration a control that its own press makes inactive keeps the focus: it carries aria-disabled=true instead of the HTML disabled attribute, and its handler does nothing in that state'. SPEC 7.5 A-1, criteria 2.1.1, 2.1.2, 2.1.4 and 2.4.3. The recorded rule supports the finding's expected.",
+    "evidence": "Read in my worktree, detached at b9b8504 and clean. The follow-predict entry opens with a general rule ('a control that its own press makes inactive keeps the focus'). 'This covers' then lists the controls that fix changed: Predict's Check and Show me; T8's vertices and focus button; T4's keep counting, which moves the focus to a tabindex=-1 counter section when the button goes; Step, Play to the end and Play on of T1, T5, T7, T8, T9 and T15. Its exceptions are named: before hydration (7.4); History and the step controls while a prediction freezes a board; Predict's answer fields once answered, 'since the answer is given from the two buttons and the focus is never in a field then'. None of the eight controls falls under an exception. The residual-tools entry 'an aria-disabled control ignores activation' governs the handlers of controls that are already aria-disabled. The board-a11y entry governs Board.svelte nodes only. Two earlier entries of 2026-10-10 call two of the eight 'disabled': P2-A3 ('removing the last node is refused (the button is disabled with the visible reason ...)') and P3-A5 (T7's table button 'Fire node k', 'disabled when the number is not positive'). Both predate the 2026-10-17 rule and say nothing about the attribute or the focus. No record covers T2's grow and showTotal, T5's game-B Step and Play to the end, T10's No rotation and Draw the orbit, or Challenge (the P1-A4 entries are silent). The source at the gate matches the locations given. T10GeometryStudio.svelte:1198 has rotateReset disabled={!api.hydrated || rotation === null}. At :996-1003, drawOrbit sits inside {#if orbit.kind === 'wait' ...}. Challenge.svelte:105-108 has a form with onsubmit, and its input and Check are disabled={!hydrated || met}. Enter in the input submits, so the focus is in the field when it is disabled, and the reason given for Predict's fields does not apply. All eight controls belong to phases 1 to 4. gate-G4.md (report commit 4e3e839, which names gate commit b9b8504) records no open item on this, and there is no earlier P4 round.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 fails because no sentence permits dropping the focus and the recorded exceptions do not include these controls; R2 fails because the finding quotes the follow-predict rule correctly and that entry itself places 2.4.3 under A-1; R3 fails because every control is from phase 1 to 4; R4 does not apply; R5 fails because the logged rule goes against the build, and the earlier P2-A3 and P3-A5 'disabled' entries cover only two of the eight controls and predate the rule (a partial refutation at most); R6 fails because nothing is on record."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-05-02",
+  "severity": "major",
+  "title": "Attacks 33 and 34: opening 'Show as table' on T1, T8 or T9 at 320 widens the whole tool frame past the viewport, so prose and controls stop reflowing",
+  "location": "site/src/components/board/ToolFrame.svelte. The .tool-frame grid has an implicit auto column. details.table-view is a grid item whose automatic minimum width is the table's min-content width, so the .bare fieldset's overflow-x: auto never takes effect. Seen with T01GameBoard, T08WeylExplorer and T09Kostant tables.",
+  "claim": "With the table view open, the table's min-content width becomes the width of the frame's column. The tool title, figure, board, History and controls then run off-screen and the page scrolls sideways; the table has no scroll box of its own.",
+  "expected": "SPEC 7.5 A-11: prose and controls reflow at 320, and two-dimensional content scrolls inside its own box. document.scrollingElement.scrollWidth should be 320 at a 320 viewport with the table open.",
+  "observed": "scrollWidth at 320 with the table open (320 in the default state):\n- 585 on /tools/board/?z=1&g=E8&v=l&m=f&c=n&s=1,1,1,1,1,1,1,1\n- 338 on /tools/kostant/\n- 385 on /tools/weyl/\n- 361 on /modules/m1-mutation/ b4 (T1 on D4)\n- 417 on /modules/m3-classification/ b6 (T1 on D4~)\nAlso M1 b5 and b10, M3 b8 and b12, M5 b2 to b5 and b13. Example: p.tool-title spans 16 to 401 px.",
+  "reproduction": "npm ci --prefer-offline && npm run build && npx playwright test site/tests/e2e/redteam-RT-05-p4-table-reflow.spec.ts (5 tests fail). The table is opened by keyboard: focus the summary, press Enter.",
+  "specRef": "SPEC 7.5 A-11 and A-10; 4.0 Small screens: 'Every tool is usable at a width of 320 CSS pixels'",
+  "proposedFix": "Give .tool-frame grid-template-columns: minmax(0, 1fr), or min-width: 0 on details.table-view, so the existing overflow-x: auto of the fieldset scrolls the table inside its own box.",
+  "reproducer": "site/tests/e2e/redteam-RT-05-p4-table-reflow.spec.ts",
+  "lens": "RT-05",
+  "branch": "worktree-agent-aabc584b26c56d8cb",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-05-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 7.5 A-11 and A-10; 4.0 Small screens: 'Every tool is usable at a width of 320 CSS pixels'",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a); status showed 7 'A' lines. npm ci --prefer-offline and npm run build both exited 0 (shared setup, see P4-RT-05-01). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-table-reflow.spec.ts. Exit 1, '5 failed'. In each test the default-state assertion (scrollWidth 320) passed first. Then: /tools/board/?z=1&g=E8&v=l&m=f&c=n&s=1,1,1,1,1,1,1,1 'Expected: 320 Received: 585'; /tools/kostant/ 'Expected: 320 Received: 338'; /tools/weyl/ 'Expected: 320 Received: 385'; /modules/m1-mutation/ board b4 'Expected: 320 Received: 361'; /modules/m3-classification/ board b6 'Expected: 320 Received: 417'. Comparison: observed matches exactly (585, 338, 385, 361, 417). The other routes the finding lists (M1 b5 and b10, M3 b8 and b12, M5) are not in the reproducer. Tree after the run: only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: page scrollWidth 585/338/385/361/417 against 320 with the table view open, 320 in the default state; a stated behaviour (A-11 reflow) is wrong, which is major"
+   },
+   "refute": {
+    "findingId": "P4-RT-05-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 7.5 A-11: 'Prose and controls reflow at 320 CSS pixels. A diagram that cannot (a wide orbit graph, the Weyl Explorer) scrolls inside its own box, which is the exception the criterion allows for two-dimensional content.' Also A-10, and 4.0 Small screens: 'Every tool is usable at a width of 320 CSS pixels.' The text supports the finding's expected.",
+    "evidence": "A-11 has no label and no qualifier for a view the reader opens. Its exception requires the two-dimensional part to scroll inside its own box, never the page. T8 is named in the exception, but only for scrolling inside its own box. 4.0 carries [D], and its 320-pixel sentence is the one the build departs from. The table view is required by A-10 and lives in ToolFrame (phase 1, P1-A2). T1 and T9 are phase 1 and T8 is phase 3. I searched the decisions fragments for table view, scroll, 320, minmax and reflow. P3-A5 gives T7's figure column minmax(0, 1fr) 'so that a long form never widens the page at 320 pixels (A-11)', which is the plan's own reading of A-11. P3-A3 records T5's scroll boxes. The RT-FIX-P3-layout entries cover Sources and the Predict field. No entry permits an open table view to widen the tool frame. gate-G4.md has no open item on this.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 fails because A-11's exception covers a diagram that scrolls in its own box, not a page-level scroll that pushes prose and controls off-screen; R2 fails because expected reads A-11 and 4.0 correctly; R3 fails because the table view and T1, T8 and T9 are from phases 1 and 3; R4 does not apply; R5 fails because 4.0 is [D] but the build departs from its 320-pixel sentence and no record allows it; R6 fails because nothing is on record."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-05-05",
+  "severity": "major",
+  "title": "Attack 9: pressing Check with an answer that is not a whole number does nothing and says nothing (every prediction)",
+  "location": "site/src/components/board/Predict.svelte. read() returns null (:39-50); check() then returns without a word (:59-63); the answer fields carry no aria-invalid and no error text (:72-81).",
+  "claim": "An empty, fractional or worded answer is detected as invalid, but no text identifies the error. The live region is not written, predictResult stays empty and the field is not marked, so the reader who pressed Check neither sees nor hears anything.",
+  "expected": "SPEC 7.5 targets WCAG 2.2 AA, which includes 3.3.1 Error Identification (A) and 4.1.3 Status Messages. SPEC 4.0: 'a polite live region announces each result'.",
+  "observed": "M6 b7 (T11) with 'two', M7 b4 (T10) with '1.5' and M7 b4 with an empty field. After Enter on Check: live region texts [], data-out predictResult '', aria-invalid absent. Focus stays on Check and the board stays frozen.",
+  "reproduction": "npm ci --prefer-offline && npm run build && npx playwright test site/tests/e2e/redteam-RT-05-p4-predict-invalid.spec.ts (3 tests fail)",
+  "specRef": "SPEC 7.5 first sentence (WCAG 2.2 AA: 3.3.1, 4.1.3); 4.0 'Keyboard and screen reader' and 'Predict'",
+  "proposedFix": "When read() returns null, write a sentence such as 'Type a whole number.' into predictResult, announce it through the tool's region, and set aria-invalid on the field.",
+  "reproducer": "site/tests/e2e/redteam-RT-05-p4-predict-invalid.spec.ts",
+  "lens": "RT-05",
+  "branch": "worktree-agent-aabc584b26c56d8cb",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-05-05",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 7.5 first sentence (WCAG 2.2 AA: 3.3.1, 4.1.3); 4.0 'Keyboard and screen reader' and 'Predict'",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a). npm ci --prefer-offline and npm run build both exited 0 (shared setup). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-predict-invalid.spec.ts. Exit 1, '3 failed'. All three fail at line 44 with 'Expected: not {\"invalid\": null, \"result\": \"\", \"said\": []}', meaning the received value equals it: 'modules/m6-multiple-edges/ b7: Check with \"two\" ...'; 'modules/m7-geometry/ b4: Check with \"1.5\" ...'; 'modules/m7-geometry/ b4: Check with \"\" ...'. Before Enter, each test checked that the focus was on data-control=predictCheck. Comparison: observed matches (live region texts [], predictResult '', aria-invalid absent). The finding's further remarks (focus stays on Check after Enter, board stays frozen) are not asserted by the reproducer.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: {said: [], result: '', invalid: null} after Check with 'two' (M6 b7), '1.5' and '' (M7 b4); a message is missing, which is major"
+   },
+   "refute": {
+    "findingId": "P4-RT-05-05",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 7.5, first sentence: 'Target: WCAG 2.2 level AA [S for the criteria].' Level AA includes 3.3.1 Error Identification and 4.1.3 Status Messages. SPEC 4.0 Keyboard and screen reader: 'a polite live region announces each result'. SPEC 4.0 Predict. These support the finding's expected.",
+    "evidence": "7.5's target covers every AA criterion. Its table lists the requirements scans do not catch and excludes none, 3.3.1 included. 4.0 Predict fixes the question, the answer type, the answer, the reveal and the frozen board. It has no sentence that permits refusing an answer in silence. The P1-A5 entry '2026-10-10 P1-A5: prediction check' records how value and correct are checked and how the board freezes, nothing else. I searched the fragments for aria-invalid, whole number, invalid answer and 'Type a', and none records a reading for an answer that is not a whole number. Predict.svelte at the gate: read() returns null when the text fails /^-?\\d+$/ (:39-52), check() returns at once on null (:61-65), resultText stays empty, and no field carries aria-invalid. Predict is a phase 1 component, used here on M6 and M7 (phase 4). gate-G4.md has no record of this.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 fails because no sentence permits ignoring a detected input error in silence; R2 fails because 3.3.1 lies within the 7.5 AA target the finding cites; R3 fails because Predict is phase 1 and its use on M6 and M7 is phase 4; R4 does not apply; R5 fails because 7.5 is not [D] and P1-A5 records no reading for invalid input; R6 fails because nothing is on record."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-05-07",
+  "severity": "minor",
+  "title": "Attacks 6 and 10: the aria-labels of T10's ring and up/down turn buttons and of T6's point buttons do not contain the visible label (WCAG 2.5.3)",
+  "location": "T10GeometryStudio.svelte:1116 and 1119 (visible 'Ring N up' / 'Ring N down', named 'Raise/Lower the ring of node N'), 1171-1172 (visible 'Up' / 'Down', named 'Turn about the horizontal axis, the top toward/away from you'); T06Kaleidoscope.svelte:295-306 (visible 'a1 − 1' and similar, named 'Move the point: number at node 1 minus 1')",
+  "claim": "The aria-label replaces the visible text with a name that does not contain it. A speech-input user who says what the button shows reaches nothing.",
+  "expected": "SPEC 7.5 targets WCAG 2.2 AA, which includes 2.5.3 Label in Name (A): each accessible name contains the visible text.",
+  "observed": "/tools/geometry/: ringUp, ringDown, turnUp and turnDown fail. /tools/mirror/: a1-minus, a1-plus, a2-minus and a2-plus fail. Left, Right, Counterclockwise and Clockwise pass.",
+  "reproduction": "npm ci --prefer-offline && npm run build && npx playwright test site/tests/e2e/redteam-RT-05-p4-label-in-name.spec.ts (2 tests fail)",
+  "specRef": "SPEC 7.5 target WCAG 2.2 AA (2.5.3); A-1",
+  "proposedFix": "Start each name with the visible text (for example 'Ring 1 up: raise the ring of node 1'), or drop the aria-label and put the longer explanation in aria-describedby.",
+  "reproducer": "site/tests/e2e/redteam-RT-05-p4-label-in-name.spec.ts",
+  "lens": "RT-05",
+  "branch": "worktree-agent-aabc584b26c56d8cb",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-05-07",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 7.5 target WCAG 2.2 AA (2.5.3); A-1",
+    "evidence": "HEAD b9b8504c1b893dc73a25b46fe62382d59eb9cdf1 (detached). Applied the 7 RT-05-p4 spec files from worktree-agent-aabc584b26c56d8cb (bcdfc2a). npm ci --prefer-offline and npm run build both exited 0 (shared setup). Ran: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx --prefix <wt> playwright test --config <scratch>/verify-rt05-reproduce/playwright.config.ts (port 6084) site/tests/e2e/redteam-RT-05-p4-label-in-name.spec.ts. Exit 1, '2 failed'. tools/geometry/: 'ringUp: shows \"ring 1 up\", named \"raise the ring of node 1\"', 'ringDown: shows \"ring 1 down\", named \"lower the ring of node 1\"', 'turnUp: shows \"up\", named \"turn about the horizontal axis, the top toward you\"', 'turnDown: shows \"down\", named \"turn about the horizontal axis, the top away from you\"'. tools/mirror/: 'a1-minus: shows \"a1 − 1\", named \"move the point: number at node 1 minus 1\"', and likewise a1-plus, a2-minus and a2-plus. No other control is listed, so Left, Right, Counterclockwise and Clockwise pass. Comparison: observed matches exactly (ringUp, ringDown, turnUp, turnDown; a1-minus, a1-plus, a2-minus, a2-plus). Final tree, after all seven runs and the clean-up: git status --porcelain --ignored lists only the 7 'A' reproducer files; nothing listens on 6084.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: 4 T10 controls and 4 T6 controls have aria-labels that do not contain their visible text; minor (a name) under the rubric"
+   },
+   "refute": {
+    "findingId": "P4-RT-05-07",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 7.5, first sentence: 'Target: WCAG 2.2 level AA [S for the criteria].' Level AA includes 2.5.3 Label in Name (level A). The text supports the finding's expected.",
+    "evidence": "decisions/P3-A4.md '2026-10-10 P3-A4: placement by keys and buttons' records T6's visible labels 'a1 − 1', 'a1 + 1', 'a2 − 1' and 'a2 + 1' with the accessible names 'Move the point: number at node 1 minus 1', and so on. The entry is marked 'Plan.' and gives no 'what the specification left open'. It is not a section 10 default and not [D], since 7.5 carries no [D], so a builder's record cannot set aside the 7.5 target. P4-A3's turn entry (line 37) names the six visible labels and the group, not the aria-labels, and nothing records 'Raise the ring of node N'. Source at the gate: T10GeometryStudio.svelte:1116-1120 show the visible text 'Ring {focusLabel} up' and 'Ring {focusLabel} down' with aria-labels 'Raise the ring of node {focusLabel}' and 'Lower the ring of node {focusLabel}'. At :1171-1172 the visible text is 'Up' and 'Down' and the aria-labels are 'Turn about the horizontal axis, the top toward you' and '... away from you'. The lens's section 6 excludes only axe results of moderate or minor impact; this finding is a direct check, not an axe result. gate-G4.md has no record of this.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 fails because no sentence narrows the AA target; R2 fails because 2.5.3 is a level A criterion inside that target; R3 fails because T6 is phase 3 and T10 is phase 4; R4 does not apply; R5 fails because P3-A4 records T6's names only as a plan choice, which cannot depart from 7.5 (7.5 is not [D] and no section 10 default applies), and nothing records T10's names; R6 fails because nothing is on record. The claimed minor matches 'a name' in the rubric."
+   }
+  }
+ },
+ {
+  "id": "P4-RT-06-01",
+  "severity": "major",
+  "title": "Attack 6: a control rendered disabled before hydration (and with JavaScript off) looks exactly like the enabled control",
+  "location": "site/src/components/board/ToolFrame.svelte:269-282 (.control sets color, background and border; .control:disabled changes only cursor); same pattern in T10GeometryStudio.svelte:1398-1415, T11FoldingBench.svelte:624-643 (.tab), Board.svelte:258-278 (.hit), History.svelte:87, Predict.svelte:167, T01GameBoard.svelte:770 and every other component's :disabled rule",
+  "claim": "Every :disabled and [aria-disabled='true'] rule of the site changes only the cursor, and .control sets its own colour, background and border, overriding the browser's greying. So the disabled controls of the server markup, and the frozen boards after hydration, look the same as usable ones.",
+  "expected": "SPEC 7.4: 'Controls are rendered with the disabled attribute, which the island removes when it hydrates, so a control never looks usable before it is.' A disabled control differs visibly from its enabled state.",
+  "observed": "All 2021 buttons that hydration enables, on 22 routes, have the same computed colour, background, border colour, opacity, filter, text decoration and weight before and after hydration (as do 160 of 472 inputs; only selects and checkboxes grey). Example on /tools/geometry/: 'Root polytope', 'Coxeter plane', 'Copy link' and 'Download data' all read color rgb(26,26,26), background rgb(255,255,255), border rgb(26,26,26) solid, opacity 1, and give byte-identical element screenshots with JS off (disabled) and hydrated (enabled). The same holds on tools/fold (tab, reset, copyLink), M7 b1, M6 b8 and tools/board.",
+  "reproduction": "From b9b8504 plus the reproducer files: npm ci; npm run build; PLAYWRIGHT_BROWSERS_PATH=<browsers> npx playwright test -c redteam/redteam-RT-06-playwright.config.ts site/tests/e2e/redteam-RT-06-disabled-look.spec.ts (5 failed, each listing controls with identical style and screenshots)",
+  "specRef": "SPEC.md 7.4 'Without JavaScript' ('so a control never looks usable before it is'); 4.0 'Controls are present but disabled until the island has hydrated'; CONTRACTS 5.1 ToolFrame 'the control row rendered disabled until hydration'",
+  "proposedFix": "Give :disabled and [aria-disabled='true'] one shared visible treatment in the control styles (for example reduced opacity or a dashed border, plus cursor), so it also covers frozen boards. Adopt the reproducer as a regression test.",
+  "reproducer": "site/tests/e2e/redteam-RT-06-disabled-look.spec.ts",
+  "lens": "RT-06",
+  "branch": "worktree-agent-a931abca3e180a879",
+  "verification": {
+   "reproduce": {
+    "findingId": "P4-RT-06-01",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.4 'Without JavaScript' ('so a control never looks usable before it is'); 4.0 'Controls are present but disabled until the island has hydrated'; CONTRACTS 5.1 ToolFrame 'the control row rendered disabled until hydration'",
+    "evidence": "pwd and git rev-parse --show-toplevel both printed /home/user/mutation_game/.claude/worktrees/agent-a466e1e0a2be44ace on branch worktree-agent-a466e1e0a2be44ace at aea1802. I ran git checkout --detach b9b8504c1b893dc73a25b46fe62382d59eb9cdf1, and HEAD became b9b8504c1b893dc73a25b46fe62382d59eb9cdf1. The status was clean and Node is v22.22.0. The lens branch worktree-agent-a931abca3e180a879 (1f10f1b) only adds files; its diff --stat lists 18 new files and no modified file. I applied redteam/redteam-RT-06-playwright.config.ts and site/tests/e2e/redteam-RT-06-disabled-look.spec.ts. Neither exists at the gate commit. git status --porcelain then showed 'A  redteam/redteam-RT-06-playwright.config.ts' and 'A  site/tests/e2e/redteam-RT-06-disabled-look.spec.ts'. The spec imports ./hydrate, which exists at the gate. npm --prefix <wt> ci --prefer-offline exited 0. npm --prefix <wt> run build exited 0 ('32 page(s) built', 'links: ... 0 problems'). The lens config defaults to port 5164. Following the P4-VERIFY instructions, I copied it to <scratch>/verify-rt06-reproduce/rt06.config.ts with port 6220. I also changed three things a copy outside the worktree needs: absolute imports, an absolute WT, and outputDir set to scratch. Ran from <wt>: PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c <scratch>/verify-rt06-reproduce/rt06.config.ts site/tests/e2e/redteam-RT-06-disabled-look.spec.ts. It exited 1 with '5 failed', one per case. In every case the per-control asserts passed: disabled without JS, usable after hydration. Then the same-look assertion failed. tools/geometry/ returned '\"rootPolytope (color rgb(26, 26, 26); background rgb(255, 255, 255); border rgb(26, 26, 26) solid; opacity 1; filter none; text none; identical screenshots)\"', and viewCoxeter, copyLink and downloadData were the same. tools/fold/ returned tab, reset and copyLink. m7-geometry b1 returned rootPolytope and copyLink. m6-multiple-edges b8 returned tab and copyLink. tools/board/ returned reset and copyLink. All have the same style string and identical screenshots. Observed matches the finding's example values and the five roots it names. The finding's totals (2021 buttons on 22 routes; 160 of 472 inputs) come from the lens's sweep, which this reproducer does not run, so I did not check them. Gate source, ToolFrame.svelte:280-282: '.control:disabled { cursor: default; }' is the only change. After all runs I deleted the node_modules folders and site/dist. No server was left on port 6220. The final tree holds only applied reproducer files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: on all 5 roots the disabled server-rendered controls have the same computed colour, background, border, opacity and filter, and identical screenshots, as the hydrated enabled ones (for example tools/geometry rootPolytope color rgb(26,26,26), background rgb(255,255,255), border rgb(26,26,26) solid, opacity 1). This is a behaviour SPEC 7.4 states that is missing, which is major under RED-TEAM-COMMON 4."
+   },
+   "refute": {
+    "findingId": "P4-RT-06-01",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.4 'Without JavaScript' (no [D] mark): 'Controls are rendered with the disabled attribute, which the island removes when it hydrates, so a control never looks usable before it is.' This sentence supports the finding's expected. 4.0 [D] 'Controls are present but disabled until the island has hydrated' only adds the attribute and does not permit a look that seems usable.",
+    "evidence": "Read at b9b8504 (worktree detached there and clean). ToolFrame.svelte:269-282: .control sets color var(--text), background var(--page), border 1px solid var(--text) and cursor pointer, and .control:disabled sets only 'cursor: default'. The same pattern is in History.svelte:76-90, Predict.svelte:167-170, T01:770, T04:508, T05:1056, T06:545, T07:666, T08:716, T09:736, T10:1413, T11:641 (.tab), T15:807, T16:661, BoardEditor:576, t15/Tabs, t15/ConventionSwitch and t08/WeylGraph. Board.svelte:276 changes only the cursor of .hit. No file in site/src/styles or site/src/layouts has a disabled rule. Only Nav.astro's .theme-switch:disabled adds opacity 0.6. Board.svelte:184-193 with Node.svelte:30-31: before hydration a node that can act is disabled but still draws the second ring that 6.3 uses for 'may act here'. Records searched: DECISIONS.md and every decisions/*.md, including P0-A5 (disc, ring and cursor styles, with no rule for disabled), P1-A2 (fieldset disabled until hydration, nothing on its look) and P1-A5. None records a choice to style disabled controls like enabled ones. Grep for 'usable|not-allowed|opacity|disabled look' found nothing relevant. round1-confirmed-A/B, round1-deferred and RESULTS.md hold no finding on the disabled look. reports/gate-G4.md (it names b9b8504 as the gate commit) has no open item on it. 8.3 [D] 'Calm, bright, low-chrome' says nothing about the disabled state. incidental: none.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed: no sentence permits a disabled control that looks enabled, and 7.4 states the opposite in words, while the cursor change shows only on hover with a pointer; R2 failed: the expected matches 7.4's 'never looks usable before it is'. The finding stretches the claim to frozen boards after hydration, which 7.4's sentence (about the time before hydration) covers only loosely, and CONTRACTS 5.1 asks only for the attribute, but the cause before hydration stands on 7.4 alone; R3 failed: ToolFrame and History are phase 0 and 1, and T10 and T11 are phase 4, at gate G4; R4 not applicable, since no oracle quantity is involved; R5 failed: 7.4 carries no [D], 4.0 [D] does not cover the look, and no D-number, owner answer or decisions entry records the styling; R6 failed: no earlier record of this cause. Major fits the rubric ('a behaviour the specification states is missing or wrong')."
+   }
+  }
+ }
+]

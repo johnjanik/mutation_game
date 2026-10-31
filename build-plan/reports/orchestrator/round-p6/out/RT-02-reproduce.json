@@ -1,0 +1,26 @@
+{
+ "lens": "RT-02",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P6-RT-02-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 6.4 'Names in rank 2' ('This adjustment is made by satake_record (engine: satakeRecord)'); Appendix H Rules; RT-02 attack 13. decisions/P6-A3.md records that the plan's instruction 5.6 asked for the site-side adjustment.",
+   "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a1bc48f3562ed4cfd, which started on branch worktree-agent-a1bc48f3562ed4cfd at aea18020. Ran git checkout --detach f07eec66a8b80d249101630305ef6d2d23882738. HEAD is now f07eec66a8b80d249101630305ef6d2d23882738 and the status was clean. Node v22.22.0. Lens branch worktree-agent-a50280f04d15bf2d0 (b6b09801) exists. The file site/tests/unit/redteam-RT-02-p6-c2-once.test.ts is on the branch and absent at the gate commit. Applied it with git checkout worktree-agent-a50280f04d15bf2d0 -- site/tests/unit/redteam-RT-02-p6-c2-once.test.ts. Status after: 'A  site/tests/unit/redteam-RT-02-p6-c2-once.test.ts'. The file imports only node:fs, node:url, vitest, @two-games/engine and site src, with no redteam/ files. npm --prefix <wt> ci --prefer-offline: added 764 packages, ok. Ran: npx vitest run site/tests/unit/redteam-RT-02-p6-c2-once.test.ts; exit 1. Output: 'Test Files  1 failed (1)' / 'Tests  1 failed | 1 passed (2)' / 'FAIL ... > t13/model.ts does not apply the C2 adjustment itself' / 'AssertionError: expected [ …(3) ] to deeply equal []' / '+   \"model.ts:445: if (r.restricted_type_display === 'C2' && restrictedBoardName === 'B2' && order !== null) {\",' / '+   \"model.ts:446: restrictedBoardName = 'C2';\",' / '+   \"model.ts:447: order = order.reverse();\",'. The second test (satakeRecord on the reader's own pair equals what T13 shows, more than 100 checks) passed, as the finding says. sed of model.ts:436-452 confirms that these lines in assembleData act on sat.restricted_board and sat.restricted_orbits_in_bourbaki_order. Observed matches: model.ts lines 445, 446 and 447 hold the site-side C2 adjustment. The lens branch also adds 12 other files, all new, and changes no existing file; none was applied. The tree after the run held only the applied reproducer files. node_modules and dist were deleted. No preview server was started.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: the first test fails and lists model.ts:445, 446 and 447 (the C2 rename and order.reverse() in site code), and the second test passes; every displayed value is right, so the claimed minor level stands."
+  },
+  {
+   "findingId": "P6-RT-02-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 5.1 E-7 ('nothing else converts'); RT-02 attack 1 and section 6.",
+   "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (gate commit, detached, same worktree). The file site/tests/unit/redteam-RT-02-p6-label-arith.test.ts is on worktree-agent-a50280f04d15bf2d0 and absent at the gate commit. Applied it with git checkout worktree-agent-a50280f04d15bf2d0 -- site/tests/unit/redteam-RT-02-p6-label-arith.test.ts. Status after: 'A  site/tests/unit/redteam-RT-02-p6-c2-once.test.ts' / 'A  site/tests/unit/redteam-RT-02-p6-label-arith.test.ts'. The finding 01 file stays in the tree. It does not affect this run, because vitest names a single file. The reproducer only reads two source files and imports nothing from redteam/. Ran: npx vitest run site/tests/unit/redteam-RT-02-p6-label-arith.test.ts; exit 1. Output: 'Tests  1 failed (1)' / 'AssertionError: expected [ …(12) ] to deeply equal []'. The hits are model.ts lines 521 (`${k + 1}: (${a}, ${b})`), 527 (drawing.orbits[k - 1]), 528 (drawing.pairs[k - 1]), 534 (orbits[k - 1]), 732 (drawing.orbitIndex[k - 1]), 859 (`at node ${k + 1}`) and 875 (`at node ${k + 1}`). They are also T13SatakeStudio.svelte lines 220 (drawn.labels.map((l) => String(coords[l - 1]!))), 224 (coords[l - 1]), 226 (pairs[l - 1]), 932 (drawnPairs[l - 1]) and 933 (coords[l - 1]). sed of the context confirms that k and l are labels of the drawn restricted board (drawn.labels, restricted node k). Observed matches: 12 lines, exactly the finding's location list and its three quoted examples. The tree after the run held only the two applied reproducer files. node_modules, site/node_modules, packages/engine/node_modules and site/dist were deleted. No preview server was started.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: one test fails and lists the 12 lines of label arithmetic (model.ts 521, 527, 528, 534, 732, 859, 875; T13SatakeStudio.svelte 220, 224, 226, 932, 933) outside toLabels/toPositions, with correct values on named boards, so the claimed minor level (lens section 6) stands."
+  }
+ ]
+}

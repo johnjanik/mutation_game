@@ -10,6 +10,7 @@ import {
   EngineOverflow,
   applyWord,
   boardFromName,
+  fire,
   mutate,
   orbitGraph,
   orbitSize,
@@ -55,7 +56,7 @@ import {
 import { followStopMessage, layersGrownText, stopMessage } from '../../../src/components/tools/t02/limits';
 import { gardenLayersBound, gardenTotal } from '../../../src/components/tools/t02/phase2';
 import { layeredEntries, positiveView } from '../../../src/components/tools/t02/poset';
-import { extendPlay, followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
+import { extendPlay, followPlay, followStart, followStep, moveMade } from '../../../src/components/tools/t02/follow';
 import { exactText, shortNumber, vertexText } from '../../../src/components/tools/t02/numbers';
 import { PICKER_TYPES, PRESETS, pickedState, pickerGroups, presetOf } from '../../../src/components/tools/t02/presets';
 import { drawGarden, nextVertex } from '../../../src/components/tools/t02/drawing';
@@ -577,10 +578,10 @@ describe('T2 plan tests', () => {
   });
 });
 
-// The server render through Vite with the Svelte plugin, as P1-A2's _svelteSsr.ts does, plus the
-// path aliases of CONTRACTS 1 that Board.svelte imports by (tsconfigPaths does not reach .svelte files).
+// The server render through Vite with the Svelte plugin, as P1-A2's _svelteSsr.ts does. Board.svelte
+// imports by the path aliases of CONTRACTS 1, which tsconfigPaths resolves from .svelte importers too
+// (Vite 8.3.4; the explicit copy here was dropped, RT-FIX residual of P3-RT-12-05).
 const SITE = fileURLToPath(new URL('../../../', import.meta.url));
-const ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
 interface Loader {
   render(component: unknown, props: Record<string, unknown>): string;
   close(): Promise<void>;
@@ -595,13 +596,9 @@ async function gardenLoader(): Promise<{ loader: Loader; Garden: unknown }> {
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     optimizeDeps: { noDiscovery: true, include: [] },
     plugins: [svelte({ configFile: false })],
-    resolve: {
-      alias: {
-        '@engine': join(ROOT, 'packages/engine/src/index.ts'),
-        '@components': join(SITE, 'src/components'),
-        '@lib': join(SITE, 'src/lib'),
-      },
-    },
+    // The aliases of CONTRACTS.md 1 from their one declaration, the paths of site/tsconfig.json (RT-FIX
+    // P3-RT-12-05 and its residual; site/tests/unit/aliases-one-source.test.ts refuses a copy).
+    resolve: { tsconfigPaths: true },
   });
   const sv = (await server.ssrLoadModule('svelte/server')) as { render: (c: unknown, o: { props: unknown }) => { body: string } };
   const mod = (await server.ssrLoadModule('/src/components/tools/T02OrbitGarden.svelte')) as { default: unknown };
@@ -746,5 +743,95 @@ describe('regressions', () => {
     expect(changed[long.length - 1]).toBe(held[long.length - 1]);
     // The held list is not changed.
     expect(held).toHaveLength(long.length + 1);
+  });
+
+  // SPEC 4 T2 "follow (vertices appear as the reader visits them on the linked T1)"; 3 M1 row 1 ("counting
+  // the populations found (6)") and M4 row 5 ("3 positions"). A garden that attached to a board already
+  // played started from the board's current position and dropped the play before it. It now builds the
+  // model of the whole play it holds (followPlay), which must be the model of following that play from its
+  // start: followStart, then one followStep per move. Plays: the M1 play 2, 1, 2, 1, 2, 1 from (1, 0) on A2
+  // with revisits; the M4 play 1, 2 in the numbers game; and 2100 moves on the triangle (A2~), past
+  // CAPS.gardenPositions, where the model is full. Expected counts: golden types.A2.n_roots and
+  // types.A2.fundamental_orbit_sizes[0].
+  // regression: P3-RT-13-04
+  it('followPlay is followStart and one followStep per move: the garden holds the whole play', () => {
+    const cases: { board: AnyBoard; start: number[]; game: 'mutation' | 'firing'; labels: number[] }[] = [
+      { board: named('A2'), start: [1, 0], game: 'mutation', labels: [2, 1, 2, 1, 2, 1, 1, 2, 2] },
+      { board: named('A2'), start: [1, 0], game: 'firing', labels: [1, 2] },
+      // The triangle's labels are 0, 1, 2 (an affine board numbers its nodes from 0, E-7).
+      { board: resolveBoard('A2~'), start: [1, 0, 0], game: 'mutation', labels: Array.from({ length: 2100 }, (_, k) => [0, 1, 2, 1][k % 4]!) },
+    ];
+    const results: number[] = [];
+    for (const c of cases) {
+      const b = c.board as Board<unknown>;
+      const bound = gardenLayersBound(c.board);
+      const nodes = toPositions(c.board, c.labels);
+      const play: Vector[] = [startVector(c.board, c.start).v];
+      for (const k of nodes) play.push((c.game === 'mutation' ? mutate : fire)(b, play[play.length - 1]!, k));
+      let stepped = followStart(c.board, play[0]!, c.game, bound);
+      for (let k = 0; k < nodes.length; k++) stepped = followStep(stepped, c.board, play[k]!, play[k + 1]!, nodes[k]!);
+      const built = followPlay(c.board, play, nodes, c.game, bound);
+      expect(built.keys).toEqual(stepped.keys);
+      expect(built.items).toEqual(stepped.items);
+      expect([...built.index]).toEqual([...stepped.index]);
+      expect(built.rank).toEqual(stepped.rank);
+      expect(built.inRankGraph).toEqual(stepped.inRankGraph);
+      expect(built.edges).toEqual(stepped.edges);
+      expect(built.full).toBe(stepped.full);
+      results.push(built.items.length);
+    }
+    expect(results[0]).toBe(resolveGoldenPath('types.A2.n_roots'));
+    expect(results[1]).toBe(resolveGoldenPath('types.A2.fundamental_orbit_sizes[0]'));
+    expect(results[2]).toBe(CAPS.gardenPositions);
+    expect(followPlay(cases[2]!.board, [startVector(cases[2]!.board, [1, 0, 0]).v], [], 'mutation', gardenLayersBound(cases[2]!.board)).items).toHaveLength(1);
+  });
+
+  // Adopted from the RT-08 lens (content rules, attacks 9 and 11, phase 3): the Orbit Garden's counter on
+  // a finite-type board in `orbit` mode. The component shows totalText(gardenTotal(spec, bound))
+  // (T02OrbitGarden.svelte), so this test reads that function. Expected values come from
+  // reference/golden_data.json (types.E8.weyl_order: the orbit of all ones is regular, so its size is the
+  // order of the group), never typed.
+  describe('T2 counter total in orbit mode on a finite-type board (phase 3)', () => {
+    function orbitSpec(name: string, start: number[]): { spec: GardenSpec; board: AnyBoard } {
+      const board = boardFromName(name);
+      const s = startVector(board, start);
+      return { spec: { board: s.board, grows: 'orbit', seed: s.v, game: gameOf('orbit', 'numbers') }, board: s.board };
+    }
+    // regression: P3-RT-08-02
+    it('E8, the numbers game from all ones: the exact size from orbitSize, not "more than 2000"', () => {
+      const { spec, board } = orbitSpec('E8', [1, 1, 1, 1, 1, 1, 1, 1]);
+      const expected = resolveGoldenPath('types.E8.weyl_order') as number;
+      // The engine function the specification names agrees with the golden value.
+      expect(orbitSize(board as never, spec.seed as never)).toBe(expected);
+      const shown = totalText(gardenTotal(spec, gardenLayersBound(spec.board)));
+      // Observed at 69546f0: "more than 2000".
+      expect(shown, 'counter total of T2 on E8 from all ones').not.toBe('more than 2000');
+      expect(shown.replace(/[\s ,]/g, '')).toBe(String(expected));
+    });
+  });
+
+  // Adopted from the RT-10 lens (spec-compliance, attack 32). The counter's total is computed by
+  // gardenTotal (t02/phase2.ts), which T02OrbitGarden.svelte shows in data-out="total" after "Show total".
+  // Expected on E6 and E8 from the numbers all ones: weyl_order (all ones lies on no mirror, so the orbit
+  // has |W| positions, far above the garden's bound of 2000).
+  describe('T2 total from orbitSize on a finite-type board (phase 3)', () => {
+    const orbitSpec = (name: string, start: number[]): GardenSpec => {
+      const s = startVector(resolveBoard(name), start);
+      return { board: s.board, grows: 'orbit', seed: s.v, game: gameOf('orbit', 'numbers') };
+    };
+    // In the two tests below, `any` reads nested keys of the golden JSON import as the lens wrote them.
+    // regression: P3-RT-10-01
+    it('E6, numbers all ones: the total shown after asking is weyl_order, not "more than 2000"', () => {
+      const spec = orbitSpec('E6', [1, 1, 1, 1, 1, 1]);
+      const expected = (golden as any).types.E6.weyl_order as number;
+      expect(orbitSize(spec.board as Board<number>, spec.seed as number[])).toBe(expected);
+      const t = gardenTotal(spec, undefined);
+      expect(totalText(t)).toBe(String(expected));
+    });
+    // regression: P3-RT-10-01
+    it('E8, numbers all ones: the total is weyl_order 696729600', () => {
+      const spec = orbitSpec('E8', [1, 1, 1, 1, 1, 1, 1, 1]);
+      expect(totalText(gardenTotal(spec, undefined))).toBe(String((golden as any).types.E8.weyl_order));
+    });
   });
 });

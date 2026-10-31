@@ -33,6 +33,11 @@ export function checkOpenItemsReport(reportsDir) {
   if (!existsSync(mdPath)) {
     return { exitCode: 1, message: 'report: reports/open-items-report.json is present but reports/open-items-report.md is missing; rerun RELEASE=1 npm run build' };
   }
+  // The build marks the report complete when it finishes (astro:build:done); a release build that
+  // failed part way leaves a well-formed report of the pages rendered so far, which is refused.
+  if (report.complete !== true) {
+    return { exitCode: 1, message: 'report: reports/open-items-report.json comes from a release build that did not finish, so pages may be missing; rerun RELEASE=1 npm run build' };
+  }
   const items = Array.isArray(report.items) ? report.items : [];
   const used = items.filter((it) => it && it.status === 'open' && Array.isArray(it.pages) && it.pages.length > 0);
   const pages = new Set(used.flatMap((it) => it.pages));
@@ -45,7 +50,7 @@ export function checkOpenItemsReport(reportsDir) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const numbers = writeNumbersReport();
-  console.log(`numbers-in-prose: ${numbers.numbers} numbers in ${numbers.files} files; report written to ${relative(ROOT, numbers.report).split(sep).join('/')}`);
+  console.log(`numbers-in-prose: ${numbers.numbers} numbers in ${numbers.files} files, ${numbers.fallbacks} in fallbacks; report written to ${relative(ROOT, numbers.report).split(sep).join('/')}`);
   const result = checkOpenItemsReport(REPORTS_DIR);
   console.log(result.message);
   process.exit(result.exitCode);

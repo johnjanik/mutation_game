@@ -12,7 +12,6 @@ import type { AnyBoard, Board } from './board';
 import { adjacency, boardKind, cartan, cartanNumbers, components, subBoard } from './board';
 import { CAPS } from './caps';
 import { NeedsConnectedBoard, NeedsTwoWayRoads, NotABoard } from './errors';
-import { determinant } from './linalg';
 import type { Rational } from './rational';
 import { rat, ratDiv, ratEq, ratMul, ratSign, ratSub } from './rational';
 import { extendMatrix, nullVector, twistedAEven } from './affine';
@@ -66,6 +65,15 @@ function kindOf<T>(board: Board<T>): 'not-a-board' | 'one-way' | 'gcm' {
   return boardKind(intCartan(board));
 }
 
+/** C[i][j] = C[j][i] for every pair: then d_i = 1 on every node balances the board (the walk below gives 1 everywhere). */
+function isSymmetric(C: readonly (readonly number[])[]): boolean {
+  const n = C.length;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < i; j++) if (C[i]![j] !== C[j]![i]) return false;
+  }
+  return true;
+}
+
 // ---------------------------------------------------------------------------------------------
 // symmetrizer, gram (SPEC.md 2.5, 5.3, 5.6)
 // ---------------------------------------------------------------------------------------------
@@ -81,6 +89,12 @@ export function symmetrizer<T>(board: Board<T>): Rational[] | null {
   const C = intCartan(board);
   if (boardKind(C) !== 'gcm') return null;
   const n = board.n;
+  // On a symmetric matrix the walk sets every d_j to d_i = 1, the least value is 1 and every pair
+  // check holds, so the result is all ones; it is written at once (RT-FIX residual P3-RT-07-02).
+  if (isSymmetric(C)) return C.map(() => rat(1));
+  // The entries as rationals through bigint: a road count may be any integer (5.6, first table), also one
+  // beyond 2^53, which rat would refuse as a number (RT-FIX P4-RT-01-02).
+  const R: Rational[][] = C.map((row) => row.map((x) => rat(BigInt(x))));
   const d: (Rational | null)[] = [];
   for (let i = 0; i < n; i++) d.push(null);
   for (const comp of components(board)) {
@@ -91,7 +105,7 @@ export function symmetrizer<T>(board: Board<T>): Rational[] | null {
       const i = stack.pop()!;
       for (const j of comp) {
         if (j !== i && C[i]![j] !== 0 && d[j] === null) {
-          d[j] = ratDiv(ratMul(d[i]!, rat(C[i]![j]!)), rat(C[j]![i]!));
+          d[j] = ratDiv(ratMul(d[i]!, R[i]![j]!), R[j]![i]!);
           stack.push(j);
         }
       }
@@ -103,7 +117,7 @@ export function symmetrizer<T>(board: Board<T>): Rational[] | null {
   const out = d as Rational[];
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      if (!ratEq(ratMul(out[i]!, rat(C[i]![j]!)), ratMul(out[j]!, rat(C[j]![i]!)))) return null;
+      if (!ratEq(ratMul(out[i]!, R[i]![j]!), ratMul(out[j]!, R[j]![i]!))) return null;
     }
   }
   return out;
@@ -116,7 +130,7 @@ export function gram<T>(board: Board<T>): Rational[][] | null {
   const d = symmetrizer(board);
   if (d === null) return null;
   const C = intCartan(board);
-  return C.map((row, i) => row.map((x) => ratMul(d[i]!, rat(x))));
+  return C.map((row, i) => row.map((x) => ratMul(d[i]!, rat(BigInt(x))))); // through bigint, as in symmetrizer
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -133,14 +147,68 @@ export function cartanClass(board: AnyBoard): 'finite' | 'affine' | 'indefinite'
 export function cartanClass<T>(board: Board<T>): 'finite' | 'affine' | 'indefinite' {
   if (kindOf(board) !== 'gcm') throw new NeedsTwoWayRoads('cartanClass needs a board on which every road has a road back');
   if (components(board).length !== 1) throw new NeedsConnectedBoard('cartanClass needs a connected board');
-  const B = gram(board);
-  if (B === null) return 'indefinite';
-  const n = board.n;
-  const minors: Rational[] = [];
-  for (let k = 1; k <= n; k++) minors.push(determinant(B.slice(0, k).map((row) => row.slice(0, k))));
-  if (minors.every((m) => ratSign(m) > 0)) return 'finite';
-  if (minors.slice(0, -1).every((m) => ratSign(m) > 0) && ratSign(minors[n - 1]!) === 0) return 'affine';
-  return 'indefinite';
+  return classOfConnected(intCartan(board));
+}
+
+/**
+ * The rule of cartanClass on the integer matrix of a connected gcm board (unguarded; internal). A board
+ * that is not balanced is indefinite. On a balanced board B = DC with D the diagonal matrix of the d_i,
+ * which are all positive, so the k-th leading principal minor of B is d_1...d_k times that of C and has
+ * its sign: the minors of C decide, exactly as those of B. They are the pivots of a fraction-free
+ * elimination of C without row swaps (Bareiss: the k-th pivot is the k-th leading principal minor while
+ * the earlier ones are not zero), so the first pivot that is not positive decides: zero on the last row
+ * is affine, anything else indefinite. The elimination runs on numbers while every product stays a safe
+ * integer, and on bigint otherwise (RT-FIX residual P3-RT-07-02: the same rule as the elimination of B in
+ * rationals that it replaces, without a rational in the loop).
+ */
+function classOfConnected(C: readonly (readonly number[])[]): 'finite' | 'affine' | 'indefinite' {
+  if (!isSymmetric(C) && symmetrizer(plainBoard(C.map((row) => [...row]))) === null) return 'indefinite';
+  return classByMinors(C) ?? classByMinorsBig(C);
+}
+
+/** The pivot rule of classOfConnected on numbers; null as soon as an intermediate value is not a safe integer. */
+function classByMinors(C: readonly (readonly number[])[]): 'finite' | 'affine' | 'indefinite' | null {
+  const n = C.length;
+  const M = C.map((row) => [...row]);
+  let prev = 1;
+  for (let k = 0; k < n; k++) {
+    const pivot = M[k]![k]!; // the leading principal minor of order k + 1
+    if (pivot <= 0) return pivot === 0 && k === n - 1 ? 'affine' : 'indefinite';
+    const rowK = M[k]!;
+    for (let i = k + 1; i < n; i++) {
+      const rowI = M[i]!;
+      const f = rowI[k]!;
+      for (let j = k + 1; j < n; j++) {
+        const a = rowI[j]! * pivot;
+        const b = f * rowK[j]!;
+        const x = a - b;
+        // A product or a difference outside the safe range is not exact: start again on bigint.
+        if (!Number.isSafeInteger(a) || !Number.isSafeInteger(b) || !Number.isSafeInteger(x)) return null;
+        rowI[j] = x / prev; // exact: Bareiss's division leaves no remainder
+      }
+    }
+    prev = pivot;
+  }
+  return 'finite';
+}
+
+/** The pivot rule of classOfConnected on bigint, for matrices whose minors leave the safe range. */
+function classByMinorsBig(C: readonly (readonly number[])[]): 'finite' | 'affine' | 'indefinite' {
+  const n = C.length;
+  const M = C.map((row) => row.map((x) => BigInt(x)));
+  let prev = 1n;
+  for (let k = 0; k < n; k++) {
+    const pivot = M[k]![k]!;
+    if (pivot <= 0n) return pivot === 0n && k === n - 1 ? 'affine' : 'indefinite';
+    const rowK = M[k]!;
+    for (let i = k + 1; i < n; i++) {
+      const rowI = M[i]!;
+      const f = rowI[k]!;
+      for (let j = k + 1; j < n; j++) rowI[j] = (rowI[j]! * pivot - f * rowK[j]!) / prev;
+    }
+    prev = pivot;
+  }
+  return 'finite';
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -292,19 +360,26 @@ export function identify<T>(board: Board<T>): { name: string; order: number[] } 
  */
 export function affineCandidates(m: number): { name: string; cartan: number[][] }[] {
   if (!Number.isInteger(m)) throw new RangeError(`the node count ${String(m)} is not an integer`);
+  return [...eachAffineCandidate(m)];
+}
+
+/**
+ * The candidates of affineCandidates in the same order, each matrix built only when it is reached, so
+ * that identifyAffine, which stops at the first match, does not enumerate the root systems of the
+ * candidates after it (each extension enumerates the roots of a finite type of rank m - 1).
+ */
+function* eachAffineCandidate(m: number): Generator<{ name: string; cartan: number[][] }> {
   const n = m - 1;
-  const out: { name: string; cartan: number[][] }[] = [];
-  if (n < 1) return out;
+  if (n < 1) return;
   for (const X of finiteCandidates(n)) {
     if (X === 'B2') continue;
-    out.push({ name: `${X}~`, cartan: extendMatrix(cartan(X), false).cartan });
+    yield { name: `${X}~`, cartan: extendMatrix(cartan(X), false).cartan };
   }
-  out.push({ name: `A${2 * n}^(2)`, cartan: twistedAEven(n) });
-  if (n >= 3) out.push({ name: `A${2 * n - 1}^(2)`, cartan: transposed(extendMatrix(cartan(`B${n}`), false).cartan) });
-  if (n >= 2) out.push({ name: `D${n + 1}^(2)`, cartan: transposed(extendMatrix(cartan(`C${n}`), false).cartan) });
-  if (n === 4) out.push({ name: 'E6^(2)', cartan: transposed(extendMatrix(cartan('F4'), false).cartan) });
-  if (n === 2) out.push({ name: 'D4^(3)', cartan: transposed(extendMatrix(cartan('G2'), false).cartan) });
-  return out;
+  yield { name: `A${2 * n}^(2)`, cartan: twistedAEven(n) };
+  if (n >= 3) yield { name: `A${2 * n - 1}^(2)`, cartan: transposed(extendMatrix(cartan(`B${n}`), false).cartan) };
+  if (n >= 2) yield { name: `D${n + 1}^(2)`, cartan: transposed(extendMatrix(cartan(`C${n}`), false).cartan) };
+  if (n === 4) yield { name: 'E6^(2)', cartan: transposed(extendMatrix(cartan('F4'), false).cartan) };
+  if (n === 2) yield { name: 'D4^(3)', cartan: transposed(extendMatrix(cartan('G2'), false).cartan) };
 }
 
 /** The name of a connected affine board in any numbering (oracle lines 1221 to 1226); null on a one-way board and when no candidate matches. */
@@ -314,7 +389,7 @@ export function identifyAffine<T>(board: Board<T>): string | null {
   const C = intCartan(board);
   if (boardKind(C) !== 'gcm') return null;
   if (components(board).length !== 1) throw new NeedsConnectedBoard('identifyAffine needs a connected board');
-  for (const cand of affineCandidates(board.n)) {
+  for (const cand of eachAffineCandidate(board.n)) {
     if (relabellingsOf(C, cand.cartan, 1).length > 0) return cand.name;
   }
   return null;
@@ -382,18 +457,65 @@ export function classify<T>(board: Board<T>): ClassifyRecord[] {
 // smallestNonfiniteSubboard (SPEC.md 5.5; oracle lines 1256 to 1271)
 // ---------------------------------------------------------------------------------------------
 
-/** Calls f on each k-subset of 0..n-1 in lexicographic order (as itertools.combinations) until f returns true. */
-function eachCombination(n: number, k: number, f: (K: number[]) => boolean): boolean {
+/**
+ * Calls f on each k-subset of 0..n-1 in lexicographic order (as itertools.combinations) until f returns
+ * true. f sees one array that changes between calls, so it copies what it keeps.
+ */
+function eachCombination(n: number, k: number, f: (K: readonly number[]) => boolean): boolean {
   const K: number[] = [];
   for (let i = 0; i < k; i++) K.push(i);
   for (;;) {
-    if (f([...K])) return true;
+    if (f(K)) return true;
     let i = k - 1;
     while (i >= 0 && K[i] === i + n - k) i -= 1;
     if (i < 0) return false;
     K[i] = K[i]! + 1;
     for (let j = i + 1; j < k; j++) K[j] = K[j - 1]! + 1;
   }
+}
+
+/** Whether the positions K form one piece, two positions joined when C[i][j] or C[j][i] is nonzero (as components). */
+function connectedSet(C: number[][], K: readonly number[]): boolean {
+  const reached: boolean[] = K.map((_, k) => k === 0);
+  const stack: number[] = [0];
+  let count = 1;
+  while (stack.length > 0) {
+    const i = K[stack.pop()!]!;
+    for (let t = 0; t < K.length; t++) {
+      const j = K[t]!;
+      if (reached[t] || (C[i]![j] === 0 && C[j]![i] === 0)) continue;
+      reached[t] = true;
+      count += 1;
+      stack.push(t);
+    }
+  }
+  return count === K.length;
+}
+
+/** For each position, the positions joined to it (C[i][j] or C[j][i] nonzero) as bits of one integer; n <= 30. */
+function neighbourMasks(C: readonly (readonly number[])[]): number[] {
+  const n = C.length;
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    let m = 0;
+    for (let j = 0; j < n; j++) if (j !== i && (C[i]![j] !== 0 || C[j]![i] !== 0)) m |= 1 << j;
+    out.push(m);
+  }
+  return out;
+}
+
+/** connectedSet on the set of positions whose bits are in S (not empty), from the masks of neighbourMasks. */
+function connectedMask(adj: readonly number[], S: number): boolean {
+  let reached = S & -S;
+  let open = reached;
+  while (open !== 0) {
+    const bit = open & -open;
+    open ^= bit;
+    const fresh = adj[31 - Math.clz32(bit)]! & S & ~reached;
+    reached |= fresh;
+    open |= fresh;
+  }
+  return reached === S;
 }
 
 /**
@@ -404,16 +526,27 @@ function eachCombination(n: number, k: number, f: (K: number[]) => boolean): boo
 export function smallestNonfiniteSubboard<T>(board: Board<T>): NonfiniteSubboard | null;
 export function smallestNonfiniteSubboard(board: AnyBoard): NonfiniteSubboard | null;
 export function smallestNonfiniteSubboard<T>(board: Board<T>): NonfiniteSubboard | null {
-  if (kindOf(board) !== 'gcm') return null;
+  const C = intCartan(board);
+  if (boardKind(C) !== 'gcm') return null;
   const n = board.n;
+  // Connectedness of the 2^n - 1 subsets is tested on bit masks (n <= 30), which is most of the work on a
+  // large board in few pieces; a larger board walks the matrix (RT-FIX residual P3-RT-07-02).
+  const adj = n <= 30 ? neighbourMasks(C) : null;
   let found: NonfiniteSubboard | null = null;
   for (let size = 1; size <= n && found === null; size++) {
     eachCombination(n, size, (K) => {
-      const sub = subBoard(board, K);
-      if (components(sub).length !== 1) return false;
-      const cls = cartanClass(sub);
+      // The induced board is connected exactly when K is connected through the roads of the board, so
+      // only a connected K is classified (most subsets of a large board are not). K is increasing, so its
+      // rows and columns of C are the matrix of subBoard(board, K), which is a connected gcm board: the
+      // rule of cartanClass is applied to that matrix without building the board.
+      if (adj !== null) {
+        let S = 0;
+        for (let t = 0; t < K.length; t++) S |= 1 << K[t]!;
+        if (!connectedMask(adj, S)) return false;
+      } else if (!connectedSet(C, K)) return false;
+      const cls = classOfConnected(K.map((i) => K.map((j) => C[i]![j]!)));
       if (cls === 'finite') return false;
-      found = { nodes: K, class: cls };
+      found = { nodes: [...K], class: cls };
       return true;
     });
   }

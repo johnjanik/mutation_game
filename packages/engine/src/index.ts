@@ -94,3 +94,16 @@ export { symEig, euclideanBasis, coxeterPlanePoints, coxeterPlaneRings, coxeterW
 export type { CoxeterPlaneRings } from './geometry';
 export { wythoffFaceTypes, wythoffFVector, wythoffEdges } from './wythoff';
 export type { FaceType } from './wythoff';
+
+// phase 5 (P5-A1): rep.ts
+export { spKey, spMul, spAdd, spComm, spScale, spEq, minusculeMatrices, signedMoves, chevalleySerre, stringThrough } from './rep';
+export type { SparseMatrix, RelationCheck } from './rep';
+
+// phase 6 (P6-A1): satake.ts
+export { theta, shadow2, admissibility, satake, restrictedBoard } from './satake';
+export { restrictedCoordinates } from './satake'; // P6-A1 follow-up for T13
+export type { SatakeDiagram, SatakeComputed, RestrictedBoard } from './satake';
+
+// phase 6 (P6-A2): satakeCatalogue.ts
+export { satakeCatalogue, satakeRecord, canonicalPair, matchCatalogue } from './satakeCatalogue';
+export type { SatakeCatalogueEntry, SatakeRecord } from './satakeCatalogue';

@@ -1,0 +1,126 @@
+{
+ "agent": "P6-tikz",
+ "status": "partial",
+ "branch": "worktree-agent-afde8ba1a9bfff2b3 (worktree /home/user/mutation_game/.claude/worktrees/agent-afde8ba1a9bfff2b3)",
+ "base": "c027f67",
+ "commits": [
+  "2268819 P6-tikz: T2 and T10 export TikZ (tikz-graph of the garden as drawn, tikz-points of the projection as drawn)",
+  "0c70842 P6-tikz: latex-export.spec.ts, Export LaTeX of T2 and T10 in the browser, and the G6 samples",
+  "06a5749 P6-tikz: citeText in the outs of T2 to T9, T11, T12, T15, T16; T01.spec.ts guard names latex and cite",
+  "72bcbc6 P6-tikz: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/t02/latex.ts (new)",
+  "site/src/components/tools/t10/latex.ts (new)",
+  "site/src/components/tools/T02OrbitGarden.svelte",
+  "site/src/components/tools/T10GeometryStudio.svelte",
+  "site/tests/unit/tools/T02-latex.test.ts (new)",
+  "site/tests/unit/tools/T10-latex.test.ts (new)",
+  "site/tests/e2e/latex-export.spec.ts (new)",
+  "site/tests/e2e/T01.spec.ts (guard only)",
+  "site/src/tools/registry/T02.ts, T03.ts, T04.ts, T05.ts, T06.ts, T07.ts, T08.ts, T09.ts, T11.ts, T15.ts, T16.ts (one name each)",
+  "site/src/components/tools/t12/config.ts (T12_OUTS and T12_CONDITIONAL_OUTS)",
+  "decisions/P6-tikz.md (new)"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard c027f67; git log -1",
+   "exit": 0,
+   "summary": "c027f67 MERGE: fold P6-A5's repair entries..."
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm run build (base, before)",
+   "exit": 0,
+   "summary": "51 pages, links 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7221 (base)",
+   "exit": 0,
+   "summary": "51 routes, 0 over budget"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings, 1 old hint; svelte-check 0 errors, 1 old warning (LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 1,
+   "summary": "3744 passed, 4 failed. Every failure was a 5000 ms timeout in a file this branch does not touch (T03 meter, T15 level, repo-ci-playwright-report, engine satake-coordinates), at load average 15 to 18"
+  },
+  {
+   "cmd": "npx vitest run on the 4 timed-out files",
+   "exit": 1,
+   "summary": "59 of 60 passed; repo-ci-playwright-report timed out again (5554 ms)"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/repo-ci-playwright-report.test.ts",
+   "exit": 0,
+   "summary": "1 passed when run alone"
+  },
+  {
+   "cmd": "npx vitest run registry.test.ts T02 T11 T12 T02-latex T10-latex",
+   "exit": 0,
+   "summary": "170 passed"
+  },
+  {
+   "cmd": "node scratchpad/p6-tikz/mutants.mjs",
+   "exit": 0,
+   "summary": "13 scratch reverts of the builders, all 13 killed"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "51 pages, links 0 problems"
+  },
+  {
+   "cmd": "npm run size -- --port 7221",
+   "exit": 0,
+   "summary": "51 routes, 0 over budget"
+  },
+  {
+   "cmd": "playwright (port 7220) latex-export.spec.ts against the base build",
+   "exit": 1,
+   "summary": "4 failed, 1 passed (red before)"
+  },
+  {
+   "cmd": "LATEX_SAMPLES_DIR=scratch/samples playwright latex-export.spec.ts",
+   "exit": 0,
+   "summary": "5 passed; dynkin.tex, tikz-graph.tex (12 nodes, 15 edges), tikz-points.tex (12 points, 24 edges) written"
+  },
+  {
+   "cmd": "playwright T02, T10, export, embed, registry-outs, registry-weight, engine-weight, T01, nojs",
+   "exit": 0,
+   "summary": "385 passed"
+  }
+ ],
+ "tests": [
+  "site/tests/unit/tools/T02-latex.test.ts (8 tests: A3 full, triangle at 40 layers, E8 scaled down to 16 cm, star with five arms at 2000 positions, labels off, G2 positive view, null, hyphen-minus): green after. 7 scratch reverts all killed (y not negated, no shrink, labels when not drawn, U+2212 in labels, edges dropped, directed, null dropped)",
+  "site/tests/unit/tools/T10-latex.test.ts (7 tests: A3 (1,0,1) and the E8 showpiece checked against their golden f_vector, B3 in a 1200 px box, A2 move graph, B3 short roots, the cap of edges at rest, null): green after. 6 scratch reverts all killed (y not negated, no shrink, cap ignored, edges dropped, not centred, short roots dropped)",
+  "site/tests/e2e/latex-export.spec.ts (5 tests): red before on the c027f67 build (garden and geometry wrote the dynkin form; the M1 triangle downloaded nothing), green after (5 passed)",
+  "T01.spec.ts > controls enabled after hydration (guard): green after; it now also asserts latex and cite are present and enabled",
+  "registry.test.ts and registry-outs.spec.ts: green after"
+ ],
+ "sizes": {
+  "before": "gzip bytes: /tools/garden/ and /embed/garden/ 65479; /tools/geometry/, /embed/geometry/ and /modules/m7-geometry/ 79564; m1, m4, m6 69458; m3 63459 (these 4 lessons fetch no T2 code before interaction)",
+  "after": "/tools/garden/ and /embed/garden/ 65701 (+222); geometry routes and m7 79749 (+185); m1, m4, m6 69452; m3 63457; every other route -7 to +2 bytes; 51 routes, 0 over budget"
+ },
+ "samples": "After npm run build, from the repository root: LATEX_SAMPLES_DIR=reports/gate-G6/latex/ npx playwright test site/tests/e2e/latex-export.spec.ts (with the chain's browser path). It saves dynkin.tex (Export LaTeX on /tools/board/?z=1&g=E6, which writes \\dynkin E{oooooo}), tikz-graph.tex (T2: A3 garden grown to the end, 12 labelled nodes and 15 edges) and tikz-points.tex (T10: the default A3 cuboctahedron, 12 points and 24 edges). Without the variable nothing is saved. Each file is '% <link>', '% needs \\usepackage{...}', then the body: a snippet to \\input.",
+ "deviations": [
+  "citeText was also added to T12_CONDITIONAL_OUTS, a second list in the same file. That list is defined as 'names of T12_OUTS that the default state does not render'; leaving citeText out would make that definition false and fail T12.test.ts.",
+  "citeText was NOT added to T01_OUTS or T10_OUTS. Tests outside my files require every listed name to appear without a click: T01.spec.ts > hooks on every node and every registered out, T10.test.ts server-render outs loop, and T10.spec.ts hooks. Status is partial for this reason.",
+  "Plan readings (recorded in the fragment): T2 always exports directed false (the drawing shows each move once with no arrowhead). Vertex labels are written only when the drawing shows them (up to 300 positions with the toggle on). Only the width is bounded for T2, as asked. T10 bounds both sides to 16 cm and writes short roots as the same dots as vertices. Edge colours, edge node labels, rise lines and the depth cue are not written, because P6-A5's TikZ forms have no field for them."
+ ],
+ "requests": [
+  "MERGE, for P1-A5 (T1): add 'citeText' to T01_OUTS. In T01.spec.ts > hooks on every node and every registered out, either press Cite before collecting names (the stronger option) or exclude citeText from reachable.",
+  "MERGE, for P4-A3 (T10): add 'citeText' to T10_OUTS. Make T10.test.ts (the server-render loop at about line 949) and T10.spec.ts (the hooks loop at about line 762) skip it or press Cite first.",
+  "Optional, for P6-A5's area: an edge label or style field in TikzGraphData and TikzPointsData, if the owner wants edge colours, node labels and rise lines in the TikZ export."
+ ],
+ "decisionsFragment": "decisions/P6-tikz.md",
+ "handoff": "T2 and T10 now pass latexForExport, built in the pure modules t02/latex.ts and t10/latex.ts (type-only import of export.ts, no engine import). T2 exports the garden as drawn: layered-layout centres in cm, y up, at most 16 cm wide, labels with ASCII hyphen-minus when drawn, edges in drawn order. T10 exports the canvas's last picture: centred, y up, at most 16 cm across, edges at rest. A 2000-position garden exports at about 133 kB (236 kB if every edge were drawn). Item (C) is partial: citeText is in every outs list except T01 and T10, whose tests outside my brief would fail; the exact patches are under requests. Server stopped; node_modules folders and site/dist deleted; git status clean."
+}

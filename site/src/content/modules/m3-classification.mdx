@@ -36,7 +36,7 @@ export const hunterFound = `(${oneWay.result.map(signed).join(', ')}) after ${on
 export const frozenPlusOne = resolveGoldenPath('affine.D4.marks').map((m, i) => (i === 0 ? m + 1 : m));
 export const kostantCity = resolveGoldenPath('kostant.D4.final_numbers_from_node[0]').findIndex((x) => x > 0);
 export const SEEN_FIXED = 'verified by computation on every untwisted affine board of rank at most eight';
-export const SEEN_KOSTANT = 'verified by computation for every board of finite type and every starting city';
+export const SEEN_KOSTANT = 'verified by computation on every board of finite type of rank at most eight, with random plays from every starting city';
 export const SEEN_ONE_WAY = 'verified by computation';
 
 {/* P2-A9: lesson M3, drafted from SPEC.md 2.5, 2.8, 2.11, 2.12, 3 M3 and Appendix C in the words of
@@ -53,7 +53,7 @@ In module one the Orbit Garden stopped by itself on <Tex src="A_3"/>, <Tex src="
 
 It opens on the path <Tex src="A_3"/>, where the count stops by itself at <G k="types.A3.n_roots"/>. Its picker holds the other boards of this lesson: the fork <Tex src="D_4"/>, with <G k="types.D4.n_roots"/>; the tree <Tex src="E_6"/>, with <G k="types.E6.n_roots"/>; the triangle, <Tex src="\tilde A_2"/>; and the **star with four arms**, a centre city joined to four others, <Tex src="\tilde D_4"/>. On the triangle the lab halts the count after <G k="layer_growth_examples[label=triangle].layers"/> layers, holding <G k="layer_growth_examples[label=triangle].root_populations_found"/> root populations, <G k="layer_growth_examples[label=triangle].new_per_layer[1]"/> new in every layer after the first, and says that it stopped; the star halts at the same bound. A halt marks where the search was cut off, nothing more.
 
-Draw boards of your own. Among connected simple graphs, the ones that close up are the paths, the forks (a path whose last city splits in two) and three special trees, a centre city with arms of one city, two cities, and two, three or four cities; every other connected simple graph runs away.
+Draw boards of your own. Among connected simple graphs, the ones that close up are the paths, the forks (a path whose last <Term a="city">city</Term> splits in two) and three special trees, a centre city with arms of one city, two cities, and two, three or four cities; every other connected simple graph runs away.
 
 <T04ClassificationLab slot="figure" client:idle id="b1" preset="default" board="A3" boardPresets={testBoardPresets()} caption={`The path A3 closes up with all ${fmt('types.A3.n_roots')} root populations; the picker gives ${fmt('types.D4.n_roots')} on D4 and ${fmt('types.E6.n_roots')} on E6, while on the triangle and the star the lab halts at its bound of ${fmt(`${TRI}.layers`)} layers.`} />
 </Beat>
@@ -64,11 +64,11 @@ The reason is the form of module two. On a simple graph the **form value** of a 
 
 <Tex src="(p,p)=2\sum_i p_i^2-2\sum_{\text{roads } ij} p_ip_j," display/>
 
-with one term in the second sum for each pair of joined cities; no mutation changes it. The form is **positive definite** when every population except the empty one has a positive value. On <Tex src="A_3"/> it is, and the Form Finder gives each single Martian the value <Tex src="2"/>. On the triangle it is not: <Tex src="(1,1,1)"/> has the value <Tex src="6-6=0"/>.
+with one term in the second sum for each pair of joined cities; no mutation changes it. The form is **positive definite** when every <Term a="population">population</Term> except the empty one has a positive value. On <Tex src="A_3"/> it is, and the Form Finder gives each single Martian the value <Tex src="2"/>. On the triangle it is not: <Tex src="(1,1,1)"/> has the value <Tex src="6-6=0"/>.
 
 The **spectral radius** of a board is the largest eigenvalue of its matrix of road counts. The verdict panel shows it to four decimals: below <Tex src="2"/> on <Tex src="A_3"/>, exactly <Tex src="2"/> on the triangle and the star.
 
-A board is **balanced** when its cities can be weighted so that such a form exists; every simple graph is balanced, with all weights one. Wildberger proves that on a balanced board the game closes up exactly when the form is positive definite, and exactly when the spectral radius is below <Tex src="2"/> <Cite k="W20"/> ({'Theorems 4.1 and 8.8'}). So the simple graphs that close up are exactly <Tex src="A_n"/>, <Tex src="D_n"/>, <Tex src="E_6"/>, <Tex src="E_7"/> and <Tex src="E_8"/>. Boards with double or triple roads add <Tex src="B_n"/>, <Tex src="C_n"/>, <Tex src="F_4"/> and <Tex src="G_2"/>, whose forms are positive definite too; they arrive in module six.
+A board is **balanced** when its cities can be weighted so that such a form exists; every simple graph is balanced, with all weights one. Wildberger proves that on a balanced board the game <Term a="closes-up">closes up</Term> exactly when the form is <Term a="positive-definite">positive definite</Term>, and exactly when the <Term a="spectral-radius">spectral radius</Term> is below <Tex src="2"/> <Cite k="W20"/> ({'Theorems 4.1 and 8.8'}). So the simple graphs that close up are exactly <Tex src="A_n"/>, <Tex src="D_n"/>, <Tex src="E_6"/>, <Tex src="E_7"/> and <Tex src="E_8"/>. Boards with double or triple roads add <Tex src="B_n"/>, <Tex src="C_n"/>, <Tex src="F_4"/> and <Tex src="G_2"/>, whose forms are positive definite too; they arrive in module six.
 
 <T04ClassificationLab slot="figure" client:visible id="b2" preset="verdict" board="A3" boardPresets={testBoardPresets()} caption="The verdict on A3: finite, balanced with every weight 1, spectral radius below 2; on the triangle and the star it is affine, with spectral radius exactly 2." />
 <T03FormFinder slot="figure" client:visible id="b3" preset="small-values" board="A3" caption={`On A3 each single Martian has form value 2 and is a root population, as is ${fmt('types.A3.highest_root')}; the population (1, 0, 1) has value 4 and is not.`} />
@@ -76,9 +76,9 @@ A board is **balanced** when its cities can be weighted so that such a form exis
 
 <Beat n={3}>
 
-The boards of spectral radius exactly <Tex src="2"/> sit on the boundary; the site calls them **affine**, and Wildberger lists the connected ones with roads both ways <Cite k="W20"/> ({'Theorem 4.1'}). Each carries a **frozen population**, one that no mutation changes. A mutation leaves a city as it is when its neighbours send in exactly twice what it holds, so on a simple graph a frozen population is one in which twice each city equals the sum of its neighbours.
+The boards of spectral radius exactly <Tex src="2"/> sit on the boundary; the site calls them **affine**, and Wildberger lists the connected ones with <Term a="roads">roads</Term> both ways <Cite k="W20"/> ({'Theorem 4.1'}). Each carries a **frozen population**, one that no mutation changes. A mutation leaves a city as it is when its neighbours send in exactly twice what it holds, so on a simple graph a frozen population is one in which twice each city equals the sum of its neighbours.
 
-On the square, the cycle of four cities, the frozen population is <G k="affine.A3.marks"/>, and the lab prints its spectral radius as <G k="classification_tests[label=square (the 4-cycle)].spectral_radius_4_decimals"/>. On the star the centre has four neighbours, so it holds <G k="affine.D4.marks[2]"/> and each arm one: with the cities numbered from <Tex src="0"/> and the centre as city <Tex src="2"/>, <G k="affine.D4.marks"/>. Wildberger draws each affine board with this population <Cite k="W20"/>; Proctor builds classification puzzles on the same condition <Cite k="Pro93"/>. In both figures every city is happy.
+On the square, the cycle of four cities, the frozen population is <G k="affine.A3.marks"/>, and the lab prints its spectral radius as <G k="classification_tests[label=square (the 4-cycle)].spectral_radius_4_decimals"/>. On the star the centre has four neighbours, so it holds <G k="affine.D4.marks[2]"/> and each arm <G k="affine.D4.marks[0]"/>: with the cities numbered from <Tex src="0"/> and the centre as city <Tex src="2"/>, <G k="affine.D4.marks"/>. Wildberger draws each affine board with this population <Cite k="W20"/>; Proctor builds classification puzzles on the same condition <Cite k="Pro93"/>. In both figures every city is happy.
 
 <T15Route slot="figure" id="b4" hydrate="visible" preset="frozen" prediction={{ question: 'Every city of the square holds one Martian. City 1 mutates. How many Martians will it hold?', answer: { type: 'number', value: gv('affine.A3.marks[0]') }, reveal: 'City 1 receives one Martian from each of its two neighbours, exactly twice what it holds, so the mutation gives back what was there. Nothing changes: this population is frozen.' }} caption={`On the square the frozen population is ${fmt('affine.A3.marks')}: every city is happy, and a mutation anywhere changes nothing.`} />
 <T15Route slot="figure" id="b5" hydrate="visible" preset="frozen" board="D4~" caption={`On the star with four arms the frozen population is ${fmt('affine.D4.marks')}, with the centre, city 2, holding twice what each arm holds; every city is happy.`} />
@@ -86,7 +86,7 @@ On the square, the cycle of four cities, the frozen population is <G k="affine.A
 
 <Beat n={4}>
 
-A frozen population is not a root population: no mutation moves it, so no play from a single Martian arrives at it. Add one Martian, though, and you have a root population again. The board below starts from the frozen population of the star plus one Martian in city <Tex src="0"/>. Mutating cities <Tex src="1"/>, <Tex src="3"/> or <Tex src="4"/> changes nothing; cities <Tex src="0"/> and <Tex src="2"/> lead on.
+A frozen population is not a root population: no mutation moves it, so no play from a single Martian arrives at it. Add one Martian, though, and you have a <Term a="root-population">root population</Term> again. The board below starts from the frozen population of the star plus one Martian in city <Tex src="0"/>. Mutating cities <Tex src="1"/>, <Tex src="3"/> or <Tex src="4"/> changes nothing; cities <Tex src="0"/> and <Tex src="2"/> lead on.
 
 Wildberger shows that on every affine board one Martian in a suitable city, added to the frozen population, gives a root population <Cite k="W20"/> ({'Proposition 6.1'}); on the boards of this lesson every city is suitable, as verified by computation. The frozen population can be added again and again, so the root populations never end. The garden beside the board grows them on the star for <G k="layer_growth_examples[label=star with four arms].layers"/> layers and finds <G k="layer_growth_examples[label=star with four arms].root_populations_found"/>, new ones in every layer: <G k="layer_growth_examples[label=star with four arms].new_per_layer"/>. Its verdict, affine, comes from classifying the board, not from the count.
 
@@ -98,7 +98,7 @@ Wildberger shows that on every affine board one Martian in a suitable city, adde
 
 The boundary boards can be built from the finite ones with Kostant's game, attributed to Kostant and met in module one: from one Martian, make raising moves until no city is unhappy. On <Tex src="D_4"/> from city <Tex src="1"/> the play passes through <Tex src="(1,1,0,0)"/>, <Tex src="(1,1,1,0)"/> and <Tex src="(1,1,1,1)"/> to <G k="kostant.D4.end_from_node[0]"/>, in <G k="kostant.D4.moves_from_node[0]"/> moves.
 
-At the end, each city's number is the amount by which a mutation would lower it. The numbers are <G k="kostant.D4.final_numbers_from_node[0]"/>: only city <Tex src="2"/>, the centre, would drop. Join a new city, by one road each way, to every city that ends with a positive number. Here that is the centre alone, and the new board is the star of beat three. On a board with single roads this recipe gives the affine board from every board of finite type and every starting city, as verified by computation. At the end the tool names the new board, with a link, add the city, that opens it in the lab.
+At the end, each city's number is the amount by which a mutation would lower it. The numbers are <G k="kostant.D4.final_numbers_from_node[0]"/>: only city <Tex src="2"/>, the centre, would drop. Join a new city, by one road each way, to every city that ends with a positive number. Here that is the centre alone, and the new board is the star of beat three. On every board of finite type with single roads and rank at most eight, this recipe gives the affine board from every starting city, as verified by computation. At the end the tool names the new board, with a link, add the city, that opens it in the lab.
 
 <T09Kostant slot="figure" client:visible id="b8" preset="default" board="D4" start={[1, 0, 0, 0]} boardChoices={['D4']} prediction={{ question: "Kostant's game on D4 from one Martian in city 1: which city will end with a positive number?", answer: { type: 'choice', options: ['city 1', 'city 2', 'city 3', 'city 4'], correct: kostantCity }, reveal: `City ${kostantCity + 1}, the centre: the game ends at ${fmt('kostant.D4.end_from_node[0]')} with the numbers ${fmt('kostant.D4.final_numbers_from_node[0]')}. Joining a new city to it gives the star with four arms.` }} caption={`Raising moves on D4 end at ${fmt('kostant.D4.end_from_node[0]')} with the numbers ${fmt('kostant.D4.final_numbers_from_node[0]')}; a new city joined to the centre gives the star with four arms, ${fmt('kostant.D4.affine_board_from_node[0]')}.`} />
 </Beat>
@@ -109,7 +109,7 @@ The **Mutation Conjecture** is Wildberger's <Cite k="W20"/> ({'p. 57'}): on any 
 
 Read literally, with one-way roads allowed, the statement is false. Take a single road from city <Tex src="1"/> to city <Tex src="2"/> and none back. From <G k="one_way_counterexample.start"/>, mutate city <Tex src="2"/>, then city <Tex src="1"/>: the population becomes <Tex src="(1,1)"/>, then <G k="one_way_counterexample.result"/>, as verified by computation. The hunter in the lab below finds exactly this. The theorems above assume roads both ways; reading the conjecture for such boards is this site's interpretation.
 
-<Unverified item="E4" fallback="On every board with two-way roads that the script checking this site has tried, no root population mixes Martians and anti-Martians: every board of finite type, and the first 2500 or so root populations of every untwisted affine board of rank at most 8 and of ten twisted affine boards.">For such boards the statement is true: a root population is a real root of the Kac-Moody algebra of the board, and in Kac's theory every root of such an algebra is a combination of simple roots with coefficients all non-negative or all non-positive <Cite k="Kac90"/>.</Unverified> What remains open is a proof by the game alone, a reason in cities and roads why the two kinds never mix; <OpenProblemLink>the open problem page</OpenProblemLink> says what is known and how to send an attempt.
+<Unverified item="E4" fallback="On every board with two-way roads that the script checking this site has tried, no root population mixes Martians and anti-Martians: every board of finite type of rank at most 8, and the first 2500 or so root populations of every untwisted affine board of rank at most 8 and of ten twisted affine boards.">For such boards the statement is true: a root population is a real root of the Kac-Moody algebra of the board, and in Kac's theory every root of such an algebra is a combination of simple roots with coefficients all non-negative or all non-positive <Cite k="Kac90"/>.</Unverified> What remains open is a proof by the game alone, a reason in cities and roads why the two kinds never mix; <OpenProblemLink>the open problem page</OpenProblemLink> says what is known and how to send an attempt.
 
 On your own boards with roads both ways the hunter reports none among the root populations it grew: the report of a finite search, not a proof.
 
@@ -118,7 +118,7 @@ On your own boards with roads both ways the hunter reports none among the root p
 
 <Beat n={7}>
 
-The same list of simple graphs, <Tex src="A_n"/>, <Tex src="D_n"/>, <Tex src="E_6"/>, <Tex src="E_7"/> and <Tex src="E_8"/>, turns up far beyond this game. Donnelly and Eriksson find it in the numbers game: a connected board has a numbers game that ends, from a suitable start, exactly when it is of finite type <Cite k="DE08"/> ({'Theorem 2.1'}). Brouwer and Haemers list the graphs whose largest eigenvalue is at most <Tex src="2"/> <Cite k="BrH"/>; <Unverified item="E10" fallback="their book names the original source of that list, which this site has not yet checked.">the theorem behind that list is due to J. H. Smith {'(1970)'}.</Unverified> A survey on the ubiquity of these diagrams collects many more appearances and quotes Arnold's Problem VIII <Cite k="HHSV77"/>.
+The same list of simple graphs, <Tex src="A_n"/>, <Tex src="D_n"/>, <Tex src="E_6"/>, <Tex src="E_7"/> and <Tex src="E_8"/>, turns up far beyond this game. Donnelly and Eriksson find it in the numbers game: a connected board with roads both ways is of finite type exactly when its <Term a="numbers-game">numbers game</Term> ends from some start with a positive number and no negative one <Cite k="DE08"/> ({'Theorem 2.1'}). Brouwer and Haemers list the graphs whose largest eigenvalue is at most <Tex src="2"/> <Cite k="BrH"/>; <Unverified item="E10" fallback="the original source of that list has not yet been checked for this site.">the theorem behind that list is due to J. H. Smith {'(1970)'}.</Unverified> A survey on the ubiquity of these diagrams collects many more appearances and quotes Arnold's Problem VIII <Cite k="HHSV77"/>.
 
 <figure slot="figure" class="static-figure" data-static-figure="ade">
 <svg viewBox="0 0 340 250" width="100%" role="img" aria-labelledby="ade-title" style="max-width: 340px; display: block">
@@ -141,18 +141,18 @@ The same list of simple graphs, <Tex src="A_n"/>, <Tex src="D_n"/>, <Tex src="E_
 <Seen provenance={['W20', SEEN_FIXED, SEEN_KOSTANT, SEEN_ONE_WAY]}>
 
 <ul data-seen-statements>
-<li data-seen-statement>On a balanced board the game closes up exactly when the form is positive definite, exactly when the spectral radius is below <Tex src="2"/>; among simple graphs these are <Tex src="A_n"/>, <Tex src="D_n"/>, <Tex src="E_6"/>, <Tex src="E_7"/> and <Tex src="E_8"/>. <Cite k="W20"/>, {'Theorems 4.1 and 8.8'}.</li>
+<li data-seen-statement>On a <Term a="balanced-board">balanced board</Term> the game closes up exactly when the form is positive definite, exactly when the spectral radius is below <Tex src="2"/>; among simple graphs these are <Tex src="A_n"/>, <Tex src="D_n"/>, <Tex src="E_6"/>, <Tex src="E_7"/> and <Tex src="E_8"/>. <Cite k="W20"/>, {'Theorems 4.1 and 8.8'}.</li>
 <li data-seen-statement>The connected boards with roads both ways and spectral radius <Tex src="2"/> are the affine boards, <Cite k="W20"/>, {'Theorem 4.1'}. Each has a frozen population, fixed by every mutation: {SEEN_FIXED}.</li>
 <li data-seen-statement>One Martian in a suitable city plus the frozen population is a root population, <Cite k="W20"/>, {'Proposition 6.1'}; every city is suitable on the boards of this lesson, {SEEN_FIXED}.</li>
 <li data-seen-statement>Kostant's recipe builds the affine board of a board of finite type with single roads: {SEEN_KOSTANT}.</li>
-<li data-seen-statement>With a one-way road a root population can mix Martians and anti-Martians: {SEEN_ONE_WAY}.</li>
+<li data-seen-statement>With a one-way road a root population can mix <Term a="martians">Martians</Term> and <Term a="anti-martians">anti-Martians</Term>: {SEEN_ONE_WAY}.</li>
 </ul>
 
 </Seen>
 
 <LieTheory>
 
-A <Term a="board">board</Term> is a generalized Cartan matrix <Tex src="C"/>, in the convention <Tex src="C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle"/>; Bourbaki prints its transpose. <Term a="finite">Finite</Term>, <Term a="affine">affine</Term> and <Term a="neither">neither</Term> are the finite, affine and indefinite types; <Term a="balanced-board">balanced</Term> is symmetrizable; on a simple graph the form is the Tits form. <Term a="root-population">Root populations</Term> are the real roots. The <Term a="frozen-population">frozen population</Term> is the null root <Tex src="\delta"/>, whose entries are the marks; its nonzero multiples are imaginary roots, never root populations. <Term a="kostants-game">Kostant's game</Term> ends at the highest root <Tex src="\theta"/>, and the new city carries <Tex src="\alpha_0=\delta-\theta"/>, giving the untwisted affine diagram <Tex src="\tilde X_n"/>, also written <Tex src="X_n^{(1)}"/>. The comarks weight the level <Tex src="\langle\lambda,K\rangle"/>, which module four uses.
+A <Term a="board">board</Term> is a generalized Cartan matrix <Tex src="C"/>, in the convention <Tex src="C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle"/>; Bourbaki prints its transpose. <Term a="finite">Finite</Term>, <Term a="affine">affine</Term> and <Term a="neither">neither</Term> are the finite, affine and indefinite types; <Term a="balanced-board">balanced</Term> is symmetrizable; on a simple graph the form is the Tits form. <Term a="root-population">Root populations</Term> are the real roots. The <Term a="frozen-population">frozen population</Term> is the null root <Tex src="\delta"/>, whose entries are the marks; its nonzero multiples are imaginary roots, never root populations. For <Tex src="C"/> simply laced and of finite type, <Term a="kostants-game">Kostant's game</Term> ends at the highest root <Tex src="\theta"/>, and the new city carries <Tex src="\alpha_0=\delta-\theta"/>, giving the untwisted affine diagram <Tex src="\tilde X_n"/>, also written <Tex src="X_n^{(1)}"/>. The comarks weight the level <Tex src="\langle\lambda,K\rangle"/>, which module four uses.
 
 </LieTheory>
 
@@ -176,7 +176,7 @@ Each challenge watches the tool below it and says when its goal is reached.
 
 <T04ClassificationLab client:visible id="b13" board="E6" caption="The tree E6 is finite; one new city in the right place makes it affine." />
 
-<ModuleLinks module={3} board="D4~" />
+<ModuleLinks module={3} board="A3" />
 
 <Sources keys={['W20', 'W03a', 'W-MS', 'DE08', 'Pro93', 'HHSV77', 'BrH']}>
 

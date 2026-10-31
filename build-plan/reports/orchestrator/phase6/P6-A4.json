@@ -1,0 +1,363 @@
+{
+ "agent": "P6-A4",
+ "status": "done",
+ "branch": "worktree-agent-aed8be851fa49acae",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-aed8be851fa49acae",
+ "commits": [
+  "d4e58b0 P6-A4: atlas data from the engine with golden tests",
+  "fa9a9bb P6-A4: the Atlas pages, one per board, and the index",
+  "a28b9ae P6-A4: registry entry of T14 and the picker of /tools/atlas",
+  "904322f P6-A4: T14 browser tests",
+  "b63070f P6-A4: tests read every golden value from the file; index links named",
+  "fb87cba P6-A4: decisions fragment; em-dash checks written as escapes"
+ ],
+ "filesChanged": [
+  "site/src/components/atlas/boards.ts",
+  "site/src/components/atlas/atlasData.ts",
+  "site/src/components/atlas/downloads.ts",
+  "site/src/components/atlas/format.ts",
+  "site/src/components/atlas/names.ts",
+  "site/src/components/atlas/diagram.ts",
+  "site/src/components/atlas/Diagram.svelte",
+  "site/src/components/atlas/AtlasSheet.astro",
+  "site/src/components/atlas/AtlasItem.astro",
+  "site/src/components/atlas/ConventionSwitch.astro",
+  "site/src/components/atlas/WildbergerNote.astro",
+  "site/src/components/atlas/AtlasDownloads.astro",
+  "site/src/components/atlas/AtlasPicker.svelte",
+  "site/src/pages/atlas/[board].astro",
+  "site/src/pages/atlas/index.astro",
+  "site/src/tools/registry/T14.ts",
+  "site/src/tools/offered.ts (pre-approved: one entry, atlas: NAMED_TYPES)",
+  "site/src/tools/ToolIsland.astro (pre-approved: the AtlasPicker import, 'atlas' in HYDRATED, one client:idle line)",
+  "site/tests/unit/atlas.test.ts",
+  "site/tests/e2e/T14.spec.ts",
+  "decisions/P6-A4.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 89e37ec; git log -1",
+   "exit": 0,
+   "summary": "HEAD 89e37ec MERGE: fold P6-size's entries; provide() in CONTRACTS.md 4; record the merge"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed; Node v22.22.0"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/atlas.test.ts (against the stub, before the implementation)",
+   "exit": 1,
+   "summary": "115 failed | 1 passed (the red step)"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/atlas.test.ts",
+   "exit": 0,
+   "summary": "116 passed"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings; svelte-check: 0 errors (1 warning in t02/LayerChart.svelte, not mine)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 1,
+   "summary": "Test Files 1 failed | 182 passed (183); Tests 1 failed | 3832 passed (3833). The one failure is released.test.ts > lesson anatomy fixture: data-count=\"3\" against /[0-2]/, because the Atlas is now released (request below)"
+  },
+  {
+   "cmd": "npm test -w packages/engine",
+   "exit": 0,
+   "summary": "87 files, 2712 passed; coverage.json missingByPhase: phases 0 to 6 empty, phase 7 only"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "86 pages built; links: 2946 internal links, 0 problems"
+  },
+  {
+   "cmd": "RELEASE=1 OUT_DIR=<scratch>/dist-release npm run build",
+   "exit": 0,
+   "summary": "85 pages; links 2798, 0 problems; open item E4 used on /atlas/E6/, E7, E8, G2 (fallback shown)"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath npm run build",
+   "exit": 0,
+   "summary": "86 pages; links 2946, 0 problems; Atlas hrefs under /sub/path/"
+  },
+  {
+   "cmd": "npm run size -- --port 7211",
+   "exit": 0,
+   "summary": "86 routes measured, 0 over budget; /atlas/ 0.0 kB, every /atlas/<T>/ 0.0 kB, /tools/atlas/ and /embed/atlas/ 46.0 kB of 90"
+  },
+  {
+   "cmd": "npm run lab -- /atlas/E8/ --port 7212",
+   "exit": 0,
+   "summary": "/atlas/E8/ LCP 0.709 s, TBT 0.0 ms, CLS 0.0000: ok"
+  },
+  {
+   "cmd": "playwright test T14.spec.ts (scratch config, port 7210)",
+   "exit": 0,
+   "summary": "21 passed"
+  },
+  {
+   "cmd": "playwright test embed.spec.ts registry-outs.spec.ts registry-weight.spec.ts engine-weight.spec.ts",
+   "exit": 0,
+   "summary": "115 passed"
+  },
+  {
+   "cmd": "playwright test nojs.spec.ts a11y.spec.ts engine-fallback.spec.ts",
+   "exit": 1,
+   "summary": "360 passed, 1 failed: a11y.spec.ts > modules/m8-lie-algebras/ hit the 120 s test timeout. Run alone, its axe scan took 120.2 s on 20470 elements and found no serious or critical violation. Container speed, not a finding; every Atlas route passed"
+  },
+  {
+   "cmd": "BASE_PATH=/sub/path/ OUT_DIR=<scratch>/dist-basepath playwright test basepath.spec.ts T14.spec.ts",
+   "exit": 0,
+   "summary": "108 passed"
+  },
+  {
+   "cmd": "playwright test M6.spec.ts M7.spec.ts M8.spec.ts module-links.spec.ts pages-6.spec.ts (for information)",
+   "exit": 1,
+   "summary": "121 passed, 2 failed: M7.spec.ts and M8.spec.ts > anatomy of 8.2 still assert that no a[href*=\"atlas/\"] link exists (Expected 0, Received 1)"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "Every displayed value that has a golden value equals it, for all 32 types",
+   "status": "pass",
+   "test": "site/tests/unit/atlas.test.ts > golden values, <T> (32 tests); site/tests/e2e/T14.spec.ts > displayed values equal golden on every page"
+  },
+  {
+   "item": "Lists of roots where positive_roots is absent: the count is compared",
+   "status": "pass",
+   "test": "atlas.test.ts > golden values, <T>; T14.spec.ts > displayed values equal golden on every page"
+  },
+  {
+   "item": "The transposed matrix equals the transpose",
+   "status": "pass",
+   "test": "atlas.test.ts > transposed matrix equals the transpose, <T>; T14.spec.ts > convention switch"
+  },
+  {
+   "item": "Absent or null fields are not shown as values (short roots, rings on A1, count above 60000)",
+   "status": "pass",
+   "test": "atlas.test.ts > absent fields; T14.spec.ts > displayed values equal golden on every page"
+  },
+  {
+   "item": "The B3 page renders without JavaScript with every section",
+   "status": "pass",
+   "test": "T14.spec.ts > B3 without JavaScript"
+  },
+  {
+   "item": "The convention switch shows C by default and C^T when chosen, with and without JavaScript, by keyboard",
+   "status": "pass",
+   "test": "T14.spec.ts > convention switch (with and without JavaScript), by keyboard"
+  },
+  {
+   "item": "Downloads: JSON parses and holds the values; CSV has the header item,label,value and one row per positive root; LaTeX has the line exportLaTeX returns for B3, plus one line per real form",
+   "status": "pass",
+   "test": "atlas.test.ts > downloads (compares with exportLaTeX's own string); T14.spec.ts > downloads: JSON, CSV and LaTeX for B3; downloads work without JavaScript (E8)"
+  },
+  {
+   "item": "Every item links to its tool with the board loaded, and every link decodes with no notice",
+   "status": "pass",
+   "test": "atlas.test.ts > tool links decode, <T> (all 32); T14.spec.ts > links (each B3 link opened and hydrated with no notice)"
+  },
+  {
+   "item": "Values computed by the engine at build time; no golden import, <G> or {{path}} in the build path",
+   "status": "pass",
+   "test": "atlas.test.ts > no golden data in the build path"
+  },
+  {
+   "item": "ATLAS_BOARDS equals TYPE_NAMES; the index lists 32 links grouped by letter",
+   "status": "pass",
+   "test": "atlas.test.ts > boards; T14.spec.ts > index"
+  },
+  {
+   "item": "The Kac numbering sentence on E7, E8 and G2 (and E6) sits inside Unverified E4, with the mark linking to open-items",
+   "status": "pass",
+   "test": "T14.spec.ts > Kac note wrapped"
+  },
+  {
+   "item": "The Wildberger note shows the row of 2.10 that applies; the B and C pages say the letters are exchanged",
+   "status": "pass",
+   "test": "T14.spec.ts > Wildberger note; atlas.test.ts > the note names the row of 2.10 that applies"
+  },
+  {
+   "item": "No misprinted list of 2.10, and no misprinted Example 8.6, is reproduced",
+   "status": "pass",
+   "test": "atlas.test.ts > no misprinted Wildberger list"
+  },
+  {
+   "item": "D19: the B2 and C2 pages keep their own names and say B2=C2",
+   "status": "pass",
+   "test": "T14.spec.ts > rank 2 naming"
+  },
+  {
+   "item": "The sp(2p,2q) note appears on the C_n pages",
+   "status": "pass",
+   "test": "T14.spec.ts > sp note on the C pages only"
+  },
+  {
+   "item": "Long numbers: complete games on E6 (and A7, D6, B6, C6) shortened with the digit count; exact digits in title, in the disclosure and in the downloads",
+   "status": "pass",
+   "test": "T14.spec.ts > long numbers; atlas.test.ts > long counts keep every digit in the downloads"
+  },
+  {
+   "item": "The Atlas pages ship no tool JavaScript: no island, within 15 kB",
+   "status": "pass",
+   "test": "T14.spec.ts > no island on atlas pages; npm run size (0.0 kB on every Atlas page)"
+  },
+  {
+   "item": "Lab timings on /atlas/E8/ (LCP at most 2.5 s, TBT at most 200 ms, CLS at most 0.1)",
+   "status": "pass",
+   "test": "npm run lab -- /atlas/E8/ (LCP 0.709 s, TBT 0 ms, CLS 0); the other Atlas pages are left to GATE"
+  },
+  {
+   "item": "Axe: no serious or critical violation on /atlas/B3/, /atlas/E8/ and /atlas/",
+   "status": "pass",
+   "test": "T14.spec.ts > axe (also /tools/atlas/); a11y.spec.ts on every Atlas route"
+  },
+  {
+   "item": "Reflow at 320 px with no horizontal page scroll on /atlas/E8/ and /atlas/B8/",
+   "status": "pass",
+   "test": "T14.spec.ts > 320 px"
+  },
+  {
+   "item": "Registry entry is valid; /tools/atlas and /embed/atlas render the picker",
+   "status": "pass",
+   "test": "T14.spec.ts > tool route; registry.test.ts; registry-offered.test.ts; embed.spec.ts; registry-outs.spec.ts"
+  },
+  {
+   "item": "The picker is keyboard operable: Tab reaches every board in order with a visible focus ring, and Enter on B3 opens /atlas/B3/",
+   "status": "pass",
+   "test": "T14.spec.ts > tool route: keyboard"
+  },
+  {
+   "item": "Definition of done for a tool (9.2), automated parts",
+   "status": "pass",
+   "test": "the lines above plus nojs.spec.ts, embed.spec.ts, engine-fallback.spec.ts; each plan reading is in decisions/P6-A4.md"
+  },
+  {
+   "item": "Definition of done (9.2): principles P1, P2, P9 and P10 can be pointed to in the Atlas",
+   "status": "not-automated",
+   "test": "owner's part of gate G6"
+  },
+  {
+   "item": "A-13: reading the Atlas page of B3 with a screen reader",
+   "status": "not-automated",
+   "test": "owner's part of gate G6, release 1.0"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "CONTRACTS 3 (covers) / instruction trap 16",
+   "what": "atlas.test.ts and T14.spec.ts import the harness by a relative path and compare only through its helpers, but neither calls covers()",
+   "why": "The types[*], affine and satake keys are already covered by the engine's golden files, and a key is tested in exactly one file. MERGE to confirm."
+  },
+  {
+   "spec": "instruction 5.10 ('It calls no engine function')",
+   "what": "AtlasPicker draws the 32 boards with the site's drawing code, which reads the boards from the engine (boardFromName, and adjacency through draw/roads.ts, both imported by name), and it reads g with decodeState",
+   "why": "nojs.spec.ts and embed.spec.ts require every tool route to show a default figure (svg or img with a text alternative) inside its data-tool root. Nothing is enumerated and nothing needs the worker; the route is 46.0 kB of 90."
+  },
+  {
+   "spec": "instruction 5.10 and 5.9 (no Cite on a static sheet)",
+   "what": "The picker has a Cite button (data-control=cite, data-out=citeText, a live region), and citeText is in the registry outs",
+   "why": "embed.spec.ts requires an enabled [data-control=cite] on every hydrated tool route"
+  },
+  {
+   "spec": "instruction 5.9 (data-tool on the sheet's root)",
+   "what": "The data-tool=\"atlas\" root of an Atlas page is its opening figure (drawing, caption, noscript line), and the items with their data-out hooks follow it",
+   "why": "nojs.spec.ts requires no enabled control inside a data-tool root before hydration, and the CSS radio switch works without JavaScript"
+  },
+  {
+   "spec": "instruction 5.10 (component path)",
+   "what": "T14.ts imports '../../components/tools/../atlas/AtlasPicker.svelte', the same file as @components/atlas/AtlasPicker.svelte",
+   "why": "registry-outs.spec.ts finds each entry's component with a pattern that requires components/tools/"
+  },
+  {
+   "spec": "instruction 5.1 (render in Page.astro)",
+   "what": "The board pages use Base.astro with the sheet's own h1 holding the typeset name; the index uses Page.astro",
+   "why": "Page.astro's h1 is plain text"
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE / P1-A4",
+   "what": "site/tests/unit/released.test.ts > lesson anatomy fixture expects data-count=\"[0-2]\"; with the Atlas released (phase 6) the links block holds sandbox, next module and Atlas, so data-count is 3. Widen to [0-3]."
+  },
+  {
+   "to": "MERGE (owners of M7 and M8)",
+   "what": "site/tests/e2e/M7.spec.ts lines 767-768 and site/tests/e2e/M8.spec.ts lines 584-585 assert no a[href*=\"atlas/\"]. The Atlas is now released, so ModuleLinks adds 'The Atlas page of A2'; update those assertions."
+  },
+  {
+   "to": "MERGE",
+   "what": "site/tests/e2e/a11y.spec.ts > modules/m8-lie-algebras/ times out at 120 s in this container: the axe scan alone took 120.2 s on 20470 elements with no serious violation. Raise its timeout or split the page."
+  },
+  {
+   "to": "MERGE",
+   "what": "Let the component pattern of registry-outs.spec.ts accept components/atlas/, so that T14.ts can import '@components/atlas/AtlasPicker.svelte' directly."
+  },
+  {
+   "to": "P1-A4 (through MERGE)",
+   "what": "Nav.astro has no Atlas link, and released.ts has no static target for /atlas/. Add one so the index is reachable from the site navigation."
+  },
+  {
+   "to": "P6-A2",
+   "what": "scripts/names.mjs typesets no affine name, so the Atlas shows C2~, B3~ and the like as plain data text. Add the 32 untwisted affine names (X~) to names.json to let them be typeset."
+  },
+  {
+   "to": "MERGE (size.mjs owner)",
+   "what": "Optional: size.mjs classifies the Atlas pages as 'tool' (90 kB) because they carry data-tool; they fetch 0 scripts, so a static-sheet class with the 15 kB limit would match SPEC 7.6 more closely."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P6-A4.md",
+ "openQuestions": [
+  "The T13 links of the real-form lines are built with the released mechanism, so they are absent on this branch and appear once P6-A3's T13 is merged. atlas.test.ts already decodes them; T14.spec.ts > links opens every tool link on the page, so it will open them after the merge.",
+  "The LaTeX check in T14.spec.ts compares line 3 with '\\dynkin B{ooo}' (the 6.7 form), because lib/export.ts reads import.meta.env and cannot load in Playwright. The equality with exportLaTeX's own string is asserted in atlas.test.ts > downloads."
+ ],
+ "handoff": "The Atlas is 32 static pages and an index, built at build time from atlasData, with no island and no script. Every value carries data-out and data-exact, and atlas.test.ts checks every value against the golden file. /tools/atlas and /embed/atlas render AtlasPicker. Merging this releases the Atlas: three tests of other owners (released.test.ts, M7.spec.ts, M8.spec.ts) assert its absence and need the updates listed under requests.",
+ "buildTiming": {
+  "atlasDataPerTypeMs": "Vitest, one run: A1 6.8, A2 2.4, A3 6.9, A4 6.5, A5 34.1, A6 26.0, A7 292.6, A8 7.3, B2 7.9, B3 2.1, B4 15.3, B5 24.6, B6 169.8, B7 10.0, B8 9.8, C2 2.1, C3 3.9, C4 2.9, C5 7.7, C6 152.0, C7 9.5, C8 20.2, D4 2.6, D5 4.6, D6 73.9, D7 12.0, D8 8.8, E6 202.9, E7 13.9, E8 10.1, F4 4.9, G2 0.8",
+  "allTypesMs": 1155,
+  "atlasPagesInBuild": "the 33 Atlas pages render in 5 to 9 s of a full build of about 2 minutes",
+  "e8HtmlBytes": "186686 raw, 24110 gzip (B3: 143708 raw, 20782 gzip); mostly KaTeX markup with MathML, plus about 34 kB of base64 data URIs on E8"
+ },
+ "toolLinks": {
+  "board": "B3",
+  "cartan": "/tools/board/?z=1&g=B3",
+  "roads": "/tools/board/?z=1&g=B3",
+  "weights": "/tools/form/?z=1&g=B3",
+  "roots": "/tools/garden/?z=1&g=B3",
+  "highest-roots": "/tools/kostant/?z=1&g=B3",
+  "exponents": "/tools/numbers/?z=1&g=B3",
+  "coxeter-number": "/tools/numbers/?z=1&g=B3",
+  "weyl-order": "/tools/weyl/?z=1&g=B3",
+  "det-cartan": "/tools/board/?z=1&g=B3&v=l",
+  "minuscule-nodes": "/tools/rep/?z=1&g=B3&k=3",
+  "minus-w0": "/tools/board/?z=1&g=B3&v=n&m=l&c=n&s=1,0,0",
+  "orbit-sizes": "/tools/garden/?z=1&g=B3&c=n&s=1,0,0",
+  "complete-games": "/tools/weyl/?z=1&g=B3",
+  "coxeter-plane": "/tools/geometry/?z=1&g=B3&r=0.1.0&j=coxeter",
+  "affine": "/tools/affine/?z=1&g=B3~",
+  "real-forms": [
+   "/tools/satake/?z=1&g=B3&x=2.3&t=1.2.3",
+   "/tools/satake/?z=1&g=B3&x=3&t=1.2.3",
+   "/tools/satake/?z=1&g=B3&x=&t=1.2.3",
+   "/tools/satake/?z=1&g=B3&x=1.2.3&t=1.2.3"
+  ]
+ },
+ "sizeChoice": "no tool embedded; the 15 kB limit applies (every Atlas page fetches 0 scripts; size.mjs labels them 'tool' because of data-tool)",
+ "sizes": {
+  "/atlas/": "no-tool, 0 scripts, 0.0 kB (limit 15)",
+  "/atlas/B3/": "0 scripts, 0.0 kB (size.mjs label 'tool', limit 90; 15 kB rule met)",
+  "/atlas/E8/": "0 scripts, 0.0 kB (size.mjs label 'tool', limit 90; 15 kB rule met); lab LCP 0.709 s, TBT 0 ms, CLS 0",
+  "/tools/atlas/": "7 scripts, 46.0 kB (limit 90)",
+  "/embed/atlas/": "7 scripts, 46.0 kB (limit 90)"
+ }
+}

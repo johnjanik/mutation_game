@@ -1,0 +1,100 @@
+---
+title: "History"
+phase: 6
+released: true
+description: "Where the mutation game and the numbers game come from, in order of date, with the credit each author is owed."
+---
+import { Cite, Unverified } from '@components/content';
+import { Sources } from '@components/lesson';
+import { linkIfReleased } from '@lib/pages/released';
+
+export const glossary = linkIfReleased({ kind: 'page', slug: 'glossary' });
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
+export const sources = linkIfReleased({ kind: 'static', name: 'sources' });
+export const m4 = linkIfReleased({ kind: 'module', number: 4 });
+export const m9 = linkIfReleased({ kind: 'module', number: 9 });
+export const openProblem = linkIfReleased({ kind: 'page', slug: 'open-problem' });
+export const confusions = linkIfReleased({ kind: 'page', slug: 'confusions' });
+export const credits = linkIfReleased({ kind: 'page', slug: 'credits' });
+
+{/* P6-A6: the history page of module M10 (SPEC.md 3 M10, 8.4, SOURCES.md 11.1 to 11.4 and 11.9). The
+    timeline is the ordered list of M10 in order of date, one entry per item of M10, each with data-year
+    (its first year) and data-entry; beside it an aside with Kostant's game and the diagrams of Satake
+    and Araki. Every sentence that rests on the content of Mozes' paper is wrapped as open item E2 (in
+    the entry of 1990, and the attribution of strong convergence to Mozes in the entry of 2008), the
+    video lectures as E5, the fuller attribution of Kostant's game as E13. The proposer of the 1986
+    problem is not named (E11 unused). Years, volumes, pages and theorem numbers of sources are locators
+    with no golden value. No tool and no script. */}
+
+This page tells where the two games of this site come from, in order of date, and whom each part is owed to. A **board** is a small graph of **nodes** joined by **roads**; a Dynkin diagram is one. In the **mutation game** each node is a **city** that holds a **population**, a whole number, and a **mutation** at a <Term a="city">city</Term> changes the <Term a="population">population</Term> of that city and nothing else. In the **numbers game** each <Term a="node">node</Term> holds a number, and **firing** a node sends its number down each road that leaves it and then changes the sign of the number. {glossary ? <>The <a href={glossary}>glossary</a> defines the words of the site, and </> : 'The '}{sources ? <a href={sources}>the sources page</a> : 'the sources page'} gives every reference in full, with what was read of each.
+
+<p data-credit-lines>Credit, in short: the <Term a="mutation-game">mutation game</Term> is Wildberger's; the <Term a="numbers-game">numbers game</Term> is Mozes', with Proctor's earlier use of the same process and Eriksson's development of it acknowledged; and Kostant's game is "attributed to Kostant".</p>
+
+<p data-signs>In <Term a="legal-play">legal play</Term> a node may fire only when its number has the sign that the convention allows. This site fires positive numbers, as Proctor, Donnelly and Wildberger do. Eriksson, the 1986 Olympiad problem, and Gashi, Schedler and Speyer <Term a="fire">fire</Term> negative <Term a="numbers">numbers</Term>. Since a firing is linear, changing the sign of every number carries a play in one convention to a play in the other. The entries below say which sign each source fires wherever they describe its rule.</p>
+
+## Timeline
+
+<div class="history-layout" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
+
+<ol class="timeline" data-timeline style={{ flex: '3 1 min(100%, 24rem)', minWidth: 0, boxSizing: 'border-box', margin: 0, paddingInlineStart: '1.5em' }}>
+<li data-year="1984" data-entry="Pro84">
+<h3>1984: Proctor's use of the firing process</h3>
+<p>R. A. Proctor, <cite>Bruhat lattices, plane partition generating functions, and minuscule representations</cite>, European Journal of Combinatorics, volume 5 <Cite k="Pro84"/>. As Donnelly reports <Cite k="Don08"/>, Proctor used the firing process to compute the orbits of weights under a Weyl group, with each weight written in the coordinates of the fundamental weights, and he fired positive numbers. This use came before Mozes' paper. It is the origin of the sign convention of this site: in <Term a="legal-play">legal play</Term> a node fires when its number is positive. The numbers game is credited to Mozes, and Proctor's earlier use of the same process is acknowledged here.</p>
+</li>
+<li data-year="1986" data-entry="IMO86">
+<h3>1986: the Olympiad problem</h3>
+<p>Problem 3 of the 27th International Mathematical Olympiad, held in Warsaw <Cite k="IMO86"/>. Five integers with a positive sum stand at the corners of a pentagon. When three neighbouring corners hold $x$, $y$ and $z$ and the middle number $y$ is negative, the three numbers may be replaced by $x+y$, $-y$ and $z+y$. The problem asks whether this must stop, whatever choices are made; it must. The puzzle fires negative numbers. With every number negated, $a=-x$, it is the numbers game of this site on the cycle of five nodes, which is the <Term a="affine">affine</Term> <Term a="board">board</Term> $\tilde A_4$ (verified by computation), and its positive sum becomes a negative <Term a="level">level</Term>.{m4 ? <> <a href={m4}>Module four</a> plays it.</> : null}</p>
+</li>
+<li data-year="1988" data-entry="Bjo88">
+<h3>1988: Björner's preprint on Mozes' game</h3>
+<p>A. Björner, <cite>On a combinatorial game of S. Mozes</cite>, a preprint that was not published <Cite k="Bjo88"/>. Proctor, Donnelly, Donnelly and Eriksson, and Wildberger in 2020 cite it in this form. Eriksson credits Björner with the notion of strong convergence, which appears in the entry for 1992 to 1996 below.</p>
+</li>
+<li data-year="1990" data-entry="Moz90">
+<h3>1990: Mozes' paper</h3>
+<p>S. Mozes, <cite>Reflection processes on graphs and Weyl groups</cite>, Journal of Combinatorial Theory, Series A, volume 53, pages 128 to 142 <Cite k="Moz90"/>. The numbers game is Mozes'. <Unverified item="E2" fallback="Later authors describe this paper as the one that introduced the game.">Later authors report that the paper starts from the pentagon problem and extends it to a graph whose road counts come from a symmetrizable generalized Cartan matrix, and that a node fires there when its number is negative. They also report that it proves that the length and the end of a play that stops do not depend on the order of the moves, and that it describes the starts from which play stops through the <Term a="weyl-group">Weyl group</Term> of a Kac-Moody algebra (Donnelly <Cite k="Don08"/>; Gashi, Schedler and Speyer <Cite k="GSS12"/>).</Unverified> The paper is free to read in the publisher's open archive, under the publisher's own user licence, which is not a Creative Commons licence. This site links to <a href="https://doi.org/10.1016/0097-3165(90)90024-Q">Mozes' paper at the publisher</a> and keeps no copy.</p>
+</li>
+<li data-year="1992" data-entry="Eri">
+<h3>1992 to 1996: Eriksson's papers</h3>
+<p>K. Eriksson developed the game in a series of papers and a thesis. His paper <cite>Convergence of Mozes's game of numbers</cite> (1992) <Cite k="Eri92"/> is described by later authors as a treatment of the game on simple graphs, with a classification of the graphs on which every game ends. His thesis, <cite>Strongly convergent games and Coxeter groups</cite> (KTH Stockholm, 1993) <Cite k="Eri93"/>, is where later papers point for the main theorems. <cite>The numbers game and Coxeter groups</cite> <Cite k="Eri95a"/> was first presented at a conference in Montréal in 1992; it is the earliest documented title that contains the words "numbers game". <cite>Polygon posets and the weak order of Coxeter groups</cite> (1995) <Cite k="Eri95b"/> is free to read, and this site cites it for strong convergence: its Definition 1.1 defines the notion, and its Theorem 1 says that a game has it exactly when any two legal moves from one position either lead, after equally many further moves, to a common <Term a="position">position</Term>, or can both be continued for ever. <cite>Strong convergence and a game of numbers</cite> (1996) <Cite k="Eri96a"/> followed. Eriksson fires negative numbers; negate every number to read his results in this site's convention. Eriksson's development of the game is acknowledged throughout this site.</p>
+</li>
+<li data-year="2001" data-entry="W-MS W03a W03c">
+<h3>2001 to 2003: Wildberger's manuscript and first papers</h3>
+<p data-source="W-MS">N. J. Wildberger, <cite>The Mutation Game, Coxeter Graphs, and Partially Ordered Multisets</cite>, unpublished manuscript, undated (circulated c. 2001 to 2004) <Cite k="W-MS"/>. Wildberger cited it as a preprint of 2001 in two preprints, and later as in preparation in his published paper on $G_2$; the PDF of the copy read for this site carries the metadata date 25 November 2004. It is the fullest account of the two games together. Beside the mutation game it has the dual game, told on Venus, which is the numbers game of this site in free play.</p>
+<p data-source="W03a W03c">The first published statements of the mutation game are two papers of 2003. <cite>A combinatorial construction for simply-laced Lie algebras</cite> <Cite k="W03a"/> states the game for simple graphs in its section 3, with the story of the Martians on Mars. <cite>A combinatorial construction of $G_2$</cite> <Cite k="W03c"/> gives in its section 2 the earliest published definitions of the two games together, on directed graphs. There a mutation at a node changes the sign of its value and adds the value of each neighbour once for each road into the node; a dual mutation changes the sign of the value at the node and adds it to each neighbour once for each road out of the node; and the numbers game allows only positive firings, as on this site. That paper credits the numbers game to Mozes. The mutation game is Wildberger's.</p>
+</li>
+<li data-year="2008" data-entry="Don08">
+<h3>2008: Donnelly</h3>
+<p>R. G. Donnelly, <cite>Eriksson's numbers game and finite Coxeter groups</cite>, European Journal of Combinatorics, volume 29 <Cite k="Don08"/>. Donnelly fires positive numbers, following Proctor, as this site does; his matrix $M$ is the transpose of this site's <Term a="cartan-matrix">Cartan matrix</Term>, $C=M^{\mathsf T}$. The paper states strong convergence in this convention as its Theorem 2.1, <Unverified item="E2" fallback="a theorem that later authors attribute to Eriksson, among others">a theorem that later authors attribute to Mozes and Eriksson</Unverified>, and it describes Wildberger's mutation game as the dual game. It is free to read, and it is the reference this site uses most for the numbers game. In a joint preprint of the same year, arXiv:0810.5371 <Cite k="DE08"/>, Donnelly and Eriksson use the game to prove that a connected graph with whole-number road <Term a="counts">counts</Term> is a Dynkin diagram of <Term a="finite">finite</Term> type exactly when some start that has no negative number and is not all zeros gives a game that ends.</p>
+</li>
+<li data-year="2012" data-entry="GSS12">
+<h3>2012: Gashi, Schedler and Speyer</h3>
+<p>Q. R. Gashi, T. Schedler and D. E. Speyer, <cite>Looping of the numbers game and the alcoved hypercube</cite>, Journal of Combinatorial Theory, Series A, volume 119 <Cite k="GSS12"/>. For the simply laced <Term a="affine">affine</Term> boards, which they call extended Dynkin diagrams, they show that the numbers game ends when the <Term a="level">level</Term> of the start is negative, visits finitely many <Term a="position">positions</Term> and loops when the level is zero and the start is not all zeros, and visits infinitely many positions when the level is positive (Theorem 1.2, which they credit to Eriksson). They fire negative numbers: their position $v$ is $-a$ in this site's convention, their matrix $c$ is $C^{\mathsf T}$, and their quantity $\delta\cdot v$ is minus the level, so these three cases are their theorem with the signs reversed.</p>
+</li>
+<li data-year="2020" data-entry="W20">
+<h3>2020: Wildberger's paper in Algebra Colloquium</h3>
+<p>N. J. Wildberger, <cite>The Mutation Game, Coxeter-Dynkin Graphs, and Generalized Root Systems</cite>, Algebra Colloquium, volume 27 (2020), number 1, pages 55 to 78 <Cite k="W20"/>. It is the citable published source for the mutation game on boards, which it calls directed multigraphs: the story of <Term a="martians">Martians</Term> and anti-Martians in its section 2, the classification of the connected boards whose <Term a="roads">roads</Term> run both ways by the spectral radius of their adjacency matrix (Theorem 4.1), the invariant form (Theorems 8.4 and 8.7), and lists of positive roots (section 9). Its section 2 also states the Mutation Conjecture, on page 57; the conjecture has {openProblem ? <a href={openProblem}>a page of its own</a> : 'a page of its own'} on this site.</p>
+</li>
+</ol>
+
+<aside data-sidebar="history" aria-labelledby="beside-title" style={{ flex: '1 1 min(100%, 14rem)', minWidth: 0, boxSizing: 'border-box', borderInlineStart: '4px solid var(--sign-zero-outline)', paddingInlineStart: '16px' }}>
+<h2 id="beside-title" style={{ marginTop: 0 }}>Beside the timeline</h2>
+<section data-beside="kostant">
+<h3>Kostant's game, an oral tradition</h3>
+<p>Kostant's game is attributed to Kostant. It is the mutation game with a ratchet: start from one Martian in one city, and let a city mutate only when the mutation raises its population (<Term a="kostants-game">Kostant's game</Term> in the glossary). The sources read for this site contain no publication by Kostant that describes the game, and its written record begins with teaching notes <Cite k="Ele16"/> <Cite k="Che17"/>. <Unverified item="E13" fallback="Those notes name the game after Kostant.">The fuller attribution is to Bertram Kostant, with the game popularised by Allen Knutson and by Alexander Postnikov's course at MIT in 2017.</Unverified></p>
+</section>
+<section data-beside="satake">
+<h3>Satake (1960) and Araki (1962): the diagrams</h3>
+<p>The decorated boards of module nine, with <Term a="black">black</Term> nodes, <Term a="white">white</Term> nodes and <Term a="arrows">arrows</Term>, are Satake diagrams. They are reported to appear on page 109 of Satake's paper of 1960 <Cite k="Sat60"/>. Araki's paper of 1962 <Cite k="Ara62"/> is reported by later papers to have a table of the diagrams with the multiplicities of their restricted roots, the <Term a="shadow">shadows</Term> of this site; they cite the table as pages 32 and 33. This site has not read either text.{m9 ? <> <a href={m9}>Module nine</a> plays these diagrams.</> : null}</p>
+</section>
+</aside>
+
+</div>
+
+<section data-lectures aria-labelledby="lectures-title">
+<h2 id="lectures-title">Seminars and lectures</h2>
+<p>In 2018 Wildberger gave three seminars at UNSW on the two games and their background: <a href="https://www.unsw.edu.au/science/our-schools/maths/engage-with-us/seminars/2018/curious-ubiquity-ade-graphs-and-numbers-and-mutation-games">The curious ubiquity of ADE graphs, and the Numbers and Mutation games</a> on 4 June, <a href="https://www.unsw.edu.au/science/our-schools/maths/engage-with-us/seminars/2018/geometrical-graph-theory-root-systems-weyl-groups-and-quadratic-forms">Geometrical graph theory: root systems, Weyl groups and quadratic forms</a> on 18 June, and <a href="https://www.unsw.edu.au/science/our-schools/maths/engage-with-us/seminars/2018/ade-graphs-and-associated-lattices-weights-and-quarks">ADE graphs and associated lattices, weights and quarks</a> on 2 July. The abstract of the third presents the numbers game as the dual game, about weights where the mutation game is about roots. <Unverified item="E5" fallback="Video lectures are linked here only after their titles, dates and addresses have been checked.">He also teaches the games on video. His channel Insights into Mathematics has a public introduction, <a href="https://www.youtube.com/watch?v=peLRDMhWai8">Exceptional structures in mathematics and physics from dynamics on graphs</a>, and the series Dynamics on Graphs on his channel Wild Egg Maths begins with <a href="https://www.youtube.com/watch?v=u7cUXZHZHEE">DoG 1: The Mutation Game and a foundational exercise / challenge</a>; later episodes are for members of that channel.</Unverified> Videos are linked from this site and never copied{credits ? <>; the <a href={credits}>credits page</a> lists them</> : null}.</p>
+</section>
+
+<p>{confusions ? <>Statements about the games that are sometimes made and are not right are corrected on the page <a href={confusions}>Common confusions</a>, among them the date of Wildberger's manuscript.</> : null}</p>
+
+<Sources keys={['Pro84', 'Don08', 'IMO86', 'Bjo88', 'Moz90', 'GSS12', 'Eri92', 'Eri93', 'Eri95a', 'Eri95b', 'Eri96a', 'W-MS', 'W03a', 'W03c', 'DE08', 'W20', 'Ele16', 'Che17', 'Sat60', 'Ara62']} />

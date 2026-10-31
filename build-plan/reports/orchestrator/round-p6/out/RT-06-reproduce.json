@@ -1,0 +1,26 @@
+{
+ "lens": "RT-06",
+ "mode": "reproduce",
+ "verdicts": [
+  {
+   "findingId": "P6-RT-06-01",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "SPEC.md 7.4 'Without JavaScript' (last sentence); 4 T13 Shadows and Restricted board; 4 T14; 7.7 row 'Without JavaScript'; RED-TEAM-COMMON 2 ('a test that would pass against an empty function'); retest of P5-RT-06-01",
+   "evidence": "Worktree /home/user/mutation_game/.claude/worktrees/agent-a32a0e2818dcef881. Detached HEAD f07eec66a8b80d249101630305ef6d2d23882738. Node v22.22.0. Applied from worktree-agent-ab01232faaf6b3607 (68f1920): site/tests/e2e/redteam-RT-06-p6-nojs-blank-figure.spec.ts (the reproducer) and redteam/redteam-RT-06-p6-playwright.config.ts (named in reproduction, absent at the gate). Neither exists at f07eec6. The spec imports nothing under redteam/. git status --porcelain: 'A  redteam/redteam-RT-06-p6-playwright.config.ts' / 'A  site/tests/e2e/redteam-RT-06-p6-nojs-blank-figure.spec.ts'. The finding 2 file had been applied and removed again before this run. Commands: 'npm ci --prefer-offline' (exit 0); 'npm run build' (exit 0, '90 page(s) built', links.mjs '0 problems'); 'RT06_PORT=5820 RT06_OUT=<scratch>/verify-p6-rt06-reproduce/pw-out PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers npx playwright test -c redteam/redteam-RT-06-p6-playwright.config.ts site/tests/e2e/redteam-RT-06-p6-nojs-blank-figure.spec.ts' (exit 1). The orchestrator assigned RT06_PORT=5820. RT06_OUT only moves Playwright's output folder into my scratch directory. The config's own webServer started the preview with no manual start. Output: '3 failed'. Test 1 (M9 b3, b7, b12) received [\"b3 as board\", \"b7 as board\", \"b12 as board\"] where [] was expected. Its earlier assertions passed: shadow points > 0 and restricted shapes and nodes > 0 before blanking, and the M9.spec-style checks on the blanked roots. Tests 2 (atlas/B3/) and 3 (tools/atlas/) each received [\"atlas (page) as drawing\"] where [] was expected, after the drawing-visible and aria-label checks passed. I also diffed the reproducer's copied predicate (its lines 24 to 173) against site/tests/e2e/nojs.spec.ts lines 31 to 180 at the gate: identical (diff exit 0). The observed value matches the finding's observed exactly. After the run, the tree held only the two applied files. Server on 5820 stopped (no listener, no process).",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: nojs.spec.ts's predicate accepts the blanked roots ['b3 as board', 'b7 as board', 'b12 as board'] on modules/m9-real-forms/ and 'atlas (page) as drawing' on atlas/B3/ and tools/atlas/; this is a check that could be stronger without being wrong (the build's figures are present), which the rubric lists as minor"
+  },
+  {
+   "findingId": "P6-RT-06-02",
+   "mode": "reproduce",
+   "reproduced": true,
+   "refuted": null,
+   "citation": "CONTRACTS.md 4 (worker.ts serialisation) and 2 (RestrictedBoard.board); SPEC.md 5.1 E-9 rule 3 (restrictedBoard for E7 and E8 runs in the worker); RT-06 attack 29",
+   "evidence": "Detached HEAD f07eec66a8b80d249101630305ef6d2d23882738. Applied from worktree-agent-ab01232faaf6b3607: site/tests/unit/redteam-RT-06-p6-worker-satake.test.ts only. It is absent at the gate and imports nothing under redteam/. git status --porcelain: 'A  site/tests/unit/redteam-RT-06-p6-worker-satake.test.ts'. 'npm ci --prefer-offline' (exit 0). Ran from the worktree root: 'node_modules/.bin/vitest run site/tests/unit/redteam-RT-06-p6-worker-satake.test.ts -t \"restricted board that comes back\"' (exit 1). No TMPDIR was needed. Output: 'Tests  1 failed | 17 skipped (18)'. Failing test: 'E8 e8(-24): the restricted board that comes back from the worker is the board the main thread computes (matrix, labels)'. Its earlier assertion direct.name === 'F4' passed. Diff, Expected = direct, Received = via handleCall: row 2 '-2' expected, '-1' received; row 3 '-1' expected, '-2' received; labels expected [4,3,2,1], received [1,2,3,4]. So the direct cartan is [[2,-1,0,0],[-1,2,-2,0],[0,-1,2,-1],[0,0,-1,2]] with labels [4,3,2,1], and the worker gives [[2,-1,0,0],[-1,2,-1,0],[0,-2,2,-1],[0,0,-1,2]] with labels [1,2,3,4]. This matches the finding's observed exactly. Supplementary run of the whole file without -t (exit 1): 'Tests  2 failed | 16 passed (18)'. The second failure is 'E8 e8(-24): satake, restrictedBoard and matchCatalogue equal the direct call', with the same -2/-1 swap inside the board's cartan. This agrees with the finding's statement. The other 16 tests pass, including satake and matchCatalogue for every other E7 and E8 record. The file was then removed with git restore --staged --worktree before finding 1 was run.",
+   "severityAdjustment": "none",
+   "reason": "reproduced as stated; observed matches: restrictedBoard(e8(-24)).board comes back through handleCall as canonical F4 (cartan [[2,-1,0,0],[-1,2,-1,0],[0,-2,2,-1],[0,0,-1,2]], labels [1,2,3,4]) against the direct board (cartan [[2,-1,0,0],[-1,2,-2,0],[0,-1,2,-1],[0,0,-1,2]], labels [4,3,2,1]); severity left at minor because CONTRACTS 4's rule 'Board as its BoardSpec (rebuilt with resolveBoard)' is followed literally and no reader-visible field is wrong today, so the rubric's 'a field missing or wrong' does not clearly name the case"
+  }
+ ]
+}

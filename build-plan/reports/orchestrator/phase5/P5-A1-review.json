@@ -1,0 +1,63 @@
+{
+ "reviewed": "48e28e5",
+ "findings": [
+  {
+   "severity": "major",
+   "what": "No test can detect a basis sorted by its text instead of by number, which is trap 2 of the instruction. The only order checks are the strict decreasing lexCompare loop and weights_dynkin_labels, and both run only on the 18 golden orbits. Every entry of those orbits is -1, 0 or 1, and for those entries text order and numeric order agree. On D4 node 2 the test checks basis[0] and nothing else. The engine itself is correct: its basis equals the oracle's in all 493 runs.",
+   "where": "packages/engine/test/golden/p5-minuscule.test.ts:148 and :195 (the comparator under test is packages/engine/src/rep.ts:230)",
+   "evidence": "node scratchpad/p5-a1-review/mutants.mjs, with rep.ts:230 changed to compare a.join(',') text in decreasing order: 'SURVIVED basis by string order (default sort of the joined text, descending) :: 162 passed (162)'. python3 scratchpad/p5-a1-review/stringsort.py oracle.jsonl: '75 of 170 bases differ under string order ... minuscule ones that differ: 0'. 'D4 1 24 differs at row 5 ([1, -2, 1, 1], [1, -1, 1, 1])'. 'E8 7 240 differs at row 29'.",
+   "specRef": "SPEC.md E-5 (the basis of minusculeMatrices is the orbit in decreasing lexicographic order); 4 T12 (as in the oracle; node 2 of D4 is the acceptance example); P5-A1 instruction section 9 trap 2 (its claim that the order test on 17 records catches this is false for a text comparator)",
+   "proposedFix": "Assert the full numeric decreasing order on orbits that contain entries of size 2: run the lexCompare loop over all 24 vectors of D4 node 2 and over the 240 of E8 node 8 in the cap test. Also pin one row where -2 and -1 meet, read from the oracle by hand (D4 node 2, row 5 is [1, -1, 1, 1])."
+  },
+  {
+   "severity": "minor",
+   "what": "No test checks that the serre-f records are built from F. The Serre-exponent unit test passes the same lists for E and F ([N(), X()]). On every golden representation, and on D4 node 2, both Serre sides are zero, so a serre-f computed from E gives the same result.",
+   "where": "packages/engine/test/golden/p5-rep-units.test.ts:262 and :274 (code under test: packages/engine/src/rep.ts:350-356)",
+   "evidence": "mutants.mjs: 'SURVIVED serre-f computed with E instead of F :: 162 passed (162)' (rep.ts:353 changed to y = spComm(E[i]!, y)) and 'SURVIVED serre-f starts from E[j] :: 162 passed (162)'.",
+   "specRef": "SPEC.md 2.18 (ad(F_i)^(1-C_ij) F_j = 0); 5.2 RelationCheck; 4 T12 relation checker; P5-A1 instruction 5.5",
+   "proposedFix": "In the Serre-exponent test pass different lists, for example E = [N, X] and F = [empty, empty], then the reverse. Assert that serre-e fails while serre-f holds, and the other way round."
+  },
+  {
+   "severity": "minor",
+   "what": "The default cap is not pinned inside (1792, 2016). The named boards have no orbit of a size in that range, so a default anywhere from 1792 to 2015 passes. The test checks CAPS.repOrbit === 2000, but nothing ties the default parameter to it.",
+   "where": "packages/engine/test/golden/p5-rep-units.test.ts:359-371 (default at packages/engine/src/rep.ts:217)",
+   "evidence": "mutants.mjs: 'SURVIVED default cap 2010 instead of CAPS.repOrbit :: 162 passed (162)'. guards.mjs: a custom Big A13 board at position 4 (C(14,5) = 2002 positions) gives null with the default cap and at 2001, and builds at 2002 (all checks pass on the real code).",
+   "specRef": "SPEC.md 5.4 (null above cap, default 2000); 5.6 row 'Orbit for which T12 builds matrices | 2000 positions'; CONTRACTS.md 2.3 CAPS.repOrbit",
+   "proposedFix": "Add the A13 position 4 case (2002 positions): null with the default cap, built at cap 2002. That narrows the default to 2000 or 2001. An orbit of exactly 2000 positions needs a board of about 1000 nodes (B1000, C1000 or D1000 at node 1, or A1999), so say in the test that the exact boundary is covered by the cap = orbit-size cases."
+  },
+  {
+   "severity": "minor",
+   "what": "Golden values are typed into tests. Cap 2 builds and cap 1 gives null on A1, and cap 3 builds on A2. These encode the A1 orbit size 2 (types.A1.fundamental_orbit_sizes[0], also minuscule_representations A1 node 1 dimension) and the A2 orbit size 3. The E7 case a few lines above reads its size through the harness.",
+   "where": "packages/engine/test/golden/p5-rep-units.test.ts:355-356; packages/engine/test/golden/p5-guards.test.ts:81",
+   "evidence": "grep -n \"minusculeMatrices(boardOf('A1'), 0, 2)\\|minusculeMatrices(a2, 0, 3)\" gives p5-rep-units.test.ts:355 and p5-guards.test.ts:81. golden types.A1.fundamental_orbit_sizes = [2] and types.A2.fundamental_orbit_sizes = [3, 3].",
+   "specRef": "build-plan/COMMON.md 4.4 ('a golden value typed into source'); P5-A1 instruction section 6, COMMON 4.4 item",
+   "proposedFix": "Read golden.types.A1.fundamental_orbit_sizes[0] and golden.types.A2.fundamental_orbit_sizes[0] through the harness, as the E7 case does with sizes('E7')[6]."
+  },
+  {
+   "severity": "minor",
+   "what": "Key validation is inconsistent. spMul throws RangeError on a key that spKey would not write. spAdd, spScale and spEq accept such keys silently, so one entry written two ways counts as two entries. The decision's own reason for the check ('such a key would silently miss its partner') applies to these three functions just as much.",
+   "where": "packages/engine/src/rep.ts:111-147",
+   "evidence": "node misc.mjs: 'spAdd(a, b, -1n) size (a - b, the same entry written two ways): 2 spEq(a, b): false' with a = {'0, 1': 1n} and b = {'0,1': 1n}; 'spMul(a, b) throws RangeError'.",
+   "specRef": "decisions/P5-A1.md entry 'the sparse helpers, their names and the key format'; P5-A1 instruction 5.2",
+   "proposedFix": "Either check each key with parseKey in spAdd, spScale and spEq (RangeError, as spMul does), or state in the decision and the doc comments that only spMul checks keys and that callers must build keys with spKey."
+  }
+ ],
+ "checked": [
+  "1. Engine against the oracle (oracle_dump.py + compare.mjs). 170 oracle cases: all 153 nodes of the 32 finite types of rank up to 8 whose orbit has at most 2000 positions (79 minuscule including the 18 golden, 91 not minuscule), plus 17 nodes of 4 boards in pieces. Each case ran on 3 boards (the named SafeInt board; a Big board with reversed labels; a SafeInt board with labels 100+7k), 493 runs in all. Basis equal in order 493/493. 11304 E, F, H and move matrices and 2826 signed moves equal entry by entry (sha256 of the sorted entries), 0 mismatches, 0 zero entries or malformed keys. 100932 RelationCheck records equal in name, i, j, order, holds, left and right; the overall verdict equals chevalley_serre_ok in all 170 cases. 4160 stringThrough calls on random mu (entries in [-7,7], mu_i in [0,9], 40 per board) equal string_through.",
+  "2. Guards and errors (guards.mjs): 227 checks, 0 failed. NeedsTwoWayRoads from all 3 guarded functions on 3 one-way boards (one of them in pieces). NotFiniteType on A1~, A2~, A5~, B3~, B2~, C2~, D4~, E6~, E8~, F4~, G2~, A2^(2), D4^(3), pentagon, square, a hyperbolic board, A2+A1~ and a star with 4 arms. Boards in pieces that are all finite are accepted and match the oracle. Labels 0..2 (subBoard of A3~), 10/20/30, reversed and odd labels: positions go in and come out everywhere (RelationCheck.i and .j included), and passing a label as a position gives RangeError. RangeError for 11 bad i, 9 bad caps, 7 bad string positions, 9 bad mu, wrong E/F/H lengths and malformed keys. EngineOverflow from stringThrough on SafeInt and Big boards.",
+  "3. Cap: null with both the default and an explicit 2000 on all 10 orbits above 2000 (E7 positions 2 to 4, E8 positions 0 to 6), on 3 boards each (30/30). cap = orbit size builds and orbit size - 1 gives null in 323/323 runs; the default equals an explicit CAPS.repOrbit in 323/323. B8 position 4 (1792) is built. A13 position 4 (2002) is null by default and built at 2002. E7 position 2 (2016) is null at 2000 and 2015 and built at 2016. No finite board of practical size has an orbit of exactly 2000 positions.",
+  "4. Tests: 36 reviewer mutants beyond the agent's 17: 31 killed, 5 survived. 'cap allows 0' is equivalent (orbit throws RangeError for cap 0); the other 4 are reported above. Removing the bodies of chevalleySerre, signedMoves and stringThrough is killed. The golden test covers every field of minuscule_representations: type and node by matchRecord with toPositions; dimension by intEq on 18 records; weights_dynkin_labels in order by intEq on 17 records, with E7 node 7 skipped where it is null. covers() appears in exactly one file; coverage.json missingByPhase['5'] = [] after a full run. Golden values typed into tests: the A1 and A2 caps (finding).",
+  "5. Purity, bigint, clocks: in 493 runs and 4160 string calls on frozen boards, frozen mu and frozen basis, no input changed (0 purity failures); E, F and H are unchanged after signedMoves and chevalleySerre. Matrix entries are bigint on SafeInt and Big boards; no large count is held as a number. No performance, Date, hrtime or Math.random in rep.ts or p5-*.test.ts. The E7 timing is in test/bench, which CI runs with npm run bench: 4.49 ms for minusculeMatrices, 33.50 ms for chevalleySerre.",
+  "Also: npx tsc --noEmit -p packages/engine exit 0. npm test -w packages/engine: 73 files, 2405 passed. Reference hashes equal CONTRACTS.md 9. rep.ts imports only src/. No em-dashes, .only, .skip or commented-out assertions in the agent's files."
+ ],
+ "notes": [
+  "Every function of rep.ts agrees with the oracle everywhere it was compared; all findings are gaps in the tests or the API, not wrong results.",
+  "The 'cap allows 0' mutant survives only because orbit() itself throws RangeError('1 distinct seeds exceed the cap of 0'). The behaviour is correct.",
+  "LISTED (p5-minuscule.test.ts:37) types the 18 identifying (type, node) pairs. They come from SPEC 2.18 and verify.py MINU, and the test also checks that the file holds exactly these, so I did not count it as a finding.",
+  "Recorded deviation: the E7 'under two seconds' check is in packages/engine/test/bench/p5-minuscule.bench.ts rather than p5-minuscule.test.ts. It follows the P4-X2 rule that timing checks run alone, and CI runs npm run bench. Fine.",
+  "For P5-A2: chevalleySerre over the whole list is slow on the largest orbits built by default. B8 position 4 takes 456 ms and D8 position 5 369 ms (1792 positions, 368 records), against about 33 ms for minusculeMatrices. E-9 names minusculeMatrices but not chevalleySerre, so T12 should check one relation at a time on the main thread or move the full list to the worker.",
+  "stringThrough has no length cap, as the instruction says. The agent already asked P5-A2 to bound the mu_i a reader can type.",
+  "Scripts and logs are in /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p5-a1-review/: oracle_dump.py, oracle.jsonl, compare.mjs, guards.mjs, mutants.mjs, mutants.log, stringsort.py, misc.mjs, hooks.mjs, register.mjs. The engine runs under node --experimental-strip-types --import register.mjs. rep.ts was restored after the mutants (sha256 5458af60... unchanged).",
+  "Cleanup: node_modules, site/node_modules and packages/engine/node_modules are deleted. git status --porcelain is empty and HEAD is 48e28e5."
+ ]
+}

@@ -21,7 +21,9 @@
 //     data-challenge, data-kind, data-met, data-challenge-result (text "Goal reached."); data-source
 //   T6, registry site/src/tools/registry/T06.ts (decisions/P3-A4.md): data-tool "mirror"; data-out
 //     caption, noscript, root (data-value: the root in label order; one per arrow of the roots
-//     overlay), bridge; node buttons with data-board="numbers"
+//     overlay), bridge, boardName (data-name), simpleRoot (data-node; the arrow of alpha_i, whose
+//     shaft starts at the origin and whose head's first point is its tip); data-control picker,
+//     overlay-roots; node buttons with data-board="numbers"
 //   this lesson's own markup: data-figure ("m2-matrix-a3"), data-figure-text (the text alternative
 //     of the static figure), data-seen-statement. The static roots figure of beat 4
 //     (data-figure "m2-roots-a2", phase 2) was replaced by the T6 instance b4 (P3-X1).
@@ -34,6 +36,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scanSource } from '../../../scripts/numbers-in-prose.mjs';
+import { fromAdjacency, symmetrizer } from '../../../packages/engine/src/index';
+import type { Board } from '../../../packages/engine/src/index';
 import { distDir } from './routes';
 
 const ROUTE = 'modules/m2-form/';
@@ -451,8 +455,10 @@ test('the Kaleidoscope of beat 4 draws the six roots of A2', async ({ page }) =>
   await expect(b4).toHaveAttribute('data-tool', 'mirror');
   await expect(out(page, 'b4', 'boardName')).toHaveAttribute('data-name', 'A2');
   await expect(out(page, 'b4', 'caption')).toHaveText(
-    'Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its six roots, which you can play on.',
+    `Joined cities are vectors of the same length at 120 degrees: the picture of A2 with its ${A2.n_roots} roots, which you can play on.`,
   );
+  // The picker stays on A2, the board the caption describes (P3-RT-09-04).
+  expect(await control(page, 'b4', 'picker').locator('option').allTextContents()).toEqual(['A2']);
   // One arrow per root of A2 (T6's roots overlay, switched on by the lesson), after hydration.
   await expect(out(page, 'b4', 'root')).toHaveCount(A2.n_roots);
   const arrows = await out(page, 'b4', 'root').evaluateAll((els) => els.map((e) => e.getAttribute('data-value')));
@@ -649,4 +655,94 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red team round 1, phase 3; adopted from the lens branches of RT-08 and RT-09)
+// ---------------------------------------------------------------------------------------------
+
+/** The claim of b4's caption: the simply laced angle and length (SPEC 3 M2 beat 4). */
+const B4_CLAIM = 'Joined cities are vectors of the same length at 120 degrees';
+
+/** Length ratio |alpha_1| / |alpha_2| and the angle between the two simple-root arrows, in degrees. */
+async function simpleRoots(root: Locator): Promise<{ ratio: number; angle: number }> {
+  return root.evaluate((el) => {
+    const v = [...el.querySelectorAll('[data-out="simpleRoot"]')]
+      .sort((a, b) => Number(a.getAttribute('data-node')) - Number(b.getAttribute('data-node')))
+      .map((g) => {
+        // The shaft starts at the origin; the first point of the head is the tip of the arrow.
+        const shaft = g.querySelector('line')!;
+        const ox = Number(shaft.getAttribute('x1'));
+        const oy = Number(shaft.getAttribute('y1'));
+        const tip = g.querySelector('polygon')!.getAttribute('points')!.split(' ')[0]!.split(',').map(Number);
+        return [tip[0]! - ox, -(tip[1]! - oy)] as [number, number];
+      });
+    const len = v.map(([x, y]) => Math.hypot(x, y));
+    const cos = (v[0]![0] * v[1]![0] + v[0]![1] * v[1]![1]) / (len[0]! * len[1]!);
+    return { ratio: len[0]! / len[1]!, angle: (Math.acos(cos) * 180) / Math.PI };
+  });
+}
+
+// regression: P3-RT-09-04
+test('every board the M2 beat 4 figure offers satisfies its caption', async ({ page }) => {
+  await page.goto(ROUTE);
+  const b4 = tool(page, 'b4');
+  await b4.scrollIntoViewIfNeeded();
+  await expect(b4).toHaveAttribute('data-hydrated', 'true');
+  await expect(b4.locator('[data-out="caption"]')).toContainText(B4_CLAIM);
+  const picker = b4.locator('select[data-control="picker"]');
+  const offered = await picker.locator('option').allTextContents();
+  // The figure offers at least the board its caption names; every board it offers is checked.
+  expect(offered).toContain('A2');
+  for (const name of offered) {
+    await picker.selectOption(name);
+    await expect(b4.locator('[data-out="boardName"]')).toHaveAttribute('data-name', name);
+    const { ratio, angle } = await simpleRoots(b4);
+    expect.soft(Math.abs(ratio - 1), `${name}: caption "${B4_CLAIM}", but |alpha_1|/|alpha_2| = ${ratio.toFixed(4)}`).toBeLessThan(0.01);
+    expect.soft(Math.abs(angle - 120), `${name}: caption "${B4_CLAIM}", but the angle is ${angle.toFixed(2)} degrees`).toBeLessThan(0.5);
+  }
+});
+
+// regression: P3-RT-09-06
+test('M2 beat 3 states the reflection formula of the invariant form only on balanced boards', () => {
+  const source = readFileSync(LESSON_PATH, 'utf8');
+  // The one-way road (SPEC 2.11, C = [[2,0],[-1,2]]) and a triangle with two roads from 1 to 2 and one
+  // back (an unbalanced cycle) have no weights d, so no invariant form (SPEC 2.5).
+  const oneWay = fromAdjacency([
+    [0, 1],
+    [0, 0],
+  ]) as Board<unknown>;
+  const unbalanced = fromAdjacency([
+    [0, 2, 1],
+    [1, 0, 1],
+    [1, 1, 0],
+  ]) as Board<unknown>;
+  expect(symmetrizer(oneWay), 'the one-way road has no weights d').toBeNull();
+  expect(symmetrizer(unbalanced), 'this two-way board is not balanced').toBeNull();
+  // So the sentence that states the formula through the form names the balanced boards, not any board.
+  expect(source, 'M2 beat 3 says "On any board the formula reads ..."').not.toContain('On any board the formula reads');
+  const formula = '<Tex src="S_ip=p-\\frac{ 2(p,e_i) }{ (e_i,e_i) }\\,e_i"/>';
+  const at = source.indexOf(formula);
+  expect(at, 'the formula of beat 3').toBeGreaterThan(-1);
+  const clause = source.slice(source.lastIndexOf('. ', at) + 2, at);
+  expect(clause).toMatch(/\bbalanced board\b/);
+  expect(clause).not.toMatch(/\bany board\b/);
+});
+
+// regression: P3-RT-09-06 (sibling: the Lie theory paragraph gave the invariant form "in general")
+test('the Lie theory paragraph of M2 gives the invariant bilinear form only on balanced boards', () => {
+  const source = readFileSync(LESSON_PATH, 'utf8');
+  const lie = source.slice(source.indexOf('<LieTheory>'), source.indexOf('</LieTheory>'));
+  const at = lie.indexOf('the invariant bilinear form');
+  expect(at, 'the Lie theory paragraph names the invariant bilinear form').toBeGreaterThan(-1);
+  const clause = lie.slice(lie.lastIndexOf('. ', at) + 2, at);
+  expect(clause).not.toMatch(/\bIn general\b/);
+  expect(clause).toMatch(/\bbalanced board\b/);
+});
+
+// regression: P3-RT-08-05
+test('m2-form.mdx: "A2 with its six roots" states types.A2.n_roots as a typed word', () => {
+  // 6 is the value of the typed word "six"; the golden value of the quantity it states is the same.
+  expect(A2.n_roots, 'types.A2.n_roots is the quantity the phrase states').toBe(6);
+  expect(readFileSync(LESSON_PATH, 'utf8').includes('A2 with its six roots'), 'm2-form.mdx types types.A2.n_roots as a word').toBe(false);
 });

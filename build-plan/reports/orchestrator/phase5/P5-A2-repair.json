@@ -1,0 +1,205 @@
+{
+ "agent": "P5-A2",
+ "status": "done",
+ "branch": "worktree-agent-a5f08700ebe83860c",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a5f08700ebe83860c",
+ "commits": [
+  "a323a08 P5-A2: T12 repair after review (numbers near 2^53, main-thread work, hydration, tests)",
+  "9b744e8 P5-A2: T12 computes no relation list after hydration while the digest holds it",
+  "63450f0 P5-A2: T12 draws its controls together after hydration and keeps the server's tables"
+ ],
+ "filesChanged": [
+  "decisions/P5-A2.md",
+  "site/src/components/math/MatrixView.svelte",
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/src/components/tools/t12/OrbitLayers.svelte",
+  "site/src/components/tools/t12/StaticHost.svelte",
+  "site/src/components/tools/t12/config.ts",
+  "site/src/components/tools/t12/model.ts",
+  "site/src/components/tools/t12/rep.ts",
+  "site/src/components/tools/t12/static.ts",
+  "site/tests/e2e/T12.spec.ts",
+  "site/tests/unit/tools/T12.test.ts"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard a44c34d",
+   "exit": 0,
+   "summary": "HEAD is now at a44c34d (P5 stage 5.2 review saved)"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "added 764 packages, and audited 767 packages in 15s"
+  },
+  {
+   "cmd": "git merge --no-edit f7ed74b",
+   "exit": 0,
+   "summary": "f7ed74b is an ancestor of HEAD (git merge-base --is-ancestor: merged)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "COMPLETED 1150 FILES 0 ERRORS 1 WARNINGS (t02/LayerChart.svelte, not a T12 file)"
+  },
+  {
+   "cmd": "npm test",
+   "exit": 0,
+   "summary": "Test Files 159 passed (159); Tests 3333 passed (3333)"
+  },
+  {
+   "cmd": "npx vitest run site/tests/unit/tools/T12.test.ts --project site-unit",
+   "exit": 0,
+   "summary": "Tests 56 passed (56)"
+  },
+  {
+   "cmd": "npm run build",
+   "exit": 0,
+   "summary": "links: 1279 internal links on 35 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7730> T12.spec.ts M8.spec.ts nojs.spec.ts a11y.spec.ts registry-outs.spec.ts",
+   "exit": 0,
+   "summary": "215 passed (7.9m)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7730> T12.spec.ts M8.spec.ts (final build)",
+   "exit": 0,
+   "summary": "65 passed (3.4m); T12 long tasks after picking E6 and E7 at 4x: []"
+  },
+  {
+   "cmd": "npm run size -- --port 7731",
+   "exit": 0,
+   "summary": "35 routes measured, 0 over budget; /tools/rep/ 89.8 kB of 90, M8 89.8 of 120"
+  },
+  {
+   "cmd": "npm run lab -- --port 7732 /tools/rep/ /modules/m8-lie-algebras/ (before, a44c34d)",
+   "exit": 1,
+   "summary": "/tools/rep/ TBT 392.9 [589.6, 357.5, 392.9]; M8 TBT 246.7 [246.7, 288.7, 227.1]"
+  },
+  {
+   "cmd": "npm run lab -- --port 7732 /tools/rep/ /modules/m8-lie-algebras/ (after, 4 runs)",
+   "exit": 1,
+   "summary": "exit 0 in 2 of 4 runs. /tools/rep/ medians 174.8, 202.4, 182.1, 199.0; M8 medians 170.6, 197.6, 222.1, 154.2; load 0.4 to 1.6"
+  },
+  {
+   "cmd": "npx playwright test T12.spec.ts -g \"no long task\" --repeat-each=20 (two batches)",
+   "exit": 1,
+   "summary": "batch c: 39 of 40 passed (one 50 ms task on E6, load 1.1 to 1.2); batch d: 40 of 40 passed (load 0.9 to 1.5)"
+  },
+  {
+   "cmd": "python3 <scratch>/mutate.py (each repair reverted, T12 unit suite)",
+   "exit": 0,
+   "summary": "every reverted repair fails at least one T12 unit test (f1 x2, f2 x2, f3, f4 x2, f5 x2, f6, f7, f8 x2, f9, r11, headers identity)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch mutant config, port 7733> T12.spec.ts (builds with reverts)",
+   "exit": 1,
+   "summary": "with the reverts the tests for findings 1, 6, 7 and request 11 fail 3 of 3, E6 long task fails 1 of 3, the kept-tables test fails; all of them pass on the real build"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "Finding 1: string viewer past 2^53 is recomputed on the Big board, uses the two-ends path, and has unit and e2e tests for s=(5,9007199254740990), s=(1,9007199254740991), G2 and node 2",
+   "status": "pass",
+   "test": "site/tests/unit/tools/T12.test.ts > a safe start whose line, ends or legal play pass 2^53 is computed on the Big board (3 tests); site/tests/e2e/T12.spec.ts > a safe start whose line, ends or legal play pass 2^53 hydrates and shows its line exactly, and can be played (review finding 1)"
+  },
+  {
+   "item": "Finding 2: main-thread relation list bounded by work (RELATIONS_MAIN_WORK 2500), string panel mounted piece by piece, orbit SVG in contained layers of 16 vertices and 40 edges",
+   "status": "pass",
+   "test": "T12.test.ts > the relation list is bounded on the main thread by its work...; > a large orbit is drawn in layers of at most 16 vertices and 40 edges...; T12.spec.ts > no long task when E6 / E7 is picked"
+  },
+  {
+   "item": "Finding 2: the two long-task tests run 20 times each at the lowest load available, target 0 failures",
+   "status": "fail",
+   "test": "T12.spec.ts > no long task when E6 / E7 is picked (repeat-each 20, two batches). Result: 79 of 80 passed. The one failure was a single task of exactly 50 ms on E6: the step that mounts the shared Board.svelte, which takes 39 to 50 ms with a minor GC. E7 passed 40 of 40."
+  },
+  {
+   "item": "Finding 3: on B8/C8/D8 (E-9 unchanged) the other tasks are shorter and the measured residual is recorded",
+   "status": "pass",
+   "test": "T12.test.ts > above 300 positions the signed moves are computed one node per task; > the headers are one array per basis. Residual measured from scratch traces and recorded in decisions/P5-A2.md. At 1x the only task over 50 ms is reading the worker reply (49 to 56 ms). At 4x: minusculeMatrices 92 to 160 ms, reading the reply 149 to 269 ms, the orbit step 59 to 64 ms, the D8 list layout 116 to 140 ms. The 73 to 77 ms redraw after the reply is gone."
+  },
+  {
+   "item": "Finding 4: a configured E7 node 7 computes no relation list, matrices or signed moves during hydration",
+   "status": "pass",
+   "test": "T12.test.ts > a configured state hydrates with the facts of its node only: minusculeMatrices, signedMoves and chevalleySerre are not called (E7 7, E6 1, A2 1, D4 1); > the server's digest gives the browser the counts, the verdict and the two sides...; > the server writes the digest of the configured state as island data..."
+  },
+  {
+   "item": "Finding 5: the missing tests (basis headers, labels in export, A-2 across several controls, A-8, 320px overlaps, acting from a scrubbed position, long numbers in the table view and 'more than 2000', msub in the Serre formula, verdict and string after Copy link)",
+   "status": "pass",
+   "test": "T12.test.ts > the row headers of every matrix are the golden weights_dynkin_labels; > Download data gives ... the relations in labels; T12.spec.ts > the row headers of a matrix are the golden weights_dynkin_labels in order; > the focused control shows the focus ring and no sticky element hides it (A-2); > every action works without a drag (A-8); > at 320 pixels the page has no horizontal scroll...; > acting from a scrubbed position discards the later moves; > a long number is shown shortened...; > the Serre relation is MathML with msub and msup...; > Copy link gives the link of the current state..."
+  },
+  {
+   "item": "Finding 6: on C5-C8 node n, when the worker list arrives and the reader has picked no relation, the tool moves to the first failing check",
+   "status": "pass",
+   "test": "T12.test.ts > when a list from the worker arrives on a node that is not minuscule ... moves to the first failing check; T12.spec.ts > a node that is not minuscule moves to its first failing relation when the list arrives from the worker, unless the link chose one (review finding 6)"
+  },
+  {
+   "item": "Finding 7: the table view uses a true minus sign (T12.spec.ts updated to expect −1)",
+   "status": "pass",
+   "test": "T12.test.ts > the table view writes negative numbers with the true minus sign...; T12.spec.ts > the table view lists the orbit and has a button per node that fires it"
+  },
+  {
+   "item": "Finding 8: Download data adds the orbit layers, the edges and the two sides of the chosen relation",
+   "status": "pass",
+   "test": "T12.test.ts > Download data gives the basis, the matrices in 1-based [row, column, value], the relations in labels and the string; T12.spec.ts > Download data gives the basis, the matrices, the relations and the string..."
+  },
+  {
+   "item": "Finding 9: relation labels come from toLabels",
+   "status": "pass",
+   "test": "T12.test.ts > relation nodes are read through toLabels: a board whose labels are not in position order"
+  },
+  {
+   "item": "Item 10: hydration builds no relation list, move matrix or grid; content-visibility is on the matrix boxes; lab measured before and after at low load",
+   "status": "pass",
+   "test": "T12.test.ts hydration tests (above); T12.spec.ts > the tables of the server stay in place when the reader acts...; lab before: /tools/rep/ TBT 392.9, M8 246.7 (coordinator: 390.7 and 198.6 to 312.1); lab after (4 runs): /tools/rep/ medians 174.8, 202.4, 182.1, 199.0 (LCP 161 to 213), M8 medians 170.6, 197.6, 222.1, 154.2 (LCP 1805 to 1910). Two of the eight medians are still over 200."
+  },
+  {
+   "item": "Item 11: data-out names give the board and node of the state shown",
+   "status": "pass",
+   "test": "T12.test.ts > the state shown names its board and node in data-out=\"state-board\" and \"state-node\" (labels); T12.spec.ts > data-out=\"state-board\" and \"state-node\" name the board and the node of the state shown (request of P5-A3). Names: data-out=\"state-board\" (board name, e.g. E6) and data-out=\"state-node\" (node label, e.g. 6). The lesson was not edited."
+  },
+  {
+   "item": "M8.spec.ts together with T12.spec.ts against this build after merging f7ed74b",
+   "status": "pass",
+   "test": "site/tests/e2e/M8.spec.ts + T12.spec.ts: 65 passed"
+  },
+  {
+   "item": "Cleanup: node_modules, site/node_modules, packages/engine/node_modules, site/dist and site/dist-mutant deleted; no preview server left on 7730 to 7733; git status --porcelain empty",
+   "status": "pass",
+   "test": "ls (none exist), ps/ss (no listener), git status --porcelain (empty)"
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "7.6",
+   "what": "Lab TBT at most 200 ms is not met in every run. /tools/rep/ medians are 174.8 to 202.4 and M8 medians 154.2 to 222.1, on a machine shared with other agents.",
+   "why": "On /tools/rep/ the page's own first layout costs about 100 ms of TBT even without JavaScript (removing any one panel stays within noise; removing all five halves it). The hydration task is 106 to 147 ms at 4x, about a third of it first-run engine code. On M8, Chromium autofill reads every form control about 100 ms after one is inserted, a task of about 70 ms each time; inserting the controls together cut this from three readings to two."
+  },
+  {
+   "spec": "7.6 / E-9",
+   "what": "Picks on B8, C8 and D8 nodes with 1120 or 1792 positions still produce long tasks.",
+   "why": "The owner decided not to change E-9. These tasks are the single minusculeMatrices engine call and the deserialization of the worker reply in the shared lib/worker.ts. Figures are recorded in decisions/P5-A2.md."
+  }
+ ],
+ "requests": [
+  {
+   "to": "P5-A3",
+   "what": "Switch the M8 challenges b10 to b12 to data-out=\"state-board\" and data-out=\"state-node\" (label text) instead of reading caption text."
+  },
+  {
+   "to": "P5-A1",
+   "what": "Add a verdicts-only or one-relation form of chevalleySerre. The full reply for B8 node 5 (368 records) takes 49 to 56 ms to read at 1x and 149 to 269 ms at 4x."
+  },
+  {
+   "to": "MERGE",
+   "what": "Size minusculeMatrices for E-9: 92 to 160 ms at 4x on 1792 positions. Also tell the owner of site/components/board/Board.svelte that its first mount on E6 (39 to 50 ms at 4x) caused the one failure in 80 long-task runs."
+  }
+ ],
+ "proposedUnverifiedItems": [],
+ "decisionsFragment": "decisions/P5-A2.md",
+ "openQuestions": [
+  "Should the static-layout cost of /tools/rep/ (about 100 ms of TBT with JavaScript off) and the autofill cost on lessons with many tool instances be handled at page level, outside T12?"
+ ],
+ "handoff": "Findings 1-9 and items 10-11 are fixed. Each fix has a test that fails when the fix is reverted (scratch reverts). After hydration T12 draws its controls first in consecutive tasks, then the matrices one per frame, reusing the server's tables until the state changes; basisHeaders now returns one frozen array per basis, so the drawn tables are not rewritten after every change. Still open: the long-task target missed once in 80 runs (a 50 ms Board mount on E6), some lab TBT medians on /tools/rep/ and M8 sit just above 200 ms, and /tools/rep/ is 89.8 kB against its 90 kB limit."
+}

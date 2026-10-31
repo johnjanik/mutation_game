@@ -207,6 +207,17 @@ describe('engineCall', () => {
     await expect(engineCall('toLabels', [A3, [0]], { board: A3, kind: 'enumeration' })).rejects.toThrow(/boom/);
   });
 
+  // MERGE, on P6-A3's request: a worker that failed is dropped, and the next call starts a new one.
+  it('a worker that failed is dropped, and the next call starts a new one', async () => {
+    __testing.setRuntime({ inNode: () => false });
+    StubWorker.replyWith = () => 'crash';
+    await expect(engineCall('toLabels', [A3, [0]], { board: A3, kind: 'enumeration' })).rejects.toThrow(/boom/);
+    expect(StubWorker.created).toBe(1);
+    StubWorker.replyWith = null;
+    expect(await engineCall('toLabels', [A3, [0, 2]], { board: A3, kind: 'enumeration' })).toEqual([1, 3]);
+    expect(StubWorker.created).toBe(2);
+  });
+
   it('playFate goes to the worker on a named finite board', async () => {
     __testing.setRuntime({ inNode: () => false });
     // playFate arrives in phase 2; a stub answer stands in for it.

@@ -19,6 +19,7 @@
   import ToolFrame, { type FrameApi } from '../board/ToolFrame.svelte';
   import Board from '../board/Board.svelte';
   import History from '../board/History.svelte';
+  import { historyNames } from '../board/historyNames';
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
   import { decodeState, encodeState, LINK_NOTICE } from '../../lib/urlCodec';
@@ -112,6 +113,11 @@
   let version = $state(0);
   let notice = $state<string | null>(null);
   let predictionResolved = $state(untrack(() => prediction === undefined));
+  /**
+   * The prediction belongs to the configured state (SPEC 4.0 Predict). A link or the back button that
+   * loads another state before the reader has answered withdraws it (as T1 does).
+   */
+  let predictionWithdrawn = $state(false);
   let weights = $state(untrack(() => initialWeights(initialGame.board, cityWeights, roadWeights, instanceId)));
   let verdict = $state<{ invariant: boolean; witness: WitnessView | null } | null>(null);
   let rows = $state<string[][]>(untrack(() => authorRows(initialGame.board)));
@@ -185,7 +191,12 @@
       return;
     }
     notice = n;
-    if (encodeState(admitted) !== encodeState(toState(game))) load(admitted);
+    if (encodeState(admitted) === encodeState(toState(game))) return;
+    if (!predictionResolved && encodeState(admitted) !== encodeState(defaults)) {
+      predictionWithdrawn = true;
+      predictionResolved = true;
+    }
+    load(admitted);
   }
 
   // Hydration: read the URL once with the instance prefix (6.6). Never a move by itself (4.0).
@@ -287,14 +298,13 @@
     rows.push(labelsInOrder.map(() => ''));
   }
 
+  // Only the names History reads: a move names at most 50 positions however long the play (7.4).
   const positionNames = $derived.by(() => {
     const g = cur();
-    const out: string[] = [];
-    for (let k = 0; k <= g.moves.length; k++) {
+    return historyNames(g.moves.length, g.cursor, (k) => {
       const s = g.shownAt(k);
-      out.push(`${k === 0 ? 'Start' : `After move ${k}`}: populations ${inLabelOrder(g.board, s.populations ?? []).map(spokenValue).join(', ')}`);
-    }
-    return out;
+      return `${k === 0 ? 'Start' : `After move ${k}`}: populations ${inLabelOrder(g.board, s.populations ?? []).map(spokenValue).join(', ')}`;
+    });
   });
 
   const display = (v: string): string => v.replace(/^-/, '−');
@@ -323,7 +333,7 @@
 {#snippet figure(api: FrameApi)}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="t03" data-board-name={title} onkeydown={(e) => onKeydown(e, api.announce)}>
-    {#if prediction}
+    {#if prediction && !predictionWithdrawn}
       <Predict {prediction} hydrated={api.hydrated} labels={labelsInOrder} announce={api.announce} onResolved={() => (predictionResolved = true)} />
     {/if}
     {#each parts as part (part)}

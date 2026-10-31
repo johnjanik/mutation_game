@@ -1,0 +1,108 @@
+{
+ "reviewed": "e947205",
+ "findings": [
+  {
+   "severity": "blocker",
+   "what": "pages-6.spec.ts fails on the integration branch, so the required check `npm run e2e` is red. The test 'the three pages load no tool script' requires a footer on every built route except 404.html. P6-A5 merged the /embed/* routes in 32d38d9, which is not an ancestor of the agent's last commit 647e641. Those routes render no footer, which the plan allows (5.10: 'the footer is not required there'). This is a merge conflict in meaning between the two branches, and MERGE did not catch it.",
+   "where": "site/tests/e2e/pages-6.spec.ts:233",
+   "evidence": "npx playwright test -c <scratch>/pw.config.ts (port 7160) site/tests/e2e/pages-6.spec.ts -> '1) pages-6.spec.ts:217:3 > the three pages load no tool script: Error: embed/affine/ renders the footer'; 1 failed, 21 passed. The same failure under BASE_PATH=/sub/path/ (basepath + pages-6: 73 passed, 1 failed). `git merge-base --is-ancestor 32d38d9 647e641` -> not ancestor. A scan of site/dist finds 14 routes without data-site-footer, all embed/*.",
+   "specRef": "plan 5.10 (embed routes need no footer); CLAUDE.md Rules (merge when every required check is green); SPEC 7.7",
+   "proposedFix": "In the loop over discoverRoutes(), skip routes that start with 'embed/' (or assert that they have no site footer), and keep the no-script check for every footer that exists."
+  },
+  {
+   "severity": "major",
+   "what": "The history page states a false fact about [W20]: 'Near its end it states the Mutation Conjecture'. SOURCES 11.1 puts the conjecture in section 2, on p. 57 of a paper that runs from p. 55 to p. 78, so it is near the start.",
+   "where": "site/src/content/pages/history.mdx:74",
+   "evidence": "Built /history/ text: 'Near its end it states the Mutation Conjecture, which has a page of its own on this site.' SOURCES.md:28: '2 The Mutation Game on a Directed Graph (the Mars story; ...; the Mutation Conjecture, unnumbered, p. 57)'. SPEC 2.11: '[W20] (p. 57, unnumbered) states'. The citation on the same page reads 'pages 55 to 78'.",
+   "specRef": "SPEC 8.4 (credit accurately; provenance), SOURCES 11.1 [W20], SPEC 2.11",
+   "proposedFix": "Say 'In its section 2 (p. 57) it states the Mutation Conjecture', or drop the locator."
+  },
+  {
+   "severity": "minor",
+   "what": "The page credits Donnelly with proving strong convergence ('The paper proves strong convergence in this convention (Theorem 2.1)'). SOURCES lists [Don08] Theorem 2.1 only as '(strong convergence)'. SPEC F3 says the theorem is attributed to Mozes and Eriksson, and the page itself credits Eriksson for strong convergence.",
+   "where": "site/src/content/pages/history.mdx:66",
+   "evidence": "SOURCES.md:142 'Theorem 2.1 (strong convergence)'. SPEC.md:260 'the theorem is attributed to Mozes and Eriksson [S2]; [Don08] Theorem 2.1 [S]'.",
+   "specRef": "SPEC 8.4 Credit accurately; F3",
+   "proposedFix": "'The paper states strong convergence in this convention (Theorem 2.1), a theorem attributed to Mozes and Eriksson.'"
+  },
+  {
+   "severity": "minor",
+   "what": "In a release build the credits page says something false and drops the asset fields 7.9 asks for. Its sentence 'It links the videos below, from the history page and the sources page' stays, but /history/ links no video in release because the E5 fallback replaces the links. All four video entries then read 'Title: a video lecture whose title is still being checked. Author: still being checked. Source: still being checked.' Meanwhile /sources/ still links the same four videos by title in release.",
+   "where": "site/src/content/pages/credits.mdx:120",
+   "evidence": "RELEASE=1 OUT_DIR=<scratch>/dist-release npm run build. grep youtube in dist-release: history=0, credits=0, sources=4 links. The credits text in release shows the sentence above and four identical fallback entries.",
+   "specRef": "SPEC 7.9 bullet 4; 7.3 (a fallback must stay true); Appendix E item 5",
+   "proposedFix": "Word the sentence so it holds in both builds, for example 'It links the videos below; until they are checked, only the sources page carries the links'. Settle the E5 question for /sources/ (already with the owner) so that credits and sources agree in release."
+  },
+  {
+   "severity": "minor",
+   "what": "The oracle section overstates and miscounts the outside checks. It says 'Two outside works served as checks on those data: SageMath was run to confirm the Cartan matrices of the boards of finite type'. SOURCES shows that Sage confirmed the four reference matrices (B2, C2, G2, F4) and the node numbering. It also shows that the Satake catalogue was checked against [DM22] and several other papers as well as dynkin-diagrams.",
+   "where": "site/src/content/pages/credits.mdx:185",
+   "evidence": "SOURCES.md:264 lists the four CartanMatrix outputs. SOURCES.md:215: checked 'against a paper that states every diagram in words [DM22]; against the Satake codes in ... dynkin-diagrams ...'. SOURCES.md:244 'Other sources used to check the catalogue'.",
+   "specRef": "SPEC 7.9; SOURCES 11.4, 11.5",
+   "proposedFix": "'Outside works also served as checks: SageMath was run to confirm the reference Cartan matrices and the node numbering, and the Satake catalogue was compared with [DM22] and with the codes in dynkin-diagrams ...'"
+  },
+  {
+   "severity": "minor",
+   "what": "The page states CoReLG's licence as fact without a wrapper. CoReLG appears among 'Reference software under the GPL or LGPL', but Appendix F marks its licence [U] and Appendix E item 17 names 'the licence of CoReLG'. The plan (5.9 item 6) says to wrap that statement as E17 or leave it out. The sentence is P1-A4's restatement of SPEC 7.9 bullet 3, so the conflict comes from SPEC itself.",
+   "where": "site/src/content/pages/credits.mdx:183",
+   "evidence": "SPEC.md:2398 'CoReLG (GAP) ... GPL [U for the licence]'. SPEC.md:2375 (E17): 'the licence of CoReLG'. Built /credits/: 'Reference software under the GPL or LGPL (SageMath, CoReLG, ...)'.",
+   "specRef": "SPEC 0.2 item 5, Appendix E item 17, plan 5.9 item 6",
+   "proposedFix": "Reword without stating CoReLG's licence (for example 'Reference software such as SageMath, CoReLG, ... , some of it under the GPL or LGPL, is used only ...'), or flag the conflict to the owner."
+  },
+  {
+   "severity": "minor",
+   "what": "The prior-art credit is incomplete at the reviewed commit. P6-A5's LaTeX export (dynkin-diagrams syntax) is merged, but /credits/ does not credit SimpLie's 'LaTeX export' idea or dynkin-diagrams as the export target, which are Appendix F 'Borrow' cells. MERGE deferred this to 'the next agent that edits the credits page'.",
+   "where": "site/src/content/pages/credits.mdx:173",
+   "evidence": "site/src/lib/export.ts:552-651 (exportLaTeX 'dynkin', 'not a finite type the dynkin-diagrams package draws'). The SimpLie item credits only 'diagram in, structure out', and dynkin-diagrams appears only in the oracle section.",
+   "specRef": "SPEC Appendix F rows SimpLie and dynkin-diagrams; plan 5.9 item 6; 8.4",
+   "proposedFix": "Add to the SimpLie item (and a dynkin-diagrams line) that the site's Export LaTeX borrows the idea and targets that package; record it in a decisions fragment."
+  },
+  {
+   "severity": "minor",
+   "what": "The page makes a claim about an unread text without hedging it. 'Araki's paper of 1962 has a table of the diagrams with the multiplicities of their restricted roots' is stated as fact, although the text was not read ([S2]). The Satake sentence beside it does hedge ('reported to appear').",
+   "where": "site/src/content/pages/history.mdx:86",
+   "evidence": "SOURCES.md:221 '[Ara62] ... Text not read. Three later papers cite its table ... as pp. 32-33 [S2]'.",
+   "specRef": "SOURCES 11.0 limits; plan 5.3 ('Say no more about their content than these labels allow')",
+   "proposedFix": "'Later papers report that Araki's paper of 1962 has a table ..., which they cite as pages 32 and 33.'"
+  },
+  {
+   "severity": "minor",
+   "what": "The history tests let through reviewer mutants that break the behaviour they guard. (MU1) The E2 check only inspects sentences that contain 'Mozes', so moving 'They also report that it proves ... Kac-Moody algebra' outside the E2 wrapper passes. (MU2) The date check reads only the data-source=\"W-MS\" paragraph, so adding 'Wildberger's manuscript dates from 2003.' in the next paragraph passes. (MU7) Changing Proctor's own entry to 'he fired negative numbers' passes.",
+   "where": "site/tests/e2e/pages-6.spec.ts:399",
+   "evidence": "Mutants applied to a copy of the built HTML (<scratch>/mutate.py) and pages-6.spec.ts run on it with OUT_DIR. The control C1 (data-year 2030) was caught by 'timeline ... in order of date' and MU6 ('Kostant proposed this game') was caught by 'history sidebar'. 'open items are wrapped on history', 'the manuscript is undated' and 'credit lines on history and credits' all passed with MU1, MU2 and MU7 applied.",
+   "specRef": "plan 6 (each test must fail when its behaviour is removed); Appendix E item 2; SOURCES 11.9; SPEC 2.3",
+   "proposedFix": "Check the E2 wrapper on every sentence of li[data-entry=Moz90] other than the bibliographic ones, the credit and the licence or link. Look for '2003' near 'manuscript' across the whole page. Check that the Pro84 entry says 'positive'."
+  },
+  {
+   "severity": "minor",
+   "what": "The footer and credits tests do not catch typed or missing values. The test accepts data-commit='unknown', so a footer that drops the commit survives (MU3). The typed-licence check reads only the markup after the frontmatter, so `const code = 'AGPL-3.0-only'` and a typed content licence in the frontmatter pass. The same holds for credits.mdx, which only checks that the rendered identifiers match the files.",
+   "where": "site/tests/e2e/pages-6.spec.ts:113",
+   "evidence": "MU3 (every data-commit rewritten to 'unknown') -> 'footer shows the versions and the commit' passed. node <scratch>/footer-src-mutant.mjs Footer.astro -> 'mutant: version-typed check fails=false; licence-typed-in-markup check fails=false'.",
+   "specRef": "plan 5.10 and trap 'Licences are read, not typed'; SPEC 7.4 Citing",
+   "proposedFix": "When .git exists, require data-commit to be a prefix of HEAD or an ancestor of it. Search the whole Footer.astro and credits.mdx source for SPDX-looking literals (CC-BY, AGPL, MIT, Apache)."
+  },
+  {
+   "severity": "minor",
+   "what": "The D16 and E17 guards rely on fixed string lists, and wording outside them passes. An allusion to a particular earlier document (MU4: 'An earlier write-up prepared for this site made several of these statements.') passes 'confusions makes no reference to the note'. An unwrapped Appendix F [U] statement in other words (MU5: 'Its applets no longer work in current browsers.') passes 'credits lists borrowed prior art'.",
+   "where": "site/tests/e2e/pages-6.spec.ts:466",
+   "evidence": "Same mutant run: both tests passed with MU4 and MU5 applied.",
+   "specRef": "SPEC 10 D16; Appendix E item 17; plan 9 trap 'D16 is about wording'",
+   "proposedFix": "Add 'write-up', 'earlier', 'document', 'draft' and similar to the D16 list, and 'no longer work', 'applet', 'browser' near 'run' or 'work' to the E17 pattern. RT-08 still reads the rest."
+  }
+ ],
+ "checked": [
+  "1 Facts: every sentence of the built /history/, /confusions/ and /credits/ was checked against SOURCES 11.1-11.4 and 11.9 and SPEC 1.7, 2.1-2.12, 2.16, 3 M10, Appendix D, E and F (text split on . ; ? gives 96, 84 and 93 pieces including nav, footer and package rows). Three false or overstated sentences (W20 'near its end', Don08 'proves', credits 'Two outside works'), one unhedged [S2] claim (Araki). The 8.4 credit lines are present on /history/ and /credits/. 'attributed to Kostant' is printed unwrapped. The manuscript reads 'undated (circulated c. 2001 to 2004)'. The 13 confusions are present and D16 is respected. The golden values are 5 <G> uses (weyl_order, wildberger_lists.names.B3, one_way_counterexample start/moves/result, e8.neighbours_at_inner_product_1); no golden number is typed. Unverified wrappers: E2, E5 (x1 history, x12 credits), E13, E17; each fallback is true and weaker. One unwrapped [U] (the CoReLG licence).",
+  "2 Prose: 0 em-dashes and 0 en-dashes on the three pages and the footer. All 20 glossary anchors used resolve. No novelty claim (E8). Every confusion uses the form 'It is sometimes said ... In fact'. The bridge sentence of 2.4(a) appears verbatim in 3 sections. No text copied from papers beyond the attributed W20 quote. No hard-coded root-relative links.",
+  "3 Release build (RELEASE=1, OUT_DIR=scratch): succeeds, links 1462/0 problems, report mode=release, complete, no unknown items. Lines: E2 /history/, E5 /credits/ and /history/, E13 /history/, E17 /confusions/. Wrapped text is absent (Bertram, Knutson, Insights into, Wild Egg, 'factor of 2', 'orthogonal group over', YouTube all 0 on the three pages). Four fallbacks render (12 on credits). 0 open-items links on the three pages and the index.",
+  "4 Footer: versions come from the package.json pins plus KATEX_VERSION (read from katex/package.json) plus the engine's own version: 12 entries, equal to the installed packages. Licences come from LICENSE-content and the root package.json (CC-BY-SA-4.0, AGPL-3.0-only). Commit e947205 (short form). No script. Present on 37 of 51 routes; the 14 without it are embed/*, as the plan allows. npm run size --port 7161: /history/, /confusions/ and /credits/ 0.0 kB of 15, 11 no-tool pages all 0.0. axe passes in light and dark themes on the three pages, and 320 px reflow passes.",
+  "5 Tests: pages-6.spec.ts 21 passed, 1 failed (embed footer). nojs + credits-bundled + pages + a11y: 190 passed. basepath + pages-6 under /sub/path/: 73 passed, 1 failed (same test). npm run check -w site: 0 errors. 9 reviewer mutants and controls: C1 and MU6 caught; MU1, MU2, MU3, MU4, MU5 and MU7 survived, plus the typed-licence-in-frontmatter mutant."
+ ],
+ "notes": [
+  "npm run size at e947205 reports 4 routes over budget: /tools/rep/ 92.2, /tools/sandbox/ 90.2 and their /embed/ twins, against 90 kB. P6-A6 changed no client code (Footer.astro is static), so this is from another merge (P6-A5 or P6-A2) and is for MERGE.",
+  "data-commit holds the 7-character short hash because astro.config.mjs uses `git rev-parse --short HEAD`. The plan wanted the full commit in the hook. The agent recorded this as a deviation; the fix belongs in astro.config (P1-A2/MERGE).",
+  "These deviations are recorded and unresolved: the title is 'Credits' rather than 'Credits and licences'; there is no draft mark for D17 because the schema has no draft field; Footer.astro and credits.mdx each read the licence files separately.",
+  "The agent's report of 22 passing tests was made on its branch before P6-A5's embed routes merged, so it does not hold at e947205.",
+  "Mutant artefact: on my copied build, 'credits lists bundled libraries' failed only because the shipped-packages file is keyed on the outDir path. It is not a mutant result.",
+  "Cleanup: no server left on 7160 or 7161; node_modules, site/node_modules, packages/engine/node_modules and site/dist deleted; `git status --porcelain` is empty. The scratch builds, mutants and logs are in /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a6-review/."
+ ]
+}

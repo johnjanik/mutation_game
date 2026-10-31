@@ -9,7 +9,7 @@ outcomes: ["LO1", "LO2"]
 sources: ["W20", "W-MS", "Moz90", "Pro84", "Eri92"]
 ---
 import T01GameBoard from '@components/tools/T01GameBoard.svelte';
-import { G, Tex, Cite } from '@components/content';
+import { G, Tex, Cite, View } from '@components/content';
 import { Beat, Seen, LieTheory, Challenge, ModuleLinks, Sources } from '@components/lesson';
 import { linkIfReleased, siteInventory } from '@lib/pages/released';
 import { resolveGoldenPath, formatGoldenValue } from '@lib/golden';
@@ -33,15 +33,15 @@ export const SEEN_COMPUTATION = 'verified by computation on every board of finit
 
 This lesson plays on one small **board**: three **nodes** in a row, joined by **roads**. The board is called <Tex src="A_3"/>, and its nodes carry the labels <Tex src="1"/>, <Tex src="2"/> and <Tex src="3"/> from left to right. A line between two nodes stands for one road running each way.
 
-In the first game the nodes are **cities** on Mars. Each city holds a whole number, its **population**: a positive number counts Martians, a negative one counts anti-Martians. The game and its story are N. J. Wildberger's, retold here in our own words (<Cite k="W20"/>, section two). The figure starts with one Martian in the middle city, the population <Tex src="p=(0,1,0)"/>.
+In the first game the nodes are **cities** on Mars. Each city holds a whole number, its **population**: a positive number counts Martians, a negative one counts anti-Martians. The game and its story are N. J. Wildberger's, retold here in our own words (<Cite k="W20"/>, section two). The figure starts with one Martian in the middle <Term a="city">city</Term>, the <Term a="population">population</Term> <Tex src="p=(0,1,0)"/>.
 
-To **mutate** city $i$, the inhabitants of city $i$ change type, and every other city sends one copy of its population down each road that leads into city $i$. Only the entry $p_i$ changes, and the board itself is never changed by a mutation. With $A_{ji}$ the number of roads from city $j$ into city $i$, the rule reads
+To **mutate** city $i$, the inhabitants of city $i$ change type, and every other city sends one copy of its population down each road that leads into city $i$. Only the entry $p_i$ changes, and the board itself is never changed by a mutation. With $A_{ji}$ the number of <Term a="roads">roads</Term> from city $j$ into city $i$, the rule reads
 
 $$
 p_i \longmapsto -p_i + \sum_{j \ne i} A_{ji}\, p_j .
 $$
 
-Mutate city <Tex src="1"/> in the figure. It holds nothing, and it receives the single Martian of city <Tex src="2"/> down the one road between them, so it ends with <Tex src="-0+1=1"/>. Every other city keeps its population.
+<Term a="mutate">Mutate</Term> city <Tex src="1"/> in the figure. It holds nothing, and it receives the single Martian of city <Tex src="2"/> down the one road between them, so it ends with <Tex src="-0+1=1"/>. Every other city keeps its population.
 
 <T01GameBoard slot="figure" client:idle id="b1" board="A3" view="populations" mode="free" coords="populations" start={[0, 1, 0]} goal={{ kind: 'reach', position: [1, 1, 0], game: 'mutation', text: 'Goal: mutate city 1.' }} caption="Mutating city 1 turns the population (0, 1, 0) into (1, 1, 0): city 1 gains the Martian of its neighbour and nothing else changes." />
 </Beat>
@@ -57,15 +57,15 @@ City <Tex src="2"/> changes type, which turns its Martian into an anti-Martian, 
 
 <Beat n={3}>
 
-The second game keeps the <Term a="board">board</Term> and changes the record. In the **Numbers** view each node holds an integer, simply called its number, and the list of numbers is a **position**. To **fire** node $i$, node $i$ sends its number down every road that leaves it, then changes sign:
+The second game keeps the <Term a="board">board</Term> and changes the record. In the <strong><View v="numbers"/></strong> view each node holds an integer, simply called its number, and the list of numbers is a **position**. To **fire** <Term a="node">node</Term> $i$, node $i$ sends its number down every road that leaves it, then changes sign:
 
 $$
 \begin{aligned} a_i &\longmapsto -a_i, \\ a_j &\longmapsto a_j + A_{ij}\, a_i \quad (j \ne i). \end{aligned}
 $$
 
-The figure starts at the position <Tex src="(0,1,0)"/>. Firing node <Tex src="2"/> sends its <Tex src="1"/> to node <Tex src="1"/> and to node <Tex src="3"/> and leaves <Tex src="-1"/> behind, so the position becomes <Tex src="(1,-1,1)"/>. A firing changes the fired node and its neighbours; a mutation changes one city only.
+The figure starts at the <Term a="position">position</Term> <Tex src="(0,1,0)"/>. Firing node <Tex src="2"/> sends its <Tex src="1"/> to node <Tex src="1"/> and to node <Tex src="3"/> and leaves <Tex src="-1"/> behind, so the position becomes <Tex src="(1,-1,1)"/>. A firing changes the fired node and its neighbours; a mutation changes one city only.
 
-This figure is in **free play**, where any node may fire whatever the sign of its number, and the board names the mode in force. The game proper is **legal play**: a node may fire only when its number is positive, and the game ends when no number is positive. Legal play returns in a later module.
+This figure is in **free play**, where any node may <Term a="fire">fire</Term> whatever the sign of its number, and the board names the mode in force. The game proper is **legal play**: a node may fire only when its number is positive, and the game ends when no number is positive. <Term a="legal-play">Legal play</Term> returns in a later module.
 
 The numbers game is due to Mozes <Cite k="Moz90"/>. Proctor used the same process earlier <Cite k="Pro84"/>, and Eriksson developed it <Cite k="Eri92"/>. Authors disagree on which sign a legal move fires; this site fires positive numbers, as Proctor, Donnelly and Wildberger do. In Wildberger's story the second record belongs to Venus, the planet of his dual game <Cite k="W-MS"/>.
 
@@ -74,7 +74,7 @@ The numbers game is due to Mozes <Cite k="Moz90"/>. Proctor used the same proces
 
 <Beat n={4}>
 
-Now both records share one figure: the Populations board above, the Numbers board below. They are tied together by the **translator** $a=Cp$. Here $C$ is the **Cartan matrix** of the board, <Tex src="C=2I-A^{\mathsf T}"/>, with twos on the diagonal and minus the road counts off it. On <Tex src="A_3"/> its rows are <G k="types.A3.cartan[0]"/>, <G k="types.A3.cartan[1]"/> and <G k="types.A3.cartan[2]"/>. One Martian in the middle city therefore has the numbers <G k="types.A3.cartan[1]"/>, and the Numbers board shows exactly these.
+Now both records share one figure: the <View v="populations"/> board above, the <View v="numbers"/> board below. They are tied together by the **translator** $a=Cp$. Here $C$ is the **Cartan matrix** of the board, <Tex src="C=2I-A^{\mathsf T}"/>, with twos on the diagonal and minus the road counts off it. On <Tex src="A_3"/> its rows are <G k="types.A3.cartan[0]"/>, <G k="types.A3.cartan[1]"/> and <G k="types.A3.cartan[2]"/>. One Martian in the middle city therefore has the numbers <G k="types.A3.cartan[1]"/>, and the <View v="numbers"/> board shows exactly these.
 
 What do these numbers say about the populations? Answer the figure's question first, then read on.
 
@@ -84,11 +84,11 @@ In symbols, a mutation at $i$ replaces $p_i$ by $p_i-a_i$. A positive number mar
 
 Acting on either board acts on both. After the move the <Term a="population">populations</Term> read <Tex src="(0,-1,0)"/> and the numbers read <Tex src="(1,-2,1)"/>. That second list is exactly what firing node <Tex src="2"/> does to <Tex src="(-1,2,-1)"/>. One move, two records.
 
-The two games are still not the same moves: a mutation changes one entry, a firing changes an entry and its neighbours. What holds is that the translator carries one onto the other. Write the mutation at $i$ as a matrix $S_i$ and the firing at $i$ as a matrix $R_i$; then $CS_i=R_iC$, so mutating and then translating gives the same as translating and then firing. This identity is verified by computation on every board of finite type of rank at most eight.
+The two games are still not the same moves: a mutation changes one entry, a firing changes an entry and its neighbours. What holds is that <Term a="the-translator">the translator</Term> carries one onto the other. Write the mutation at $i$ as a matrix $S_i$ and the firing at $i$ as a matrix $R_i$; then $CS_i=R_iC$, so mutating and then translating gives the same as translating and then firing. This identity is verified by computation on every board of <Term a="finite">finite type</Term> of rank at most eight. The boards of finite type form a short list, which contains <Tex src="A_3"/>; module three explains which boards belong to it.
 
 Wildberger states the same link with the opposite sign. His dual population records the gain a mutation would cause, $q=-Cp$, where this site records the drop <Cite k="W-MS"/>. The site uses $a=Cp$ so that the numbers are the standard labels named in the paragraph for readers who know Lie theory. Every move is linear, so the two choices give the same games.
 
-<T01GameBoard slot="figure" client:visible id="b4" board="A3" view="linked" mode="free" coords="populations" start={[0, 1, 0]} prediction={{ question: 'City 2 holds 1, and its number is 2. What will city 2 hold after it mutates?', answer: { type: 'number', value: -1 }, reveal: 'A mutation lowers a city by its number. City 2 holds 1 and its number is 2, so it goes down to minus 1.' }} caption={`One Martian in city 2 has the numbers ${oneMartianNumbers}; mutating city 2 lowers it by 2, from 1 to −1, and fires node 2 on the Numbers board.`} />
+<T01GameBoard slot="figure" client:visible id="b4" board="A3" view="linked" mode="free" coords="populations" start={[0, 1, 0]} prediction={{ question: 'City 2 holds 1, and its number is 2. What will city 2 hold after it mutates?', answer: { type: 'number', value: -1 }, reveal: 'A mutation lowers a city by its number. City 2 holds 1 and its number is 2, so it goes down to minus 1.' }} caption={`One Martian in city 2 has the numbers ${oneMartianNumbers}, and mutating city 2 lowers it by 2, from 1 to −1. The same move fires node 2 on the board below.`} />
 </Beat>
 
 <Beat n={5}>
@@ -99,11 +99,11 @@ The rest of the site grows out of these two moves. It rests on seven statements,
 <ol aria-label="The seven statements of the site" data-statements>
 <li>A Dynkin diagram describes a set of mirrors through one point: one mirror per node, the roads giving the angles between mirrors and an arrow giving a difference in scale.<Developed ns={[6, 7]} /></li>
 <li>Reflect a point in one mirror. Recorded by its coordinates along the mirror normals, the point changes in one coordinate only, which is a mutation. Recorded by its signed distances to the mirrors, the distance to the chosen mirror changes sign and its neighbours absorb the change, which is a firing.<Developed ns={[1, 4]} /></li>
-<li>The Cartan matrix converts the first record into the second. Its entries are the road counts of the board, and it is the one piece of algebra that both games carry.<Developed ns={[4]} /></li>
-<li>Playing is walking in the Weyl group. Populations reached from one Martian are roots, positions are weights, legal play spells reduced words, and the numbers fired along the way lead to the exponents, the order of the group and Weyl's dimension formula.<Developed ns={[5]} /></li>
-<li>The board alone decides whether the game closes up. It does so exactly when a quadratic form of the board is positive definite, which singles out the Dynkin diagrams; on the boundary sit the affine diagrams, with one frozen population and one conserved weighted sum.<Developed ns={[2, 3]} /></li>
+<li>The Cartan matrix converts the first record into the second. Its entries are the road <Term a="counts">counts</Term> of the board, and it is the one piece of algebra that both games carry.<Developed ns={[4]} /></li>
+<li>Playing is walking in the <Term a="weyl-group">Weyl group</Term>. The populations reached from one Martian are roots, positions are weights, legal play spells reduced words, and the numbers fired along the way lead to the exponents, the order of the group and Weyl's dimension formula.<Developed ns={[5]} /></li>
+<li>The board alone decides whether the game closes up. It does so exactly when a quadratic form of the board is positive definite, which singles out the Dynkin diagrams; on the boundary sit the <Term a="affine">affine</Term> diagrams, with one frozen population and one conserved weighted sum.<Developed ns={[2, 3]} /></li>
 <li>A simple Lie algebra appears when each reflection is cut into single steps up and down. In the smallest representations every step is a move of the game, and the graph of the game is the representation.<Developed ns={[8]} /></li>
-<li>A real form is the same algebra seen through an involution. On the board it is a choice of black nodes and arrows, a Satake diagram; the involution can itself be played, and the shadows it casts on the roots form a smaller board with a game of its own.<Developed ns={[9]} /></li>
+<li>A <Term a="real-form">real form</Term> is the same algebra seen through an involution. On the board it is a choice of black nodes and arrows, a <Term a="satake-diagram">Satake diagram</Term>; the <Term a="involution">involution</Term> can itself be played, and the shadows it casts on the roots form a smaller board with a game of its own.<Developed ns={[9]} /></li>
 </ol>
 <figcaption>The seven statements of the site, each with the module that develops it once that module is published.</figcaption>
 </figure>
@@ -113,15 +113,15 @@ The rest of the site grows out of these two moves. It rests on seven statements,
 
 <ul data-seen-statements>
 <li data-seen-statement>A mutation changes only the city that mutates. A firing changes the fired node and its neighbours. Neither move changes the board. These are the rules of the two games; for the mutation game see <Cite k="W20"/>.</li>
-<li data-seen-statement>The translator $a=Cp$ turns a mutation at $i$ into the firing at $i$: $CS_i=R_iC$. This is verified by computation on every board of finite type of rank at most eight; Wildberger proves the same link with the opposite sign, $q=-Cp$ <Cite k="W-MS"/>.</li>
-<li data-seen-statement><strong>The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.</strong> It restates the mutation rule through $a=Cp$, and it is verified by computation on every board of finite type of rank at most eight.</li>
+<li data-seen-statement>The translator $a=Cp$ turns a mutation at $i$ into the firing at $i$: $CS_i=R_iC$. This is verified by computation on every board of <Term a="finite">finite type</Term> of rank at most eight; Wildberger proves the same link with the opposite sign, $q=-Cp$ <Cite k="W-MS"/>.</li>
+<li data-seen-statement><strong>The number on node <i>i</i> is the amount by which a mutation would lower city <i>i</i>.</strong> It restates the mutation rule through $a=Cp$, and it is verified by computation on every board of <Term a="finite">finite type</Term> of rank at most eight.</li>
 </ul>
 
 </Seen>
 
 <LieTheory>
 
-A population $p$ stands for the element $\sum_i p_i\alpha_i$ of the root lattice $Q$, written in simple-root coordinates, and a <Term a="mutate">mutation</Term> at $i$ is the simple reflection $s_i(\beta)=\beta-\langle\alpha_i^\vee,\beta\rangle\alpha_i$. The <Term a="numbers">numbers</Term> are the Dynkin labels $a_i=\langle\lambda,\alpha_i^\vee\rangle$ of a weight $\lambda=\sum_i a_i\omega_i$, and a <Term a="fire">firing</Term> at $i$ is the same reflection, $s_i\lambda=\lambda-a_i\alpha_i$, in fundamental-weight coordinates, because $\alpha_i=\sum_j C_{ji}\,\omega_j$. Here $C$ is the Cartan matrix in the convention $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$ of Kac and SageMath; Bourbaki and Humphreys print its transpose. The <Term a="the-translator">translator</Term> $a=Cp$ is the inclusion of $Q$ in the weight lattice $P$, of index $\det C$, which is <G k="types.A3.det_cartan"/> on <Tex src="A_3"/>. The <Term a="board">board</Term> <Tex src="A_3"/> is the Dynkin diagram of type <Tex src="A_3"/> in Bourbaki's numbering, and the start <Tex src="(0,1,0)"/> of the Numbers figure is the fundamental weight <Tex src="\omega_2"/>.
+A population $p$ stands for the element $\sum_i p_i\alpha_i$ of the root lattice $Q$, written in simple-root coordinates, and a <Term a="mutate">mutation</Term> at $i$ is the simple reflection $s_i(\beta)=\beta-\langle\alpha_i^\vee,\beta\rangle\alpha_i$. The <Term a="numbers">numbers</Term> are the Dynkin labels $a_i=\langle\lambda,\alpha_i^\vee\rangle$ of a weight $\lambda=\sum_i a_i\omega_i$, and a <Term a="fire">firing</Term> at $i$ is the same reflection, $s_i\lambda=\lambda-a_i\alpha_i$, in fundamental-weight coordinates, because $\alpha_i=\sum_j C_{ji}\,\omega_j$. Here $C$ is the <Term a="cartan-matrix">Cartan matrix</Term> in the convention $C_{ij}=\langle\alpha_i^\vee,\alpha_j\rangle$ of Kac and SageMath; Bourbaki and Humphreys print its transpose. The <Term a="the-translator">translator</Term> $a=Cp$ is the inclusion of $Q$ in the weight lattice $P$, of index $\det C$, which is <G k="types.A3.det_cartan"/> on <Tex src="A_3"/>. The <Term a="board">board</Term> <Tex src="A_3"/> is the Dynkin diagram of type <Tex src="A_3"/> in Bourbaki's numbering, and the start <Tex src="(0,1,0)"/> of the <View v="numbers"/> figure is the fundamental weight <Tex src="\omega_2"/>.
 
 </LieTheory>
 
@@ -129,15 +129,15 @@ A population $p$ stands for the element $\sum_i p_i\alpha_i$ of the root lattice
 
 Each challenge watches the board just below it and says when its goal is reached.
 
-<Challenge client:visible for="b5" goal={`Starting from one Martian in city 2, reach the population ${thetaText} by mutations.`} explanation="Mutate city 1 and then city 3. Each of them receives the Martian of city 2 and keeps nothing of its own, so all three cities end with one Martian. This population is the highest root population of the board." check={{ kind: 'reach', board: 'populations', values: theta }} />
+<Challenge client:visible for="b5" goal={`Starting from one Martian in city 2, reach the population ${thetaText} by mutations.`} explanation="Mutate city 1 and then city 3. Each of them receives the Martian of city 2 and keeps nothing of its own, so all three cities end with one Martian." check={{ kind: 'reach', board: 'populations', values: theta }} />
 
-<T01GameBoard client:visible id="b5" board="A3" view="populations" mode="free" coords="populations" start={[0, 1, 0]} caption={`Mutations take one Martian in city 2 to the population ${thetaText}, the highest root population of this board.`} />
+<T01GameBoard client:visible id="b5" board="A3" view="populations" mode="free" coords="populations" start={[0, 1, 0]} caption={`Mutations take one Martian in city 2 to the population ${thetaText}, one Martian in every city.`} />
 
 <Challenge client:visible for="b6" goal="Starting from the numbers 1, 1, 1, reach the numbers −1, −1, −1 by firing." explanation="Fire a node whose number is positive, again and again, until no number is positive, and see where the play stops. Why it stops there is a result of a later module." check={{ kind: 'reach', board: 'numbers', values: [-1, -1, -1] }} />
 
 <T01GameBoard client:visible id="b6" board="A3" view="numbers" mode="free" coords="numbers" start={[1, 1, 1]} caption="Firing carries the numbers (1, 1, 1) to (−1, −1, −1): every number changes sign in the end." />
 
-<Challenge client:visible for="b7" goal="Starting from one Martian in city 2, reach a population at which no number is positive." explanation="Mutate city 2, then city 1, then city 3, and read the Numbers board: every number is then zero or negative. By the bridge sentence, no mutation lowers any city at such a population." check={{ kind: 'out', name: 'goalMet', equals: 'Goal reached.' }} />
+<Challenge client:visible for="b7" goal="Starting from one Martian in city 2, reach a population at which no number is positive." explanation="Mutate city 2, then city 1, then city 3, and read the numbers: every number is then zero or negative. By the bridge sentence, no mutation lowers any city at such a population." check={{ kind: 'out', name: 'goalMet', equals: 'Goal reached.' }} />
 
 <T01GameBoard client:visible id="b7" board="A3" view="linked" mode="free" coords="populations" start={[0, 1, 0]} goal={{ kind: 'no-positive', text: 'Goal: reach a population with no positive number.' }} caption="At a population whose numbers are all zero or negative, no mutation lowers any city." />
 

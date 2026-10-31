@@ -1,0 +1,141 @@
+{
+ "agent": "P6-A1",
+ "status": "done",
+ "branch": "worktree-agent-aef48fbe284f2f288",
+ "base": "9c47155",
+ "commits": [
+  "93fd6cb P6-A1 repair: NeedsConnectedBoard on a restricted root system in pieces; a population with a hole is a RangeError; black used sorted pinned",
+  "6698750 P6-A1 repair: reasons.test pins the row reading of not-a-symmetry and the nodes of not-an-involution",
+  "3e44d2f P6-A1 repair: property 9 checks every catalogue record of the drawn board",
+  "399b98e P6-A1 repair: decisions fragment, entries of the repair after review"
+ ],
+ "filesChanged": [
+  "packages/engine/src/satake.ts",
+  "packages/engine/test/golden/p6a-guards.test.ts",
+  "packages/engine/test/unit/reasons.test.ts",
+  "packages/engine/test/properties/p9-theta.test.ts",
+  "decisions/P6-A1.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current",
+   "exit": 0,
+   "summary": "toplevel /home/user/mutation_game/.claude/worktrees/agent-aef48fbe284f2f288, branch worktree-agent-aef48fbe284f2f288"
+  },
+  {
+   "cmd": "git reset --hard 9c47155",
+   "exit": 0,
+   "summary": "HEAD is now at 9c47155 MERGE: P6-A1 reviewed (5 minors); rulings on its open questions"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed from the lockfile once; node v22.22.0, tsc 6.0.3, vitest 5.0.3, fast-check 4.10.2"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm test -w packages/engine",
+   "exit": 0,
+   "summary": "Test Files 81 passed (81); Tests 2536 passed (2536). Before the repair: 2530"
+  },
+  {
+   "cmd": "npm test (first run, load average 18.8 on 4 CPUs)",
+   "exit": 1,
+   "summary": "3506 of 3508 passed. Two site-unit tests hit the 5 s default timeout: T03 'meter is constant along 1000 random free moves' and repo-ci-playwright-report. Neither calls satake. Both pass when run alone with --testTimeout=60000"
+  },
+  {
+   "cmd": "npm test (second run, load average about 11)",
+   "exit": 1,
+   "summary": "3507 of 3508 passed. One site-unit test hit the 5 s timeout: T12 'minusculeNodes agrees ... orbits of at most 600 positions'. It does not call satake and passes alone (82 of 82)"
+  },
+  {
+   "cmd": "npm test (third run, load average about 7)",
+   "exit": 0,
+   "summary": "Test Files 173 passed (173); Tests 3508 passed (3508); the scripts.test.ts clock guard is included"
+  },
+  {
+   "cmd": "npm run bench -w packages/engine (first run, load average 17.8)",
+   "exit": 1,
+   "summary": "One timing threshold failed: t4-load-path.bench.ts measured 59 ms against a limit of 50 ms. That bench is not a P6-A1 file and does not call satake"
+  },
+  {
+   "cmd": "npm run bench -w packages/engine (second run, load average about 9)",
+   "exit": 0,
+   "summary": "6 of 6 passed. Orbit median 17.01 ms (limit 25 ms). satake medians: e7(7) 10.61, e7(-5) 4.64, e7(-25) 3.39, e7(-133) 4.51, e8(8) 12.33, e8(-24) 5.92, e8(-248) 10.39 ms. restrictedBoard 0.65 to 2.16 ms"
+  },
+  {
+   "cmd": "python3 scratchpad/p6-a1-repair/mutants.py <root> (9 mutants, 7 P6-A1 test files, each file restored byte for byte)",
+   "exit": 0,
+   "summary": "9 of 9 killed. Each mutant failed exactly one test (1 failed, 116 passed of 117), the added or repaired test that guards it"
+  },
+  {
+   "cmd": "python3 scratchpad/p6-a1-review/mutants.py <root> (the review's 27 mutants)",
+   "exit": 0,
+   "summary": "24 killed (19 before the repair). The 3 survivors are the ones the review called equivalent: simple restricted root taken from the largest node, orbit nodes not sorted, requireGcm dropped while requireFinite stays"
+  },
+  {
+   "cmd": "node --import review/register.mjs scratchpad/p6-a1-repair/pieces.mjs <root> <review dir>",
+   "exit": 0,
+   "summary": "267 admissible pairs. The oracle's satake raises on 26, the oracle's restricted Cartan matrix is in pieces on the same 26, and the engine throws NeedsConnectedBoard on exactly those 26 and on nothing else. restrictedBoard gives labels 1..m and no name on all 26. 0 disagreements"
+  },
+  {
+   "cmd": "node --import review/register.mjs review/compare.mjs <root>",
+   "exit": 0,
+   "summary": "117733 checks, 0 failed, disagreements []. The 26 pairs where both sides throw now throw NeedsConnectedBoard in the engine"
+  },
+  {
+   "cmd": "node --import review/register.mjs review/holes.mjs <root>",
+   "exit": 1,
+   "summary": "Exits 1 as wanted: theta on A3 with [1, <hole>, 0] now throws RangeError instead of returning [-1, NaN, 0]"
+  },
+  {
+   "cmd": "python3 scratchpad/p6-a1-repair/reasons_oracle.py <root>",
+   "exit": 0,
+   "summary": "Oracle verdicts for the new cases. B3 and C3 flips: symmetry false only, rows [0,2] and [1], columns [1] and [0,2]. A5 with tau [1,2,0,4,3]: symmetry and condition_1 false, positions with tau(tau(i)) != i are [0,1,2], moved positions are [0..4]"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules (and ignored run output: test/golden/.coverage, coverage.json, reference/__pycache__, reports/numbers-in-prose.md, site/.astro)",
+   "exit": 0,
+   "summary": "git status --porcelain is empty, and so is git status --porcelain --ignored"
+  }
+ ],
+ "findings": [
+  {
+   "finding": "No test checked that the black set is sorted before use (A3 [2,0] gives the same result in either order)",
+   "status": "fixed",
+   "test": "packages/engine/test/golden/p6a-guards.test.ts > arguments unchanged > black in any order gives the results of the sorted list: E6 and B3 (repair after review)",
+   "evidence": "Red before, green after. With checkDiagram's sort removed, this test fails (E6 with black [4,3,2,1] is judged not admissible); with the sort it passes. admissibility, satake, restrictedBoard, theta and shadow2 are all compared with the sorted list"
+  },
+  {
+   "finding": "The planned node lists of not-a-symmetry and not-an-involution were tested only on cases where other readings give the same nodes",
+   "status": "fixed",
+   "test": "packages/engine/test/unit/reasons.test.ts > every reason code > not-a-symmetry reads rows, not columns: the flip of B3 and of C3 (repair after review); > not-an-involution names the positions tau(tau(i)) != i, not every position tau moves (repair after review)",
+   "evidence": "Red before, green after. The review's mutants 'symmetry nodes by column instead of row' and 'not-an-involution nodes: every moved position' each make exactly the new test fail"
+  },
+  {
+   "finding": "A population with a hole got through checkPopulation, because map skips holes (theta gave NaN, shadow2 a sparse array)",
+   "status": "fixed",
+   "test": "packages/engine/test/golden/p6a-guards.test.ts > malformed diagrams > a population with a hole is a RangeError for theta and shadow2, as an undefined entry is (repair after review)",
+   "evidence": "Red before, green after. satake.ts checkPopulation now reads with an index loop over 0..n-1. Putting back the map version fails this test; the current code passes"
+  },
+  {
+   "finding": "Property 9 drew one record per run, so 20 and 56 of the 167 records were never checked with the recorded seed",
+   "status": "fixed",
+   "test": "packages/engine/test/properties/p9-theta.test.ts > property 9 > theta is an involution; > theta permutes the roots (seed 20261025 and 400/200 runs kept; each run loops over every record of B; after fc.assert the test checks that all 167 records were reached)",
+   "evidence": "Red before, green after. The test mutant that checks only one record of B fails both properties. The old draw reached 147 and 111 of the 167 records (review count), which would fail the new reach check. Now all 167 are reached in both properties; 1.0 s and 2.4 s when run alone"
+  },
+  {
+   "finding": "Boards in pieces were not settled: satake let classifyRestricted's plain EngineError through, and the identify guard and the labels 1..m path were untested",
+   "status": "fixed",
+   "test": "packages/engine/test/golden/p6a-guards.test.ts > a board in pieces (MERGE ruling (1) on P6-A1; E-10, E-7) > the split form of A2 + A2: satake throws NeedsConnectedBoard; restrictedBoard gives labels 1..4 and no name",
+   "evidence": "Red before, green after. The no-NeedsConnectedBoard mutant, the 'identify without the connectedness guard' mutant and the 'labels empty when no name' mutant each make this test fail"
+  }
+ ],
+ "ruling1": "satake.ts: after the admissibility check and the oracle's asserts, and just before classifyRestricted, satake builds the restricted board. If the pair has white orbits and that board is in more than one piece, satake throws NeedsConnectedBoard (an EngineError) with the message 'satake needs a restricted root system in one piece; the restricted board of this pair is in K pieces'. restrictedBoard is unchanged: on such a pair it returns labels 1..m in orbit order and no name. One test pins both on the split form of A2+A2: the class, the message, orbits [[0],[1],[2],[3]], the A2+A2 Cartan matrix, labels [1,2,3,4], no name, two components. A second test on the same board checks that complex sl(3,C) (tau exchanging the pieces) is still computed: A2, multiplicity 2, restricted board A2. On the review's 267 admissible pairs the new throw happens exactly on the 26 pairs where the oracle raises, and the 167 records are unchanged.",
+ "decisionsFragment": "decisions/P6-A1.md",
+ "handoff": "Worktree /home/user/mutation_game/.claude/worktrees/agent-aef48fbe284f2f288, branch worktree-agent-aef48fbe284f2f288, 4 commits on top of 9c47155. The working tree is clean and node_modules is deleted. No exported name or type changed and index.ts is untouched. MERGE: (a) The fragment adds 7 dated '(repair after review)' entries. One of them replaces the earlier entry 'disconnected boards (not pinned in a test)', because satake now throws NeedsConnectedBoard there instead of classifyRestricted's EngineError. The earlier entry is still in the file and in the folded DECISIONS.md, so fold the new one over it. (b) P6-A2: satakeRecord or satakeCatalogue code that reaches satake on a board in pieces must expect NeedsConnectedBoard. The named catalogue boards are never in pieces, so the 167 records are unaffected. (c) The full npm test passed on the third run, 3508 of 3508. The first two runs each had different site-unit tests (T03, repo-ci-playwright-report, T12) hit the 5 s default timeout at load averages of 18 and 11 while other agents ran Chrome. None of those files calls satake, and each passes when run alone. The engine bench's t4-load-path limit (50 ms) failed once at load 17.8 and passed on the rerun. (d) The scratch scripts are in /tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/p6-a1-repair/ (mutants.py, pieces.mjs, reasons_oracle.py and the .out logs)."
+}

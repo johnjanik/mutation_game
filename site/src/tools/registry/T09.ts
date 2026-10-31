@@ -40,6 +40,8 @@ export const T09_OUTS = [
   'limit',
   'predictResult',
   'predictReveal',
+  'exportNotice', // ToolFrame's export notice (phase 2, P2-A6), on every tool (RT-FIX P3-RT-10-06)
+  'citeText', // ToolFrame, after a click on Cite (P6-A5)
 ] as const;
 
 export default {

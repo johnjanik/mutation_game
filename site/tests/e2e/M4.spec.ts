@@ -25,7 +25,8 @@
 //     question, draft, beat, figure, seen, lie-theory, links, sources; data-beat; data-provenance;
 //     data-challenge, data-met, data-challenge-result (text "Goal reached."); data-source;
 //     data-unverified and a.unverified-mark (P0-A4 Unverified)
-//   this lesson's own markup: data-bridge-prose, data-seen-statement, data-fate-table
+//   this lesson's own markup: data-bridge-prose, data-seen-statement, data-fate-table, data-view-word
+//     (the view words of SPEC 8.3, each with its icon and its accent underline)
 //
 // Word-counting rule (as M0.spec.ts and M3.spec.ts): the words of the <article> after removing every
 // tool root ([data-tool]), every <details>, every live or status region, the draft mark and the list
@@ -544,9 +545,10 @@ test('anatomy', async ({ page }) => {
   for (const key of ['Moz90', 'Eri95b', 'Don08', 'GSS12', 'W-MS', 'W03c', 'IMO86', 'Pro84']) {
     await expect(article.locator(`[data-anatomy="sources"] [data-source="${key}"]`), key).toHaveCount(1);
   }
-  // The links: the sandbox with A3 (the next module and the Atlas are dropped while unreleased).
+  // The links: the sandbox with A2, the board of the first figure (SPEC 8.2 item 7; the next module
+  // and the Atlas are dropped while unreleased).
   const sandbox = article.locator('[data-anatomy="links"] a[data-link="sandbox"]');
-  if ((await sandbox.count()) > 0) expect(await sandbox.getAttribute('href')).toMatch(/g=A3$/);
+  if ((await sandbox.count()) > 0) expect(await sandbox.getAttribute('href')).toMatch(/g=A2$/);
 });
 
 test('wrapped items', async ({ page }) => {
@@ -692,4 +694,113 @@ test('axe: no serious or critical violations on the lesson at 360 pixels', async
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }));
   expect(serious).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions (red team, round 1)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // The release build of the sandbox-link regression below: RT13_BASE_URL is the address of a
+  // static server of OUT_DIR=<dir> RELEASE=1 npm run build:release.
+  if (process.env.RT13_BASE_URL) test.use({ baseURL: process.env.RT13_BASE_URL });
+
+  // RT-08 (content rules), attack 27 (credit) with attack 5 ("first"): the "What we have seen" box
+  // said "Both games were first published by Wildberger ([W03c], section two), who credits the
+  // numbers game to Mozes." The numbers game was published by Mozes in 1990 ([Moz90]), after
+  // Proctor's use of the same process in 1984 ([Pro84]); what SOURCES.md 11.1 says of [W03c] is
+  // narrower: "Section 2 ... is the first published definition of **both** games on directed
+  // graphs". SPEC.md 8.4: "Credit accurately: ... the numbers game is Mozes', with Proctor's
+  // earlier use of the same process and Eriksson's development acknowledged". The sentence is read
+  // from the MDX source and from SOURCES.md.
+  const SOURCES = readFileSync(fileURLToPath(new URL('../../../SOURCES.md', import.meta.url)), 'utf8');
+
+  test('SOURCES.md qualifies [W03c] as the first published definition of both games on directed graphs', () => {
+    expect(SOURCES).toContain('is the first published definition of **both** games on directed graphs');
+    expect(SOURCES).toMatch(/\*\*\[Moz90\]\*\* S\. Mozes, .*\(1990\)/);
+  });
+
+  // regression: P3-RT-08-04
+  test('M4 does not say that the numbers game was first published by Wildberger', () => {
+    const M4 = readFileSync(LESSON_PATH, 'utf8');
+    const sentence = M4.split('\n').find((l) => /first published by Wildberger/.test(l)) ?? null;
+    // Observed at 69546f0 (Seen box, first statement):
+    // "Both games were first published by Wildberger (<Cite k="W03c"/>, section two), who credits the numbers game to Mozes."
+    expect(sentence, 'M4 sentence crediting first publication of both games to Wildberger').toBeNull();
+  });
+
+  // RT-13, attack 17: the links a reader follows. Every internal link of the lesson answers 200 and
+  // its fragment exists; no link reaches open-items in a release build; the sandbox link opens T16
+  // with "this module's board loaded" (SPEC 8.2 item 7; P6), read against the board of the module's
+  // first figure (SPEC 3 M4 table, row 1: A2, kept by beat 1).
+  const FIRST_BOARD: Record<string, [string, number]> = { 'm4-numbers': ['A2', 2] };
+
+  for (const [m, [boardName, n]] of Object.entries(FIRST_BOARD)) {
+    // regression: P3-RT-13-05
+    test(`/modules/${m}/: links answer, fragments exist, the sandbox opens ${boardName}`, async ({ page, baseURL }) => {
+      test.setTimeout(120000);
+      await page.goto(`modules/${m}/`);
+      const firstFigure = page.locator('[data-tool]').first();
+      const firstLabel = (await firstFigure.locator('figure').first().getAttribute('aria-label')) ?? (await firstFigure.innerText());
+      expect(firstLabel, 'the first figure is on the module board').toContain(boardName);
+      const hrefs = [...new Set(await page.locator('article a[href]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? '')))]
+        .filter((h) => h.startsWith('/') || h.startsWith('#'));
+      const problems: string[] = [];
+      for (const h of hrefs) {
+        const url = new URL(h, new URL(`modules/${m}/`, baseURL)).href;
+        const [path, frag] = url.split('#');
+        const res = await page.request.get(path);
+        if (res.status() !== 200) { problems.push(`${h}: status ${res.status()}`); continue; }
+        if (frag && !(await res.text()).includes(`id="${frag}"`)) problems.push(`${h}: no element with id ${frag}`);
+        if (process.env.RT13_BASE_URL && /open-items/.test(h)) problems.push(`${h}: link to open-items in a release build`);
+      }
+      const sandbox = page.locator('[data-link="sandbox"]');
+      await expect(sandbox).toHaveCount(1);
+      await sandbox.click();
+      const r = page.locator('[data-tool="sandbox"]').first();
+      await expect(r).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      const label = `${await r.locator('figure').first().getAttribute('aria-label')}`;
+      const nodes = await r.locator('button[data-node][data-board="populations"], button[data-node][data-board="numbers"]').evaluateAll((els) => new Set(els.map((e) => (e as HTMLElement).dataset.node)).size);
+      if (!label.includes(` ${boardName}`) || nodes !== n) problems.push(`sandbox opens "${label.slice(0, 80)}" with ${nodes} nodes; the module's board is ${boardName} with ${n}`);
+      expect(problems, problems.join('\n')).toEqual([]);
+    });
+  }
+
+  // RT-13, attack 27: the colours and icons of the two views. SPEC 8.1 P8 ("Populations and Numbers
+  // have fixed colours and icons in prose, figures and formulas"); 8.3 ("They mark the borders and
+  // icons of panels and the underlines of the two words, never text and never the fill of a node";
+  // "Icons: a small city for Populations, a small numbered disc for Numbers, used wherever the view
+  // is named"). The cases of this lesson; M0's are its own spec's.
+  async function loadAll(page: Page, route: string): Promise<void> {
+    await page.goto(route);
+    await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 30)); } });
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-tool]')].every((t) => t.getAttribute('data-hydrated') === 'true'), null, { timeout: 60000 });
+  }
+
+  // regression: P3-RT-13-08
+  test('the words Populations and Numbers in lesson prose carry the accent underline and the icon of their view', async ({ page }) => {
+    test.setTimeout(120000);
+    const cases: [string, string][] = [['modules/m4-numbers/', 'Numbers'], ['modules/m4-numbers/', 'Populations']];
+    const problems: string[] = [];
+    for (const [route, word] of cases) {
+      await loadAll(page, route);
+      const found = await page.evaluate((word) => {
+        const res: { text: string; underline: string; colour: string; icon: boolean }[] = [];
+        const walker = document.createTreeWalker(document.querySelector('article')!, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          const el = n.parentElement!;
+          if (el.closest('[data-tool], details, .katex')) continue;
+          if (!new RegExp(`\\b${word}\\b`).test(n.textContent ?? '')) continue;
+          const cs = getComputedStyle(el);
+          const icon = !!(el.querySelector('svg') || el.previousElementSibling?.matches('svg, img') || el.closest('[data-view-word]')?.querySelector('svg'));
+          res.push({ text: (n.textContent ?? '').trim().slice(0, 60), underline: cs.textDecorationLine, colour: cs.textDecorationColor, icon });
+        }
+        return res;
+      }, word);
+      const accent = word === 'Populations' ? 'rgb(0, 158, 115)' : 'rgb(204, 121, 167)';
+      if (found.length === 0) problems.push(`${route}: the word ${word} not found in prose`);
+      for (const f of found) if (!f.underline.includes('underline') || f.colour !== accent || !f.icon) problems.push(`${route}: "${f.text}" underline=${f.underline} colour=${f.colour} icon=${f.icon}`);
+    }
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
 });
