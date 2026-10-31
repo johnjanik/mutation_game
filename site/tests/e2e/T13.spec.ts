@@ -16,7 +16,8 @@
 //   decoration:  button[data-node] with data-colour ("black" | "white"), data-board="numbers", data-value ("1" on a
 //                black node, "0" on a white one), data-can-act (inside data-out="decoration"); the drawing's
 //                data-arrow and data-black-arrow
-//   game board:  button[data-node] with data-board="populations", data-value, data-can-act (inside data-out="game-board")
+//   game board:  button[data-node] with data-board="populations", data-value, data-can-act (inside data-out="game-board");
+//                the drawn numerals data-numeral (Node.svelte)
 //   restricted:  button[data-node] with data-board="populations", data-value (the shadow coordinate), data-can-act
 //                (inside data-out="restricted-board")
 //   picture:     data-point (coordinates joined by commas), data-mult, data-double, data-chosen (inside data-out="shadow-picture")
@@ -25,7 +26,7 @@
 //   controls:    data-control="picker", "tau" (data-tau: the images joined by dots), "toggle", "root", "theta-next",
 //                "theta-play", "example" (data-example), "catalogue-load" (data-name); undo, redo, reset
 //                (History.svelte); copyLink, downloadData, latex, cite (ToolFrame); data-export="svg" | "png"
-//   table view:  data-table-node (the paint buttons), data-table-restricted
+//   table view:  data-table-node (the paint buttons), data-table-population (the Population cells), data-table-restricted
 //   live:        [data-live] (ToolFrame's polite live region)
 // data-out names (every one T13 renders; the registry's `outs`):
 //   caption, notice, noscript, exportNotice, citeText (ToolFrame); moveCounter, historyStrip, historyCounter
@@ -902,6 +903,30 @@ test.describe('regressions', () => {
     );
     const bad = hooks.filter((h) => !['populations', 'numbers'].includes(h.board ?? '') || !/^[-−]?\d+(\/\d+)?$/.test(h.value ?? '') || !['true', 'false'].includes(h.canAct ?? ''));
     expect(bad, `${hooks.length} node buttons; outside 4.0: ${[...new Set(bad.map((h) => `data-board="${h.board}" data-value="${h.value}"`))].join(', ')}`).toEqual([]);
+  });
+
+  // Adopted from the RT-05 lens (site/tests/e2e/redteam-RT-05-p6-t13-table-minus.spec.ts), attacks 30 and 33
+  // (SPEC 6.3 "The value is the signed integer, set in tabular figures, with a true minus sign"; 7.5 A-10 "every
+  // tool has a 'show as table' view that presents the same state as an HTML table"): the Population column of the
+  // table view writes a negative population as the board draws it, with U+2212. Read through the hooks: the
+  // drawn numerals (data-numeral) and the Population cells (data-table-population).
+  // regression: P6-RT-05-03
+  test('T13 table view after Play θ on su*(4): the Population column uses the true minus sign of 6.3', async ({ page }) => {
+    await page.goto('tools/satake/?g=A3&x=1.3&t=1.2.3');
+    const root = page.locator('[data-tool="satake"]');
+    await expect(root).toHaveAttribute('data-hydrated', 'true');
+    await root.locator('[data-panel-tab="theta"]').focus();
+    await page.keyboard.press('Enter');
+    await root.locator('[data-control="theta-play"]').focus();
+    await page.keyboard.press('Enter');
+    await expect(root.locator('[data-out="moveCounter"]')).toHaveText('3');
+    // the board draws the populations with U+2212
+    const drawn = await root.locator('[data-out="game-board"] [data-numeral]').allTextContents();
+    expect(drawn).toEqual(['−1', '−1', '−1']);
+    await root.locator('details summary').focus();
+    await page.keyboard.press('Enter');
+    const cells = await root.locator('[data-table-population]').evaluateAll((tds) => tds.map((td) => (td.textContent ?? '').trim()));
+    expect(cells, '/tools/satake/?g=A3&x=1.3&t=1.2.3 after Play θ, table view, column Population (the board draws −1, −1, −1)').toEqual(['−1', '−1', '−1']);
   });
 
   // Adopted from the RT-11 lens (site/tests/e2e/redteam-RT-11-p6-T13-redo-home-end.spec.ts): SPEC 7.5 A-1 "Undo,

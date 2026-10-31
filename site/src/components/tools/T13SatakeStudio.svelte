@@ -920,7 +920,7 @@
             >
           </td>
           <td class="numeral">{cfg.tau[j]}</td>
-          <td class="numeral">{inLabelOrder(board, shown)[j]}</td>
+          <td class="numeral" data-table-population={l}>{intText(inLabelOrder(board, shown)[j]!)}</td>
         </tr>
       {/each}
     </tbody>
