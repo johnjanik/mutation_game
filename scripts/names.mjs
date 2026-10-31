@@ -4,9 +4,10 @@
 // whole of names.json, does not load the catalogue): `realForms` (every real form of the Satake catalogue in the
 // plain-text spelling of SPEC.md 6.5, su*(2m) with its other name sl(m,H) under `alt`), `cartanLabels` (Cartan's
 // labels) and `restrictedTypes` (every restricted type, display and board of the catalogue, BC_r included), read
-// from the key `satake` of reference/golden_data.json in first-appearance order. Each file carries `katex`, the
-// version that typeset it. The KaTeX call has the four options of renderTex in site/src/lib/katex.ts, with the
-// same KaTeX resolved from site/.
+// from the key `satake` of reference/golden_data.json in first-appearance order. It also writes the real forms
+// again, one file per board, to satake-names/<board>.json (RT-FIX P6-MERGE-T13-01: the Satake Studio fetches only
+// the names of the board it shows). Each file carries `katex`, the version that typeset it. The KaTeX call has
+// the four options of renderTex in site/src/lib/katex.ts, with the same KaTeX resolved from site/.
 // Run from any directory: node scripts/names.mjs
 import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -89,6 +90,19 @@ function typeset(katex, tex) {
   return katex.renderToString(tex, { displayMode: false, output: 'htmlAndMathml', throwOnError: true, trust: false });
 }
 
+/**
+ * The entry of one real form: { text, tex, html }, and for su*(2m) also alt: { text, tex, html }.
+ * @param {{ renderToString: Function }} katex
+ * @param {string} text
+ * @returns {{ text: string; tex: string; html: string; alt?: { text: string; tex: string; html: string } }}
+ */
+function realFormEntry(katex, text) {
+  const tex = texOfRealForm(text);
+  const form = { text, tex, html: typeset(katex, tex) };
+  const alt = altOfRealForm(text);
+  return alt === null ? form : { ...form, alt: { text: alt.text, tex: alt.tex, html: typeset(katex, alt.tex) } };
+}
+
 /** The names of the catalogue, in order. Phase 0: the keys of golden.types. */
 export function catalogueNames() {
   const golden = JSON.parse(readFileSync(goldenFile, 'utf8'));
@@ -148,11 +162,7 @@ export function writeSatakeNames(outFile) {
   const spellings = satakeSpellings();
   /** @type {Record<string, { text: string; tex: string; html: string; alt?: { text: string; tex: string; html: string } }>} */
   const realForms = {};
-  for (const text of spellings.realForms) {
-    const form = entry(text, texOfRealForm(text));
-    const alt = altOfRealForm(text);
-    realForms[text] = alt === null ? form : { ...form, alt: entry(alt.text, alt.tex) };
-  }
+  for (const text of spellings.realForms) realForms[text] = realFormEntry(katex, text);
   /** @type {Record<string, { text: string; tex: string; html: string }>} */
   const cartanLabels = {};
   for (const text of spellings.cartanLabels) cartanLabels[text] = entry(text, texOfCartanLabel(text));
@@ -170,8 +180,38 @@ export function writeSatakeNames(outFile) {
 }
 
 /**
+ * The real forms of satake-names.json again, one file per board (RT-FIX P6-MERGE-T13-01): dir/<board>.json holds
+ * { katex, realForms } with the entries of the real forms whose records have that dynkin_type in the golden key
+ * `satake` (read only), in first-appearance order. The Satake Studio fetches in the browser only the file of the
+ * board it shows (site/src/components/tools/t13/names.ts), so that a link state stays within SPEC 7.6's 90 kB.
+ * @param {string} dir
+ * @returns {{ boards: number; realForms: number }}
+ */
+export function writeSatakeNamesByBoard(dir) {
+  const { version, katex } = installedKatex();
+  const golden = JSON.parse(readFileSync(goldenFile, 'utf8'));
+  /** @type {Map<string, Set<string>>} */
+  const boards = new Map();
+  for (const r of /** @type {{ dynkin_type: string; real_form: string }[]} */ (golden.satake)) {
+    if (!boards.has(r.dynkin_type)) boards.set(r.dynkin_type, new Set());
+    boards.get(r.dynkin_type)?.add(r.real_form);
+  }
+  mkdirSync(dir, { recursive: true });
+  let count = 0;
+  for (const [board, forms] of boards) {
+    /** @type {Record<string, { text: string; tex: string; html: string; alt?: { text: string; tex: string; html: string } }>} */
+    const realForms = {};
+    for (const text of forms) realForms[text] = realFormEntry(katex, text);
+    count += forms.size;
+    writeFileSync(join(dir, `${board}.json`), JSON.stringify({ katex: version, realForms }, null, 2) + '\n');
+  }
+  return { boards: boards.size, realForms: count };
+}
+
+/**
  * The two generated files of this script in one directory: names.json (writeNames) and satake-names.json
- * (writeSatakeNames). The build calls it with site/src/generated.
+ * (writeSatakeNames). The build calls it with site/src/generated, and writeSatakeNamesByBoard with
+ * site/src/generated/satake-names.
  * @param {string} dir
  * @returns {{ names: { count: number; version: string }; satake: { version: string; realForms: number; cartanLabels: number; restrictedTypes: number } }}
  */
@@ -183,9 +223,11 @@ const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileUR
 if (isMain) {
   try {
     const { names, satake } = writeGenerated(join(siteDir, 'src', 'generated'));
+    const byBoard = writeSatakeNamesByBoard(join(siteDir, 'src', 'generated', 'satake-names'));
     process.stdout.write(
       `names: ${names.count} types (names.json); ${satake.realForms} real forms, ${satake.cartanLabels} Cartan labels, ${satake.restrictedTypes} restricted types (satake-names.json); typeset with katex ${names.version}\n`,
     );
+    process.stdout.write(`names: ${byBoard.realForms} real forms in ${byBoard.boards} files, one per board (satake-names/)\n`);
   } catch (error) {
     process.stderr.write(`names: ${(error instanceof Error ? error.message : String(error)).split('\n')[0]}\n`);
     process.exit(1);

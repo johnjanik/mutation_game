@@ -1437,6 +1437,24 @@ test.describe('regressions', () => {
     expect(bad, '/modules/m9-real-forms/: T13 captions and questions that write a formula as ASCII TeX').toEqual([]);
   });
 
+  // MERGE follow-up of P6-RT-07-01 (rtconfirm-p6-t13): an instance link of M9 shows a pair the server did not
+  // render, and its names were the plain markup of t13/names.ts (Unicode fraktur, no MathML) until the reader's
+  // first action. SPEC 7.5 A-12: "Mathematics is rendered with MathML available to assistive technology". b8 opens
+  // on the Catalogue panel (preset catalogue); the link loads the catalogue of E6, five records.
+  // regression: P6-MERGE-T13-01
+  test('M9: an instance link shows the names of its catalogue typeset with MathML before the first interaction (A-12)', async ({ page }) => {
+    await page.goto(`${ROUTE}?b8.z=1&b8.g=E6&b8.x=2.3.4.5&b8.t=1.2.3.4.5.6`);
+    await hydrate(page, 'b8');
+    const rows = out(page, 'b8', 'catalogue-row');
+    const expected = GOLDEN.satake.filter((x) => x.dynkin_type === 'E6').map((x) => x.real_form);
+    await expect(rows).toHaveCount(expected.length);
+    for (const [k, f] of expected.entries()) {
+      await expect(rows.nth(k)).toHaveAttribute('data-name', f);
+      await expect(rows.nth(k).locator('th math'), f).toHaveCount(1);
+      expect(await rows.nth(k).locator('th').textContent(), f).not.toMatch(/[\u{1D51E}-\u{1D537}]/u);
+    }
+  });
+
   test.describe('without JavaScript', () => {
     test.use({ javaScriptEnabled: false });
     // RT-13, attack 8 (P2), from the script redteam/redteam-RT-13-p6-m9-reveal-only.mjs of the lens branch, which

@@ -312,12 +312,14 @@
   }
 
   /**
-   * Fetches the typeset names (t13/names.ts), only from the reader's own actions (a paint, tau, the picker, an
-   * example, a catalogue entry, a panel, the back button), never while the island hydrates from a link: SPEC 7.6
-   * counts every script a route fetches before the first interaction (decisions/P6-A3.md; RT-FIX P6-RT-07-01).
+   * Fetches the typeset names of the board shown (t13/names.ts: one small chunk per board), wherever the Studio
+   * shows a pair the server did not render: a link read while the island hydrates, the reader's own actions (a
+   * paint, tau, the picker, an example, a catalogue entry, a panel) and the back button. SPEC 7.6 counts every
+   * script a route fetches before the first interaction; one board's names keep a link state within 90 kB, and
+   * the default state fetches none (decisions/RT-FIX-P6-t13-followup.md; RT-FIX P6-RT-07-01, P6-MERGE-T13-01).
    */
   function loadTypesetNames(): void {
-    void loadNames().then(() => namesVersion++);
+    void loadNames(cfg.board).then(() => namesVersion++);
   }
 
   function readLink(): void {
@@ -330,6 +332,7 @@
       predictionResolved = true;
     }
     setConfig(next);
+    loadTypesetNames();
   }
 
   // Hydration: read the URL once with the instance prefix (6.6), and ask the worker for data the server

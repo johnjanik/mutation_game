@@ -51,6 +51,7 @@ import type { Board, SatakeDiagram } from '../../../packages/engine/src/index';
 // the tool's own server-side functions, for the E7 island test (as registry-outs.spec.ts loads the registry)
 import { computeNow, islandScript, pairJson } from '../../src/components/tools/t13/load';
 import { diagramOf, pairKey } from '../../src/components/tools/t13/model';
+import { altOfRealForm } from '../../../scripts/names.mjs';
 
 interface GoldenRecord {
   dynkin_type: string;
@@ -822,8 +823,9 @@ test.describe('regressions', () => {
   // JavaScript /tools/satake/ fetches before the reader's first interaction when it is opened from a link that
   // the site itself writes. SPEC 7.6: the budget of a route is the gzip size of "all JavaScript the route fetches
   // before the reader's first interaction", 90 kB for "each tool alone, on /tools/<id>"; SPEC 6.6: "On a tool's
-  // own route (/tools/..., /embed/...) the keys are bare", so a link is the same route. decisions/P6-A3.md: the
-  // typeset names (t13/satakeNames.ts, about 5 kB gzipped) load only after the reader's first change. Measured as
+  // own route (/tools/..., /embed/...) the keys are bare", so a link is the same route. The typeset names of the
+  // whole catalogue (t13/satakeNames.ts, about 5 kB gzipped) do not fit; a link state fetches those of its own
+  // board only (t13/names.ts; RT-FIX P6-MERGE-T13-01), and the default state none. Measured as
   // npm run size measures a route (scripts/size.mjs: 360 by 800, network idle, then quiet; gzip level 9 of the
   // files from the built directory), with 3 s with no request as the settle. npm run size opens bare routes only.
   const SITE_DIR = resolve(import.meta.dirname, '../..');
@@ -882,6 +884,28 @@ test.describe('regressions', () => {
       const extra = r.files.filter((f) => !def.files.includes(f));
       console.info(`/${link}: ${r.sum} B before interaction (default ${def.sum} B); scripts beyond the default: ${extra.join(', ') || 'none'}`);
       expect(r.sum, `scripts beyond the default state: ${extra.join(', ')}`).toBeLessThanOrEqual(LIMIT);
+    });
+  }
+
+  // MERGE follow-up of P6-RT-07-01 (rtconfirm-p6-t13). SPEC 7.5 A-12: "Mathematics is rendered with MathML
+  // available to assistive technology (KaTeX's default output)"; decisions/P6-A3.md: "the first view is always
+  // the typeset one". A link state shows a pair the server did not render: before the reader's first action its
+  // names are KaTeX's markup with MathML, never the plain markup of t13/names.ts (Unicode fraktur), while the
+  // tests above keep the same links within 90 kB.
+  const FRAKTUR = /[\u{1D51E}-\u{1D537}]/u;
+  for (const link of [...LINKS, 'embed/satake/?g=A3&x=1.3&t=1.2.3']) {
+    // regression: P6-MERGE-T13-01
+    test(`/${link}: the names of the real form are typeset with MathML before the first interaction (A-12)`, async ({ page }) => {
+      await page.goto(link);
+      await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+      const names = out(page, 'real-form');
+      await expect(names.first()).toBeAttached();
+      for (const li of await names.all()) {
+        const name = (await li.getAttribute('data-name')) ?? '';
+        // the name, and for su*(2m) its second name sl(m,H) (SPEC 6.5), each with its MathML
+        await expect(li.locator('math'), `/${link}: ${name}`).toHaveCount(altOfRealForm(name) === null ? 1 : 2);
+        expect(await li.textContent(), `/${link}: ${name}`).not.toMatch(FRAKTUR);
+      }
     });
   }
 
