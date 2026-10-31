@@ -1,7 +1,9 @@
 // T1 and the rest of the page (SPEC.md 7.4 "Tools on one page", 4.0 Predict): following a state
 // published under the instance's own id (T2's jump), the highlight store, and the check of a
 // prediction's answer. Pure helpers; the component wires them.
+import { speak, speakList } from '../../../lib/a11y';
 import { encodeState } from '../../../lib/urlCodec';
+import { displayValue } from '../../board/sign';
 import { followToolState, type ToolState } from '../../../lib/state';
 import type { Highlight } from '../../../lib/highlight';
 import type { Prediction } from '../../../tools/types';
@@ -70,6 +72,35 @@ export function predictionAnswerText(prediction: Prediction): string {
       return String(a.value);
     case 'position':
       return `(${a.value.join(', ')})`;
+    case 'choice':
+      return a.options[a.correct] ?? '';
+  }
+}
+
+/**
+ * RT-FIX P6-RT-05-04: the answer of the result line, a negative number written with the true minus sign U+2212
+ * (SPEC 6.3; displayValue), and the answer of the announcement, a negative number spoken "minus" (7.5 A-4;
+ * CONTRACTS 4 speak). A choice is the author's text in both.
+ */
+export function predictionAnswerShown(prediction: Prediction): string {
+  const a = prediction.answer;
+  switch (a.type) {
+    case 'number':
+      return displayValue(a.value);
+    case 'position':
+      return `(${a.value.map(displayValue).join(', ')})`;
+    case 'choice':
+      return a.options[a.correct] ?? '';
+  }
+}
+
+export function predictionAnswerSpoken(prediction: Prediction): string {
+  const a = prediction.answer;
+  switch (a.type) {
+    case 'number':
+      return speak(a.value);
+    case 'position':
+      return `(${speakList(a.value)})`;
     case 'choice':
       return a.options[a.correct] ?? '';
   }

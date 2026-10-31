@@ -6,7 +6,7 @@
   // hydration (7.4). Hooks: data-prediction on the root; data-control="predictAnswer" (each input),
   // "predictCheck", "predictShow"; data-out="predictResult", "predictReveal".
   import type { Prediction } from '../../tools/types';
-  import { predictionAnswerText, predictionCorrect, type PredictionAnswer } from '../tools/t01/interop';
+  import { predictionAnswerShown, predictionAnswerSpoken, predictionAnswerText, predictionCorrect, type PredictionAnswer } from '../tools/t01/interop';
 
   interface Props {
     prediction: Prediction;
@@ -38,7 +38,10 @@
   const fields = $derived(prediction.answer.type === 'position' ? prediction.answer.value.length : 0);
 
   /** The answer closing a sentence: a full stop is added unless the answer already ends one (a choice is often a sentence). */
-  const closed = $derived(/[.!?]$/.test(answerText) ? answerText : `${answerText}.`);
+  const close = (text: string): string => (/[.!?]$/.test(text) ? text : `${text}.`);
+  /** RT-FIX P6-RT-05-04: the result line writes a negative answer with U+2212 (6.3), the announcement speaks it "minus" (A-4). */
+  const closed = $derived(close(predictionAnswerShown(prediction)));
+  const closedSpoken = $derived(close(predictionAnswerSpoken(prediction)));
   const resultText = $derived(
     resolved === 'correct' ? `Right: ${closed}` : resolved === 'wrong' ? `Not quite: the answer is ${closed}` : resolved === 'shown' ? `The answer is ${closed}` : problem,
   );
@@ -87,7 +90,7 @@
     resolved = outcome;
     problem = '';
     invalidFields = [];
-    announce?.(`${outcome === 'correct' ? 'Right' : outcome === 'wrong' ? 'Not quite' : 'Shown'}. The answer is ${closed} ${prediction.reveal}`);
+    announce?.(`${outcome === 'correct' ? 'Right' : outcome === 'wrong' ? 'Not quite' : 'Shown'}. The answer is ${closedSpoken} ${prediction.reveal}`);
     onResolved?.(outcome);
   }
 
