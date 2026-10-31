@@ -490,7 +490,17 @@ A diagnostic after the chain, cited as proof of nothing about the verdict: the r
 | /tools/form/ | 223.8 | 262.8 | +39.0 |
 | /sources/ | 392.7 | 364.6 | -28.1 |
 
-The single runs swing widely on both commits (/tools/rep/ 198 to 491 ms on f07eec6). /tools/geometry/ and /tools/satake/ do not move, so most of their rise between the two gate runs is the container. /tools/rep/ rises by about 116 ms: after Astro's hydration task, four of its six runs on facff37 show a T12RepresentationBuilder task, a task of 50 to 68 ms and a second T12RepresentationBuilder task; none of the six runs on f07eec6 shows that sequence (two of them have two T12RepresentationBuilder tasks with nothing between). That fits the round's repair of T12's link hydration (cluster t12-t5: the link is read after hydration; P6-RT-11-03 and run 1's T12.spec.ts:1242). It reads as a regression of T12's default state in the lab (/tools/rep/, and /embed/rep/ through the same component), which no test measures. /tools/symbolic/ and /tools/form/ rise by about 40 ms, within the spread of single runs. Whether the G3 acceptance holds at G6, for the tool routes above 332 ms and for the glossary, is the owner's decision; so is whether T12's extra task is repaired before release 1.0.
+The single runs swing widely on both commits (/tools/rep/ 198 to 491 ms on f07eec6). /tools/geometry/ and /tools/satake/ do not move, so most of their rise between the two gate runs is the container. /tools/rep/ rises by about 116 ms: after Astro's hydration task, four of its six runs on facff37 show a T12RepresentationBuilder task, a task of 50 to 68 ms and a second T12RepresentationBuilder task; none of the six runs on f07eec6 shows that sequence (two of them have two T12RepresentationBuilder tasks with nothing between). This report first read that as a regression from the round's repair of T12's link hydration. The addendum below withdraws that reading: a larger comparison found no difference in the work done. /tools/symbolic/ and /tools/form/ rise by about 40 ms, within the spread of single runs. Whether the G3 acceptance holds at G6, for the tool routes above 332 ms and for the glossary, is the owner's decision.
+
+**Addendum (2026-10-31, after the report commit): no regression on /tools/rep/.** A fix agent (t12-lab, base 48e49e7, whose product code is facff37's) measured the same two builds before changing anything, and changed nothing:
+
+- Work done, counted without timing (a MutationObserver and a wrapper of setTimeout, at 1x and 4x, until the tool reports hydrated and drawn): f07eec6 and facff37 run the same 17 tasks of T12, make the same 36 removals and the same attribute writes, and end with the same 611 elements. The one difference is 2 fewer nodes of server markup on facff37 (the legend of the table view and its text). /tools/form/ and /tools/symbolic/ give identical counts on both builds too.
+- Performance traces at 4x, 20 runs per build in ABBA order: hydration task median 60.2 ms on f07eec6 and 62.7 on facff37; main-thread time after hydration 344.0 and 344.8 ms. A fixed A-then-B order made whichever build ran second look slower, which the six-route comparison above did not control.
+- Lab runs on /tools/rep/ in AB, ABBA and Latin-square orders, 27 per build: medians 288.3 and 322.8 ms, means 300.4 and 311.6 ms (Mann-Whitney p = 0.52; the bootstrap interval of the median difference, -52 to 120 ms, contains 0). A fresh build of facff37's code measured 46.9 ms away from facff37 itself on the median of 9 runs.
+- The sequence taken above for the new task (a T12 task, a task of 50 to 68 ms, a second T12 task) appears in 13 of 27 runs of f07eec6 and 11 of 27 of facff37.
+- The code agrees: on a page without a query string, T12's hydration takes the same path as before the round (the link repair applies only when the address holds a key of the instance), and the round's other changes on the route run only on a click or when the orbit is drawn.
+
+So the six-run comparison could not resolve a difference of 116 ms on this container, where single runs of /tools/rep/ range from about 90 to 630 ms. Nothing was repaired. The evidence is in the scratch directory t12-lab of this session (not committed).
 
 ## 9. Release build, reports and archives
 
@@ -538,10 +548,10 @@ Every fragment of phase 6 and of its red-team round is folded into DECISIONS.md:
 - [ ] Interaction to Next Paint on one phone.
 - [ ] One exported LaTeX file of each kind compiled (reports/gate-G6-rerun/latex/: dynkin.tex, tikz-graph.tex, tikz-points.tex, tikz-graph-weyl.tex, tikz-graph-rep.tex; each holds `% needs \usepackage{...}` and a body to \input).
 - [ ] Approval of the text of M6 to M10 (M9 and M10 carry the draft mark).
-- [ ] The lab item: whether the machine-bound acceptance of G3 holds for the 28 routes over at G6, /glossary/ and the tool routes above 332 ms included, and whether T12's extra task after hydration (/tools/rep/, about +116 ms against run 1) is repaired before release 1.0 (section 8).
+- [ ] The lab item: whether the machine-bound acceptance of G3 holds for the 28 routes over at G6, /glossary/ and the tool routes above 332 ms included (section 8; the regression first reported on /tools/rep/ is withdrawn in its addendum).
 - [ ] The decisions the round left to the owner (DECISIONS.md, "MERGE: the phase 6 red-team round, fixes merged"): the worker wire labels (a change to CONTRACTS.md 4), T6's LaTeX export, and the findings refuted but recorded for the owner.
 
 ## 12. Failures, reruns and repairs
 
-- lab (step 12): 28 routes over TBT; the item fails as measured. The diagnostic of section 8 finds one regression from the round, the extra task after T12's hydration on /tools/rep/ (about +116 ms); a repair would go to the T12 role, and a lab run on every route would follow it.
+- lab (step 12): 28 routes over TBT; the item fails as measured. The diagnostic of section 8 first reported a regression on /tools/rep/ (about +116 ms); a fix agent's larger comparison found the same work and no significant difference, and the reading is withdrawn (section 8, addendum). A second lab run on every route followed, on the same product code (DECISIONS.md, "GATE: the G6 lab, second run").
 - No test failed in either e2e run. No test was skipped beyond the two MathML engines, no timeout was lengthened, no test was retried for this report.
