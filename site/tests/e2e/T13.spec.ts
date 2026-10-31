@@ -903,4 +903,36 @@ test.describe('regressions', () => {
     const bad = hooks.filter((h) => !['populations', 'numbers'].includes(h.board ?? '') || !/^[-−]?\d+(\/\d+)?$/.test(h.value ?? '') || !['true', 'false'].includes(h.canAct ?? ''));
     expect(bad, `${hooks.length} node buttons; outside 4.0: ${[...new Set(bad.map((h) => `data-board="${h.board}" data-value="${h.value}"`))].join(', ')}`).toEqual([]);
   });
+
+  // Adopted from the RT-11 lens (site/tests/e2e/redteam-RT-11-p6-T13-redo-home-end.spec.ts): SPEC 7.5 A-1 "Undo,
+  // redo and reset are visible buttons after the board in the tab order; the shortcuts u (undo) and r (redo) work
+  // only while focus is inside the board". It fails on the lens's mutant S-T13-redo-noop (redo does nothing).
+  // regression: P6-RT-11-01
+  test('T13: Redo and the r shortcut replay the undone stages of theta, and say so (A-1, A-4)', async ({ page }) => {
+    // su*(4), SPEC A.5: theta takes (0, 1, 0) through (0, 1, 0), (1, 1, 1) to (-1, -1, -1)
+    await page.goto('tools/satake/?g=A3&x=1.3&t=1.2.3');
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await root(page).locator('[data-panel-tab="theta"]').click();
+    await expect(root(page).locator('[data-panel-tab="theta"]')).toHaveAttribute('aria-selected', 'true');
+    for (let k = 1; k <= 3; k++) {
+      await control(page, 'theta-next').click();
+      await expect(out(page, 'moveCounter')).toHaveText(String(k));
+    }
+    await control(page, 'undo').click();
+    await control(page, 'undo').click();
+    await expect(out(page, 'moveCounter')).toHaveText('1');
+    const game = out(page, 'game-board').locator('button[data-node]');
+    expect(await valuesOf(game)).toEqual(['0', '1', '0']);
+    // the Redo button
+    await control(page, 'redo').click();
+    await expect(out(page, 'moveCounter')).toHaveText('2');
+    expect(await valuesOf(game)).toEqual(['1', '1', '1']);
+    await expect(live(page)).toHaveText('Stage 2 of θ. Populations now 1, 1, 1. Move 2.');
+    // the r shortcut, with the focus inside the game board
+    await game.first().focus();
+    await page.keyboard.press('r');
+    await expect(out(page, 'moveCounter')).toHaveText('3');
+    expect(await valuesOf(game)).toEqual(['-1', '-1', '-1']);
+    await expect(live(page)).toHaveText('Stage 3 of θ. Populations now minus 1, minus 1, minus 1. Move 3.');
+  });
 });
