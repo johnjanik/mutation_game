@@ -213,6 +213,13 @@
   const display = (v: string): string => v.replace(/^-/, '−');
   const listText = (v: readonly string[]): string => v.map(display).join(', ');
   const tuple = (v: readonly string[]): string => `(${listText(v)})`;
+  // The figure shows a value of more than 12 digits shortened, with its exact digits in the tooltip; the table
+  // view and the exports keep them in full (4.0 Long numbers; RT-FIX P6-RT-03-01).
+  const shortText = (v: string): string => (isLong(v) ? shortValue(v) : display(v));
+  const shortList = (v: readonly string[]): string => v.map(shortText).join(', ');
+  const shortTuple = (v: readonly string[]): string => `(${shortList(v)})`;
+  /** The exact digits of a list that holds a long value, for its tooltip; null otherwise. */
+  const exactList = (v: readonly string[]): string | null => (v.some(isLong) ? v.join(', ') : null);
   /** Exact digits in the tooltip for long values (4.0 Long numbers). */
   const tooltip = (values: readonly string[]) => (k: number): string | null => (isLong(values[k]!) ? values[k]! : null);
 
@@ -550,7 +557,7 @@
 {/snippet}
 
 {#snippet cells(values: readonly string[])}
-  {#each values as v, k (k)}<span class="cell">{display(v)}</span>{#if k < values.length - 1}<span class="sep">{', '}</span>{/if}{/each}
+  {#each values as v, k (k)}<span class="cell" title={isLong(v) ? v : null}>{shortText(v)}</span>{#if k < values.length - 1}<span class="sep">{', '}</span>{/if}{/each}
 {/snippet}
 
 {#snippet product(name: string, value: bigint, y: number)}
@@ -569,7 +576,7 @@
     {/if}
     <p class="line" data-out="startKind" data-kind={startKindOf(cur().start)}>
       Start: {startKindOf(cur().start) === 'ones' ? 'all ones' : startKindOf(cur().start) === 'fundamental' ? `the fundamental weight of node ${labelsInOrder[fundamentalAt ?? 0]}` : 'custom'},
-      <span class="numeral">{tuple(cur().valuesInLabelOrder(0))}</span>.
+      <span class="numeral" title={exactList(cur().valuesInLabelOrder(0))}>{shortTuple(cur().valuesInLabelOrder(0))}</span>.
     </p>
     <div class="board-host">
       <Board
@@ -598,7 +605,7 @@
     <p class="line" data-out="limit">{limit ?? ''}</p>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <div tabindex="0" role="group" aria-label="Tape" class="scrollbox tape-line">
-      Tape: <span class="numeral" data-out="tape" data-count={fired.length}>{fired.length === 0 ? '' : listText(fired)}</span>{#if fired.length === 0}<span class="empty">no number fired yet</span>{/if}
+      Tape: <span class="numeral" data-out="tape" data-count={fired.length} title={exactList(fired)}>{fired.length === 0 ? '' : shortList(fired)}</span>{#if fired.length === 0}<span class="empty">no number fired yet</span>{/if}
     </div>
     <History
       total={cur().moves.length}
@@ -646,7 +653,7 @@
             <thead><tr><th scope="col">Move</th><th scope="col">Node</th><th scope="col">Number fired</th></tr></thead>
             <tbody>
               {#each tape as e (e.move)}
-                <tr><td class="numeral">{e.move}</td><td class="numeral">{e.label}</td><td class="numeral">{display(e.value)}</td></tr>
+                <tr><td class="numeral">{e.move}</td><td class="numeral">{e.label}</td><td class="numeral" title={isLong(e.value) ? e.value : null}>{shortText(e.value)}</td></tr>
               {/each}
             </tbody>
           </table>
@@ -792,10 +799,10 @@
           <p class="line agree" data-out="tapesAgree">{AGREE_TEXT}</p>
         {/if}
         <p class="line">
-          Game A: <span class="numeral" data-out="movesA">{applied.length}</span> moves, now at <span class="numeral" data-out="endA">{tuple(cur().valuesInLabelOrder())}</span>.
+          Game A: <span class="numeral" data-out="movesA">{applied.length}</span> moves, now at <span class="numeral" data-out="endA" title={exactList(cur().valuesInLabelOrder())}>{shortTuple(cur().valuesInLabelOrder())}</span>.
         </p>
         <p class="line">
-          Game B: <span class="numeral" data-out="movesB">{curB().applied.length}</span> moves, now at <span class="numeral" data-out="endB">{tuple(curB().valuesInLabelOrder())}</span>.
+          Game B: <span class="numeral" data-out="movesB">{curB().applied.length}</span> moves, now at <span class="numeral" data-out="endB" title={exactList(curB().valuesInLabelOrder())}>{shortTuple(curB().valuesInLabelOrder())}</span>.
         </p>
       {:else}
         <fieldset class="lambda">

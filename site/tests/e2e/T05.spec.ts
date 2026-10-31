@@ -10,6 +10,8 @@
 //   root:    data-tool="numbers", data-moves, data-hydrated="true", data-instance (fixture instances)
 //   buttons: data-node, data-board ("numbers"), data-value, data-can-act, data-sign; the button's title
 //            is the tooltip of a long value
+//   titles:  the tooltip of a shortened value or list: on data-out tape, endA and endB, and on the value in
+//            data-out startKind, sortedA, sortedB and the tape tab's table (RT-FIX P6-RT-03-01)
 //   drawing: data-numeral, data-disc (Board.svelte), data-colour-shape and data-shape-node (the wave's
 //            marks over the board), data-row (a row of the sideways reading on the tally chart)
 //   groups:  data-board-group (a board's group of node buttons), data-game-b (game B's part)
@@ -985,4 +987,63 @@ test.describe('regressions', () => {
       expect(shown).toBe(`${exact[0]}.${exact.slice(1, 5)}... x 10^${exact.length - 1} (${exact.length} digits)`);
     });
   }
+
+  // RT-03, phase 6 round, attack 12 (adopted from site/tests/e2e/redteam-RT-03-p6-t5.spec.ts): SPEC 4.0 "Long
+  // numbers": "A value of more than 12 digits is shown shortened ("1.2345... x 10^83", with the number of
+  // digits), with the exact digits in the table view, in the tooltip and in every export." T5 shortened the
+  // nodes, the tally bars, the products D and M and the dimension, but wrote the tape of numbers fired, the
+  // sorted tapes and the end positions of "Two games compared" in full. A start of up to 40 digits is a valid
+  // link (6.6).
+  /** Every run of digits in a text that is longer than 12 (a long number written in full). */
+  const longRuns = (text: string): string[] => text.match(/\d{13,}/g) ?? [];
+  const LONG_START = 'g=A2&c=n&s=12345678901234567890,-1';
+
+  // regression: P6-RT-03-01
+  test('the tape after firing a node whose number has 20 digits', async ({ page }) => {
+    const r = await open(page, LONG_START);
+    // the node itself is shortened (control: the rule is implemented on the board)
+    const node1 = r.locator('button[data-node="1"][data-board="numbers"]').first();
+    await expect(node1).toHaveAttribute('data-value', '12345678901234567890');
+    await node1.click();
+    await expect(out(r, 'tape')).toHaveAttribute('data-count', '1');
+    const tape = (await out(r, 'tape').innerText()).trim();
+    expect({ tape, longRuns: longRuns(tape) }).toEqual({ tape: '1.2345... x 10^19 (20 digits)', longRuns: [] });
+  });
+
+  // regression: P6-RT-03-01
+  test('two games compared: the sorted tape and the end position of game A after the same move', async ({ page }) => {
+    const r = await open(page, LONG_START);
+    await r.locator('button[data-node="1"][data-board="numbers"]').first().click();
+    await r.locator('[data-control="tab"][data-tab="compared"]').click();
+    await expect(out(r, 'endA')).toBeVisible();
+    const sortedA = (await out(r, 'sortedA').innerText()).trim();
+    const endA = (await out(r, 'endA').innerText()).trim();
+    expect({ sortedA: longRuns(sortedA), endA: longRuns(endA) }).toEqual({ sortedA: [], endA: [] });
+  });
+
+  // The siblings of P6-RT-03-01 (the same helpers): the start line, the tape tab's table and game B's end were
+  // written in full too. Each shortened value or list carries its exact digits in its tooltip, and the table
+  // view keeps them.
+  // regression: P6-RT-03-01
+  test('the start line, the tape table and the ends of both games are shortened, with the exact digits in the tooltip and the table view', async ({ page }) => {
+    const r = await open(page, LONG_START);
+    const start = out(r, 'startKind');
+    expect(longRuns((await start.innerText()).trim())).toEqual([]);
+    await expect(start.locator('[title]')).toHaveAttribute('title', '12345678901234567890, -1');
+    await nodeA(r, 1).click();
+    await expect(r).toHaveAttribute('data-moves', '1');
+    await expect(out(r, 'tape')).toHaveAttribute('title', '12345678901234567890');
+    await tabButton(r, 'tape').click();
+    const tapeTable = r.locator('[data-panel="tape"]');
+    expect(longRuns((await tapeTable.innerText()).trim())).toEqual([]);
+    await expect(tapeTable.locator('td[title]')).toHaveAttribute('title', '12345678901234567890');
+    // the table view keeps the exact digits: node 1 holds minus the number fired
+    await expect(r.locator('[data-table-value="number"]').first()).toHaveText(`${MINUS}12345678901234567890`);
+    await tabButton(r, 'compared').click();
+    await expect(out(r, 'endB')).toBeVisible();
+    for (const name of ['endA', 'endB', 'sortedA']) expect(longRuns((await out(r, name).innerText()).trim()), name).toEqual([]);
+    await expect(out(r, 'endA')).toHaveAttribute('title', '-12345678901234567890, 12345678901234567889');
+    await expect(out(r, 'endB')).toHaveAttribute('title', '12345678901234567890, -1');
+    await expect(out(r, 'sortedA').locator('[title]')).toHaveAttribute('title', '12345678901234567890');
+  });
 });
