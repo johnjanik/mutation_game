@@ -1,0 +1,231 @@
+{
+ "agent": "rtfix-p6-content-residual",
+ "status": "done",
+ "branch": "worktree-agent-ab99a4f487cbf82e4",
+ "base": "d8102c0e69f93087ee7d76f0b9637fc02ce0fedb",
+ "commits": [
+  "2a128e0 RT-FIX P6-MERGE-C-01: M7 and the T10 comment say the ringed nodes fix the faces, not the shape",
+  "37ad7a5 RT-FIX P6-MERGE-C-02: the glossary spec reads apostrophes alike; later uses linked",
+  "4fb967e RT-FIX P6-MERGE-C-03: glossary row 64's sentence on edge lengths carries its provenance",
+  "cba0967 RT-FIX P6-MERGE-C-04: \"a mutation at i\" on /confusions/ and the Atlas sheet; a board on /history/",
+  "8fea7f1 RT-FIX P6-MERGE-C-05: M9 beat 1 says \"each real form\" and how far its computation goes",
+  "190dfb1 RT-FIX P6-MERGE-C-01 P6-MERGE-C-02 P6-MERGE-C-03 P6-MERGE-C-04 P6-MERGE-C-05: decisions fragment"
+ ],
+ "filesChanged": [
+  "decisions/RT-FIX-P6-content-residual.md",
+  "site/src/components/atlas/AtlasSheet.astro",
+  "site/src/components/tools/t10/scene.ts",
+  "site/src/content/modules/m1-mutation.mdx",
+  "site/src/content/modules/m7-geometry.mdx",
+  "site/src/content/modules/m9-real-forms.mdx",
+  "site/src/content/pages/confusions.mdx",
+  "site/src/content/pages/glossary.mdx",
+  "site/src/content/pages/history.mdx",
+  "site/tests/e2e/M8.spec.ts",
+  "site/tests/e2e/glossary-later-uses.spec.ts",
+  "site/tests/unit/content-glossary-wythoff.test.ts",
+  "site/tests/unit/content-m7-finite-type.test.ts",
+  "site/tests/unit/content-m7-wythoff.test.ts",
+  "site/tests/unit/content-m9-beat1-scope.test.ts",
+  "site/tests/unit/content-mutation-at-i.test.ts"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard d8102c0; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-ab99a4f487cbf82e4, worktree-agent-ab99a4f487cbf82e4, HEAD d8102c0e69f93087ee7d76f0b9637fc02ce0fedb"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474..., 485cae..., 1fc9f8...: all three equal CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (base content)",
+   "exit": 0,
+   "summary": "90 page(s) built; links: 4007 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7490> glossary-later-uses.spec.ts (spec fixed, base content)",
+   "exit": 1,
+   "summary": "RED: 1 failed, 1 passed; modules/m1-mutation/: Kostant's game -> #kostants-game (4 uses, none linked); modules/m7-geometry/: Wythoff's construction -> #wythoffs-construction (3 uses)"
+  },
+  {
+   "cmd": "same, glossaryTerms normalisation scratch-reverted, -g apostrophe",
+   "exit": 1,
+   "summary": "RED: 1 failed; 'the glossary terms written with an apostrophe' Expected ArrayContaining ['kostants-game','wythoffs-construction'], Received []; spec restored afterwards"
+  },
+  {
+   "cmd": "npx playwright test (scratch config) M7.spec.ts M9.spec.ts M1.spec.ts -g word (base build)",
+   "exit": 0,
+   "summary": "M7 prose words 1792, M9 1791, M1 1800 at base"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-m7-wythoff, content-glossary-wythoff, content-mutation-at-i, content-m9-beat1-scope (base content)",
+   "exit": 1,
+   "summary": "RED: Test Files 4 failed (4); Tests 7 failed | 1 passed (8); the one pass is the existing P6-RT-09-03 test"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (the 4 new or extended files plus 15 related: content-m7-finite-type, history-de08, confusions-node-city, m9-black-provenance, confusions-provenance, glossary, glossary-highest-root, glossary-fire, m7-e7-wrap, m7-provenance, m7-rank-range, atlas, links-internal, released, open-problem-w20-section)",
+   "exit": 0,
+   "summary": "GREEN: Test Files 19 passed (19); Tests 174 passed (174)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (fixed)",
+   "exit": 0,
+   "summary": "90 page(s) built; links: 4012 internal links on 90 pages, 0 problems (5 new glossary links)"
+  },
+  {
+   "cmd": "npx playwright test (scratch config) glossary-later-uses.spec.ts M1.spec.ts M7.spec.ts M9.spec.ts",
+   "exit": 0,
+   "summary": "100 passed (1.9m); M1 1800, M7 1799, M9 1799 prose words"
+  },
+  {
+   "cmd": "npx playwright test (scratch config) M8.spec.ts M10.spec.ts pages-6.spec.ts pages.spec.ts",
+   "exit": 0,
+   "summary": "95 passed (3.8m); a first attempt failed at import, because the scratch config imported astro.config.mjs; it was rerun with the base hard-coded as '/'"
+  },
+  {
+   "cmd": "npx playwright test (scratch config) T14.spec.ts",
+   "exit": 0,
+   "summary": "31 passed (2.2m), bridge test and P6-RT-08-04/P6-RT-10-02 regressions included"
+  },
+  {
+   "cmd": "npx playwright test (scratch config) nojs.spec.ts a11y.spec.ts -g '(m1-mutation|m7-geometry|m9-real-forms|glossary|confusions|history|atlas/B3|atlas/A2|atlas/E8)/|routes are discovered'",
+   "exit": 0,
+   "summary": "31 passed (1.5m): render without JS, server markup and axe for each changed route"
+  },
+  {
+   "cmd": "M8.spec.ts -g 'later uses of a term link to the glossary', normalisation scratch-reverted, then restored",
+   "exit": 1,
+   "summary": "RED under revert: 'terms with an apostrophe, read as the prose is' Expected ArrayContaining [...], Received []; restored: 1 passed"
+  },
+  {
+   "cmd": "TMPDIR=<scratch> npx vitest run --project site-unit (full)",
+   "exit": 1,
+   "summary": "Test Files 1 failed | 113 passed (114); Tests 1 failed | 1248 passed; the failure is T03.test.ts 'meter is constant along 1000 random free moves' 'Test timed out in 5000ms' at load 7 to 9 (file not touched)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T03.test.ts (alone)",
+   "exit": 0,
+   "summary": "21 passed (21)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 391 files 0 errors 0 warnings; svelte-check 0 errors, 1 warning (LayerChart.svelte tabindex, already there at base). A first run found 3 type errors in the new tests (AnyBoard where Board<number> is needed); fixed with commented casts"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "scratch revert: git show d8102c0:<7 content files> > files; vitest the 4 cluster unit files; git checkout HEAD -- files; vitest again",
+   "exit": 0,
+   "summary": "RED under revert: 4 files failed, 7 tests failed | 1 passed; restored GREEN: 4 files, 8 tests passed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728), equal to baseline"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (final, clean tree at 190dfb1)",
+   "exit": 0,
+   "summary": "90 page(s) built; 4012 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test (scratch config) glossary-later-uses.spec.ts M7.spec.ts M9.spec.ts -g 'later uses|apostrophe|word count|regressions|glossary links resolve|links resolve' (final build)",
+   "exit": 0,
+   "summary": "15 passed; M7 1799, M9 1799 prose words"
+  },
+  {
+   "cmd": "git diff --name-only d8102c0..HEAD; grep -i redteam",
+   "exit": 0,
+   "summary": "16 files, none forbidden by section 6; 0 redteam paths added"
+  },
+  {
+   "cmd": "grep of added lines for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' on:click; em-dash and en-dash in diff and commit messages",
+   "exit": 0,
+   "summary": "0 matches for each. The only '$:' hits close TeX formulas in MDX prose ('$R_i=S_i^{\\mathsf T}$:'); none is Svelte"
+  },
+  {
+   "cmd": "git log --format=%s d8102c0..HEAD",
+   "exit": 0,
+   "summary": "6 subjects, each starts with 'RT-FIX P6-MERGE-C-0'"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist test-results; git status --porcelain; pgrep preview on port 7490",
+   "exit": 0,
+   "summary": "porcelain empty; no preview server on 7490 (the one running is another agent's, on 7410)"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-MERGE-C-01: M7 beat 2 and a t10/scene.ts comment say a Wythoff polytope's shape depends only on the ringed nodes (sibling of P6-RT-09-03)",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m7-wythoff.test.ts > B3 (0,1,1) and (0,2,1) ring the same nodes and have the same faces but not the same shape, and M7 says so; > no source file of the site says the shape of the polytope depends only on the ringed nodes",
+   "evidence": "Severity minor. Red at base d8102c0: 2 failed. Beat 2 printed 'its shape depends only on which nodes are ringed' against the engine's f-vector (24,36,14,1) for both rings, with squared edge lengths [2,4] against [2,16] from wythoffEdges, solve and formValue. The site-wide scan found m7-geometry.mdx and t10/scene.ts. Cause: 'shape' was used where SPEC 2.14 says combinatorics. The same sentence was also in M7's Seen statement, fixed in the same commit. Beat 2 now says 'its faces depend only on which nodes are ringed, its edge lengths on the rings too' (M7 at 1799 of 1800 words). The Seen statement says 'whose faces depend' and the comment says 'the faces depend'. Green: 2 passed, and content-m7-finite-type.test.ts 3 passed. Its SEEN2 stem follows the new words and its assertions are unchanged. Commit 2a128e0."
+  },
+  {
+   "item": "P6-MERGE-C-02: glossary-later-uses.spec.ts never matches a term with an apostrophe (curly in the glossary, straight in the prose)",
+   "status": "fixed",
+   "test": "site/tests/e2e/glossary-later-uses.spec.ts > a term with an apostrophe is read alike in the glossary and in the prose, so an unlinked later use of it is found; > later uses of a glossary term link to the glossary on every lesson and reference page",
+   "evidence": "Severity minor. Cause: glossaryTerms kept the curly apostrophe of the built dfn, while markedProse straightened the prose. Red: the new test with the normalisation reverted gave 'Received []' for terms with an apostrophe. The fixed spec on the base build gave 1 failed: M1 Kostant's game 4 uses unlinked, M7 Wythoff's construction 3 uses unlinked. The new test also checks that a page with an unlinked later use fails the rule (a setContent page) and one with the use linked passes. Fix: the term is straightened as the prose is. Every later use is now linked: 3 in M1, 2 in M7, no words added. Green: glossary-later-uses 2 passed, M1, M7 and M9 100 passed, M8, M10, pages and pages-6 95 passed. Commit 37ad7a5."
+  },
+  {
+   "item": "P6-MERGE-C-02 (sibling): M8.spec.ts > 'later uses of a term link to the glossary' reads the glossary terms without straightening apostrophes",
+   "status": "fixed",
+   "test": "site/tests/e2e/M8.spec.ts > later uses of a term link to the glossary (assertion 'terms with an apostrophe, read as the prose is', under '// regression: P6-MERGE-C-02')",
+   "evidence": "Same cause, same commit 37ad7a5. Red with the normalisation scratch-reverted: 1 failed, Expected ArrayContaining ['kostants-game','wythoffs-construction'], Received []. Restored: 1 passed. M8 and not-quiver-mutation have no apostrophe terms today, so the check bites through the term list, not through the page content."
+  },
+  {
+   "item": "P6-MERGE-C-03: glossary row 64's added sentence on edge lengths has no provenance",
+   "status": "fixed",
+   "test": "site/tests/unit/content-glossary-wythoff.test.ts > the sentence on edge lengths carries its provenance, and the computation it names holds",
+   "evidence": "Severity minor. Red at base: 1 failed, 'the sentence on edge lengths lies in a data-claim span: ... expected undefined to be defined'. Cause: the sentence was added outside every data-claim span. Fix: its words are unchanged, and it now stands in a data-claim span with the fact it rests on (SPEC 2.14 [V]): the edge to the firing of a ringed node i has squared length 2d_ia_i^2, verified by computation on A3, B3, C3, D4, F4, G2 and E6, the boards of verify.py's check and M7 beat 5. The test repeats that computation with the engine: fire, solve and formValue on 3 choices of rings per board, 0 failures. The cited span and the P6-RT-09-03 assertions are unchanged. Green: 2 passed. The M10 provenance test passed in the M10.spec run. Commit 4fb967e."
+  },
+  {
+   "item": "P6-MERGE-C-04: 'a mutation at node i' on /confusions/ and in the Atlas sheet's translator sentence; /history/'s 'a connected graph whose roads all run both ways'",
+   "status": "fixed",
+   "test": "site/tests/unit/content-mutation-at-i.test.ts > no page, lesson or component puts a mutation at a node; > the sentence of [DE08] says \"a connected board with roads both ways\", as M3 and the glossary do",
+   "evidence": "Severity minor. Red at base: 2 failed. 4 hits for 'mutation at node': confusions.mdx 3 times and AtlasSheet.astro once. History printed '... a connected graph whose roads all run both ways ...'. Cause: wording off SPEC 2.2 and 2.4(a) and off Appendix C. Fix: 'a mutation at $i$' (twice), 'The mutation at $i$', and the Atlas sentence 'a mutation at i replaces p_i by p_i-a_i'. History now says 'a connected board with roads both ways and whole-number road counts'. Green: 2 passed. content-confusions-node-city (P6-RT-08-07) and content-history-de08-hypothesis (P6-RT-09-02) pass, and T14.spec.ts passes (31, bridge test included). Commit cba0967."
+  },
+  {
+   "item": "P6-MERGE-C-05: M9 beat 1 'On the real form' (read 'On each real form') and the range of 'for every real form, verified by computation'",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m9-beat1-scope.test.ts > the sentence on the parts k and p is said of each real form; > \"A node is black exactly when theta fixes its root\" names the range of its computation, and the catalogue covers it",
+   "evidence": "Severity minor. Red at base: 2 failed ('On the real form, ...'; the clause did not end with a range). Fix: 'On each real form, ...' and '... for every real form, verified by computation on every board of rank at most eight', the phrase of beat 4 and the Seen box. The test checks that the 167 records cover all 32 golden types. M9 goes from 1791 to 1799 of 1800 words. Green: 2 passed. content-m9-black-provenance and M9.spec.ts regressions pass, word count 1799. Commit 8fea7f1."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX.md 5.3 / 5.5 (existing tests change only in the direction of strength)",
+   "what": "site/tests/unit/content-m7-finite-type.test.ts: the stem SEEN2 that finds M7's Seen sentence is now '... a polytope whose faces depend only on the ringed nodes' instead of '... whose shape depends ...'",
+   "why": "the old stem quoted the false wording that P6-MERGE-C-01 removes; the stem only locates the sentence, and every assertion of the file is unchanged and green"
+  },
+  {
+   "spec": "RT-FIX.md 5.3 (the regression comment sits above test( or it()",
+   "what": "in M8.spec.ts the '// regression: P6-MERGE-C-02' comment marks an added assertion inside the existing test 'later uses of a term link to the glossary', not a new test",
+   "why": "the sibling's check belongs to that test's own term list, and a lesson spec is extended rather than split"
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P6-content-residual.md",
+ "handoff": "Files outside the content area: site/src/components/atlas/AtlasSheet.astro (one word removed from the translator sentence; the bridge sentence is unchanged) and site/src/components/tools/t10/scene.ts (one comment word). Neither is a T13 file; MERGE should look for a conflict with any other Atlas or T10 fixer. Nothing is needs-decision. The proposed fix for C-03 ('inside the cited claim') was not followed: the P6-RT-09-03 test holds the cited span to its exact words, and SPEC 2.14 gives the edge lengths as [V] without a source, so a separate span carries 'verified by computation'. M1 is at 1800, M7 at 1799 and M9 at 1799 of 1800 words, so later edits there have almost no room. The full site-unit run had one load timeout in T03.test.ts, which passes alone."
+}

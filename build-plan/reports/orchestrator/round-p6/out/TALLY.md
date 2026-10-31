@@ -114,3 +114,4 @@
 - t13 CONFIRMED 7 of 7; merged bfb921d. Follow-up clusters from the confirmations: t13-followup (P6-MERGE-T13-01 A-12 on link states, T13-02 decoration hooks) and content-residual (P6-MERGE-C-01 to C-05), both on the integration head; ports 7390-7393 and 7490-7493.
 - shared-a11y CONFIRMED 4 of 4; merged 049235a (T14.spec.ts conflict resolved as in the trial). Side effect: T13's table views no longer reflow at 320 (the inner fieldset .table-fields keeps min-inline-size: min-content; with min-width 0 the tables return to 288 px); a follow-up fix runs (ports 7380-7383). Owner note: Predict's no-JS details answer still prints an ASCII hyphen.
 - latex CONFIRMED 2 of 2; merged 96d751b.
+- content-residual: 5 of 5 fixed (red on base, scratch revert); read by MERGE, merged 5ca39bc. M1 1800, M7 1799, M9 1799 of 1800 words.
