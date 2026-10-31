@@ -6,7 +6,8 @@
 // new page. There the instance must not show the moved state under an open question: it may ignore the
 // link or withdraw the prediction (the tools withdraw it; decisions/RT-FIX-P3-follow-predict.md).
 // Hooks read: data-tool, data-instance, data-hydrated, data-moves, data-prediction, data-control
-// predictShow and predictCheck, and data-node, data-board, data-value, data-can-act on the node buttons.
+// predictShow and predictCheck, and data-node, data-board, data-value, data-can-act on the node buttons, and
+// data-control="paint", data-paint, data-colour, data-can-act on the paint controls of T13's decoration.
 import { expect, test, type Locator } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { discoverRoutes } from './routes';
@@ -16,13 +17,20 @@ const LESSONS = discoverRoutes()
   .filter((r) => /^modules\/m\d+-[^/]+\/$/.test(r.path) && readFileSync(r.file, 'utf8').includes('data-prediction'))
   .map((r) => r.path);
 
-/** The instance's moves and the value of every node button: the state the figure shows. */
+/** The instance's moves, the value of every node button and the colour of every paint control of T13's
+ * decoration (its buttons are controls, not node buttons: decisions/RT-FIX-P6-t13-followup.md): the state
+ * the figure shows. */
 function shown(t: Locator): Promise<string> {
   return t.evaluate((root) => {
     const nodes = [...root.querySelectorAll('button[data-node]')] as HTMLElement[];
-    return `${root.getAttribute('data-moves')}|${nodes.map((b) => `${b.dataset.board}:${b.dataset.node}=${b.dataset.value}`).join(' ')}`;
+    const paint = [...root.querySelectorAll('button[data-control="paint"]')] as HTMLElement[];
+    return `${root.getAttribute('data-moves')}|${nodes.map((b) => `${b.dataset.board}:${b.dataset.node}=${b.dataset.value}`).join(' ')}|${paint.map((b) => `${b.dataset.paint}=${b.dataset.colour}`).join(' ')}`;
   });
 }
+
+/** The first thing the reader can press that makes a move or a change the link records: a node button, or a
+ * paint control of T13's decoration (T13 keeps its moves out of the link and records the decoration). */
+const firstAct = (t: Locator): Locator => t.locator('button[data-node][data-can-act="true"], button[data-control="paint"][data-can-act="true"]').first();
 
 async function questionOpen(t: Locator): Promise<boolean> {
   const check = t.locator('[data-prediction] [data-control="predictCheck"]');
@@ -48,7 +56,7 @@ for (const route of LESSONS) {
       await expect(t).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
       const configured = await shown(t);
       await t.locator('[data-control="predictShow"]').click();
-      const node = t.locator('button[data-node][data-can-act="true"]').first();
+      const node = firstAct(t);
       if ((await node.count()) === 0) continue; // nothing to play here, so no link of a moved state
       await node.click();
       await expect.poll(() => new URL(page.url()).search.includes(`${id}.`), { timeout: 10000 }).toBe(true);
