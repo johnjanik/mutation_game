@@ -1441,5 +1441,24 @@ test.describe('regressions', () => {
       expect(report.filter((r) => r.after === 0).map((r) => `${r.id}: stated outside the reveal, after the prediction block, in: nowhere`)).toEqual([]);
       expect(report.flatMap((r) => r.before), 'stated before the prediction block').toEqual([]);
     });
+
+    // RT-13, attack 13, from the script redteam/redteam-RT-13-p6-realrank.mjs of the lens branch: the first use of
+    // "real rank" on M9 (beat 1) was neither defined there or in the next block nor linked to its glossary entry;
+    // the definition comes in beat 5 (SPEC 8.4). The patterns of the script, on the prose blocks of the built
+    // page outside the tools and the Lie theory paragraph.
+    // regression: P6-RT-13-06
+    test('real rank is defined or linked to its glossary entry at its first use on M9', async ({ page }) => {
+      await page.goto(ROUTE);
+      const prose = (await readingBlocks(page)).filter((b) => !b.tool && !b.lie);
+      const k = prose.findIndex((b) => /real rank/i.test(b.text));
+      expect(k).toBeGreaterThanOrEqual(0);
+      const first = prose[k]!;
+      const defines = /real rank (r )?is|real rank,? the number/i;
+      const linked = first.links.some((l) => /#real-rank$/.test(l.href) && /real rank/i.test(l.text));
+      const defined = defines.test(first.text) || defines.test(prose[k + 1]?.text ?? '');
+      // Observed at f07eec6: first use M9 beat 1, "linked to #real-rank there: false; defined there or in the next
+      // block: false".
+      expect(linked || defined, `real rank, first used in beat ${first.beat}: ${first.text}`).toBe(true);
+    });
   });
 });
