@@ -1,0 +1,192 @@
+{
+ "agent": "rtfix-p6-atlas",
+ "status": "done",
+ "branch": "worktree-agent-af281df41c14325b6",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-af281df41c14325b6",
+ "base": "0436a53efadd67a0d03add5bd286d03b2f5185ca",
+ "commits": [
+  "2c6e0b9 RT-FIX P6-RT-08-04: the Atlas writes the fundamental position e_i",
+  "9e815b9 RT-FIX P6-RT-10-02: the bridge sentence of 2.4(a) on every Atlas page",
+  "7c2efae RT-FIX P6-RT-08-04 P6-RT-10-02: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/components/atlas/AtlasSheet.astro",
+  "site/src/components/atlas/atlasData.ts",
+  "site/tests/unit/atlas.test.ts",
+  "site/tests/e2e/T14.spec.ts",
+  "decisions/RT-FIX-P6-atlas.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 0436a53",
+   "exit": 0,
+   "summary": "HEAD is now at 0436a53 Phase 6 round: tally summary corrected"
+  },
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-af281df41c14325b6; worktree-agent-af281df41c14325b6; 0436a53efadd67a0d03add5bd286d03b2f5185ca"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: all three equal CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "88 files, 2728 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/redteam-RT-08-p6-atlas-omega.test.ts (reproducer at its lens path, base)",
+   "exit": 1,
+   "summary": "Tests 2 failed (2): AtlasSheet.astro:236, :258; atlasData.ts:341, :347, as observed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/atlas.test.ts (adopted, before the fix)",
+   "exit": 1,
+   "summary": "2 failed | 121 passed (123): the two regressions tests"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (base source)",
+   "exit": 0,
+   "summary": "links: 3998 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "node <scratch copy of redteam/redteam-RT-10-p6-atlas-bridge.mjs> site/dist (base build)",
+   "exit": 1,
+   "summary": "32 Atlas pages show a population with its numbers and lack the sentence of 2.4(a)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7380> T14.spec.ts -g regressions (base build)",
+   "exit": 1,
+   "summary": "2 failed: bridge test lacking A1 to G2 (32 boards); omega test on A1 'from the fundamental weight', 'Orbits of the fundamental weights', 'ωi'"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/atlas.test.ts site/tests/unit/atlas-build-path.test.ts (after the fix)",
+   "exit": 0,
+   "summary": "2 files, 126 passed (124 before plus the 2 adopted)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (fixed source)",
+   "exit": 0,
+   "summary": "links: 3998 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "node <scratch copy of RT-10 script> site/dist (fixed build)",
+   "exit": 0,
+   "summary": "0 Atlas pages show a population with its numbers and lack the sentence of 2.4(a)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7380> T14.spec.ts",
+   "exit": 0,
+   "summary": "31 passed (3.8m)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> pages.spec.ts nojs.spec.ts",
+   "exit": 0,
+   "summary": "212 passed (6.2m)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> a11y.spec.ts -g \"(atlas/|atlas/B3/|atlas/E8/) has no serious\"",
+   "exit": 0,
+   "summary": "6 passed: atlas/B3/, atlas/E8/, atlas/, embed/atlas/, modules/m10-atlas/, tools/atlas/"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=... npm run size -- --port 7381",
+   "exit": 0,
+   "summary": "size: 90 routes measured, 0 over budget; /atlas/ and every /atlas/<T>/ 0 scripts 0.0 kB"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "0 errors, 0 warnings, 2 hints (one is the unused 'file' parameter of the adopted helper, kept as adopted); svelte-check 0 errors, 1 warning (LayerChart.svelte, already there)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> T14.spec.ts -g regressions (final spec)",
+   "exit": 0,
+   "summary": "2 passed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after, load 22 to 27 on 4 CPUs)",
+   "exit": 1,
+   "summary": "2724 passed, 4 failed; all 4 'Test timed out in 5000ms' (mainthread-fast-paths, satake-coordinates, p6a-restricted, p7-roots-signs). No file under packages/ changed"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- --testTimeout=120000 (after, same load)",
+   "exit": 0,
+   "summary": "88 files, 2728 passed (the baseline count)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit atlas-build-path.test.ts (under load 24, base source by scratch revert, then fixed source)",
+   "exit": 0,
+   "summary": "one earlier run timed out at 5000 ms under load; then 3 passed on base and 3 passed on the fix; atlas.test.ts plus atlas-build-path.test.ts 126 passed"
+  },
+  {
+   "cmd": "git diff --name-only 0436a53..HEAD",
+   "exit": 0,
+   "summary": "decisions/RT-FIX-P6-atlas.md, AtlasSheet.astro, atlasData.ts, T14.spec.ts, atlas.test.ts: none on the forbidden list"
+  },
+  {
+   "cmd": "git diff --name-only 0436a53..HEAD | grep -i -c redteam",
+   "exit": 1,
+   "summary": "0 (the 85 redteam-* paths that git ls-files lists are already at base under build-plan/reports/orchestrator/round1/reproducers/)"
+  },
+  {
+   "cmd": "grep over the branch diff for em-dash, .only(, .skip(, xit(, toBeCloseTo, console.log, ': any', astro dev, export let, $:, on: directives",
+   "exit": 1,
+   "summary": "no match"
+  },
+  {
+   "cmd": "git log --format=%s 0436a53..HEAD",
+   "exit": 0,
+   "summary": "3 subjects, each beginning 'RT-FIX P6-RT-'"
+  },
+  {
+   "cmd": "grep -rn 'regression: P6-RT-' site/tests packages/engine/test",
+   "exit": 0,
+   "summary": "atlas.test.ts:572, :581 (P6-RT-08-04); T14.spec.ts:889 (P6-RT-08-04), :914 (P6-RT-10-02)"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "empty; no preview server on ports 7380 to 7383"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-RT-08-04: Attack 30 (a), sibling of P5-RT-08-01: the Atlas writes 'the fundamental weight ω_i' in its sentences and link texts, where the site's word is the fundamental position e_i",
+   "status": "fixed",
+   "test": "site/tests/unit/atlas.test.ts > regressions > the Atlas writes the fundamental weight omega_i where the site writes e_i > AtlasSheet.astro: no omega_i and no \"fundamental weight\" in the sentences of the sheet (and > atlasData.ts: no \"fundamental weight\" or \"the weight of node\" in the link texts); site/tests/e2e/T14.spec.ts > regressions > no Atlas page writes the fundamental weight omega_i where the site writes the fundamental position e_i",
+   "evidence": "Severity minor as filed, raised to major by the reproduce verifier. Red at base 0436a53: the unit tests 2 failed (2) and listed AtlasSheet.astro:236 and :258, atlasData.ts:341 and :347, as observed; the browser test failed on A1 ('from the fundamental weight of node 1', 'Orbits of the fundamental weights', 'The orbit of the fundamental weight ωi'). Green: atlas.test.ts plus atlas-build-path.test.ts 126 passed; T14.spec.ts 31 passed. Cause: the sheet and two link texts used the Lie theory name where SPEC Appendix C and 8.4 bullet 2 give 'fundamental position e_i', as RT-FIX-P5-t12-content already applied to T12. The minuscule and orbit sentences and the minus-w0 and orbit-sizes links now write the fundamental position (the end of the minus-w0 link too: 'minus the fundamental position of node k'), and the opening paragraph defines e_i once. The heading was decided by the same rule ('Orbits of the fundamental positions') and recorded in the fragment. Commit 2c6e0b9."
+  },
+  {
+   "item": "P6-RT-10-02: Every Atlas page shows the highest root as a population beside its numbers, and states a = Cp, without the bridge sentence of 2.4(a)",
+   "status": "fixed",
+   "test": "site/tests/e2e/T14.spec.ts > regressions > every Atlas page shows the highest root as a population beside its numbers, and carries the bridge sentence of 2.4(a)",
+   "evidence": "Severity major (no adjustment). Red on the base build: the script reproducer printed '32 Atlas pages show a population with its numbers and lack the sentence of 2.4(a)' (exit 1), and the adopted test failed with lacking = A1 to G2 (32 boards). Green on the fixed build: script '0 Atlas pages ...' (exit 0); test passed (all 32 pages; [data-bridge] once, text exactly 'The number on node i is the amount by which a mutation would lower city i.'). Cause: AtlasSheet.astro shows θ beside Cθ, the highest short root with its numbers and a = Cp, but never printed the [D] sentence. Each sheet now prints it once, word for word, after the opening paragraph. That paragraph gains 'The translator sends a population p to the numbers a = Cp, and a mutation at node i replaces p_i by p_i - a_i'. The letters i are inline MathML, as T9 sets them. The pages still ship no script (size 0.0 kB). Commit 9e815b9."
+  }
+ ],
+ "deviations": [],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P6-atlas.md",
+ "openQuestions": [
+  "The engine suite and atlas-build-path.test.ts timed out at Vitest's 5000 ms default in some runs while the shared machine's load was 19 to 27 on 4 CPUs. Every failure was 'Test timed out in 5000ms' in files this branch does not touch: the engine suite with --testTimeout=120000 gave 2728 passed, and atlas-build-path.test.ts passed on rerun, on base and on the fix. MERGE should rerun both at normal load."
+ ],
+ "handoff": "Every changed file is inside the cluster (components/atlas, the T14 tests, the fragment); the registry and pages/atlas are unchanged, and no data-out name was added (the new hook is data-bridge, listed at the top of T14.spec.ts). The proposedFix of P6-RT-10-02 asks for 'the letters set as mathematics'. KaTeX's htmlAndMathml output doubles each letter and fails the reproducer's pattern, so the i is inline MathML (T9's form), and the derivation 'a mutation at node i replaces p_i by p_i - a_i' sits in the paragraph before it instead of a provenance line, so the provenance list of T14.spec.ts is unchanged. On P6-RT-08-04 the heading 'Orbits of the fundamental weights' was changed to 'Orbits of the fundamental positions' by the same rule, replacing that title in decisions/P6-A4.md 'the items as shown'; the sheet gives no Lie theory name for the term, because the adopted reproducer forbids omega_i in its sentences and the Atlas has no Lie theory paragraph. The lens may want to look at the Lie theory words that stay in the opening paragraph ('simple roots', 'Dynkin labels'), which no finding names."
+}
