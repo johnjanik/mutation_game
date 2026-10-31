@@ -1,5 +1,6 @@
 // P6-terms: SPEC.md 8.4, "Define every term on first use and link later uses to a glossary entry", on every
-// lesson M0 to M9 and on the reference pages history, confusions, open-problem, not-quiver-mutation and about.
+// lesson M0 to M9, on the M10 hub (RT-FIX P6-RT-10-03) and on the reference pages history, confusions,
+// open-problem, not-quiver-mutation and about.
 // The rule is that of M8.spec.ts > "later uses of a term link to the glossary" (P5-A3), applied to every page:
 // for every term of the glossary (each dfn[id] of glossary/, its formula left out) used at least twice in the
 // prose of a page, some use after the first is a link to that term's own entry (glossary/#<anchor>).
@@ -26,7 +27,10 @@
 // <a href="<base>glossary/#<anchor>"> around words of the text.
 import { expect, test, type Page } from '@playwright/test';
 
-/** The lessons M0 to M9 and the reference pages named by SPEC 3 M10 and the M10 hub (P6-A8). */
+/**
+ * The lessons M0 to M9, module M10 itself (the hub, SPEC 3 M10; 9.2 binds it to the writing rules of 8.4), and the
+ * reference pages named by SPEC 3 M10 and the M10 hub (P6-A8).
+ */
 const ROUTES = [
   'modules/m0-start/',
   'modules/m1-mutation/',
@@ -38,6 +42,8 @@ const ROUTES = [
   'modules/m7-geometry/',
   'modules/m8-lie-algebras/',
   'modules/m9-real-forms/',
+  // regression: P6-RT-10-03
+  'modules/m10-atlas/',
   'history/',
   'confusions/',
   'open-problem/',
