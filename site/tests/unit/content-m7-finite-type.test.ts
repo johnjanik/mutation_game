@@ -38,7 +38,8 @@ function sentenceWith(stem: string): string {
 
 // The five claims of 2.14 on the page, by a stem that survives a rewording of their scope.
 const BEAT2 = 'free play from the position reaches finitely many positions';
-const SEEN2 = 'is the vertex set of a polytope whose shape depends only on the ringed nodes';
+// The stem of Seen 2 since RT-FIX P6-MERGE-C-01 ("whose shape depends" became "whose faces depend": SPEC 2.14).
+const SEEN2 = 'is the vertex set of a polytope whose faces depend only on the ringed nodes';
 const BEAT6 = 'No root lands on the centre';
 const SEEN1 = 'make the form the dot product';
 const SEEN4 = 'none at the centre: verified by computation';
