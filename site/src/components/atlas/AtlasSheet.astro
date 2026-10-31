@@ -68,7 +68,7 @@ const items: [string, string][] = [
   ['det-cartan', 'Determinant of the Cartan matrix'],
   ['minuscule-nodes', 'Minuscule nodes'],
   ['minus-w0', 'Minus the longest element'],
-  ['orbit-sizes', 'Orbits of the fundamental weights'],
+  ['orbit-sizes', 'Orbits of the fundamental positions'],
   ['complete-games', 'Complete games'],
   ['coxeter-plane', 'Rings in the Coxeter plane'],
   ['affine', 'The affine board'],
@@ -103,7 +103,8 @@ const items: [string, string][] = [
 
   <p>
     Nodes are numbered 1 to {lastLabel} as Bourbaki numbers them, and a vector lists one entry per node in that order. A
-    population lists the coefficients of a root along the simple roots; the numbers of a position are its Dynkin labels.
+    population lists the coefficients of a root along the simple roots; the numbers of a position are its Dynkin labels,
+    and the fundamental position <Fragment set:html={tex('e_i')} /> has the number 1 on node <Fragment set:html={tex('i')} /> and 0 on every other node.
   </p>
 
   <AtlasItem id="cartan" title="Cartan matrix" link={sheet.links.cartan}>
@@ -233,7 +234,7 @@ const items: [string, string][] = [
   <AtlasItem id="minuscule-nodes" title="Minuscule nodes" link={sheet.links['minuscule-nodes']}>
     <p>
       Minuscule nodes: <span class="value" data-out="minuscule-nodes" data-exact={exact(sheet.minusculeNodes)}>{sheet.minusculeNodes.length === 0 ? 'none' : list(sheet.minusculeNodes)}</span>.
-      A node is minuscule when every number fired in the game from its fundamental weight is 1; there are <Fragment set:html={tex('\\det C-1')} /> of them.
+      A node is minuscule when every number fired in the game from its fundamental position is 1; there are <Fragment set:html={tex('\\det C-1')} /> of them.
     </p>
     <p class="provenance" data-provenance="F11">
       Both statements are verified by computation for every node of every board of finite type of rank at most 8.
@@ -253,9 +254,9 @@ const items: [string, string][] = [
     </p>
   </AtlasItem>
 
-  <AtlasItem id="orbit-sizes" title="Orbits of the fundamental weights" link={sheet.links['orbit-sizes']}>
+  <AtlasItem id="orbit-sizes" title="Orbits of the fundamental positions" link={sheet.links['orbit-sizes']}>
     <p>
-      The orbit of the fundamental weight <Fragment set:html={tex('\\omega_i')} /> of each node, in the order of the nodes, has{' '}
+      The orbit of the fundamental position <Fragment set:html={tex('e_i')} /> of each node <Fragment set:html={tex('i')} />, in the order of the nodes, has{' '}
       <span class="value" data-out="fundamental-orbit-sizes" data-exact={exact(sheet.fundamentalOrbitSizes)}>{tuple(sheet.fundamentalOrbitSizes)}</span> positions.
     </p>
   </AtlasItem>

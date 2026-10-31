@@ -879,3 +879,24 @@ test.describe('tool route', () => {
     await expect(page.locator('[data-live]')).toHaveText('Citation copied.');
   });
 });
+
+test.describe('regressions', () => {
+  // The built-page side of P6-RT-08-04 (its source check is in site/tests/unit/atlas.test.ts): the site's term is
+  // the fundamental position e_i (SPEC Appendix C, 8.4); no Atlas page writes "fundamental weight" or the symbol
+  // omega in what a reader sees, the item heading and the link texts included (the heading by
+  // decisions/RT-FIX-P6-atlas.md).
+  // regression: P6-RT-08-04
+  test('no Atlas page writes the fundamental weight omega_i where the site writes the fundamental position e_i', async ({ page }) => {
+    test.setTimeout(180_000);
+    for (const T of TYPE_NAMES) {
+      await page.goto(`atlas/${T}/`);
+      const text = await visibleText(page);
+      expect(text.match(/.{0,60}(?:fundamental weight|ω).{0,40}/gi), T).toBeNull();
+      expect(await texIn(page, 'main'), T).not.toContainEqual(expect.stringContaining('\\omega'));
+      await expect(page.locator('#orbit-sizes > h2'), T).toHaveText('Orbits of the fundamental positions');
+      await expect(page.locator('#orbit-sizes'), T).toContainText('The orbit of the fundamental position');
+      await expect(page.locator('#minus-w0 a[data-tool-link]'), T).toContainText('from the fundamental position of node 1');
+      await expect(page.locator('#orbit-sizes a[data-tool-link]'), T).toContainText('at the fundamental position of node 1');
+    }
+  });
+});

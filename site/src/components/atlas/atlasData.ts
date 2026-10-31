@@ -338,13 +338,13 @@ export function atlasData(name: string): AtlasSheet {
       'board',
       name,
       { view: 'numbers', mode: 'legal', coords: 'numbers', start: omega1 },
-      `Play the numbers game on ${name} from the fundamental weight of node 1 in the Game Board; played to the end it stops at minus the weight of node ${minusW0Labels[0]}`,
+      `Play the numbers game on ${name} from the fundamental position of node 1 in the Game Board; played to the end it stops at minus the fundamental position of node ${minusW0Labels[0]}`,
     ),
     'orbit-sizes': link(
       'garden',
       name,
       { coords: 'numbers', start: omega1 },
-      `Open the Orbit Garden on ${name} at the fundamental weight of node 1 and grow its orbit`,
+      `Open the Orbit Garden on ${name} at the fundamental position of node 1 and grow its orbit`,
     ),
     'complete-games': weyl
       ? link('weyl', name, {}, `Open the Weyl Explorer on ${name} and choose its counter`)
