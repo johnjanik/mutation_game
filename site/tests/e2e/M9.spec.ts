@@ -433,8 +433,11 @@ test('a prediction asks about what is not yet on screen', async ({ page }) => {
     const about_ = sentences(plain(before)).filter((x) => about.test(x));
     expect(about_.length, id).toBeGreaterThan(0);
     for (const s of about_) expect(s.replace(/\s/g, ''), `${id}: ${s}`).not.toContain(`(${want.join(',')})`);
+    // RT-FIX P6-RT-13-02: no sentence at all before the tool holds the answer of b6; the prose states it after
+    // the prediction block (SPEC 8.1 P2), which the regressions at the end of this file test, as M8 does
+    // (P5-RT-13-01). This assertion replaces the one that forbade the answer anywhere in the prose.
+    if (id === 'b6') expect(plain(before).replace(/\s/g, ''), `${id}: the prose before the tool`).not.toContain(`(${want.join(',')})`);
   }
-  expect(plain(await proseText(page, 'article')).replace(/\s/g, '')).not.toContain(`(${THETA13.join(',')})`);
   // b6 opens on the data panel: theta of the root is not shown until the reader plays it.
   const panel = norm(await tool(page, 'b6').locator('[data-panel]').textContent());
   expect(plain(panel).replace(/\s/g, '')).not.toContain(`(${THETA13.join(',')})`);
@@ -1370,4 +1373,161 @@ test('links resolve', async ({ page }) => {
   for (const h of hrefs.filter((x) => x.includes('glossary'))) expect(h.startsWith(`${base}glossary/#`) || h.startsWith(`${base}glossary#`), h).toBe(true);
   await page.goto(`${base}modules/m6-multiple-edges/`);
   await expect(page.locator('[data-anatomy="title"]')).not.toHaveText('');
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 6 red-team round (build-plan/red-team/RT-FIX.md 5.3)
+// ---------------------------------------------------------------------------------------------
+
+/** A block of the article as a reader meets it: its text with formulas as $TeX$, its links, where it sits. */
+type ReadingBlock = { text: string; after: string[]; tool: boolean; challenge: boolean; lie: boolean; beat: string | null; links: { href: string; text: string }[] };
+
+/**
+ * The paragraphs, list items, captions and table cells of the article in document order, with the tools'
+ * captions, outside every prediction block and every <details> (the reveals and the explanations). `after`
+ * names the tools whose prediction block comes before the block.
+ */
+async function readingBlocks(page: Page): Promise<ReadingBlock[]> {
+  return page.locator('article').evaluate((article) => {
+    const blocks = [...article.querySelectorAll('p, li, figcaption, td, th, caption, [data-out="caption"]')].filter((el) => el.closest('[data-prediction], details') === null);
+    const predictions = [...article.querySelectorAll('[data-tool] [data-prediction]')];
+    return blocks.map((el) => {
+      const copy = el.cloneNode(true) as HTMLElement;
+      for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(`$${k.querySelector('annotation')?.textContent ?? ''}$`));
+      for (const d of copy.querySelectorAll('[data-prediction], details, script, style')) d.remove();
+      return {
+        text: (copy.textContent ?? '').replace(/−/g, '-').replace(/\s+/g, ' ').trim(),
+        after: predictions.filter((p) => (p.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0).map((p) => p.closest('[data-tool]')?.getAttribute('data-instance') ?? ''),
+        tool: el.closest('[data-tool]') !== null,
+        challenge: el.closest('[data-challenge]') !== null,
+        lie: el.closest('[data-anatomy="lie-theory"]') !== null,
+        beat: el.closest('[data-beat]')?.getAttribute('data-beat') ?? null,
+        links: [...el.querySelectorAll('a[href]')].map((a) => ({ href: a.getAttribute('href') ?? '', text: (a.textContent ?? '').replace(/\s+/g, ' ').trim() })),
+      };
+    });
+  });
+}
+
+test.describe('regressions', () => {
+  // RT-05, attack 36, from site/tests/e2e/redteam-RT-05-p6-m9-ascii-math.spec.ts of the lens branch (SPEC.md 7.5
+  // A-12 "Mathematics is rendered with MathML available to assistive technology"; A-10 the caption is the
+  // figure's text; 8.4). The figure captions of M9 and the question of b6's prediction are plain-text props
+  // written by the lesson, and they carried mathematics as ASCII TeX: "w_X" (read "w underscore X"), "dim k = 4",
+  // "dim k = 9, dim p = 6", where the tool's own captions were repaired to write these in words and with 𝔨 and 𝔭
+  // (MERGE ruling (6) on P6-A3; decisions/P6-A3.md "display spellings in captions"; the tool's test: no
+  // underscore, no "dim k" in any caption it writes). The lesson's captions override the tool's.
+  // regression: P6-RT-05-05
+  test('M9: no T13 caption or prediction question writes mathematics as ASCII TeX (w_X, dim k, dim p)', async ({ page }) => {
+    await page.goto(ROUTE);
+    const texts = await page.locator('[data-tool="satake"]').evaluateAll((tools) =>
+      tools.flatMap((t) => {
+        const id = t.getAttribute('data-instance');
+        const out: string[] = [];
+        const cap = t.querySelector('[data-out="caption"]')?.textContent ?? '';
+        out.push(`${id} caption: ${cap}`);
+        const q = t.querySelector('[data-prediction] .question')?.textContent;
+        if (q) out.push(`${id} question: ${q}`);
+        return out;
+      }),
+    );
+    // Observed at f07eec6: the captions of b2 ("of w_X"), b3 ("dim k = 4") and b6 ("dim k = 9, dim p = 6") and the
+    // question of b6 ("the word of w_X").
+    const bad = texts.filter((s) => /\w_\w|\bdim [kp]\b/.test(s));
+    expect(bad, '/modules/m9-real-forms/: T13 captions and questions that write a formula as ASCII TeX').toEqual([]);
+  });
+
+  test.describe('without JavaScript', () => {
+    test.use({ javaScriptEnabled: false });
+    // RT-13, attack 8 (P2), from the script redteam/redteam-RT-13-p6-m9-reveal-only.mjs of the lens branch, which
+    // read a reading log of the release build without JavaScript and found the answers of b6 and b7 "stated
+    // outside the reveal in: nowhere" (SPEC 8.1 P2: "Results are stated in the prose."; 4.0 Starts meaningful).
+    // The script left out the prediction blocks and the closed <details>, and looked for each answer, with the
+    // patterns below, in every other block of the page (prose, captions and the tools' own text). Oracle
+    // (redteam/redteam-RT-13-p6-oracle-m9.py on the lens branch): b6, su(1,3) on A3, theta(0,0,1) = (-1,-1,0);
+    // b7, e6(-26), from the shadow coordinates (0,1) node 2 gives (0,-1) and node 1 then (-1,-1). Adoption: the
+    // same patterns on the same page without JavaScript, formulas read as $TeX$; the stating text must also
+    // follow its prediction block and nothing before it may state the answer, the pattern of M8's test for
+    // P5-RT-13-01 (the held class P3-RT-13-01: no answer readable before the reader commits).
+    // regression: P6-RT-13-02
+    test('the answers of M9 predictions b6 and b7 are stated outside their reveals, after the prediction block', async ({ page }) => {
+      await page.goto(ROUTE);
+      const start = plain(await out(page, 'b7', 'shadow-coordinates').textContent()).replace(/[()]/g, '').split(', ').map(Number);
+      expect(THETA13).toEqual([-1, -1, 0]);
+      expect(restrictedMove(E626.restricted_board!, restrictedMove(E626.restricted_board!, start, 2), 1)).toEqual([-1, -1]);
+      const answers = [
+        { id: 'b6', stated: /\(-1, ?-1, ?0\)/ },
+        { id: 'b7', stated: /coordinates?[^.]*\(-1, ?-1\)|\(-1, ?-1\)[^.]*coordinates?/ },
+      ];
+      const blocks = await readingBlocks(page);
+      expect(blocks.length).toBeGreaterThan(40);
+      const report = answers.map(({ id, stated }) => {
+        const hits = blocks.filter((b) => stated.test(b.text));
+        return { id, after: hits.filter((h) => h.after.includes(id)).length, before: hits.filter((h) => !h.after.includes(id)).map((h) => `${id}: ${h.text}`) };
+      });
+      // Observed at f07eec6: both answers only in the closed <details> of their prediction blocks.
+      expect(report.filter((r) => r.after === 0).map((r) => `${r.id}: stated outside the reveal, after the prediction block, in: nowhere`)).toEqual([]);
+      expect(report.flatMap((r) => r.before), 'stated before the prediction block').toEqual([]);
+    });
+
+    // RT-13, attacks 13 and 35 (LO9), from the script redteam/redteam-RT-13-p6-dimk.mjs of the lens branch: the
+    // reader is asked to read dim 𝔨 and dim 𝔭 from beat 1 on, but no block outside the Lie theory paragraph said
+    // what 𝔨 or 𝔭 is, and the glossary had no entry for them (SPEC 8.4 "Define every term on first use and link
+    // later uses to a glossary entry"; 1.2; 3 M9 beat 5). The patterns of the script: a use of 𝔨 or 𝔭, and a
+    // sentence that says what 𝔨 is. Adoption: the same patterns on the built page (formulas as $TeX$) and the
+    // built glossary; the script accepted either a defining sentence or a glossary entry, and this test asks for
+    // both, at the first use, with a later use linked to each entry.
+    // regression: P6-RT-13-04
+    test('𝔨 and 𝔭 are defined at their first use on M9, and the glossary has entries for them that later uses link', async ({ page }) => {
+      const K = /\\mathfrak\s*\{?k\}?|𝔨|\\mathfrak\s*\{?p\}?|𝔭/;
+      const KK = String.raw`(?:\\mathfrak\s*\{?k\}?|𝔨)`;
+      const PP = String.raw`(?:\\mathfrak\s*\{?p\}?|𝔭)`;
+      const defines = (x: string): RegExp => new RegExp(String.raw`${x}\s*(is|,\s*the|=\s*\{|denotes|stands for)|where\s+${x}|(subalgebra|part|fixed)[^.]{0,40}${x}|${x}[^.]{0,40}(fixed by|compact part|subalgebra)`);
+      await page.goto(ROUTE);
+      const prose = (await readingBlocks(page)).filter((b) => !b.tool && !b.challenge);
+      const first = prose.findIndex((b) => !b.lie && K.test(b.text));
+      expect(first, 'a use of 𝔨 or 𝔭 outside the Lie theory paragraph').toBeGreaterThanOrEqual(0);
+      // Observed at f07eec6: the first use, M9 beat 1 ("real rank 1 against 0, dim 𝔨 1 against 3"), and no sentence
+      // outside the Lie theory paragraph says what 𝔨 is.
+      const said = prose[first]!.text.split(/(?<=[.;])\s+/).filter((s) => K.test(s));
+      expect(said.filter((s) => defines(KK).test(s)), `the first use of 𝔨, beat ${prose[first]!.beat}: ${said.join(' | ')}`).not.toEqual([]);
+      expect(said.filter((s) => defines(PP).test(s)), `the first use of 𝔭, beat ${prose[first]!.beat}: ${said.join(' | ')}`).not.toEqual([]);
+      // Later uses link to the entries.
+      for (const anchor of ['dim-k', 'dim-p']) {
+        const linked = prose.slice(first + 1).filter((b) => b.links.some((l) => l.href.endsWith(`glossary/#${anchor}`)));
+        expect(linked.length, `a later use linked to glossary#${anchor}`).toBeGreaterThan(0);
+      }
+      // Observed at f07eec6: "glossary entries naming k or p: none (of 104 terms)".
+      await page.goto('glossary/');
+      const ids = await page.locator('dl.glossary dfn[id]').evaluateAll((els) => els.map((e) => e.id));
+      expect(ids.filter((d) => /^(k|p|dim-k|dim-p|compact-part|cartan-decomposition|fixed-subalgebra)$/.test(d)).sort()).toEqual(['dim-k', 'dim-p']);
+      const entry = page.locator('dl.glossary > div.entry').filter({ has: page.locator('dfn#dim-k') });
+      await expect(entry.locator('dfn#dim-p')).toHaveCount(1);
+      const definition = await entry.locator('dd[data-col="definition"]').evaluate((el) => {
+        const copy = el.cloneNode(true) as HTMLElement;
+        for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(`$${k.querySelector('annotation')?.textContent ?? ''}$`));
+        return (copy.textContent ?? '').replace(/\s+/g, ' ');
+      });
+      expect(definition).toMatch(defines(KK));
+      expect(definition).toMatch(defines(PP));
+    });
+
+    // RT-13, attack 13, from the script redteam/redteam-RT-13-p6-realrank.mjs of the lens branch: the first use of
+    // "real rank" on M9 (beat 1) was neither defined there or in the next block nor linked to its glossary entry;
+    // the definition comes in beat 5 (SPEC 8.4). The patterns of the script, on the prose blocks of the built
+    // page outside the tools and the Lie theory paragraph.
+    // regression: P6-RT-13-06
+    test('real rank is defined or linked to its glossary entry at its first use on M9', async ({ page }) => {
+      await page.goto(ROUTE);
+      const prose = (await readingBlocks(page)).filter((b) => !b.tool && !b.lie);
+      const k = prose.findIndex((b) => /real rank/i.test(b.text));
+      expect(k).toBeGreaterThanOrEqual(0);
+      const first = prose[k]!;
+      const defines = /real rank (r )?is|real rank,? the number/i;
+      const linked = first.links.some((l) => /#real-rank$/.test(l.href) && /real rank/i.test(l.text));
+      const defined = defines.test(first.text) || defines.test(prose[k + 1]?.text ?? '');
+      // Observed at f07eec6: first use M9 beat 1, "linked to #real-rank there: false; defined there or in the next
+      // block: false".
+      expect(linked || defined, `real rank, first used in beat ${first.beat}: ${first.text}`).toBe(true);
+    });
+  });
 });
