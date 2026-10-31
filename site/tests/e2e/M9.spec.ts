@@ -16,7 +16,8 @@
 //     theta-stage, shadow, shadow-coordinates, shadow-table, restricted-board, restricted-name,
 //     composite-word, composite-length, catalogue-row (data-name), same-form; History: moveCounter;
 //     Predict: predictResult. Extra hooks of T13 (decisions/P6-A3.md): data-colour on the paint buttons,
-//     data-board="decoration" and "restricted", data-arrow and data-black-arrow on the drawing,
+//     data-board "numbers" on the paint buttons and "populations" on the restricted board (SPEC 4.0;
+//     decisions/RT-FIX-P6-t13.md), data-arrow and data-black-arrow on the drawing,
 //     data-panel-tab, data-control picker, tau (data-tau), toggle, root, theta-next, example
 //     (data-example); Predict: data-prediction, .question, details, data-control predictAnswer,
 //     predictCheck, predictShow

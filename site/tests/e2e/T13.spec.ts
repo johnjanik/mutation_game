@@ -13,10 +13,11 @@
 //
 // Hooks read:
 //   root:        data-tool="satake", data-moves, data-hydrated="true"
-//   decoration:  button[data-node] with data-colour and data-value ("black" | "white"), data-board="decoration",
-//                data-can-act (inside data-out="decoration"); the drawing's data-arrow and data-black-arrow
+//   decoration:  button[data-node] with data-colour ("black" | "white"), data-board="numbers", data-value ("1" on a
+//                black node, "0" on a white one), data-can-act (inside data-out="decoration"); the drawing's
+//                data-arrow and data-black-arrow
 //   game board:  button[data-node] with data-board="populations", data-value, data-can-act (inside data-out="game-board")
-//   restricted:  button[data-node] with data-board="restricted", data-value (the shadow coordinate), data-can-act
+//   restricted:  button[data-node] with data-board="populations", data-value (the shadow coordinate), data-can-act
 //                (inside data-out="restricted-board")
 //   picture:     data-point (coordinates joined by commas), data-mult, data-double, data-chosen (inside data-out="shadow-picture")
 //   panels:      data-panel-tab ("lights" | "data" | "theta" | "shadows" | "restricted" | "catalogue"), aria-selected
@@ -463,12 +464,13 @@ test('every node button carries data-node, data-board, data-value and data-can-a
   }
   for (const b of await out(page, 'decoration').locator('button[data-node]').all()) {
     await expect(b).toHaveAttribute('data-colour', /^(black|white)$/);
-    await expect(b).toHaveAttribute('data-board', 'decoration');
+    await expect(b).toHaveAttribute('data-board', 'numbers');
+    await expect(b).toHaveAttribute('data-value', (await b.getAttribute('data-colour')) === 'black' ? '1' : '0');
   }
   await expect(deco(page, 2)).toHaveAttribute('data-colour', 'black');
   await expect(deco(page, 1)).toHaveAttribute('data-colour', 'white');
   for (const b of await out(page, 'restricted-board').locator('button[data-node]').all()) {
-    await expect(b).toHaveAttribute('data-board', 'restricted');
+    await expect(b).toHaveAttribute('data-board', 'populations');
     await expect(b).toHaveAttribute('data-can-act', 'true');
   }
   // painting a node: its colour, the lights and the announcement
@@ -805,4 +807,30 @@ test('the catalogue row headers have text (axe empty-table-header), with the typ
       expect(axe.violations.map((v) => `${v.id}: ${v.nodes.length}`), `${scheme} ${query}`).toEqual([]);
     }
   }
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 6 red-team round (RT-FIX P6, cluster t13)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from the RT-10 lens (site/tests/e2e/redteam-RT-10-p6-t13-hooks.spec.ts), attack 9 (SPEC 4.0 Test
+  // hooks: "Every node button carries data-node (its label), data-board (populations or numbers, which matters in
+  // the linked view), data-value (the value shown, as decimal text, or as p/q for a fraction) and data-can-act
+  // (true or false)"): every node button of /tools/satake/ with the restricted panel open (E6, black nodes 2 to
+  // 5), the paint buttons, the game board and the restricted board, where the shadows play a mutation game
+  // (SPEC 2.15). The colour of a paint button stays readable in data-colour.
+  // regression: P6-RT-10-05
+  test('RT-10 p6: every node button of T13 carries the hooks of 4.0 with legal values', async ({ page }) => {
+    await page.goto('tools/satake/?z=1&g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+    const root = page.locator('[data-tool="satake"]');
+    await expect(root).toHaveAttribute('data-hydrated', 'true');
+    await root.locator('[data-panel-tab="restricted"]').click();
+    await expect(root.locator('[data-out="restricted-board"] button[data-node]')).toHaveCount(2);
+    const hooks = await root.locator('button[data-node]').evaluateAll((bs) =>
+      bs.map((b) => ({ node: b.getAttribute('data-node'), board: b.getAttribute('data-board'), value: b.getAttribute('data-value'), canAct: b.getAttribute('data-can-act') })),
+    );
+    const bad = hooks.filter((h) => !['populations', 'numbers'].includes(h.board ?? '') || !/^[-−]?\d+(\/\d+)?$/.test(h.value ?? '') || !['true', 'false'].includes(h.canAct ?? ''));
+    expect(bad, `${hooks.length} node buttons; outside 4.0: ${[...new Set(bad.map((h) => `data-board="${h.board}" data-value="${h.value}"`))].join(', ')}`).toEqual([]);
+  });
 });

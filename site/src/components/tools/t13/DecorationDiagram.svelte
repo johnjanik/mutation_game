@@ -8,8 +8,11 @@
   // by an arrow; with the toggle "show tau on black nodes" the black nodes tau exchanges are joined by a dashed
   // arrow. Each node is a real <button> (one group, one tab stop, roving tabindex, the arrow keys of A-1),
   // named "Node 2, black"; Enter, Space or a click paints it the other colour.
-  // Hooks: data-node (label), data-colour and data-value ("black" or "white"), data-board="decoration",
-  // data-can-act; on the drawing data-arrow="1-5" and data-black-arrow="2-4" (labels).
+  // Hooks (SPEC 4.0 Test hooks): data-node (label), data-board="numbers", data-value "1" on a black (filled) node
+  // and "0" on a white (hollow) one, data-can-act; the colour in data-colour ("black" or "white"); on the drawing
+  // data-arrow="1-5" and data-black-arrow="2-4" (labels). The copy plays no game, and 4.0 names two boards: it
+  // takes "numbers", so that the populations a test or a lesson's Challenge reads are those of the game board
+  // and of the restricted board only (decisions/RT-FIX-P6-t13.md).
   import { toLabels, toPositions } from '@two-games/engine';
   import type { Board as EngineBoard } from '@two-games/engine';
   import Roads from '../../board/Roads.svelte';
@@ -135,8 +138,8 @@
         aria-disabled={hydrated && frozen ? 'true' : undefined}
         aria-label="Node {board.labels[k]}, {isBlack[k] ? 'black' : 'white'}"
         data-node={board.labels[k]}
-        data-board="decoration"
-        data-value={isBlack[k] ? 'black' : 'white'}
+        data-board="numbers"
+        data-value={isBlack[k] ? '1' : '0'}
         data-colour={isBlack[k] ? 'black' : 'white'}
         data-can-act={frozen ? 'false' : 'true'}
         onclick={() => paint(k)}

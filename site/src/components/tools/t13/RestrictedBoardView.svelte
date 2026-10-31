@@ -5,7 +5,8 @@
   // drawn there. Each node shows the chosen root's shadow coordinate at that node (sign encoding of 6.3, by
   // Node.svelte) and, below it, the pair (m_lambda, m_2lambda). Each node is a real <button> in one group with
   // one tab stop (roving tabindex, the arrow keys of A-1); Enter, Space or a click plays its composite move.
-  // Hooks: data-node (restricted label), data-board="restricted", data-value (the coordinate), data-can-act.
+  // Hooks (SPEC 4.0 Test hooks): data-node (restricted label), data-board="populations" (the shadows carry a
+  // mutation game of their own on this board, SPEC 2.15), data-value (the coordinate), data-can-act.
   import { toLabels, toPositions } from '@two-games/engine';
   import type { Board as EngineBoard } from '@two-games/engine';
   import Roads from '../../board/Roads.svelte';
@@ -89,7 +90,7 @@
         aria-disabled={hydrated && frozen ? 'true' : undefined}
         aria-label={names[k]}
         data-node={board.labels[k]}
-        data-board="restricted"
+        data-board="populations"
         data-value={values === null ? '' : values[k]}
         data-can-act={frozen ? 'false' : 'true'}
         onclick={() => act(k)}
