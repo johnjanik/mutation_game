@@ -54,7 +54,7 @@ The correct relations are
 
 $$CS_i=R_iC\qquad\text{and}\qquad R_i(C)=S_i(C^{\mathsf T})^{\mathsf T},$$
 
-and both follow from the two matrix forms: $CS_i=C-Ce_ie_i^{\mathsf T}C=R_iC$, and the transpose of $S_i$ written for the matrix $C^{\mathsf T}$ is $R_i$ written for $C$. The first relation says: translate a population $p$ into the position $a=Cp$, and a mutation at city $i$ becomes the firing of node $i$. The number on node $i$ is the amount by which a mutation would lower city $i$. The second relation says that firing on a board is the transpose of mutating on the <Term a="reversed-board">reversed board</Term>.
+and both follow from the two matrix forms: $CS_i=C-Ce_ie_i^{\mathsf T}C=R_iC$, and the transpose of $S_i$ written for the matrix $C^{\mathsf T}$ is $R_i$ written for $C$. The first relation says: translate a population $p$ into the position $a=Cp$, and a mutation at node $i$ becomes the firing of node $i$. The number on node $i$ is the amount by which a mutation would lower city $i$. The second relation says that firing on a board is the transpose of mutating on the <Term a="reversed-board">reversed board</Term>.
 
 The statement that the mutation game on $C$ is the numbers game on $C^{\mathsf T}$ holds for the two actions as maps on dual spaces, each the adjoint of the other; it fails as a claim that the two games have the same <Term a="position">positions</Term> and the same moves. Wildberger states the duality as Proposition 0.3 of his manuscript, $p\,s_x\tau=p\,\tau r_x$ with $\tau=A-2I$ (<Cite k="W-MS"/>, pp. 31 and 32). His dual population records the gain that a mutation would bring, $q=-Cp$, where this site records the drop, $a=Cp$. Every move is linear, so the two records give the same games.
 
@@ -80,7 +80,7 @@ It is sometimes said that the positions of the numbers game are the roots. In fa
 
 ## Which lattice each game lives in
 
-It is sometimes said that the numbers game lives on the root lattice and the mutation game on the coroot lattice. In fact populations are points of the root lattice, written in the coordinates of the simple roots, and the <Term a="numbers">numbers</Term> of the numbers game are points of the weight lattice, written in the coordinates of the fundamental weights. The <Term a="the-translator">translator</Term> $a=Cp$ carries the first lattice into the second, onto a sublattice whose index is $\det C$. The number on node $i$ is the amount by which a mutation would lower city $i$. This is the standard reading of the two games in Lie theory, and the one this site uses throughout.
+It is sometimes said that the numbers game lives on the root lattice and the mutation game on the coroot lattice. In fact populations are points of the root lattice, written in the coordinates of the simple roots, and the <Term a="numbers">numbers</Term> of the numbers game are points of the weight lattice, written in the coordinates of the fundamental weights. The <Term a="the-translator">translator</Term> $a=Cp$ carries the first lattice into the second, onto a sublattice whose index is $\det C$. The number on node $i$ is the amount by which a mutation would lower city $i$. The two readings are definitions: they are the standard reading of the two games in Lie theory, and the one this site uses throughout. The index is a fact of linear algebra: an integer matrix with a nonzero determinant sends the integer vectors onto a sublattice whose index is the absolute value of its determinant.
 
 </section>
 
