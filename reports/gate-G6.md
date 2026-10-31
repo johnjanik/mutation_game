@@ -502,6 +502,20 @@ The single runs swing widely on both commits (/tools/rep/ 198 to 491 ms on f07ee
 
 So the six-run comparison could not resolve a difference of 116 ms on this container, where single runs of /tools/rep/ range from about 90 to 630 ms. Nothing was repaired. The evidence is in the scratch directory t12-lab of this session (not committed).
 
+**Second lab run (2026-10-31, after the addendum): the same product code measured again.** The root release build of 248cc7e (product code identical to facff37's; only tests, documents and records changed since) was built alone on the machine and measured with `npm run lab -- --all` (script build-plan/reports/orchestrator/scripts/gate-g6-lab2.sh; logs in reports/gate-G6-lab2/, not committed). Build 27 s, lab 5784 s, load average 2.22 at the start and 1.99 at the end, canary 553.4 ms. The tail of 02-lab.log:
+
+```
+lab: 89 routes measured, 35 over threshold, 0 missing or in error
+lab: finished in 5784 s
+```
+
+- TBT: 35 of 89 routes over, from 206.7 to 487.2 ms (/modules/m8-lie-algebras/ 487.2, /glossary/ 480.2, /sources/ 397.6, /tools/weyl/ 391.3, /embed/weyl/ 379.9; every other route over lies at or below 324.0 ms). LCP: every route at or below 2.301 s (/modules/m7-geometry/). CLS: 0 on every route.
+- Against the rerun above, on the same product code: 23 routes over in both, 12 over only in this run (/atlas/A8/, /atlas/B4/, /atlas/B8/, /atlas/C7/, /atlas/C8/, /embed/fold/, /embed/garden/, /embed/mirror/, /modules/m3-classification/, /modules/m7-geometry/, /tools/affine/, /tools/kostant/), 5 over only in the rerun (/atlas/D6/, /embed/rep/, /embed/sandbox/, /embed/symbolic/, /modules/m5-weyl/). The median change of the median TBT per route is +12.2 ms (48 routes up, 34 down); by group: the 16 tool routes +1.4 ms, the 16 embed routes -17.4 ms, the 32 Atlas sheets +39.5 ms, the 11 lessons +23.0 ms, the other pages 0.0 ms. Single routes move by up to 266.5 ms (/modules/m8-lie-algebras/ 220.7 then 487.2) and down by up to 128.2 ms (/atlas/A5/). /atlas/A8/ measured 32, 0 and 35 ms in the rerun's three runs and 256, 222 and 172 ms in this one.
+- The routes above 332 ms are not the same from one run to the next: /dev/draw-time/ and /glossary/ in run 1; /tools/geometry/, /tools/rep/, /sources/, /tools/symbolic/, /tools/satake/ and /glossary/ in the rerun; /modules/m8-lie-algebras/, /glossary/, /sources/, /tools/weyl/ and /embed/weyl/ here. Only /glossary/ is above 332 ms in all three runs (432.4, 419.0, 480.2 ms).
+- Across the three runs of G6, 17 routes are over in every run and 41 in at least one.
+
+The lab item fails as measured in this run too. The count of routes over moves by 7 between two runs of the same product code, so a count of this kind cannot separate a change of the code from the state of the container. Over all 89 routes, the per-route changes between the rerun and this run (median absolute change 46.7 ms, largest 266.5) are as large as those between run 1 and the rerun (43.7 ms, largest 180.8). The tool routes are the exception: they rose by a median of 70.2 ms from run 1 to the rerun and stayed there (+1.4 ms in this run; 61.7 ms above run 1), so their rise is reproducible on this container. Run 1 ran on 26 October, before the container restarted; the comparisons of f07eec6 and facff37 builds made in one session above (five tool routes: -12.7 to +39.6 ms on four, and no significant difference on /tools/rep/ in 27 runs per build) point to the container rather than the code, without proving it for the other eleven tool routes. The decision on the item stays the owner's (section 11).
+
 ## 9. Release build, reports and archives
 
 Open items in the Pages release build (08-release-build-pages.log):
@@ -548,10 +562,10 @@ Every fragment of phase 6 and of its red-team round is folded into DECISIONS.md:
 - [ ] Interaction to Next Paint on one phone.
 - [ ] One exported LaTeX file of each kind compiled (reports/gate-G6-rerun/latex/: dynkin.tex, tikz-graph.tex, tikz-points.tex, tikz-graph-weyl.tex, tikz-graph-rep.tex; each holds `% needs \usepackage{...}` and a body to \input).
 - [ ] Approval of the text of M6 to M10 (M9 and M10 carry the draft mark).
-- [ ] The lab item: whether the machine-bound acceptance of G3 holds for the 28 routes over at G6, /glossary/ and the tool routes above 332 ms included (section 8; the regression first reported on /tools/rep/ is withdrawn in its addendum).
+- [ ] The lab item: whether the machine-bound acceptance of G3 holds for the routes over at G6 (28 in the rerun, 35 in the second lab run on the same product code; 41 routes over in at least one of the three runs), /glossary/ (over 332 ms in every run) included (section 8; the regression first reported on /tools/rep/ is withdrawn in its addendum).
 - [ ] The decisions the round left to the owner (DECISIONS.md, "MERGE: the phase 6 red-team round, fixes merged"): the worker wire labels (a change to CONTRACTS.md 4), T6's LaTeX export, and the findings refuted but recorded for the owner.
 
 ## 12. Failures, reruns and repairs
 
-- lab (step 12): 28 routes over TBT; the item fails as measured. The diagnostic of section 8 first reported a regression on /tools/rep/ (about +116 ms); a fix agent's larger comparison found the same work and no significant difference, and the reading is withdrawn (section 8, addendum). A second lab run on every route followed, on the same product code (DECISIONS.md, "GATE: the G6 lab, second run").
+- lab (step 12): 28 routes over TBT; the item fails as measured. The diagnostic of section 8 first reported a regression on /tools/rep/ (about +116 ms); a fix agent's larger comparison found the same work and no significant difference, and the reading is withdrawn (section 8, addendum). A second lab run on every route followed, on the same product code: 35 routes over, 206.7 to 487.2 ms, LCP and CLS within limits (section 8, "Second lab run"; DECISIONS.md, "GATE: the G6 lab, second run").
 - No test failed in either e2e run. No test was skipped beyond the two MathML engines, no timeout was lengthened, no test was retried for this report.
