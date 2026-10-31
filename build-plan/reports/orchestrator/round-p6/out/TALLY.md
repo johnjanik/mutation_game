@@ -117,3 +117,4 @@
 - content-residual: 5 of 5 fixed (red on base, scratch revert); read by MERGE, merged 5ca39bc. M1 1800, M7 1799, M9 1799 of 1800 words.
 - t13-followup: 2 of 2 fixed (red on base; mutant for 01); read by MERGE, merged eddc3d7. /tools/satake/ default 87.9 kB, largest link 88.8 kB of 90.
 - tableview-reflow: fixed (red on base; probe of 331 tables); merged. MERGE fixed M9.spec.ts:402 (shared-a11y's no-JS test asserted the restricted board's old hook value 'restricted'; the t13 cluster set 'populations').
+- t12-t5 CONFIRMED 3 of 3 (T12.spec.ts:1242 branch 160 of 160, base 157 of 160; trace C8:7 47 to 55 ms before, about 23 after); merged 3d709fb. Minor note for later: in the 2 to 5 ms between hydration and the deferred read, Copy link and the share row are live; a press queued there copies the default state and makes history write the link's state in full encoding.
