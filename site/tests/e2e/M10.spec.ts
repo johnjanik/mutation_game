@@ -711,3 +711,46 @@ test.describe('M10', () => {
     expect(claims, 'theorem-like statements marked on the two pages').toBeGreaterThan(4);
   });
 });
+
+test.describe('regressions', () => {
+  // Adopted from redteam/redteam-RT-10-p6-m10-terms.py (lens RT-10, phase 6 round, branch
+  // worktree-agent-a689e5f789a50ceae), which read the built M10 page and the built glossary: every glossary term
+  // (each dfn[id] without a formula) used at least twice in the prose of M10's article (scripts, styles, h1 to h3,
+  // formulas and the module-links block left out), counted as a whole word in any case, needs a link to its
+  // glossary anchor somewhere in the article. Its exit status rested on the four terms that M10 uses in the
+  // glossary's own sense (board, numbers game, Kostant's game, finite in "board of finite type"); at f07eec6 none
+  // was linked ("0 glossary links on the page"). Curly and straight apostrophes are read as one, as in the built
+  // HTML both pages print "Kostant's game" with the same character. The rule for every term, with a later use
+  // linked, is glossary-later-uses.spec.ts, which now covers this page too.
+  const SURE = ['board', 'numbers-game', 'kostants-game', 'finite'];
+
+  // regression: P6-RT-10-03
+  test("M10 links later uses of board, numbers game, Kostant's game and finite to the glossary", async ({ page }) => {
+    await page.goto(GLOSSARY);
+    const terms = await page.locator('article dfn[id]').evaluateAll((els) =>
+      els
+        .filter((e) => e.querySelector('.katex, math') === null)
+        .map((e) => ({ id: e.id, text: (e.textContent ?? '').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim() })),
+    );
+    await page.goto(ROUTE);
+    const { prose, links } = await page.locator('main article').first().evaluate((article) => {
+      const found = [...article.querySelectorAll('a[href*="glossary/#"]')].map((a) => {
+        const href = a.getAttribute('href') ?? '';
+        return decodeURIComponent(href.slice(href.indexOf('#') + 1));
+      });
+      const copy = article.cloneNode(true) as HTMLElement;
+      for (const el of copy.querySelectorAll('script, style, h1, h2, h3, math, svg, [data-anatomy="links"], .katex')) el.remove();
+      for (const el of copy.querySelectorAll('p, li, dd, dt, figcaption')) el.append(document.createTextNode(' '));
+      return { prose: (copy.textContent ?? '').replace(/[‘’]/g, "'").replace(/\s+/g, ' '), links: found };
+    });
+    const missing: string[] = [];
+    for (const id of SURE) {
+      const term = terms.find((t) => t.id === id);
+      expect(term, `the glossary has the entry #${id}`).toBeDefined();
+      const uses = (prose.match(new RegExp(`(?<![\\w-])${esc(term!.text)}(?![\\w-])`, 'gi')) ?? []).length;
+      expect(uses, `M10 uses ${term!.text} at least twice`).toBeGreaterThanOrEqual(2);
+      if (!links.includes(id)) missing.push(`${term!.text} (#${id}): ${uses} uses, no glossary link`);
+    }
+    expect(missing, `${new Set(links).size} glossary links on the page`).toEqual([]);
+  });
+});
