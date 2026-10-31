@@ -20,6 +20,7 @@
   // P6-A5 (additive): data-control="latex", "cite"; data-out="citeText", rendered after a click on Cite.
   // P6-A3 (additive, MERGE ruling (3) on P6-A3): the prop `moves` overrides state.moves?.length for data-moves,
   // for a tool whose moves are not part of its state (T13 keeps its steps out of the link).
+  // RT-FIX P6-RT-05-02 (additive): data-scroll="table-view" on the table view's scroll box.
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import { createAnnouncer } from '../../lib/a11y';
@@ -262,10 +263,15 @@
   {#if table}
     <details class="table-view">
       <summary>Show as table</summary>
-      <fieldset class="bare" disabled={!hydrated}>
-        <legend class="visually-hidden">Table of {title}</legend>
-        {@render table(api)}
-      </fieldset>
+      <!-- RT-FIX P6-RT-05-02 (A-11, A-1): the box the table scrolls in is a tab stop with a name of its own, so it
+           scrolls from the keyboard while every button inside is disabled (before hydration, or while a
+           prediction freezes the tool); the fieldset inside it disables the buttons until hydration. -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div class="bare" tabindex="0" role="group" aria-label="Table of {title}" data-scroll="table-view">
+        <fieldset class="table-fields" disabled={!hydrated}>
+          {@render table(api)}
+        </fieldset>
+      </div>
     </details>
   {/if}
   <p class="nojs"><noscript><span data-out="noscript">Interactive when scripts are allowed.</span></noscript></p>
@@ -327,7 +333,8 @@
     cursor: default;
   }
   .control:focus-visible,
-  .table-view summary:focus-visible {
+  .table-view summary:focus-visible,
+  .bare:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
   }
@@ -342,6 +349,11 @@
     border: 0;
     min-width: 0;
     overflow-x: auto;
+  }
+  .table-fields {
+    margin: 0;
+    padding: 0;
+    border: 0;
   }
   .nojs {
     margin: 0;

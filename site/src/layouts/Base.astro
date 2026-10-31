@@ -88,12 +88,6 @@ const description = Astro.props.description ?? Astro.props.frontmatter?.descript
     margin-top: 32px;
     border-top: 1px solid var(--sign-zero-outline);
   }
-  a {
-    color: var(--text);
-  }
-  a:focus-visible,
-  button:focus-visible {
-    outline: 3px solid var(--focus-ring);
-    outline-offset: 2px;
-  }
+  /* The colour of links and the focus ring of links and buttons are in styles/base.css, which the embed
+     route loads too (RT-FIX P6-RT-05-01). */
 </style>

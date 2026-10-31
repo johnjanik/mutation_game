@@ -483,3 +483,110 @@ test.describe('Export LaTeX and Cite', () => {
     expect(scrollWidth).toBeLessThanOrEqual(innerWidth);
   });
 });
+
+// Adopted from the RT-05 phase 6 reproducer of P6-RT-05-01 (attacks 29 and 45; SPEC.md 7.5 A-6 "Text and numerals
+// at least 4.5 to 1 ... in light and dark themes", A-2; 7.4 "Embedding"; CONTRACTS 8). The site gave every link
+// its text colour, and links and buttons the focus ring, through one global rule of the layout Base.astro, which
+// pages/embed/[tool].astro does not use: a link that a tool draws kept the browser's default link colours on
+// /embed/<id>, #0000EE (about 2 to 1 on the dark page #121212), and a button without a focus rule of its own kept
+// the browser's ring. Two such links reached by ordinary use: the Atlas picker's "Open the Atlas page of E8" on
+// /embed/atlas/?g=E8, and T15's "Source of this row: [GSS12] ..." on /embed/affine/ after the pentagon puzzle is
+// played on (by keys). The rules now live in styles/base.css, which both load. Hooks read: data-tool,
+// data-hydrated, data-out="chosen" and "provenance", data-tab, data-control="playOn".
+test.describe('the dark theme on the embed routes', () => {
+  test.use({ colorScheme: 'dark' });
+
+  function lum(rgb: string): number {
+    const m = /rgba?\((\d+), (\d+), (\d+)/.exec(rgb);
+    if (!m) throw new Error(`not a colour: ${rgb}`);
+    const ch = [m[1], m[2], m[3]].map((v) => {
+      const c = Number(v) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * ch[0]! + 0.7152 * ch[1]! + 0.0722 * ch[2]!;
+  }
+  const ratio = (a: string, b: string): number => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x! + 0.05) / (y! + 0.05);
+  };
+
+  async function linkContrasts(page: Page): Promise<{ text: string; color: string; page: string; ratio: number }[]> {
+    const rows = await page.locator('[data-tool] a[href]').evaluateAll((as) =>
+      as.map((a) => ({ text: (a.textContent ?? '').trim().slice(0, 40), color: getComputedStyle(a).color, page: getComputedStyle(document.body).backgroundColor })),
+    );
+    return rows.map((r) => ({ ...r, ratio: Math.round(ratio(r.color, r.page) * 100) / 100 }));
+  }
+
+  // regression: P6-RT-05-01
+  test('dark theme, /embed/atlas/?g=E8: every link inside the tool is at least 4.5 to 1 against the page (A-6)', async ({ page }) => {
+    await page.goto('embed/atlas/?g=E8');
+    const root = page.locator('[data-tool="atlas"]');
+    await expect(root).toHaveAttribute('data-hydrated', 'true');
+    await expect(root.locator('[data-out="chosen"] a')).toBeVisible();
+    const rows = await linkContrasts(page);
+    const bad = rows.filter((r) => r.ratio < 4.5);
+    expect(bad, `/embed/atlas/?g=E8, dark theme, 360 x 800: links below 4.5 to 1 against the page: ${JSON.stringify(bad)}`).toEqual([]);
+  });
+
+  // regression: P6-RT-05-01
+  test('dark theme, /embed/affine/ after Play on of the pentagon puzzle: every link inside the tool is at least 4.5 to 1 (A-6)', async ({ page }) => {
+    await page.goto('embed/affine/');
+    const root = page.locator('[data-tool="affine"]');
+    await expect(root).toHaveAttribute('data-hydrated', 'true');
+    await root.locator('button[data-tab="pentagon"]').focus();
+    await page.keyboard.press('Enter');
+    await root.locator('[data-control="playOn"]').focus();
+    await page.keyboard.press('Enter');
+    await expect(root.locator('[data-out="provenance"] a')).toBeVisible();
+    const rows = await linkContrasts(page);
+    const bad = rows.filter((r) => r.ratio < 4.5);
+    expect(bad, `/embed/affine/ (pentagon, Play on), dark theme, 360 x 800: links below 4.5 to 1 against the page: ${JSON.stringify(bad)}`).toEqual([]);
+  });
+
+  // regression: P6-RT-05-01
+  test('control: the same link on /tools/atlas/?g=E8 in the dark theme is drawn in the text colour', async ({ page }) => {
+    await page.goto('tools/atlas/?g=E8');
+    const root = page.locator('[data-tool="atlas"]');
+    await expect(root).toHaveAttribute('data-hydrated', 'true');
+    const rows = await linkContrasts(page);
+    expect(rows.filter((r) => r.ratio < 4.5)).toEqual([]);
+  });
+
+  /**
+   * The tab stops inside the tool, its "Show as table" view open (by keys), each with the outline it shows when
+   * focused from the keyboard: the walk enters the tool with Tab from the element before it.
+   */
+  async function focusRings(page: Page, path: string): Promise<string[]> {
+    await ready(page, path);
+    await page.locator('[data-tool] summary', { hasText: 'Show as table' }).first().focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-tool] details', { has: page.locator('summary', { hasText: 'Show as table' }) }).first()).toHaveAttribute('open', '');
+    await page.locator('[data-tool] :is(button, a[href], input, select):not([disabled])').first().focus();
+    await page.keyboard.press('Shift+Tab');
+    const stops: string[] = [];
+    for (let k = 0; k < 120; k++) {
+      await page.keyboard.press('Tab');
+      const stop = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || !el.closest('[data-tool]')) return null;
+        const hooks = [...el.attributes].filter((a) => a.name.startsWith('data-') && a.name !== 'data-href').map((a) => `${a.name}=${a.value}`);
+        const s = getComputedStyle(el);
+        return `${el.tagName.toLowerCase()} ${hooks.join(' ')} (${(el.textContent ?? '').trim().slice(0, 24)}): ${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor}`;
+      });
+      if (stop === null) break;
+      stops.push(stop);
+    }
+    return stops;
+  }
+
+  // regression: P6-RT-05-01
+  test('dark theme, /embed/garden/: every tab stop of the tool shows the focus ring it shows on /tools/garden/ (A-2)', async ({ page }) => {
+    const onEmbed = await focusRings(page, 'embed/garden/');
+    const onTool = await focusRings(page, 'tools/garden/');
+    expect(onTool.length, 'tab stops of the tool on /tools/garden/').toBeGreaterThan(1);
+    expect(onEmbed.filter((s) => s.startsWith('button data-control=jumpRow')).length, 'the jump buttons of the table view are reached').toBeGreaterThan(0);
+    const browserRings = onEmbed.filter((s) => /^(button|a) /.test(s) && / auto /.test(s));
+    expect(browserRings, '/embed/garden/, dark theme: buttons and links with the browser focus ring instead of the ring of A-2').toEqual([]);
+    expect(onEmbed, '/embed/garden/ against /tools/garden/, dark theme: each tab stop and its focus ring').toEqual(onTool);
+  });
+});
