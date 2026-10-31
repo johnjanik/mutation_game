@@ -13,10 +13,12 @@
 //
 // Hooks read:
 //   root:        data-tool="satake", data-moves, data-hydrated="true"
-//   decoration:  button[data-node] with data-colour and data-value ("black" | "white"), data-board="decoration",
-//                data-can-act (inside data-out="decoration"); the drawing's data-arrow and data-black-arrow
-//   game board:  button[data-node] with data-board="populations", data-value, data-can-act (inside data-out="game-board")
-//   restricted:  button[data-node] with data-board="restricted", data-value (the shadow coordinate), data-can-act
+//   decoration:  button[data-node] with data-colour ("black" | "white"), data-board="numbers", data-value ("1" on a
+//                black node, "0" on a white one), data-can-act (inside data-out="decoration"); the drawing's
+//                data-arrow and data-black-arrow
+//   game board:  button[data-node] with data-board="populations", data-value, data-can-act (inside data-out="game-board");
+//                the drawn numerals data-numeral (Node.svelte)
+//   restricted:  button[data-node] with data-board="populations", data-value (the shadow coordinate), data-can-act
 //                (inside data-out="restricted-board")
 //   picture:     data-point (coordinates joined by commas), data-mult, data-double, data-chosen (inside data-out="shadow-picture")
 //   panels:      data-panel-tab ("lights" | "data" | "theta" | "shadows" | "restricted" | "catalogue"), aria-selected
@@ -24,7 +26,7 @@
 //   controls:    data-control="picker", "tau" (data-tau: the images joined by dots), "toggle", "root", "theta-next",
 //                "theta-play", "example" (data-example), "catalogue-load" (data-name); undo, redo, reset
 //                (History.svelte); copyLink, downloadData, latex, cite (ToolFrame); data-export="svg" | "png"
-//   table view:  data-table-node (the paint buttons), data-table-restricted
+//   table view:  data-table-node (the paint buttons), data-table-population (the Population cells), data-table-restricted
 //   live:        [data-live] (ToolFrame's polite live region)
 // data-out names (every one T13 renders; the registry's `outs`):
 //   caption, notice, noscript, exportNotice, citeText (ToolFrame); moveCounter, historyStrip, historyCounter
@@ -38,9 +40,12 @@
 //   restricted-board, restricted-name, restricted-name-note, composite-word, composite-length (the restricted board);
 //   catalogue, catalogue-row, same-form (the catalogue)
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
+import { outDirFrom, siteAndBase } from '../../astro.config.mjs';
 import { admissibility, boardFromName, positiveRoots, satake, theta, toPositions } from '../../../packages/engine/src/index';
 import type { Board, SatakeDiagram } from '../../../packages/engine/src/index';
 // the tool's own server-side functions, for the E7 island test (as registry-outs.spec.ts loads the registry)
@@ -463,12 +468,13 @@ test('every node button carries data-node, data-board, data-value and data-can-a
   }
   for (const b of await out(page, 'decoration').locator('button[data-node]').all()) {
     await expect(b).toHaveAttribute('data-colour', /^(black|white)$/);
-    await expect(b).toHaveAttribute('data-board', 'decoration');
+    await expect(b).toHaveAttribute('data-board', 'numbers');
+    await expect(b).toHaveAttribute('data-value', (await b.getAttribute('data-colour')) === 'black' ? '1' : '0');
   }
   await expect(deco(page, 2)).toHaveAttribute('data-colour', 'black');
   await expect(deco(page, 1)).toHaveAttribute('data-colour', 'white');
   for (const b of await out(page, 'restricted-board').locator('button[data-node]').all()) {
-    await expect(b).toHaveAttribute('data-board', 'restricted');
+    await expect(b).toHaveAttribute('data-board', 'populations');
     await expect(b).toHaveAttribute('data-can-act', 'true');
   }
   // painting a node: its colour, the lights and the announcement
@@ -805,4 +811,180 @@ test('the catalogue row headers have text (axe empty-table-header), with the typ
       expect(axe.violations.map((v) => `${v.id}: ${v.nodes.length}`), `${scheme} ${query}`).toEqual([]);
     }
   }
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 6 red-team round (RT-FIX P6, cluster t13)
+// ---------------------------------------------------------------------------------------------
+
+test.describe('regressions', () => {
+  // Adopted from the RT-07 lens (site/tests/e2e/redteam-RT-07-p6-link-size.spec.ts, attacks 1, 30 and 35): the
+  // JavaScript /tools/satake/ fetches before the reader's first interaction when it is opened from a link that
+  // the site itself writes. SPEC 7.6: the budget of a route is the gzip size of "all JavaScript the route fetches
+  // before the reader's first interaction", 90 kB for "each tool alone, on /tools/<id>"; SPEC 6.6: "On a tool's
+  // own route (/tools/..., /embed/...) the keys are bare", so a link is the same route. decisions/P6-A3.md: the
+  // typeset names (t13/satakeNames.ts, about 5 kB gzipped) load only after the reader's first change. Measured as
+  // npm run size measures a route (scripts/size.mjs: 360 by 800, network idle, then quiet; gzip level 9 of the
+  // files from the built directory), with 3 s with no request as the settle. npm run size opens bare routes only.
+  const SITE_DIR = resolve(import.meta.dirname, '../..');
+  const dist = resolve(SITE_DIR, outDirFrom(process.env));
+  const { base } = siteAndBase(process.env);
+  const LIMIT = 90000; // SPEC 7.6, a tool alone; kB = 1000 bytes (DECISIONS.md, P0-A6)
+
+  async function scriptsBeforeInteraction(browser: Browser, baseURL: string, path: string): Promise<{ sum: number; files: string[] }> {
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, baseURL });
+    const page = await ctx.newPage();
+    const urls = new Set<string>();
+    let last = Date.now();
+    ctx.on('request', (r) => {
+      last = Date.now();
+      const u = new URL(r.url());
+      if (r.resourceType() === 'script' || /\.m?js$/.test(u.pathname)) urls.add(r.url());
+    });
+    await page.goto(path, { waitUntil: 'networkidle' });
+    const t0 = Date.now();
+    while (Date.now() - last < 3000 && Date.now() - t0 < 15000) await page.waitForTimeout(100);
+    await ctx.close();
+    let sum = 0;
+    const files: string[] = [];
+    for (const url of urls) {
+      const p = decodeURIComponent(new URL(url).pathname);
+      const file = join(dist, p.slice(base.length));
+      expect(existsSync(file), `${url} has a file in ${dist}`).toBe(true);
+      const gz = gzipSync(readFileSync(file), { level: 9 }).length;
+      sum += gz;
+      files.push(`${p.replace(/^.*\//, '')} ${gz}`);
+    }
+    return { sum, files: files.sort() };
+  }
+
+  // Links of the Atlas pages (atlas/<T>/ "Open this real form in the Satake Studio"), as the built HTML writes them.
+  const LINKS = [
+    'tools/satake/?z=1&g=A3&x=1.3&t=1.2.3', // atlas/A3/, su*(4)
+    'tools/satake/?z=1&g=D8&x=1.3.5.7&t=1.2.3.4.5.6.7.8', // atlas/D8/
+    'tools/satake/?z=1&g=E6&x=2.3.4.5&t=1.2.3.4.5.6', // atlas/E6/, e6(-26)
+  ];
+
+  // regression: P6-RT-07-01
+  test('the default state of /tools/satake/ is within 90 kB (control)', async ({ browser, baseURL }) => {
+    test.setTimeout(120000);
+    const r = await scriptsBeforeInteraction(browser, baseURL!, 'tools/satake/');
+    console.info(`/tools/satake/ default: ${r.sum} B before interaction (${r.files.length} scripts)`);
+    expect(r.sum).toBeLessThanOrEqual(LIMIT);
+  });
+
+  for (const link of LINKS) {
+    // regression: P6-RT-07-01
+    test(`/${link} (a link the Atlas writes) fetches at most 90 kB before the first interaction`, async ({ browser, baseURL }) => {
+      test.setTimeout(120000);
+      const def = await scriptsBeforeInteraction(browser, baseURL!, 'tools/satake/');
+      const r = await scriptsBeforeInteraction(browser, baseURL!, link);
+      const extra = r.files.filter((f) => !def.files.includes(f));
+      console.info(`/${link}: ${r.sum} B before interaction (default ${def.sum} B); scripts beyond the default: ${extra.join(', ') || 'none'}`);
+      expect(r.sum, `scripts beyond the default state: ${extra.join(', ')}`).toBeLessThanOrEqual(LIMIT);
+    });
+  }
+
+  // Adopted from the RT-10 lens (site/tests/e2e/redteam-RT-10-p6-t13-hooks.spec.ts), attack 9 (SPEC 4.0 Test
+  // hooks: "Every node button carries data-node (its label), data-board (populations or numbers, which matters in
+  // the linked view), data-value (the value shown, as decimal text, or as p/q for a fraction) and data-can-act
+  // (true or false)"): every node button of /tools/satake/ with the restricted panel open (E6, black nodes 2 to
+  // 5), the paint buttons, the game board and the restricted board, where the shadows play a mutation game
+  // (SPEC 2.15). The colour of a paint button stays readable in data-colour.
+  // regression: P6-RT-10-05
+  test('RT-10 p6: every node button of T13 carries the hooks of 4.0 with legal values', async ({ page }) => {
+    await page.goto('tools/satake/?z=1&g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+    const root = page.locator('[data-tool="satake"]');
+    await expect(root).toHaveAttribute('data-hydrated', 'true');
+    await root.locator('[data-panel-tab="restricted"]').click();
+    await expect(root.locator('[data-out="restricted-board"] button[data-node]')).toHaveCount(2);
+    const hooks = await root.locator('button[data-node]').evaluateAll((bs) =>
+      bs.map((b) => ({ node: b.getAttribute('data-node'), board: b.getAttribute('data-board'), value: b.getAttribute('data-value'), canAct: b.getAttribute('data-can-act') })),
+    );
+    const bad = hooks.filter((h) => !['populations', 'numbers'].includes(h.board ?? '') || !/^[-−]?\d+(\/\d+)?$/.test(h.value ?? '') || !['true', 'false'].includes(h.canAct ?? ''));
+    expect(bad, `${hooks.length} node buttons; outside 4.0: ${[...new Set(bad.map((h) => `data-board="${h.board}" data-value="${h.value}"`))].join(', ')}`).toEqual([]);
+  });
+
+  // Adopted from the RT-05 lens (site/tests/e2e/redteam-RT-05-p6-t13-table-minus.spec.ts), attacks 30 and 33
+  // (SPEC 6.3 "The value is the signed integer, set in tabular figures, with a true minus sign"; 7.5 A-10 "every
+  // tool has a 'show as table' view that presents the same state as an HTML table"): the Population column of the
+  // table view writes a negative population as the board draws it, with U+2212. Read through the hooks: the
+  // drawn numerals (data-numeral) and the Population cells (data-table-population).
+  // regression: P6-RT-05-03
+  test('T13 table view after Play θ on su*(4): the Population column uses the true minus sign of 6.3', async ({ page }) => {
+    await page.goto('tools/satake/?g=A3&x=1.3&t=1.2.3');
+    const root = page.locator('[data-tool="satake"]');
+    await expect(root).toHaveAttribute('data-hydrated', 'true');
+    await root.locator('[data-panel-tab="theta"]').focus();
+    await page.keyboard.press('Enter');
+    await root.locator('[data-control="theta-play"]').focus();
+    await page.keyboard.press('Enter');
+    await expect(root.locator('[data-out="moveCounter"]')).toHaveText('3');
+    // the board draws the populations with U+2212
+    const drawn = await root.locator('[data-out="game-board"] [data-numeral]').allTextContents();
+    expect(drawn).toEqual(['−1', '−1', '−1']);
+    await root.locator('details summary').focus();
+    await page.keyboard.press('Enter');
+    const cells = await root.locator('[data-table-population]').evaluateAll((tds) => tds.map((td) => (td.textContent ?? '').trim()));
+    expect(cells, '/tools/satake/?g=A3&x=1.3&t=1.2.3 after Play θ, table view, column Population (the board draws −1, −1, −1)').toEqual(['−1', '−1', '−1']);
+  });
+
+  // Adopted from the RT-11 lens (site/tests/e2e/redteam-RT-11-p6-T13-redo-home-end.spec.ts): SPEC 7.5 A-1 "Undo,
+  // redo and reset are visible buttons after the board in the tab order; the shortcuts u (undo) and r (redo) work
+  // only while focus is inside the board". It fails on the lens's mutant S-T13-redo-noop (redo does nothing).
+  // regression: P6-RT-11-01
+  test('T13: Redo and the r shortcut replay the undone stages of theta, and say so (A-1, A-4)', async ({ page }) => {
+    // su*(4), SPEC A.5: theta takes (0, 1, 0) through (0, 1, 0), (1, 1, 1) to (-1, -1, -1)
+    await page.goto('tools/satake/?g=A3&x=1.3&t=1.2.3');
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await root(page).locator('[data-panel-tab="theta"]').click();
+    await expect(root(page).locator('[data-panel-tab="theta"]')).toHaveAttribute('aria-selected', 'true');
+    for (let k = 1; k <= 3; k++) {
+      await control(page, 'theta-next').click();
+      await expect(out(page, 'moveCounter')).toHaveText(String(k));
+    }
+    await control(page, 'undo').click();
+    await control(page, 'undo').click();
+    await expect(out(page, 'moveCounter')).toHaveText('1');
+    const game = out(page, 'game-board').locator('button[data-node]');
+    expect(await valuesOf(game)).toEqual(['0', '1', '0']);
+    // the Redo button
+    await control(page, 'redo').click();
+    await expect(out(page, 'moveCounter')).toHaveText('2');
+    expect(await valuesOf(game)).toEqual(['1', '1', '1']);
+    await expect(live(page)).toHaveText('Stage 2 of θ. Populations now 1, 1, 1. Move 2.');
+    // the r shortcut, with the focus inside the game board
+    await game.first().focus();
+    await page.keyboard.press('r');
+    await expect(out(page, 'moveCounter')).toHaveText('3');
+    expect(await valuesOf(game)).toEqual(['-1', '-1', '-1']);
+    await expect(live(page)).toHaveText('Stage 3 of θ. Populations now minus 1, minus 1, minus 1. Move 3.');
+  });
+
+  // Adopted from the RT-11 lens (the same file): SPEC 7.5 A-10 "every tool has a 'show as table' view that
+  // presents the same state as an HTML table with a button per node". It fails on the lens's mutant
+  // S-T13-table-buttons-noop (both table buttons do nothing).
+  // regression: P6-RT-11-02
+  test('T13: the buttons of the table view act like the nodes (A-10: "a button per node")', async ({ page }) => {
+    // the paint buttons of the decoration's table
+    await page.goto('tools/satake/?g=A3&x=1.3&t=1.2.3');
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await root(page).locator('details summary').click();
+    const paint2 = root(page).locator('[data-table-node="2"]');
+    await expect(paint2).toHaveText('white');
+    await paint2.click();
+    await expect(out(page, 'black-nodes')).toHaveText('1.2.3');
+    await expect(out(page, 'decoration').locator('button[data-node="2"]')).toHaveAttribute('data-colour', 'black');
+    await expect(paint2).toHaveText('black');
+    await expect(live(page)).toHaveText(/^Node 2 painted black\. /);
+    // the composite-move buttons of the restricted table: e6(-26), restricted node 2 reflects alpha_6's shadow
+    await page.goto('tools/satake/?g=E6&x=2.3.4.5&t=1.2.3.4.5.6');
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+    await root(page).locator('details summary').click();
+    await expect(out(page, 'shadow-coordinates')).toHaveText('(0, 1)');
+    await root(page).locator('[data-table-restricted="2"]').click();
+    await expect(out(page, 'moveCounter')).toHaveText('1');
+    await expect(out(page, 'shadow-coordinates')).toHaveText('(0, −1)');
+    await expect(live(page)).toHaveText(/^Played the composite move of restricted node 2, \d+ mutations\. Shadow coordinates now 0, minus 1\. /);
+  });
 });
