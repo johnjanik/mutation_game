@@ -17,8 +17,9 @@
 // data-letters-exchanged, data-rank2-note, data-other-page, data-sp-note, data-long, data-exact-value,
 // data-download, data-tool-link, data-board-link, data-group, data-control="cite", data-live, data-real-form,
 // data-cartan-label, data-real-form-count, data-coincidence, data-provenance (the place in SPEC that gives a
-// statement); T10's data-control="shortRoots" and data-out="ringSizes", "pointCount"; the site navigation
-// (nav[aria-label="Site"]); KaTeX's <annotation> for typeset names.
+// statement), data-bridge (the sentence of SPEC 2.4(a)); T10's data-control="shortRoots" and
+// data-out="ringSizes", "pointCount"; the site navigation (nav[aria-label="Site"]); KaTeX's <annotation> for
+// typeset names.
 //
 // Repair after review: every displayed value is compared with golden as shown on the page (the visible text)
 // as well as through data-exact; the satake records are matched with the harness's matchRecord.
@@ -877,5 +878,62 @@ test.describe('tool route', () => {
     await expect(cite).toContainText('Atlas. Two Games on a Dynkin Diagram, site version ');
     expect(((await cite.textContent()) ?? '').endsWith(page.url())).toBe(true);
     await expect(page.locator('[data-live]')).toHaveText('Citation copied.');
+  });
+});
+
+test.describe('regressions', () => {
+  // The built-page side of P6-RT-08-04 (its source check is in site/tests/unit/atlas.test.ts): the site's term is
+  // the fundamental position e_i (SPEC Appendix C, 8.4); no Atlas page writes "fundamental weight" or the symbol
+  // omega in what a reader sees, the item heading and the link texts included (the heading by
+  // decisions/RT-FIX-P6-atlas.md).
+  // regression: P6-RT-08-04
+  test('no Atlas page writes the fundamental weight omega_i where the site writes the fundamental position e_i', async ({ page }) => {
+    test.setTimeout(180_000);
+    for (const T of TYPE_NAMES) {
+      await page.goto(`atlas/${T}/`);
+      const text = await visibleText(page);
+      expect(text.match(/.{0,60}(?:fundamental weight|ω).{0,40}/gi), T).toBeNull();
+      expect(await texIn(page, 'main'), T).not.toContainEqual(expect.stringContaining('\\omega'));
+      await expect(page.locator('#orbit-sizes > h2'), T).toHaveText('Orbits of the fundamental positions');
+      await expect(page.locator('#orbit-sizes'), T).toContainText('The orbit of the fundamental position');
+      await expect(page.locator('#minus-w0 a[data-tool-link]'), T).toContainText('from the fundamental position of node 1');
+      await expect(page.locator('#orbit-sizes a[data-tool-link]'), T).toContainText('at the fundamental position of node 1');
+    }
+  });
+
+  // Adopted from the RT-10 script reproducer of the phase 6 round (RT-10 attack 25). SPEC 2.4(a): "The number on
+  // node i is the amount by which a mutation would lower city i." ... "This sentence is the bridge between the
+  // two views and must appear, with the same wording, wherever the two views are shown together [D]." Every
+  // Atlas page shows the highest root as a population beside its numbers ("its numbers are C theta = ...") and
+  // states the translation a = Cp. The script read the built HTML of each page; this test reads the same HTML
+  // as the preview serves it, with the script's two patterns, on all 32 pages.
+  const BRIDGE_HTML = /The number on node\s*(?:<[^>]+>|\s)*i(?:<[^>]+>|\s)*\s*is the amount by which a mutation would lower city/;
+  const plain = (h: string): string => h.replace(/<annotation[^>]*>.*?<\/annotation>/gs, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const BRIDGE_TEXT = 'The number on node i is the amount by which a mutation would lower city i.';
+
+  // regression: P6-RT-10-02
+  test('every Atlas page shows the highest root as a population beside its numbers, and carries the bridge sentence of 2.4(a)', async ({ page }) => {
+    test.setTimeout(180_000);
+    const lacking: string[] = [];
+    for (const T of TYPE_NAMES) {
+      const res = await page.request.get(`atlas/${T}/`);
+      expect(res.status(), T).toBe(200);
+      const html = await res.text();
+      const text = plain(html);
+      const both = /its numbers are/.test(text);
+      const bridge = /amount by which a mutation would lower city/.test(text) && BRIDGE_HTML.test(html.replace(/<annotation[^>]*>.*?<\/annotation>/gs, ''));
+      expect(both, `${T}: a population and its numbers shown`).toBe(true);
+      if (both && !bridge) lacking.push(T);
+    }
+    expect(lacking, 'Atlas pages that show a population with its numbers and lack the sentence of 2.4(a)').toEqual([]);
+    // Through its hook, on the pages as a reader has them: the sentence once, word for word, with the i set as
+    // mathematics (MathML, A-12).
+    for (const T of TYPE_NAMES) {
+      await page.goto(`atlas/${T}/`);
+      const bridge = page.locator('[data-bridge]');
+      await expect(bridge, T).toHaveCount(1);
+      await expect(bridge, T).toHaveText(BRIDGE_TEXT);
+      await expect(bridge.locator('math mi'), T).toHaveText(['i', 'i']);
+    }
   });
 });
