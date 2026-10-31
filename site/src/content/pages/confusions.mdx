@@ -36,7 +36,7 @@ It is sometimes said that the <Term a="mutation-game">mutation game</Term> chang
 
 ## A mutation changes one entry
 
-It is sometimes said that a mutation at node $i$ acts on the whole vector by the update $x\mapsto x-x_iC^{\mathsf T}e_i$. That update changes the sign of $x_i$ and also changes the entries of the neighbours of $i$: it is how the <Term a="numbers-game">numbers game</Term> fires node $i$ on the reversed board, the board with every road turned round, whose <Term a="cartan-matrix">Cartan matrix</Term> is $C^{\mathsf T}$. In fact Wildberger's mutation is
+It is sometimes said that a mutation at $i$ acts on the whole vector by the update $x\mapsto x-x_iC^{\mathsf T}e_i$. That update changes the sign of $x_i$ and also changes the entries of the neighbours of $i$: it is how the <Term a="numbers-game">numbers game</Term> fires node $i$ on the reversed board, the board with every road turned round, whose <Term a="cartan-matrix">Cartan matrix</Term> is $C^{\mathsf T}$. In fact Wildberger's mutation is
 
 $$x\mapsto x-(e_i^{\mathsf T}Cx)\,e_i,\qquad\text{that is}\qquad x_i\mapsto x_i-\sum_jC_{ij}x_j,$$
 
@@ -48,13 +48,13 @@ which changes the one entry $x_i$ and leaves every neighbour alone (<Cite k="W20
 
 ## The two games differ even on simply laced boards
 
-It is sometimes said that on a simply laced board, where each pair of joined nodes has exactly one road each way, the mutation game and the numbers game are the same game. In fact they are different games. The mutation at node $i$ is $S_i=I-e_ie_i^{\mathsf T}C$ and the firing of node $i$ is $R_i=I-Ce_ie_i^{\mathsf T}$. On a simply laced board $C$ is symmetric and $R_i=S_i^{\mathsf T}$: the two moves are transposes of each other, and at every node joined to another they are different matrices, since the mutation changes one entry and the firing changes that entry and the entries of its neighbours.
+It is sometimes said that on a simply laced board, where each pair of joined nodes has exactly one road each way, the mutation game and the numbers game are the same game. In fact they are different games. The mutation at $i$ is $S_i=I-e_ie_i^{\mathsf T}C$ and the firing of node $i$ is $R_i=I-Ce_ie_i^{\mathsf T}$. On a simply laced board $C$ is symmetric and $R_i=S_i^{\mathsf T}$: the two moves are transposes of each other, and at every node joined to another they are different matrices, since the mutation changes one entry and the firing changes that entry and the entries of its neighbours.
 
 The correct relations are
 
 $$CS_i=R_iC\qquad\text{and}\qquad R_i(C)=S_i(C^{\mathsf T})^{\mathsf T},$$
 
-and both follow from the two matrix forms: $CS_i=C-Ce_ie_i^{\mathsf T}C=R_iC$, and the transpose of $S_i$ written for the matrix $C^{\mathsf T}$ is $R_i$ written for $C$. The first relation says: translate a population $p$ into the position $a=Cp$, and a mutation at node $i$ becomes the firing of node $i$. The number on node $i$ is the amount by which a mutation would lower city $i$. The second relation says that firing on a board is the transpose of mutating on the <Term a="reversed-board">reversed board</Term>.
+and both follow from the two matrix forms: $CS_i=C-Ce_ie_i^{\mathsf T}C=R_iC$, and the transpose of $S_i$ written for the matrix $C^{\mathsf T}$ is $R_i$ written for $C$. The first relation says: translate a population $p$ into the position $a=Cp$, and a mutation at $i$ becomes the firing of node $i$. The number on node $i$ is the amount by which a mutation would lower city $i$. The second relation says that firing on a board is the transpose of mutating on the <Term a="reversed-board">reversed board</Term>.
 
 The statement that the mutation game on $C$ is the numbers game on $C^{\mathsf T}$ holds for the two actions as maps on dual spaces, each the adjoint of the other; it fails as a claim that the two games have the same <Term a="position">positions</Term> and the same moves. Wildberger states the duality as Proposition 0.3 of his manuscript, $p\,s_x\tau=p\,\tau r_x$ with $\tau=A-2I$ (<Cite k="W-MS"/>, pp. 31 and 32). His dual population records the gain that a mutation would bring, $q=-Cp$, where this site records the drop, $a=Cp$. Every move is linear, so the two records give the same games.
 

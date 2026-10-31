@@ -144,7 +144,7 @@ export function shortRootRingsOf(board: Board<number>): number[] | null {
 /**
  * The largest ring the tool takes (plan): six digits, as the entries typed into T3 (CAPS.formFinderDigits).
  * Far below the safe range, so that no orbit of the 32 boards leaves SafeInt (the largest coefficient of a
- * root is 6), and far above any picture worth drawing; the shape depends only on which nodes are ringed.
+ * root is 6), and far above any picture worth drawing; the faces depend only on which nodes are ringed.
  */
 export const RING_MAX = 10 ** CAPS.formFinderDigits - 1;
 
