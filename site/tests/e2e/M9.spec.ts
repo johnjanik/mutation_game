@@ -399,7 +399,7 @@ test.describe('without JavaScript', () => {
       await expect(out(page, id, 'restricted-name'), id).toHaveText(E626.restricted_board!);
       const nodes = out(page, id, 'restricted-board').locator('button[data-node]');
       await expect(nodes, id).toHaveCount(E626.real_rank);
-      for (const n of await nodes.all()) await expect(n, id).toHaveAttribute('data-board', 'restricted');
+      for (const n of await nodes.all()) await expect(n, id).toHaveAttribute('data-board', 'populations');
       await expect(out(page, id, 'restricted-board').locator('svg [data-disc]'), `${id}: a disc per restricted node`).toHaveCount(E626.real_rank);
       const values = await valuesOf(nodes);
       expect(tuple(values.map(Number)), `${id}: the restricted nodes show the shadow coordinates`).toBe(plain(await out(page, id, 'shadow-coordinates').textContent()));
