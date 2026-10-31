@@ -1,0 +1,235 @@
+{
+ "agent": "rtfix-p6-t13",
+ "status": "done",
+ "branch": "worktree-agent-aa830f86894e43483",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-aa830f86894e43483",
+ "base": "0436a53efadd67a0d03add5bd286d03b2f5185ca",
+ "commits": [
+  "ba3dba8 RT-FIX P6-RT-10-05: T13's node buttons carry the hooks of SPEC 4.0",
+  "2fde379 RT-FIX P6-RT-07-01: T13 fetches the typeset names only on the reader's actions",
+  "1173a23 RT-FIX P6-RT-11-01: T13's tests press Redo, r, Home and End",
+  "bfbdad0 RT-FIX P6-RT-02-01: T13's records for display come from satakeRecord",
+  "0269376 RT-FIX P6-RT-02-02: T13 converts restricted-board labels with toPositions and toLabels",
+  "6e297d2 RT-FIX P6-RT-05-03: T13's table view writes negative populations with a true minus",
+  "30527f0 RT-FIX P6-RT-11-02: a test operates T13's table view buttons",
+  "c3a1759 RT-FIX P6-RT-10-05 P6-RT-05-03 P6-RT-02-01 P6-RT-07-01: decisions fragment of the t13 cluster"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/T13SatakeStudio.svelte",
+  "site/src/components/tools/t13/DecorationDiagram.svelte",
+  "site/src/components/tools/t13/RestrictedBoardView.svelte",
+  "site/src/components/tools/t13/model.ts",
+  "site/tests/e2e/T13.spec.ts",
+  "site/tests/e2e/T13-keyboard.spec.ts",
+  "site/tests/e2e/M9.spec.ts",
+  "site/tests/unit/tools/T13.test.ts",
+  "decisions/RT-FIX-P6-t13.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD (after git reset --hard 0436a53)",
+   "exit": 0,
+   "summary": "worktree agent-aa830f86894e43483, branch worktree-agent-aa830f86894e43483, base 0436a53efadd67a0d03add5bd286d03b2f5185ca"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: match CONTRACTS 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline, load 17 on 4 CPUs)",
+   "exit": 1,
+   "summary": "2725 passed, 3 failed: 'Test timed out in 5000ms' only (mainthread-fast-paths, satake-coordinates x2)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit redteam-RT-02-p6-c2-once.test.ts redteam-RT-02-p6-label-arith.test.ts (base, red)",
+   "exit": 1,
+   "summary": "2 failed | 1 passed: model.ts:445-447 C2 branch listed; 12 label-arithmetic lines listed (model.ts 521,527,528,534,732,859,875; svelte 220,224,226,932,933)"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-base npm run build (base)",
+   "exit": 0,
+   "summary": "90 pages, 3998 links, 0 problems"
+  },
+  {
+   "cmd": "playwright test redteam-RT-10-p6-t13-hooks redteam-RT-07-p6-link-size redteam-RT-05-p6-t13-table-minus (base build, port 7360, red)",
+   "exit": 1,
+   "summary": "5 failed | 1 passed: hooks outside 4.0 (decoration white/black, restricted 0/1); 3 links 92298 B > 90000 (extra satakeNames 5230 B), control 87068 B passed; table Population '-1' x3 vs '−1'"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T13.test.ts (after each source commit)",
+   "exit": 0,
+   "summary": "51 passed at bfbdad0 state, 52 passed at HEAD (48 at base + 4 regressions)"
+  },
+  {
+   "cmd": "mutant display-always (displayRecord always calls satakeRecord) + vitest T13.test.ts -t regressions",
+   "exit": 1,
+   "summary": "1 failed (E7 e7(7): not the same object), 2 passed; source restored"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-fix npm run build",
+   "exit": 0,
+   "summary": "90 pages, 0 link problems"
+  },
+  {
+   "cmd": "playwright test T13.spec.ts T13-keyboard.spec.ts M9.spec.ts embed.spec.ts nojs.spec.ts engine-fallback.spec.ts engine-weight.spec.ts registry-outs.spec.ts worker-on-demand.spec.ts (dist-fix, port 7360)",
+   "exit": 1,
+   "summary": "584 passed, 17 failed: 16 registry-outs (it reads site/dist only, absent for an OUT_DIR build; green below) and the T13 axe test timing out at 30 s (load 25; green below); link states 87208 B = default 87208 B"
+  },
+  {
+   "cmd": "npm run build (site/dist)",
+   "exit": 0,
+   "summary": "90 pages, 3998 links, 0 problems"
+  },
+  {
+   "cmd": "playwright test registry-outs.spec.ts (site/dist)",
+   "exit": 0,
+   "summary": "35 passed"
+  },
+  {
+   "cmd": "playwright test T13.spec.ts -g 'axe violations on /tools/satake' (site/dist, alone)",
+   "exit": 1,
+   "summary": "first run timed out at 30.4 s (load 21); repeat: 1 passed (28.3 s); base build same test 1 passed (27.9 s)"
+  },
+  {
+   "cmd": "playwright test a11y.spec.ts -g 'satake|m9' (site/dist)",
+   "exit": 0,
+   "summary": "3 passed (embed/satake, tools/satake, modules/m9-real-forms)"
+  },
+  {
+   "cmd": "sh mutant-build.sh dist-m1 redo-noop deco-home-end table-paint-noop table-restricted-noop; playwright test T13.spec.ts T13-keyboard.spec.ts -g regressions",
+   "exit": 1,
+   "summary": "4 failed as intended: Redo test (moveCounter Expected 2 Received 1), decoration Home/End (Expected 5 Received 3), restricted u/r test (Expected 2 Received 1), table buttons (Expected 1.2.3 Received 1.3); 8 others passed; source restored"
+  },
+  {
+   "cmd": "sh mutant-build.sh dist-m2 rest-home-end deco-keyed rest-keyed; playwright test T13-keyboard.spec.ts",
+   "exit": 1,
+   "summary": "restricted Home/End (Expected 6 Received 3), decoration focus (Expected decoration:1 Received body), restricted focus (Expected restricted:2 Received body) failed; old paint script still passed with deco-keyed (the note's claim); source restored"
+  },
+  {
+   "cmd": "npm run size -- --port 7361 --dist <scratch>/dist-base",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget; /tools/satake/ and /embed/satake/ 87.1 kB, M9 87.1 kB"
+  },
+  {
+   "cmd": "npm run size -- --port 7361 (site/dist)",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget; /tools/satake/, /embed/satake/, M9 87.2 kB"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors; svelte-check 0 errors, 1 old warning (t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "npm run typecheck (tsc --noEmit -p packages/engine; check -w site)",
+   "exit": 0,
+   "summary": "0 errors"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after)",
+   "exit": 1,
+   "summary": "2725 passed, 3 failed: timeouts at 5000 ms only (load 26); no engine file changed"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- mainthread-fast-paths p7-roots-signs (repeat alone)",
+   "exit": 1,
+   "summary": "the same 2 timeouts (6.0 s, 5.4 s) at load 16"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- --testTimeout=60000 (diagnostic)",
+   "exit": 0,
+   "summary": "88 files, 2728 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit T13.test.ts worker-provide.test.ts (HEAD)",
+   "exit": 0,
+   "summary": "75 passed"
+  },
+  {
+   "cmd": "greps.sh over git diff 0436a53..HEAD added lines",
+   "exit": 0,
+   "summary": ".only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on: em-dash: 0 each; no forbidden path; no redteam file in the diff; every subject starts RT-FIX P6-RT-; 14 'regression: P6-RT-' comments"
+  },
+  {
+   "cmd": "rm node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep preview",
+   "exit": 0,
+   "summary": "status empty; no preview server on 7360/7361"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-RT-02-01: B2 and C2: T13 applies the C2 adjustment of SPEC 6.4 in site code instead of taking its display records from satakeRecord",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T13.test.ts > regressions > RT-02 p6 attack 13: the C2 naming of SPEC 6.4 is applied by satakeRecord only > t13/model.ts does not apply the C2 adjustment itself (with the satakeRecord comparison test and the E7/E8 test in the same block)",
+   "evidence": "severity minor (no adjustment). Red at base 0436a53: 1 failed (model.ts:445, 446, 447 listed), matching the verifier. Cause: assembleData rebuilt restricted_board and the Bourbaki orbits from satake and applied the C2 rule a second time. Fix: displayRecord takes them from satakeRecord on the reader's own pair; when matchCatalogue's record already is of the reader's pair it is reused, so E7/E8 never run satakeRecord on the main thread (only D4, D6, D8 have such symmetry images). Green: 52 passed; every existing field-by-field golden test still passes. The E7/E8 test fails under the mutant that always calls satakeRecord. Commit bfbdad0."
+  },
+  {
+   "item": "P6-RT-02-02: Position for label: T13 converts the labels of the drawn restricted board to array indices with l - 1, k - 1 and k + 1 outside toLabels/toPositions",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T13.test.ts > regressions > RT-02 p6: T13 converts restricted-board labels only through toLabels and toPositions (E-7) > no label arithmetic on the drawn restricted board",
+   "evidence": "severity minor (no adjustment). Red at base: 1 failed listing the 12 lines, matching the verifier. Cause: drawing arrays are indexed by the drawn board's positions, but labels were turned into indices by hand. Fix: drawnPosition and drawnLabel in model.ts (toPositions/toLabels on boardFromName of the drawing's name); position-indexed arrays are passed as they are. Green: 52 passed; the golden-based multiplicities, node-name and composite tests still pass. Commit 0269376."
+  },
+  {
+   "item": "P6-RT-10-05: T13's node buttons carry data-board values 'decoration' and 'restricted' and data-value 'black' and 'white', outside the hooks of 4.0",
+   "status": "fixed",
+   "test": "site/tests/e2e/T13.spec.ts > regressions > RT-10 p6: every node button of T13 carries the hooks of 4.0 with legal values",
+   "evidence": "original minor, raised to major by the refuter. Red on the base build: '14 node buttons; outside 4.0: data-board=\"decoration\" data-value=\"white\", ... \"black\", data-board=\"restricted\" data-value=\"0\", ... \"1\"', matching the verifier. Fix: paint buttons data-board=\"numbers\" with data-value 1 (black, filled) or 0 (white, hollow), colour kept in data-colour; restricted board data-board=\"populations\" (SPEC 2.15). The existing hooks test of T13.spec.ts now expects the new values and also asserts data-value against data-colour; the M9.spec.ts header comment is updated. No other test read the old values. The fragment records that this replaces the hooks part of the P6-A3 entry. Green on the fixed build. Commit ba3dba8."
+  },
+  {
+   "item": "P6-RT-07-01: A link to /tools/satake/ fetches 92297 B of JavaScript before the first interaction",
+   "status": "fixed",
+   "test": "site/tests/e2e/T13.spec.ts > regressions > /tools/satake/?z=1&g=A3&x=1.3&t=1.2.3 (a link the Atlas writes) fetches at most 90 kB before the first interaction (plus the D8 and E6 links and the default-route control)",
+   "evidence": "severity major (no adjustment). Red on the base build: 3 failed, 'Expected: <= 90000 Received: 92298', extra script satakeNames.MjFZAB5c.js 5230 B; control 87068 B. Cause: hydration's readLink called setConfig, and setConfig called loadNames. Fix: setConfig no longer loads names; the reader's own actions do (paint, tau, picker, example, catalogue, panel, back button). Green: all four 87208 B, with no script beyond the default. npm run size before/after: /tools/satake/ and /embed/satake/ 87.1 to 87.2 kB of 90; 0 over budget on 90 routes. Commit 2fde379."
+  },
+  {
+   "item": "P6-RT-05-03: Attacks 30 and 33: T13's table view writes negative populations with the ASCII hyphen-minus ('-1') while the board and every other T13 panel use U+2212",
+   "status": "fixed",
+   "test": "site/tests/e2e/T13.spec.ts > regressions > T13 table view after Play θ on su*(4): the Population column uses the true minus sign of 6.3",
+   "evidence": "severity minor (no adjustment). Red on the base build: expected ['−1','−1','−1'], received ['-1','-1','-1'], matching the verifier. Fix: the cell is written with intText. Adoption read class names, so the test now reads hooks: data-numeral (already on Node.svelte) and a new data-table-population cell hook (recorded in the fragment). Asserted values unchanged. Green on the fixed build. Commit 6e297d2."
+  },
+  {
+   "item": "P6-RT-11-01: T13's Redo, its r shortcut and Home/End are pressed by no test",
+   "status": "fixed",
+   "test": "site/tests/e2e/T13.spec.ts > regressions > T13: Redo and the r shortcut replay the undone stages of theta, and say so (A-1, A-4); site/tests/e2e/T13-keyboard.spec.ts > regressions (Home/End on the decoration; Home/End on the restricted board; focus after Enter and Space on the decoration; focus after Enter and Space on a restricted node, with u and r there)",
+   "evidence": "original major, raised to blocker by the reproducer. Tests only; they pass on base, as the finding states. Bite: lens mutants S-T13-redo-noop and S-T13-home-end-ignored (built together with the table mutant) give Redo 'Expected 2 Received 1', decoration End 'Expected 5 Received 3', restricted r 'Expected 2 Received 1'. Fixer's mutants: restricted Home/End ignored gives 'Expected 6 Received 3'. Decoration buttons keyed by the black set (RT-05's mutant) give 'Expected decoration:1 Received body'; the old script still passes under it, which is the note's claim. Restricted buttons keyed by values give 'Expected restricted:2 Received body'. All green on the fixed build. Commit 1173a23."
+  },
+  {
+   "item": "P6-RT-11-02: T13's 'Show as table' view is never operated by a test",
+   "status": "fixed",
+   "test": "site/tests/e2e/T13.spec.ts > regressions > T13: the buttons of the table view act like the nodes (A-10: \"a button per node\")",
+   "evidence": "original minor, raised to blocker by the reproducer. Test only; it passes on base. Bite: with the lens's S-T13-table-buttons-noop (both onclicks do nothing) it fails with black-nodes 'Expected 1.2.3 Received 1.3', matching the verifier. Green on the fixed build. Commit 30527f0."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "decisions/P6-A3.md (recorded design, not CONTRACTS)",
+   "what": "satakeRecord is now called by assembleData on the main thread, for a pair that is a symmetry image of a catalogue pair. This happens only on D4, D6 and D8. P6-A3's 'where the Satake data are computed' entry said satakeRecord is not called, and its 'C2 drawing rule' entry applied the adjustment in site code. Both sentences are replaced in decisions/RT-FIX-P6-t13.md. The data path of load.ts is unchanged, and its test still asserts no satakeRecord call there.",
+   "why": "SPEC 6.4 and Appendix H: records for display come from satakeRecord. E-9 is kept because E7 and E8 never reach the call; a unit test guards this. Measured cost in Node: 4 to 29 ms on D8 depending on load."
+  },
+  {
+   "spec": "existing test assertion",
+   "what": "T13.spec.ts 'every node button carries data-node, data-board, ...' now expects data-board 'numbers' on the decoration (was 'decoration') and 'populations' on the restricted board (was 'restricted'). It also gains a data-value check.",
+   "why": "The old values were the defect of P6-RT-10-05, and the orchestrator asked for every test reading the old hooks to be updated. The test is stronger, not weaker."
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P6-t13.md",
+ "openQuestions": [
+  "Challenge.svelte reads every [data-node] of a tool, grouped by data-board. With the restricted board now 'populations', a reach, distinct or mixed-signs check on a T13 instance would mix the game board with the restricted board while that panel is open. No lesson has such a check today: M9's three T13 Challenges are of kind 'out'. The lens's 'separate group hook for Challenge' would be a change under site/src/components/lesson/, which is outside this cluster.",
+  "The engine suite times out at the default 5000 ms on 2 or 3 unchanged tests (mainthread-fast-paths, p7-roots-signs, satake-coordinates, p6a-restricted) at load 16 to 28 on 4 CPUs. This happens both at baseline and after; with --testTimeout=60000 all 2728 pass. No engine file is changed.",
+  "The T13 axe test (30 s) timed out once at load 21 to 25 and passed alone (28.3 s; base 27.9 s). This is load-bound, as the verifier also saw.",
+  "registry-outs.spec.ts reads site/dist directly and ignores OUT_DIR, so it fails for an OUT_DIR build. It passed (35) against site/dist."
+ ],
+ "handoff": "Every changed file is inside the t13 cluster, plus a one-line header comment in M9.spec.ts and the fragment. No other cluster's file, and no ToolFrame, Predict, nojs or worker file, was touched. All seven findings are fixed. The lens should know three things. (1) For P6-RT-02-01 I followed the proposed fix with one addition: matchCatalogue's own record is reused when its pair is the reader's, so that E7/E8 stay off the main thread. (2) For P6-RT-10-05 the paint buttons take data-board=\"numbers\" with values 1/0 (data-colour unchanged); the Challenge group hook is logged under openQuestions, not built. (3) The table view gains the hook data-table-population. Size: link states drop from 92298 to 87208 B, and bare routes go from 87.1 to 87.2 kB."
+}
