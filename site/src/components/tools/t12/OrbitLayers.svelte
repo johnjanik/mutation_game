@@ -67,6 +67,28 @@
   }
 
   /**
+   * The geometry of the drawing in CSS pixels, y down: its size, the width of a vertex box, and the centre in
+   * x, the top and the centre in y of each vertex's box (the drawing below, and the LaTeX export, t12/latex.ts).
+   */
+  export function orbitGeometry(
+    layers: OrbitLayers,
+    drawing: OrbitDrawing,
+    texts: readonly string[],
+  ): { width: number; height: number; boxW: number; cx: (v: number) => number; top: (v: number) => number; cy: (v: number) => number } {
+    const boxW = Math.max(56, Math.ceil(Math.max(...texts.map((t, k) => [...vertexText(t, layers.vertices[k]!.basisIndex)].length), 4) * CHAR + 2 * PAD));
+    const colW = boxW + GAP;
+    const top = (v: number): number => MARGIN + drawing.y[v]! * ROW;
+    return {
+      width: drawing.widest * colW - GAP + 2 * MARGIN,
+      height: (drawing.layers - 1) * ROW + BOX_H + 2 * MARGIN,
+      boxW,
+      cx: (v) => MARGIN + drawing.x[v]! * colW + boxW / 2,
+      top,
+      cy: (v) => top(v) + BOX_H / 2,
+    };
+  }
+
+  /**
    * The layers of orbitSvg, each written when it is first asked for (and kept): a tool that shows one more
    * layer per task writes each layer's markup in the task that shows it, not every layer in the task that
    * draws the panel (SPEC 7.6; G5 repair).
@@ -78,12 +100,7 @@
     title: string,
     titleId: string,
   ): { width: number; height: number; edgeCount: number; vertexCount: number; edgeLayer: (k: number) => string; vertexLayer: (k: number) => string } {
-    const boxW = Math.max(56, Math.ceil(Math.max(...texts.map((t, k) => [...vertexText(t, layers.vertices[k]!.basisIndex)].length), 4) * CHAR + 2 * PAD));
-    const colW = boxW + GAP;
-    const width = drawing.widest * colW - GAP + 2 * MARGIN;
-    const height = (drawing.layers - 1) * ROW + BOX_H + 2 * MARGIN;
-    const cx = (v: number): number => MARGIN + drawing.x[v]! * colW + boxW / 2;
-    const top = (v: number): number => MARGIN + drawing.y[v]! * ROW;
+    const { width, height, boxW, cx, top } = orbitGeometry(layers, drawing, texts);
     const size = `width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"`;
     const edgeLayers: string[] = [];
     const edgeLayer = (k: number): string => (edgeLayers[k] ??= edgeMarkup(k * EDGE_CHUNK));

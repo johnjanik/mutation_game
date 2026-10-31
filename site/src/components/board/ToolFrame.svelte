@@ -51,8 +51,12 @@
     onPopState?: (state: ToolState, notice: string | null) => void;
     /** P2-A6: the board name of the export footer (SPEC 8.3, D19); default: state.board when it is a name, else `custom board`. */
     boardName?: string;
-    /** P6-A5: what "Export LaTeX" writes; default: the diagram of a named finite board (defaultLatexExport). */
-    latexForExport?: LatexChoice | (() => LatexChoice | null);
+    /**
+     * P6-A5: what "Export LaTeX" writes; default: the diagram of a named finite board (defaultLatexExport).
+     * RT-FIX-P6-latex (additive): the function may answer with a promise, so that a tool's writer is
+     * fetched by import() on the click, as export.ts is (7.6).
+     */
+    latexForExport?: LatexChoice | (() => LatexChoice | null | Promise<LatexChoice | null>);
     figure: Snippet<[FrameApi]>;
     controls?: Snippet<[FrameApi]>;
     table?: Snippet<[FrameApi]>;
@@ -190,8 +194,9 @@
 
   async function onExportLatex(): Promise<void> {
     try {
-      const { latexDownload } = await import('../../lib/export');
-      const { filename, text } = latexDownload(latexForExport, toolState, toolId, boardName, linkFor(instanceId));
+      // The tool's choice is read at the click; a promise (its writer being fetched) is awaited with export.ts.
+      const [{ latexDownload }, chosen] = await Promise.all([import('../../lib/export'), typeof latexForExport === 'function' ? latexForExport() : latexForExport]);
+      const { filename, text } = latexDownload(chosen === undefined ? undefined : () => chosen, toolState, toolId, boardName, linkFor(instanceId));
       save(new Blob([text], { type: 'application/x-tex' }), filename);
       exportNotice = '';
       announce(`Downloaded ${filename}.`);

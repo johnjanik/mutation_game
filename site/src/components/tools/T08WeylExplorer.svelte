@@ -403,6 +403,14 @@
     return [...ks];
   });
 
+  // RT-FIX-P6-latex (P6-RT-10-01): Export LaTeX writes the graph as drawn, a tikz-graph (t08/latex.ts; SPEC
+  // 6.7), read at the click so that it follows the game and the focused vertex; the writer is fetched then (7.6).
+  const latexForExport = () => {
+    const s = scene;
+    const drawing = { width: s.width, dots: s.dots, edges: s.edges.map((e) => model.edges[e.k]!) };
+    return import('./t08/latex').then((m) => m.weylLatex(drawing));
+  };
+
   function exportData(): Record<string, unknown> {
     return {
       layerSizes: [...model.layerSizes],
@@ -664,6 +672,7 @@
   {figureLabel}
   boardName={boardName}
   derivedForExport={exportData}
+  {latexForExport}
   onPopState={(s, n) => void loadLink(s, n)}
   {figure}
   {controls}
