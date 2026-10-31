@@ -134,8 +134,14 @@ function theWorker(): Worker {
     const p = pending.get(reply.id);
     if (!p) return;
     pending.delete(reply.id);
-    if (reply.ok) p.resolve(deserialize(reply.result));
-    else p.reject(wireToError(reply.error));
+    // A reply the main side cannot rebuild (deserialize throws, for instance when resolveBoard refuses a
+    // board in it) rejects the call with that error, of its own class, rather than leave it pending.
+    try {
+      if (reply.ok) p.resolve(deserialize(reply.result));
+      else p.reject(wireToError(reply.error));
+    } catch (err) {
+      p.reject(err);
+    }
   };
   w.onerror = (event: ErrorEvent) => {
     event.preventDefault?.();
