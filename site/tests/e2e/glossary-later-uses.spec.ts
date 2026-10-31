@@ -111,14 +111,18 @@ interface Term {
   term: string;
 }
 
-/** The glossary's terms: every dfn with an id, its formula left out (as M8.spec.ts reads them). */
+/**
+ * The glossary's terms: every dfn with an id, its formula left out (as M8.spec.ts reads them), with its curly
+ * apostrophes made straight, as the prose is read in markedProse (RT-FIX P6-MERGE-C-02: the built glossary prints
+ * "Kostant’s game", so a term read as printed met no use in the straightened prose).
+ */
 async function glossaryTerms(page: Page): Promise<Term[]> {
   await page.goto('glossary/');
   return page.locator('article dfn[id]').evaluateAll((els) =>
     els.map((e) => {
       const copy = e.cloneNode(true) as HTMLElement;
       for (const k of copy.querySelectorAll('.katex')) k.remove();
-      return { id: e.id, term: (copy.textContent ?? '').replace(/\s+/g, ' ').trim() };
+      return { id: e.id, term: (copy.textContent ?? '').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim() };
     }),
   );
 }
@@ -248,5 +252,23 @@ test('later uses of a glossary term link to the glossary on every lesson and ref
   expect(unused, 'OTHER_SENSE phrases met on no page').toEqual([]);
   // Not vacuous: many terms are used twice or more, and linked, on these pages.
   expect(satisfied).toBeGreaterThan(150);
+});
+
+// regression: P6-MERGE-C-02
+test('a term with an apostrophe is read alike in the glossary and in the prose, so an unlinked later use of it is found', async ({ page }) => {
+  const terms = await glossaryTerms(page);
+  const ids = terms.filter((t) => t.term.includes("'")).map((t) => t.id);
+  expect(ids, 'the glossary terms written with an apostrophe').toEqual(expect.arrayContaining(['kostants-game', 'wythoffs-construction']));
+  expect(terms.filter((t) => /[‘’]/.test(t.term)).map((t) => t.term), 'terms left with a curly apostrophe').toEqual([]);
+  // A page that uses Kostant's game twice, as the built pages print it (curly apostrophe), the second use linked
+  // or not. The rule of the test above: some use after the first is a link to the term's own entry.
+  for (const linked of [false, true]) {
+    const later = linked ? '<a href="glossary/#kostants-game">Kostant’s game</a>' : 'Kostant’s game';
+    await page.setContent(`<main><article><p>Kostant’s game starts from a simple root population. Later ${later} ends at the highest root.</p></article></main>`);
+    const { marked, links } = await markedProse(page);
+    const mine = usesOf(marked, terms, new Map()).filter((h) => h.id === 'kostants-game');
+    expect(mine.length, `uses of Kostant's game in "${marked}"`).toBe(2);
+    expect(mine.slice(1).some((h) => linkAt(marked, links, h.start) === 'kostants-game'), `linked: ${String(linked)}`).toBe(linked);
+  }
 });
 

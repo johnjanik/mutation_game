@@ -1455,10 +1455,14 @@ test('later uses of a term link to the glossary', async ({ page }) => {
     els.map((e) => {
       const copy = e.cloneNode(true) as HTMLElement;
       for (const k of copy.querySelectorAll('.katex')) k.remove();
-      return { id: e.id, term: (copy.textContent ?? '').replace(/\s+/g, ' ').trim() };
+      // Curly apostrophes made straight, as the prose is read below (RT-FIX P6-MERGE-C-02, sibling: the glossary
+      // prints "Kostant’s game", which met no use in the straightened prose).
+      return { id: e.id, term: (copy.textContent ?? '').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim() };
     }),
   );
   expect(terms.map((t) => t.id)).toContain('minuscule-node');
+  // regression: P6-MERGE-C-02
+  expect(terms.filter((t) => t.term.includes("'")).map((t) => t.id), 'terms with an apostrophe, read as the prose is').toEqual(expect.arrayContaining(['kostants-game', 'wythoffs-construction']));
   const anchors = new Set(terms.map((t) => t.id));
   for (const route of [ROUTE, PAGE_ROUTE]) {
     await page.goto(route);
