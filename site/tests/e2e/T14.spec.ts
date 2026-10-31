@@ -17,7 +17,7 @@
 // data-letters-exchanged, data-rank2-note, data-other-page, data-sp-note, data-long, data-exact-value,
 // data-download, data-tool-link, data-board-link, data-group, data-control="cite", data-live, data-real-form,
 // data-cartan-label, data-real-form-count, data-coincidence, data-provenance (the place in SPEC that gives a
-// statement); T10's data-control="shortRoots" and data-out="ringSizes", "pointCount"; the site navigation
+// statement), data-diagram (the board of a drawing; RT-FIX P6-RT-06-01); T10's data-control="shortRoots" and data-out="ringSizes", "pointCount"; the site navigation
 // (nav[aria-label="Site"]); KaTeX's <annotation> for typeset names.
 //
 // Repair after review: every displayed value is compared with golden as shown on the page (the visible text)
@@ -877,5 +877,29 @@ test.describe('tool route', () => {
     await expect(cite).toContainText('Atlas. Two Games on a Dynkin Diagram, site version ');
     expect(((await cite.textContent()) ?? '').endsWith(page.url())).toBe(true);
     await expect(page.locator('[data-live]')).toHaveText('Citation copied.');
+  });
+});
+
+test.describe('regressions', () => {
+  test.use({ javaScriptEnabled: false });
+
+  // SPEC 7.4 "every default figure ... present" and 4 T14: without JavaScript every drawing of a board holds its
+  // nodes, drawn (a disc per node, beside its label), not only an element of role img with a name. Adopted with
+  // P6-RT-06-01 (attacks 1 and 10): a drawing whose roads and nodes were removed, its empty <g> groups kept, passed
+  // the checks of this file. Hooks read: data-tool, data-diagram (the board of each drawing).
+  // regression: P6-RT-06-01
+  test('without JavaScript every Atlas drawing holds a disc and a label per node (atlas/B3/, tools/atlas/)', async ({ page }) => {
+    for (const [route, count] of [['atlas/B3/', 1], ['tools/atlas/', TYPE_NAMES.length]] as const) {
+      await page.goto(route);
+      const drawings = page.locator('[data-tool="atlas"] svg[role="img"][data-diagram]');
+      await expect(drawings, route).toHaveCount(count);
+      for (const d of await drawings.all()) {
+        const T = (await d.getAttribute('data-diagram'))!;
+        const n = golden.types[T]!.cartan.length;
+        await expect(d.locator('circle'), `${route} ${T}: a disc per node`).toHaveCount(n);
+        const labels = await d.locator('text').evaluateAll((ts) => ts.map((t) => (t.textContent ?? '').trim()));
+        for (let k = 1; k <= n; k++) expect(labels, `${route} ${T}: the label of node ${k}`).toContain(String(k));
+      }
+    }
   });
 });

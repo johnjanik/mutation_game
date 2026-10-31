@@ -370,6 +370,39 @@ test.describe('without JavaScript', () => {
     }
     expect(THETA13).toEqual([-1, -1, 0]);
   });
+
+  // The figure of the panel each instance is configured to show, present without JavaScript (SPEC 7.4 "every
+  // default figure"; 4 T13 "Shadows: for real rank 1 and 2 a picture", "Restricted board: drawn in Bourbaki
+  // order"): beat 3's shadow picture and the restricted boards of beat 6 and the third challenge. Hooks:
+  // data-out shadow-picture (data-point, data-mult, data-double), restricted-board (data-node, data-board,
+  // data-value, Node's data-disc), restricted-name, shadow-coordinates.
+  // regression: P6-RT-06-01
+  test('the panel figures without JavaScript: the shadow picture of b3, the restricted boards of b7 and b12', async ({ page }) => {
+    await page.goto(ROUTE);
+    // b3, su(1,2): one point per restricted root, each drawn as a disc or a ring and carrying its multiplicity.
+    await expect(tab(page, 'b3', 'shadows')).toHaveAttribute('aria-selected', 'true');
+    const pic = out(page, 'b3', 'shadow-picture');
+    await expect(pic).toHaveCount(1);
+    expect((await pic.locator('svg[role="img"]').getAttribute('aria-label')) ?? '').not.toBe('');
+    const points = pic.locator('[data-point]');
+    await expect(points).toHaveCount(SU12.multiplicities.reduce((s, m) => s + m.roots, 0));
+    for (const p of await points.all()) await expect(p.locator('circle')).toHaveCount(1);
+    await expect(pic.locator('[data-point="1"]')).toHaveAttribute('data-mult', String(SU12.multiplicities[0]!.mult));
+    await expect(pic.locator('[data-point="2"]')).toHaveAttribute('data-mult', String(SU12.multiplicities[1]!.mult));
+    await expect(pic.locator('[data-point="2"]')).toHaveAttribute('data-double', 'true');
+    // b7 and b12, e6(-26): the restricted board, one node per simple restricted root, drawn, each node showing the
+    // coordinate of the default shadow.
+    for (const id of ['b7', 'b12']) {
+      await expect(tab(page, id, 'restricted'), id).toHaveAttribute('aria-selected', 'true');
+      await expect(out(page, id, 'restricted-name'), id).toHaveText(E626.restricted_board!);
+      const nodes = out(page, id, 'restricted-board').locator('button[data-node]');
+      await expect(nodes, id).toHaveCount(E626.real_rank);
+      for (const n of await nodes.all()) await expect(n, id).toHaveAttribute('data-board', 'restricted');
+      await expect(out(page, id, 'restricted-board').locator('svg [data-disc]'), `${id}: a disc per restricted node`).toHaveCount(E626.real_rank);
+      const values = await valuesOf(nodes);
+      expect(tuple(values.map(Number)), `${id}: the restricted nodes show the shadow coordinates`).toBe(plain(await out(page, id, 'shadow-coordinates').textContent()));
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
