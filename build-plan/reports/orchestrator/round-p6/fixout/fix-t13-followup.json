@@ -1,0 +1,209 @@
+{
+ "agent": "rtfix-p6-t13-followup",
+ "status": "done",
+ "branch": "worktree-agent-a01484c92bd62c1e6",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a01484c92bd62c1e6",
+ "base": "d8102c0e69f93087ee7d76f0b9637fc02ce0fedb",
+ "commits": [
+  "5872217 RT-FIX P6-MERGE-T13-01: a T13 link state fetches the typeset names of its own board",
+  "3751e08 RT-FIX P6-MERGE-T13-02: the decoration's paint buttons are controls, not node buttons",
+  "cfa7868 RT-FIX P6-MERGE-T13-01 P6-MERGE-T13-02: decisions fragment of the t13 follow-ups"
+ ],
+ "filesChanged": [
+  "scripts/names.mjs",
+  "site/src/components/tools/T13SatakeStudio.svelte",
+  "site/src/components/tools/t13/names.ts",
+  "site/src/components/tools/t13/satakeNames.ts",
+  "site/src/components/tools/t13/DecorationDiagram.svelte",
+  "site/tests/unit/tools/T13.test.ts",
+  "site/tests/e2e/T13.spec.ts",
+  "site/tests/e2e/T13-keyboard.spec.ts",
+  "site/tests/e2e/M9.spec.ts",
+  "decisions/RT-FIX-P6-t13-followup.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git reset --hard d8102c0; git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "worktree agent-a01484c92bd62c1e6, branch worktree-agent-a01484c92bd62c1e6, base d8102c0e69f93087ee7d76f0b9637fc02ce0fedb"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: match CONTRACTS 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "88 files, 2728 passed"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-base NODE_DISABLE_COMPILE_CACHE=1 npm run build (base)",
+   "exit": 0,
+   "summary": "90 pages, 4007 internal links, 0 problems"
+  },
+  {
+   "cmd": "vitest run --project site-unit T13.test.ts -t 'names.mjs writes one file per board' with scripts/names.mjs of d8102c0 (red)",
+   "exit": 1,
+   "summary": "1 failed: TypeError: writeSatakeNamesByBoard is not a function"
+  },
+  {
+   "cmd": "playwright test -c <scratch config, port 7390> T13.spec.ts M9.spec.ts -g 'typeset with MathML|paint buttons of the decoration are controls|instance link shows the names' (base build, red)",
+   "exit": 1,
+   "summary": "6 failed: 4 link states plus the embed link 'math' Expected 1 or 2, Received 0 (su*(4), so*(16), e6(-26)); M9 b8 E6 link e6(6) Expected 1 Received 0; paint test: received data-control=- data-node=2..6 data-board=numbers data-value=1/0"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (fix, site/dist)",
+   "exit": 0,
+   "summary": "90 pages, 4007 links, 0 problems; names: 167 real forms in 32 files, one per board"
+  },
+  {
+   "cmd": "playwright test T13.spec.ts M9.spec.ts -g regressions (fix build)",
+   "exit": 0,
+   "summary": "18 passed; default 87943 B; links A3 88702, D8 88776, E6 88594 B; each fetches only its board chunk"
+  },
+  {
+   "cmd": "playwright control and link-size tests on the base build",
+   "exit": 0,
+   "summary": "default 87315 B; the 3 links 87315 B with plain names"
+  },
+  {
+   "cmd": "RT-07 sweep (scratch copy of redteam-RT-07-p6-link-sweep.mjs, port 7392) site/dist filter satake",
+   "exit": 0,
+   "summary": "167 links measured; 0 over 90000 B; default 87943 B; range 88430 to 88776 B (D8 split); one extra script per link (its board chunk), plus the uncounted worker on the 7 E7/E8 links"
+  },
+  {
+   "cmd": "npm run size -- --port 7391 (fix)",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget; /tools/satake/, /embed/satake/, /modules/m9-real-forms/ 87.9 kB"
+  },
+  {
+   "cmd": "npm run size -- --port 7391 --dist <scratch>/dist-base",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget; the three routes 87.3 kB"
+  },
+  {
+   "cmd": "chunk sizes (gzip 9)",
+   "exit": 0,
+   "summary": "board chunks 487 to 833 B; T13 chunk 20306 to 20934 B; satakeNames 5230 B chunk gone from the client"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors; svelte-check 0 errors, 1 old warning (t02/LayerChart.svelte)"
+  },
+  {
+   "cmd": "playwright test T13.spec.ts T13-keyboard.spec.ts (fix build)",
+   "exit": 0,
+   "summary": "47 passed"
+  },
+  {
+   "cmd": "playwright test M9.spec.ts (fix build)",
+   "exit": 0,
+   "summary": "38 passed"
+  },
+  {
+   "cmd": "playwright test nojs.spec.ts a11y.spec.ts -g satake; -g m9-real-forms",
+   "exit": 0,
+   "summary": "6 passed; 3 passed"
+  },
+  {
+   "cmd": "playwright test embed.spec.ts registry-outs.spec.ts engine-fallback.spec.ts engine-weight.spec.ts",
+   "exit": 0,
+   "summary": "231 passed"
+  },
+  {
+   "cmd": "mutant build (readLink without loadTypesetNames) + playwright -g 'typeset with MathML'",
+   "exit": 1,
+   "summary": "5 failed as intended (math Expected 1 or 2, Received 0); source restored"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-c1 build of commit 5872217 alone + T13.spec.ts T13-keyboard.spec.ts M9.spec.ts",
+   "exit": 0,
+   "summary": "84 passed (commit 1 green on its own)"
+  },
+  {
+   "cmd": "writeGenerated of base and fixed names.mjs into two scratch dirs; cmp",
+   "exit": 0,
+   "summary": "satake-names.json and names.json byte-identical"
+  },
+  {
+   "cmd": "scratch default-route check (site/dist, port 7393)",
+   "exit": 0,
+   "summary": "default su(1,3) has its MathML, no board chunk fetched; after painting node 2, A3 chunk fetched, su(2,2) has its MathML"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after)",
+   "exit": 0,
+   "summary": "88 files, 2728 passed"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "0 errors"
+  },
+  {
+   "cmd": "npm run typecheck",
+   "exit": 0,
+   "summary": "0 errors"
+  },
+  {
+   "cmd": "vitest run --project site-unit T13.test.ts names-catalogue.test.ts atlas-build-path.test.ts scripts.test.ts katex.test.ts",
+   "exit": 0,
+   "summary": "5 files, 94 passed (T13.test.ts 53 = 52 + 1)"
+  },
+  {
+   "cmd": "greps.sh over git diff d8102c0..HEAD added lines",
+   "exit": 0,
+   "summary": ".only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on: em-dash: 0 each; no forbidden path; no redteam file added; every subject starts 'RT-FIX P6-MERGE-T13-'; 4 'regression: P6-MERGE-T13-' comments"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; ss -ltnp ports 7390-7393",
+   "exit": 0,
+   "summary": "status empty; no listener on 7390 to 7393"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-MERGE-T13-01: link states of T13 show the plain-markup names (no MathML, A-12) until the reader's first action",
+   "status": "fixed",
+   "test": "site/tests/e2e/T13.spec.ts > regressions > /<link>: the names of the real form are typeset with MathML before the first interaction (A-12) (the 3 Atlas links and /embed/satake/?g=A3&x=1.3&t=1.2.3); site/tests/e2e/M9.spec.ts > regressions > M9: an instance link shows the names of its catalogue typeset with MathML before the first interaction (A-12); site/tests/unit/tools/T13.test.ts > regressions > names.mjs writes one file per board holding the typeset names of exactly that board's catalogue, as satake-names.json typesets them",
+   "evidence": "Severity major. Red at base d8102c0: 6 browser tests failed (math Expected 1/2, Received 0 for su*(4), so*(16), e6(-26), and e6(6) on M9 b8); the unit test failed (writeSatakeNamesByBoard is not a function). Cause: the browser could only fetch the whole typeset-names section (5230 B), which could not fit in hydration within 90 kB, so P6-RT-07-01 left link states with plain markup. Fix: names.mjs also writes satake-names/<board>.json; t13/names.ts lazily loads one board's chunk (487 to 833 B); readLink loads it during hydration when a link changes the pair. Green: all pass. A mutant without the readLink load fails all 5 tool and embed tests. Sizes: link-size tests green (default 87943 B, links 88594 to 88776 B, all at most 90000). RT-07 sweep: 167 links, 0 over, max 88776 B. npm run size: 87.3 to 87.9 kB on /tools/satake/, /embed/satake/ and M9. The default route fetches no names chunk and keeps its server-typeset names. Commit 5872217."
+  },
+  {
+   "item": "P6-MERGE-T13-02: the decoration's paint buttons carry data-board=\"numbers\" with data-value 1 or 0, which misstates them (SPEC 4.0, 6.3)",
+   "status": "fixed",
+   "test": "site/tests/e2e/T13.spec.ts > regressions > the paint buttons of the decoration are controls, not node buttons: data-control \"paint\", data-paint, data-colour; no \"numbers\" board on T13",
+   "evidence": "Severity minor. Red on the base build: received 'data-control=- data-paint=- data-node=2 data-board=numbers data-value=1' and so on for the 6 paint buttons. Cause: the paint buttons were tagged as numbers-game node buttons although the copy shows no value and plays neither game. Fix: DecorationDiagram now gives them data-control=\"paint\", data-paint (the label), data-colour and data-can-act, with no data-node, data-board or data-value. Keyboard, focus and names are unchanged. Green: T13.spec.ts plus T13-keyboard.spec.ts 47 passed (one tab stop, arrows, Home/End, Enter/Space focus, announcements), M9.spec.ts 38, nojs and a11y for satake and M9 9, RT-10 hooks regression green. Selectors were updated to the new hooks with the same asserted values. Commit 3751e08."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "existing test assertion (T13.spec.ts 'every node button carries data-node, data-board, data-value and data-can-act ...')",
+   "what": "The node-button count went from 6 + 6 + 2 to 6 + 2. The six paint buttons are now checked separately: data-control paint, data-paint, data-colour, data-can-act, and no data-node, data-board or data-value. The 320-pixel hit-area loop now also covers button[data-control=\"paint\"].",
+   "why": "The decoration's buttons stop being node buttons by the design of P6-MERGE-T13-02. Every button is still checked, more strictly than before."
+  },
+  {
+   "spec": "file outside the t13 area",
+   "what": "scripts/names.mjs gains writeSatakeNamesByBoard (called from its command-line run, not from writeGenerated) and a realFormEntry helper shared by both writers.",
+   "why": "The per-board split must be made where the typeset names are made. satake-names.json and names.json are byte-identical to the base, and P6-A2's two-file test of writeGenerated is unchanged."
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P6-t13-followup.md",
+ "openQuestions": [
+  "Challenge.svelte still reads the game board and the restricted board together as 'populations' while the restricted panel is open (b7, b12), interleaved by label. The numbers group is now empty on T13. No reach, distinct or mixed-signs Challenge exists on T13; a group hook would be a change under site/src/components/lesson/ (recorded in the fragment).",
+  "The per-board loaders add 628 B to T13's chunk, so headroom on /tools/satake/ is now about 2.1 kB for the default and 1.2 kB for the largest link (D8). Agents changing shared chunks (ToolFrame) should re-measure."
+ ],
+ "handoff": "Outside the t13 component area, only scripts/names.mjs changed (an added per-board writer; generated bytes unchanged), and M9.spec.ts got its deco locator, one count selector, its header comment and one added regression test. Nothing in ToolFrame, T12, the glossary, the confusion or history pages, or M9 content was touched. Both findings are fixed with no needs-decision. The proposed fix for 01 was followed (one chunk per board, loaded during hydration). For 02 the proposed control design was followed, with data-paint holding the label and data-can-act kept so M9's frozen-state assertions stand. The lens rerun should read the decoration through data-control=\"paint\"/data-paint and expect link states to fetch one board chunk (at most 833 B)."
+}

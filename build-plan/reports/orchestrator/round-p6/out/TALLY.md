@@ -115,3 +115,4 @@
 - shared-a11y CONFIRMED 4 of 4; merged 049235a (T14.spec.ts conflict resolved as in the trial). Side effect: T13's table views no longer reflow at 320 (the inner fieldset .table-fields keeps min-inline-size: min-content; with min-width 0 the tables return to 288 px); a follow-up fix runs (ports 7380-7383). Owner note: Predict's no-JS details answer still prints an ASCII hyphen.
 - latex CONFIRMED 2 of 2; merged 96d751b.
 - content-residual: 5 of 5 fixed (red on base, scratch revert); read by MERGE, merged 5ca39bc. M1 1800, M7 1799, M9 1799 of 1800 words.
+- t13-followup: 2 of 2 fixed (red on base; mutant for 01); read by MERGE, merged eddc3d7. /tools/satake/ default 87.9 kB, largest link 88.8 kB of 90.
