@@ -18,8 +18,9 @@
 // data-out="groupOrder", "edgeMode" (T8); data-out="orbit-graph" (data-drawn, data-positions), data-vertex
 // (data-layer, data-value), data-edge (data-edge-from, data-edge-to) (T12); the live region [data-live].
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { distDir } from './routes';
 
 /** The largest side of an exported picture, cm (t02/latex.ts MAX_WIDTH_CM, t10/latex.ts MAX_ACROSS_CM). */
 const MAX_CM = 16;
@@ -336,6 +337,34 @@ test.describe('Export LaTeX writes TikZ for T8 and T12 (RT-FIX-P6-latex)', () =>
     await expect(root.locator('[data-out="exportNotice"]')).toHaveText('');
     await expect(root.locator('[data-live]')).toHaveText(`Downloaded ${file}.`);
     saveSample('tikz-graph-rep.tex', text);
+  });
+
+  test('the writers of T8 and T12, like export.ts, are fetched on the click of Export LaTeX and not before (7.6)', async ({ page, baseURL }) => {
+    const base = new URL(baseURL!).pathname;
+    // The fetched scripts that write TikZ (export.ts and the tools' writers), read from the build.
+    const tikzScripts = (urls: string[]): string[] =>
+      [...new Set(urls)].filter((u) => {
+        const path = new URL(u).pathname;
+        const file = join(distDir(), path.startsWith(base) ? path.slice(base.length) : path);
+        return existsSync(file) && readFileSync(file, 'utf8').includes('tikz-graph');
+      });
+    for (const [query, tool] of [['tools/weyl/?z=1&g=A3', 'weyl'], ['tools/rep/?z=1&g=A2&k=1', 'rep']] as const) {
+      const urls: string[] = [];
+      const onRequest = (r: { url: () => string }): void => {
+        if (new URL(r.url()).pathname.endsWith('.js')) urls.push(r.url());
+      };
+      page.on('request', onRequest);
+      await page.goto(query);
+      const root = page.locator(`[data-tool="${tool}"]`).first();
+      await expect(root).toHaveAttribute('data-hydrated', 'true', { timeout: 30000 });
+      await page.waitForLoadState('networkidle');
+      expect(urls.length, query).toBeGreaterThan(0);
+      expect(tikzScripts(urls), query).toEqual([]);
+      const { text } = await exportLatex(page, root);
+      expect(text).toContain('\\begin{tikzpicture}');
+      expect(tikzScripts(urls).length, query).toBeGreaterThan(0);
+      page.off('request', onRequest);
+    }
   });
 
   test('T12 with no orbit drawn (more than 300 positions) shows the notice and downloads nothing (/tools/rep/?z=1&g=E7&k=2)', async ({ page }) => {

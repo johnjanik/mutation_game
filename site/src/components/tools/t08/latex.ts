@@ -24,18 +24,22 @@ export function weylScale(width: number): number {
   return width * CM_PER_PX > MAX_WIDTH_CM ? MAX_WIDTH_CM / width : CM_PER_PX;
 }
 
-/** The graph as drawn: what T08WeylExplorer.svelte passes at the click. */
+/** The part of the scene (layout.ts Scene) that the export reads. */
 export interface WeylDrawing {
-  /** The width of the drawing in CSS pixels (Scene.width). */
+  /** The width of the drawing in CSS pixels. */
   width: number;
   /** The dots drawn, in the drawn order: the vertex (item index) and its centre in CSS pixels, y down. */
   dots: readonly { readonly k: number; readonly x: number; readonly y: number }[];
-  /** The edges drawn, in the drawn order, as item indices (model.edges of the scene's edges). */
-  edges: readonly { readonly from: number; readonly to: number }[];
+  /** The edges drawn, in the drawn order, each by its index into the model's edges. */
+  edges: readonly { readonly k: number }[];
 }
 
-/** What Export LaTeX writes for the graph as drawn; null when nothing is drawn (ToolFrame then shows its notice). */
-export function weylLatex(d: WeylDrawing): LatexChoice | null {
+/**
+ * What Export LaTeX writes for the graph as drawn; `modelEdges` is the model's list of edges (graph.ts
+ * WeylModel.edges, item indices) that the scene's edges index. Null when nothing is drawn (ToolFrame then
+ * shows its notice).
+ */
+export function weylLatex(d: WeylDrawing, modelEdges: readonly { readonly from: number; readonly to: number }[]): LatexChoice | null {
   if (d.dots.length === 0) return null;
   const s = weylScale(d.width);
   const at = new Map<number, number>();
@@ -44,7 +48,10 @@ export function weylLatex(d: WeylDrawing): LatexChoice | null {
     return { x: dot.x * s, y: -dot.y * s };
   });
   // An end that is not a dot drawn stays -1, which exportLaTeX refuses (RangeError) rather than drop the edge.
-  const edges: TikzGraphData['edges'] = d.edges.map((e) => [at.get(e.from) ?? -1, at.get(e.to) ?? -1]);
+  const edges: TikzGraphData['edges'] = d.edges.map((e) => {
+    const m = modelEdges[e.k];
+    return [m === undefined ? -1 : (at.get(m.from) ?? -1), m === undefined ? -1 : (at.get(m.to) ?? -1)];
+  });
   const data: TikzGraphData = { nodes, edges, directed: false };
   return { kind: 'tikz-graph', data };
 }

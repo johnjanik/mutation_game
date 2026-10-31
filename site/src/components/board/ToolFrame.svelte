@@ -194,8 +194,9 @@
 
   async function onExportLatex(): Promise<void> {
     try {
-      // The tool's choice is read at the click; a promise (its writer being fetched) is awaited with export.ts.
-      const [{ latexDownload }, chosen] = await Promise.all([import('../../lib/export'), typeof latexForExport === 'function' ? latexForExport() : latexForExport]);
+      // The tool's choice is read at the click; a promise (its writer being fetched) is awaited.
+      const chosen = await (typeof latexForExport === 'function' ? latexForExport() : latexForExport);
+      const { latexDownload } = await import('../../lib/export');
       const { filename, text } = latexDownload(chosen === undefined ? undefined : () => chosen, toolState, toolId, boardName, linkFor(instanceId));
       save(new Blob([text], { type: 'application/x-tex' }), filename);
       exportNotice = '';

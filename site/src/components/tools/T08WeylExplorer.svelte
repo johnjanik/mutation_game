@@ -407,8 +407,8 @@
   // 6.7), read at the click so that it follows the game and the focused vertex; the writer is fetched then (7.6).
   const latexForExport = () => {
     const s = scene;
-    const drawing = { width: s.width, dots: s.dots, edges: s.edges.map((e) => model.edges[e.k]!) };
-    return import('./t08/latex').then((m) => m.weylLatex(drawing));
+    const edges = model.edges;
+    return import('./t08/latex').then((m) => m.weylLatex(s, edges));
   };
 
   function exportData(): Record<string, unknown> {

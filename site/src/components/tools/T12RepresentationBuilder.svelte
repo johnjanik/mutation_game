@@ -215,16 +215,10 @@
   // 6.7), read at the click; null (the notice) when no orbit is drawn. The writer is fetched then (7.6).
   const latexForExport = () => {
     const o = orbit;
+    const b = anyBoard;
     if (o === null || o.drawing === null) return null;
     const g = orbitGeometry(o.layers, o.drawing, orbitTexts(o));
-    const picture = {
-      width: g.width,
-      cx: o.layers.vertices.map((_, v) => g.cx(v)),
-      cy: o.layers.vertices.map((_, v) => g.cy(v)),
-      entries: o.layers.vertices.map((v) => inLabelOrder(anyBoard, v.values).map(String)),
-      edges: o.layers.edges,
-    };
-    return import('./t12/latex').then((m) => m.orbitLatex(picture));
+    return import('./t12/latex').then((m) => m.orbitLatex(o.layers, g, (v) => inLabelOrder(b, v)));
   };
   const checks = $derived.by((): RelationCheck[] | null => {
     void version;

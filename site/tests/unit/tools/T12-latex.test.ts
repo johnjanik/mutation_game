@@ -11,7 +11,7 @@ import { boardFromName, type AnyBoard, type Board } from '@engine';
 import { resolveGoldenPath } from '../../../src/lib/golden';
 import { exportLaTeX, type TikzGraphData } from '../../../src/lib/export';
 import { buildRepresentation, inLabelOrder, orbitDrawing, orbitLayers, positionText, type OrbitDrawing, type OrbitLayers } from '../../../src/components/tools/t12/model';
-import { CM_PER_PX, MAX_WIDTH_CM, orbitLatex, orbitScale, type OrbitPicture } from '../../../src/components/tools/t12/latex';
+import { CM_PER_PX, MAX_WIDTH_CM, orbitLatex, orbitScale } from '../../../src/components/tools/t12/latex';
 import { ssrLoader, type SsrLoader } from '../_svelteSsr';
 
 const MINUS_SIGN = '−';
@@ -36,22 +36,14 @@ afterAll(async () => {
 
 const named = (name: string): Board<number> => boardFromName(name) as Board<number>;
 
-/** The orbit of omega at a node, drawn as the component draws it, and the picture it hands the builder. */
-function drawnOrbit(name: string, node: number): { board: AnyBoard; layers: OrbitLayers; texts: string[]; picture: OrbitPicture; svg: ReturnType<OrbitModule['orbitSvg']> } {
+/** The orbit of omega at a node, drawn as the component draws it, with what the component hands the builder. */
+function drawnOrbit(name: string, node: number): { board: AnyBoard; layers: OrbitLayers; texts: string[]; geometry: Geometry; svg: ReturnType<OrbitModule['orbitSvg']> } {
   const board = named(name);
   const layers = orbitLayers(buildRepresentation(board, node, { relations: 'later' }));
   expect(layers.drawn).toBe(true);
   const drawing = orbitDrawing(layers);
   const texts = layers.vertices.map((v) => positionText(inLabelOrder(board, v.values)));
-  const g = OL.orbitGeometry(layers, drawing, texts);
-  const picture: OrbitPicture = {
-    width: g.width,
-    cx: layers.vertices.map((_, v) => g.cx(v)),
-    cy: layers.vertices.map((_, v) => g.cy(v)),
-    entries: layers.vertices.map((v) => inLabelOrder(board, v.values).map(String)),
-    edges: layers.edges,
-  };
-  return { board, layers, texts, picture, svg: OL.orbitSvg(layers, drawing, texts, name, 't') };
+  return { board, layers, texts, geometry: OL.orbitGeometry(layers, drawing, texts), svg: OL.orbitSvg(layers, drawing, texts, name, 't') };
 }
 
 /** The centre of each vertex box of the drawn markup, in the drawn order. */
@@ -63,7 +55,7 @@ function boxCentres(svg: ReturnType<OrbitModule['orbitSvg']>): [number, number][
 }
 
 function checkAgainstDrawing(o: ReturnType<typeof drawnOrbit>): { data: TikzGraphData; text: string } {
-  const choice = orbitLatex(o.picture);
+  const choice = orbitLatex(o.layers, o.geometry, (v) => inLabelOrder(o.board, v));
   expect(choice).not.toBeNull();
   expect(choice!.kind).toBe('tikz-graph');
   const data = choice!.data as TikzGraphData;
@@ -71,7 +63,7 @@ function checkAgainstDrawing(o: ReturnType<typeof drawnOrbit>): { data: TikzGrap
   expect(data.nodes).toHaveLength(o.layers.vertices.length);
   expect(data.edges).toEqual(o.layers.edges.map((e) => [e.from, e.to]));
   // The geometry is the drawing's: its width, and every vertex at the centre of its box.
-  expect(o.picture.width).toBe(o.svg.width);
+  expect(o.geometry.width).toBe(o.svg.width);
   const centres = boxCentres(o.svg);
   expect(centres).toHaveLength(data.nodes.length);
   const s = orbitScale(o.svg.width);
@@ -134,6 +126,6 @@ describe('t12/latex.ts: the orbit as drawn, a tikz-graph', () => {
   });
 
   it('nothing drawn gives null (the notice)', () => {
-    expect(orbitLatex({ width: 100, cx: [], cy: [], entries: [], edges: [] })).toBeNull();
+    expect(orbitLatex({ vertices: [], edges: [] }, { width: 100, cx: () => 0, cy: () => 0 }, (v) => v)).toBeNull();
   });
 });

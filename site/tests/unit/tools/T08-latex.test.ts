@@ -9,20 +9,19 @@ import { describe, expect, it } from 'vitest';
 import { resolveGoldenPath } from '../../../src/lib/golden';
 import { exportLaTeX, type TikzGraphData } from '../../../src/lib/export';
 import { boardView } from '../../../src/components/tools/t08/cache';
-import { pathOfMoves } from '../../../src/components/tools/t08/graph';
+import { pathOfMoves, type WeylModel } from '../../../src/components/tools/t08/graph';
 import { buildScene, type Scene } from '../../../src/components/tools/t08/layout';
 import { CM_PER_PX, MAX_WIDTH_CM, weylLatex, weylScale, type WeylDrawing } from '../../../src/components/tools/t08/latex';
 
-/** The scene and the drawing the component hands the builder at the click. */
-function drawnScene(name: string, moves: number[], focus: number | null = null): { scene: Scene; drawing: WeylDrawing; rank: number[] } {
+/** The scene the component hands the builder at the click, with the model's edges. */
+function drawnScene(name: string, moves: number[], focus: number | null = null): { scene: Scene; edges: WeylModel['edges']; rank: number[] } {
   const { model, layout } = boardView(name);
   const scene = buildScene(model, layout, pathOfMoves(model, moves), model.edgeMode === 'all' ? null : focus);
-  const drawing: WeylDrawing = { width: scene.width, dots: scene.dots, edges: scene.edges.map((e) => model.edges[e.k]!) };
-  return { scene, drawing, rank: scene.dots.map((d) => model.graph.depth[d.k]!) };
+  return { scene, edges: model.edges, rank: scene.dots.map((d) => model.graph.depth[d.k]!) };
 }
 
-function dataOf(d: WeylDrawing): TikzGraphData {
-  const choice = weylLatex(d);
+function dataOf(d: WeylDrawing, edges: WeylModel['edges']): TikzGraphData {
+  const choice = weylLatex(d, edges);
   expect(choice).not.toBeNull();
   expect(choice!.kind).toBe('tikz-graph');
   return choice!.data as TikzGraphData;
@@ -30,8 +29,8 @@ function dataOf(d: WeylDrawing): TikzGraphData {
 
 /** The checks every export must pass against the scene it came from. */
 function checkAgainstScene(b: ReturnType<typeof drawnScene>): { data: TikzGraphData; text: string } {
-  const { scene, drawing, rank } = b;
-  const data = dataOf(drawing);
+  const { scene, edges, rank } = b;
+  const data = dataOf(scene, edges);
   expect(data.nodes).toHaveLength(scene.dots.length);
   expect(data.edges).toHaveLength(scene.edges.length);
   expect(data.directed).toBe(false);
@@ -90,8 +89,11 @@ describe('t08/latex.ts: the graph of positions as drawn, a tikz-graph', () => {
   });
 
   it('nothing drawn gives null (the notice), and an edge to a vertex not drawn is refused, never dropped', () => {
-    expect(weylLatex({ width: 100, dots: [], edges: [] })).toBeNull();
-    const choice = weylLatex({ width: 100, dots: [{ k: 4, x: 10, y: 10 }], edges: [{ from: 4, to: 7 }] });
+    expect(weylLatex({ width: 100, dots: [], edges: [] }, [])).toBeNull();
+    const choice = weylLatex({ width: 100, dots: [{ k: 4, x: 10, y: 10 }], edges: [{ k: 0 }] }, [{ from: 4, to: 7 }]);
     expect(() => exportLaTeX('tikz-graph', choice!.data)).toThrow(RangeError);
+    // An edge index the model does not hold is refused as well.
+    const missing = weylLatex({ width: 100, dots: [{ k: 4, x: 10, y: 10 }], edges: [{ k: 3 }] }, [{ from: 4, to: 4 }]);
+    expect(() => exportLaTeX('tikz-graph', missing!.data)).toThrow(RangeError);
   });
 });
