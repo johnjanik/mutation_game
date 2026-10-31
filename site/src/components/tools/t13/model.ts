@@ -4,8 +4,9 @@
 //
 // Mathematics comes from the engine only (SPEC 7.3): admissibility, theta, shadow2, longestWord, mutate,
 // positiveRoots, satakeCatalogue, canonicalPair, choleskyBasis. What this file adds is bookkeeping: labels
-// and positions (converted with toLabels and toPositions only, E-7), the C2 display adjustment of SPEC 6.4
-// applied to the reader's own pair, the Bourbaki order of the drawn restricted board found by orbit, the
+// and positions (converted with toLabels and toPositions only, E-7), the records for display of the reader's
+// own pair taken from satakeRecord (which makes the C2 display adjustment of SPEC 6.4), the Bourbaki order of
+// the drawn restricted board found by orbit, the
 // three stages of theta (stage 1 moves entries along tau, stage 3 changes signs, stage 2 is the engine's
 // word played with mutate), and the sentences the Studio writes. The coordinates of a shadow in the simple
 // restricted roots come from the engine's restrictedCoordinates (P6-A1's follow-up); no linear system is solved here.
@@ -21,6 +22,7 @@ import {
   positiveRoots,
   restrictedCoordinates,
   satakeCatalogue,
+  satakeRecord,
   shadow2,
   symmetries,
   theta,
@@ -395,18 +397,32 @@ export interface RestrictedLike {
 /** The restricted board of a pair with no white node (the compact form): empty (MERGE ruling (4) on P6-A1). */
 export const EMPTY_RESTRICTED: RestrictedLike = { orbits: [], simpleRestrictedRoots2: [], cartan: [], compositeWords: [] };
 
-/** How the restricted board is drawn: its name and, for each drawn node k (Bourbaki order), its orbit. */
+/**
+ * How the restricted board is drawn: its name and, for each node of the drawn board (boardFromName of the name,
+ * whose positions are the Bourbaki order), its orbit. Every array is indexed by position on the drawn board; a
+ * label of a drawn node becomes such a position only through drawnPosition (toPositions, E-7).
+ */
 export interface Drawing {
-  /** The restricted board's name after the C2 adjustment of the record drawn by (SPEC 6.4). */
+  /** The restricted board's name, from the record for display drawn by (satakeRecord's C2 naming, SPEC 6.4). */
   name: string;
-  /** The orbit (positions) drawn at Bourbaki node k + 1. */
+  /** The orbit (positions of the big board) drawn at each position of the drawn board. */
   orbits: number[][];
-  /** For Bourbaki node k + 1, the index of its orbit in rb.orbits (orbit order), found by orbit. */
+  /** For each position of the drawn board, the index of its orbit in rb.orbits (orbit order), found by orbit. */
   orbitIndex: number[];
-  /** (m_lambda, m_2lambda) at Bourbaki node k + 1. */
+  /** (m_lambda, m_2lambda) at each position of the drawn board. */
   pairs: [number, number][];
-  /** The reduced length of the composite move of Bourbaki node k + 1. */
+  /** The reduced length of the composite move at each position of the drawn board. */
   reducedLengths: number[];
+}
+
+/** The position on the drawn restricted board of its node with label k (toPositions on the drawn board, E-7). */
+export function drawnPosition(drawing: Drawing, k: number): number {
+  return toPositions(boardOf(drawing.name), [k])[0]!;
+}
+
+/** The label of the node at position p of the drawn restricted board (toLabels on the drawn board, E-7). */
+export function drawnLabel(drawing: Drawing, p: number): number {
+  return toLabels(boardOf(drawing.name), [p])[0]!;
 }
 
 export type Shape = 'split' | 'compact' | 'quasi-split';
@@ -424,14 +440,40 @@ export interface Assembled {
 
 const sameList = (a: readonly number[], b: readonly number[]): boolean => a.length === b.length && a.every((x, k) => x === b[k]);
 
+/** Whether a record's pair is the diagram's own pair (black nodes as a set, and tau). */
+function isOwnPair(r: SatakeRecord, d: SatakeDiagram): boolean {
+  return sameList(recordBlack(r), [...d.black].sort((a, b) => a - b)) && sameList(r.tau, d.tau);
+}
+
+/**
+ * The record for display of the reader's own pair for one record matchCatalogue returned (SPEC 6.4; Appendix H:
+ * "Satake records for display come from satakeRecord, which applies the C2 naming of SPEC 6.4"): satakeRecord on
+ * the board's name with the record's catalogue fields (real form, Cartan's label, restricted_type_display) and the
+ * reader's black nodes and tau. matchCatalogue's records are satakeRecord's own output for their catalogue pairs,
+ * so a record whose pair is the reader's is already that record and is returned as it is; satakeRecord runs only
+ * for a pair that is the image of a catalogue pair under a symmetry of the board. E7 and E8 have no symmetry but
+ * the identity, so there every matched record is the reader's own and nothing runs here on the main thread (E-9;
+ * site/tests/unit/tools/T13.test.ts checks it).
+ */
+export function displayRecord(d: SatakeDiagram, r: SatakeRecord): SatakeRecord {
+  if (isOwnPair(r, d)) return r;
+  return satakeRecord(d.board.name!, {
+    cartan_label: r.cartan_label,
+    real_form: r.real_form,
+    restricted_type_display: r.restricted_type_display,
+    black_nodes: [...d.black].sort((a, b) => a - b),
+    tau: [...d.tau],
+  });
+}
+
 /**
  * Every displayed field of an admissible pair (plan signature assembleData(sat, rb, records, board), with the
  * board carried by the diagram). Numbers come from satake on the reader's own pair; names, Cartan's labels and
  * restricted_type_display from the records matchCatalogue returns. Each entry is a complete record of SPEC 6.4
- * for the reader's pair (black_nodes, tau, arrows and tau_moves_black_nodes are the reader's), and the C2
- * adjustment of 6.4 is applied entry by entry: where the entry displays C2, restricted_board is C2 and the
- * orbits in Bourbaki order are satake's, reversed. The restricted board is drawn by the record whose pair is
- * the reader's own, otherwise by the first record (on D4 with black nodes 3 and 4, so(2,6), drawn B2).
+ * for the reader's pair (black_nodes, tau, arrows and tau_moves_black_nodes are the reader's); its restricted
+ * board and the orbits in Bourbaki order are those of the record for display (displayRecord: satakeRecord, which
+ * makes the C2 adjustment of 6.4). The restricted board is drawn by the record whose pair is the reader's own,
+ * otherwise by the first record (on D4 with black nodes 3 and 4, so(2,6), drawn B2).
  */
 export function assembleData(sat: SatakeComputed, rb: RestrictedLike, records: readonly SatakeRecord[], d: SatakeDiagram): Assembled {
   const board = d.board as Board<number>;
@@ -440,12 +482,8 @@ export function assembleData(sat: SatakeComputed, rb: RestrictedLike, records: r
   const arrows = arrowsOf(d);
   const moves = X.some((i) => tau[i] !== i);
   const entries: SatakeRecord[] = records.map((r) => {
-    let restrictedBoardName = sat.restricted_board;
-    let order = sat.restricted_orbits_in_bourbaki_order === null ? null : sat.restricted_orbits_in_bourbaki_order.map((o) => [...o]);
-    if (r.restricted_type_display === 'C2' && restrictedBoardName === 'B2' && order !== null) {
-      restrictedBoardName = 'C2';
-      order = order.reverse();
-    }
+    const shown = displayRecord(d, r);
+    const order = shown.restricted_orbits_in_bourbaki_order === null ? null : shown.restricted_orbits_in_bourbaki_order.map((o) => [...o]);
     return {
       dynkin_type: board.name ?? r.dynkin_type,
       cartan_label: r.cartan_label,
@@ -471,12 +509,12 @@ export function assembleData(sat: SatakeComputed, rb: RestrictedLike, records: r
       restricted_simple_orbits: sat.restricted_simple_orbits.map((o) => [...o]),
       restricted_simple_multiplicities: sat.restricted_simple_multiplicities.map(([a, b]) => [a, b] as [number, number]),
       restricted_cartan: sat.restricted_cartan === null ? [] : sat.restricted_cartan.map((row) => [...row]),
-      restricted_board: restrictedBoardName,
+      restricted_board: shown.restricted_board,
       restricted_orbits_in_bourbaki_order: order,
       restricted_reflection_word_lengths: [...sat.restricted_reflection_word_lengths],
     };
   });
-  const own = records.findIndex((r) => sameList(recordBlack(r), X) && sameList(r.tau, tau));
+  const own = records.findIndex((r) => isOwnPair(r, d));
   const drawingEntry = entries.length === 0 ? -1 : own >= 0 ? own : 0;
   let drawing: Drawing | null = null;
   const e = entries[drawingEntry];
@@ -517,21 +555,24 @@ export function recordInLabels(board: Board<number>, rec: SatakeRecord): Record<
 
 /** "1: (8, 0); 2: (8, 0)": the pair at each node of the drawn restricted board, Bourbaki order; "none" without one. */
 export function multiplicitiesText(data: Assembled): string {
-  if (data.drawing === null) return 'none';
-  return data.drawing.pairs.map(([a, b], k) => `${k + 1}: (${a}, ${b})`).join('; ');
+  const drawing = data.drawing;
+  if (drawing === null) return 'none';
+  return drawing.pairs.map(([a, b], p) => `${drawnLabel(drawing, p)}: (${a}, ${b})`).join('; ');
 }
 
 /** The accessible name of restricted node k (A-3, plan wording): its orbit in labels and its pair. */
 export function restrictedNodeName(d: SatakeDiagram, data: Assembled, k: number): string {
   const drawing = data.drawing!;
-  const orbit = toLabels(d.board, drawing.orbits[k - 1]!);
-  const [a, b] = drawing.pairs[k - 1]!;
+  const p = drawnPosition(drawing, k);
+  const orbit = toLabels(d.board, drawing.orbits[p]!);
+  const [a, b] = drawing.pairs[p]!;
   return `Restricted node ${k}, orbit ${listText(orbit)}, multiplicity ${a} and ${b}`;
 }
 
 /** The orbit drawn at restricted node k, in labels ("1 and 6"). */
 export function orbitText(d: SatakeDiagram, data: Assembled, k: number): string {
-  return listText(toLabels(d.board, data.drawing!.orbits[k - 1]!));
+  const drawing = data.drawing!;
+  return listText(toLabels(d.board, drawing.orbits[drawnPosition(drawing, k)]!));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -729,7 +770,7 @@ export interface CompositeMove {
 export function restrictedClick(d: SatakeDiagram, data: Assembled, k: number, population: readonly number[]): CompositeMove {
   const drawing = data.drawing;
   if (drawing === null) throw new RangeError('this pair has no restricted board');
-  const orbitIndex = drawing.orbitIndex[k - 1];
+  const orbitIndex = drawing.orbitIndex[drawnPosition(drawing, k)];
   if (orbitIndex === undefined || orbitIndex < 0) throw new RangeError(`the restricted board has no node ${k}`);
   const word = [...data.rb.compositeWords[orbitIndex]!];
   const populations: number[][] = [];
@@ -853,10 +894,11 @@ function classPhrase(sat: SatakeComputed): string {
  * in words (a caption is plain text: no subscripts): "multiplicities (4, 1) for λ and 2λ".
  */
 function pairsPhrase(data: Assembled): string {
-  const pairs = data.drawing === null ? [] : data.drawing.pairs.map(([a, b]) => `(${a}, ${b})`);
+  const drawing = data.drawing;
+  const pairs = drawing === null ? [] : drawing.pairs.map(([a, b]) => `(${a}, ${b})`);
   if (pairs.length === 1) return `multiplicities ${pairs[0]} for λ and 2λ`;
   if (new Set(pairs).size === 1) return `multiplicities ${pairs[0]} for λ and 2λ at every node of the restricted board`;
-  return `multiplicities ${listText(pairs.map((p, k) => `${p} at node ${k + 1}`))} of the restricted board, for λ and 2λ`;
+  return `multiplicities ${listText(pairs.map((pair, p) => `${pair} at node ${drawnLabel(drawing!, p)}`))} of the restricted board, for λ and 2λ`;
 }
 
 /**
@@ -872,7 +914,7 @@ function compositePhrase(data: Assembled, name: string): string {
   if (lengths.every((x) => x === lengths[0]) && reduced.every((x) => x === reduced[0])) {
     return `each of its moves is a fixed sequence of ${movesText(lengths[0]!)} of ${name}, of reduced length ${reduced[0]}`;
   }
-  return `its moves are fixed sequences of moves of ${name} (${listText(lengths.map((n, k) => `${movesText(n)} of reduced length ${reduced[k]} at node ${k + 1}`))})`;
+  return `its moves are fixed sequences of moves of ${name} (${listText(lengths.map((n, p) => `${movesText(n)} of reduced length ${reduced[p]} at node ${drawnLabel(drawing, p)}`))})`;
 }
 
 export interface CaptionInput {

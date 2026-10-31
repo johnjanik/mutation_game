@@ -608,7 +608,7 @@ describe('T12 relations', () => {
       expect(steps).toHaveLength(4);
       expect(runAll(steps)).toBe(4);
       const d7 = representationOf('D7', 7, 'staged');
-      expect(d7.basis).toHaveLength(64);
+      expect(d7.basis).toHaveLength(golden.types.D7!.fundamental_orbit_sizes[pos(named('D7'), 7)]!);
       expect(d7.signed).not.toBeNull();
       expect(d7.checks).toBeNull();
       expect(() => relationsNow(d7)).toThrow(RangeError);
@@ -634,7 +634,7 @@ describe('T12 relations', () => {
       steps[1]!();
       const more = steps[2]!();
       expect(Array.isArray(more)).toBe(true);
-      expect(more as Step[]).toHaveLength(8);
+      expect(more as Step[]).toHaveLength(named('B8').n);
       const b8 = representationOf('B8', 5, 'facts');
       expect(b8.basis).toHaveLength(golden.types.B8!.fundamental_orbit_sizes[pos(named('B8'), 5)]!);
       expect(b8.signed).toBeNull();
@@ -1192,7 +1192,7 @@ describe('MatrixView', () => {
     const grid = MV.matrixInput({ caption: 'E1', rowHeaders: headers, colHeaders: headers, sparse: m, format: 'auto', sparseDisplay: true, indexHeaders: true, listMax: 300 }, 'c1');
     expect(grid.shape).toBe('grid');
     const parts = MV.matrixTableParts(grid);
-    expect(parts.rows).toHaveLength(27);
+    expect(parts.rows).toHaveLength(headers.length);
     expect(parts.head.endsWith('<tbody>')).toBe(true);
     expect(parts.tail).toBe('</tbody></table>');
     expect(parts.rows.every((r, k) => r.startsWith(`<tr><th scope="row">${k + 1}: (${k})</th>`) && r.endsWith('</tr>'))).toBe(true);
@@ -1326,9 +1326,9 @@ describe('T12 server render', () => {
 
   it('E6 node 1 renders grids of 27 and E7 node 7 lists of 56; D4 node 2 shows its failing relation', () => {
     const e6 = loader.render(T12C.default, { id: 'b3', board: 'E6', node: 1 });
-    expect(e6).toMatch(/data-out="matrix-e" data-format="grid" data-rows="27"/);
+    expect(e6).toMatch(new RegExp(`data-out="matrix-e" data-format="grid" data-rows="${matchRecord(RECORDS, { type: 'E6', node: 1 }).dimension}"`));
     const e7 = loader.render(T12C.default, { id: 'b4', board: 'E7', node: 7 });
-    expect(e7).toMatch(/data-out="matrix-e" data-format="list" data-rows="56"/);
+    expect(e7).toMatch(new RegExp(`data-out="matrix-e" data-format="list" data-rows="${matchRecord(RECORDS, { type: 'E7', node: 7 }).dimension}"`));
     expect(outText(e7, 'all-relations')).toEqual(['All 280 relations hold.']);
     const d4 = loader.render(T12C.default, { id: 'b5', board: 'D4', node: 2 });
     expect(d4).toMatch(/data-out="relation-verdict" data-holds="false"/);
@@ -1441,14 +1441,14 @@ describe('T12 hooks and texts (review P5-A2, findings 5, 7, 9 and request 11)', 
   it('the headers are one array per basis, so that a change of state elsewhere does not write the drawn tables again', () => {
     const rep = buildRepresentation(named('E6'), 1);
     const h = basisHeaders(rep);
-    expect(h).toHaveLength(27);
+    expect(h).toHaveLength(matchRecord(RECORDS, { type: 'E6', node: 1 }).dimension);
     expect(basisHeaders(rep)).toBe(h);
     expect(Object.isFrozen(h)).toBe(true);
     // A representation with the matrices still to compute has no headers, and gets its own once they are.
     const fresh = startRepresentation(named('D4'), 1);
     expect(basisHeaders(fresh)).toEqual([]);
     addMatrices(fresh);
-    expect(basisHeaders(fresh)).toHaveLength(8);
+    expect(basisHeaders(fresh)).toHaveLength(matchRecord(RECORDS, { type: 'D4', node: 1 }).dimension);
     expect(basisHeaders(fresh)).toBe(basisHeaders(fresh));
   });
 
@@ -1778,16 +1778,35 @@ describe('regressions', () => {
 
   // COMMON 4.4 (no golden value typed into source) and the headers of this file and of T12.spec.ts: the
   // two greps of the finding may find only D4 node 2's worked value, its 24 positions (read from the golden
-  // file first in each test that types it), and a count of zeros in a hand-made 3 by 3 grid.
+  // file first in each test that types it), and a count of zeros in a hand-made 3 by 3 grid. The grep of this
+  // file also looks for the shapes toHaveLength(N) and data-rows="N" of the same values, of the dimension of E6
+  // node 1 and of the orbit of D7 node 7 (RT-FIX P6-RT-11-03).
   // regression: P5-RT-11-03
   it('T12.test.ts and T12.spec.ts read the golden orbit sizes and dimensions instead of typing them', () => {
     const lines = (rel: string): string[] => readFileSync(new URL(rel, import.meta.url), 'utf8').split('\n').map((l) => l.trim());
     const d4 = golden.types.D4!.fundamental_orbit_sizes[1];
     // (5[6] is 56, written so that this line does not find itself)
-    const unit = lines('./T12.test.ts').filter((l) => /toBe\((24|8|6|240|576|56)\)|toHaveLength\((1792|576)\)|expectedItems: 5[6]/.test(l));
+    const unit = lines('./T12.test.ts').filter((l) =>
+      /toBe\((24|8|6|240|576|56)\)|toHaveLength\((24|8|6|240|576|56|1792|27|64)\)|data-rows="(24|8|6|240|576|56|1792|27|64)"|expectedItems: 5[6]/.test(l),
+    );
     expect(unit.filter((l) => !l.endsWith(`toBe(${d4});`) && !l.includes('class="zero"'))).toEqual([]);
     const e2e = lines('../../e2e/T12.spec.ts').filter((l) => /toHaveText\('(8|24|56)'\)|'data-rows', '(27|56)'\)|toHaveCount\(27\)|\['E6', 1, 27\], \['E7', 7, 56\]/.test(l));
     expect(e2e.filter((l) => !l.endsWith(`toHaveText('${d4}');`))).toEqual([]);
+  });
+
+  // RT-11, phase 6 round (adopted from site/tests/unit/redteam-RT-11-p6-typed-dims.test.ts): the fix of
+  // P5-RT-11-03 left two golden dimensions of minuscule_representations (E6 node 1 and E7 node 7) typed in this
+  // file, in shapes its grep did not look for: data-rows="N" in the server-render test and toHaveLength(N) for
+  // the basis headers of E6 node 1 (COMMON 4.4, "a golden value typed into source"; CONTRACTS 3).
+  // regression: P6-RT-11-03
+  it('T12.test.ts types no golden dimension in a data-rows pattern or a toHaveLength', () => {
+    const lines = readFileSync(new URL('./T12.test.ts', import.meta.url), 'utf8')
+      .split('\n')
+      .map((l, k) => `${k + 1}: ${l.trim()}`);
+    // (a table of 27 hand-made rows, the cap matrixGridDim of CONTRACTS 2.3, is not a golden value: only the basis
+    // of a representation, `h`, and the rendered matrices are looked at)
+    const typed = lines.filter((l) => /data-rows="(27|56)"|expect\(h\)\.toHaveLength\((27|56)\)/.test(l));
+    expect(typed).toEqual([]);
   });
 
   // RT-07, phase 5 round, attack 22 (the browser test is in T12.spec.ts, "a link to E7 node 6 ... hydrates

@@ -1,0 +1,223 @@
+{
+ "agent": "RT-FIX-P6-t12-t5",
+ "status": "done",
+ "branch": "worktree-agent-a2fd4e2cd5c277177",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a2fd4e2cd5c277177",
+ "base": "9b24eea928df2ab6faf5e11ed2c229e8807b9ed0",
+ "commits": [
+  "e9e7a8d RT-FIX P6-RT-03-01: T5 shortens long numbers in the tape, the sorted tapes and the end positions",
+  "3bd9069 RT-FIX P6-RT-07-04 (gate G6, T12.spec.ts:1242): T12 reads a link in a task after the hydration task",
+  "ee4a778 RT-FIX P6-RT-11-03: T12.test.ts reads the golden dimensions it typed, and the grep looks for more shapes",
+  "2db728d RT-FIX P6-RT-07-04 P6-RT-03-01 P6-RT-11-03: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/components/tools/T05NumbersGameLab.svelte",
+  "site/tests/e2e/T05.spec.ts",
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/tests/e2e/T12.spec.ts",
+  "site/tests/unit/tools/T12.test.ts",
+  "decisions/RT-FIX-P6-t12-t5.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git reset --hard 9b24eea; git rev-parse --show-toplevel; git branch --show-current",
+   "exit": 0,
+   "summary": "HEAD 9b24eea; worktree /home/user/mutation_game/.claude/worktrees/agent-a2fd4e2cd5c277177; branch worktree-agent-a2fd4e2cd5c277177"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: match CONTRACTS 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "88 files, 2728 passed"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (base)",
+   "exit": 0,
+   "summary": "90 pages; links: 3998 internal links, 0 problems"
+  },
+  {
+   "cmd": "playwright test -c <scratch>/pw.config.ts (port 7310) T12.spec.ts:1242 --repeat-each 20 --workers 1, base build, run 1",
+   "exit": 0,
+   "summary": "80 passed, 0 failed; load 6.4 falling to 1.3; long hydration tasks: cases 11 of 240, control 13 of 240"
+  },
+  {
+   "cmd": "same, base build, run 2",
+   "exit": 1,
+   "summary": "73 passed, 7 failed (C8:7 3, E7:6 2, D8:3 2, B8:7 0); load 1.5 rising to 26 to 28; long hydration tasks: cases 52 of 240, control 59 of 240"
+  },
+  {
+   "cmd": "playwright T05.spec.ts -g the three new P6-RT-03-01 tests, base build (red)",
+   "exit": 1,
+   "summary": "3 failed: tape '12345678901234567890' not '1.2345... x 10^19 (20 digits)'; sortedA ['12345678901234567890'], endA ['12345678901234567890', '12345678901234567889']; startKind ['12345678901234567890']"
+  },
+  {
+   "cmd": "playwright T12.spec.ts -g 'a link is read in a task after the hydration task', base build (red)",
+   "exit": 1,
+   "summary": "1 failed: at hydration board D4 node 2 with the picker enabled, expected A2 node 1 (the server's state) with the picker disabled"
+  },
+  {
+   "cmd": "vitest --project site-unit T12.test.ts -t golden, the typed lines written back (red)",
+   "exit": 1,
+   "summary": "2 failed: adopted test finds '1329 data-rows=\"27\"', '1331 data-rows=\"56\"', '1444 expect(h).toHaveLength(27)'; widened P5 grep finds those plus toHaveLength(64) of D7 node 7, toHaveLength(8) of D4 node 1, toHaveLength(8) of the B8 steps and toHaveLength(27) of a hand-made grid"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/tools/T12.test.ts site/tests/unit/tools/T05.test.ts",
+   "exit": 0,
+   "summary": "2 files, 109 passed (T12 83, base 82; T05 26)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run check -w site",
+   "exit": 0,
+   "summary": "0 errors, 0 warnings, 1 hint; svelte-check 0 errors, 1 warning (t02/LayerChart.svelte, not touched)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "0 errors"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (fix)",
+   "exit": 0,
+   "summary": "90 pages; links: 3998 internal links, 0 problems"
+  },
+  {
+   "cmd": "playwright T05.spec.ts T12.spec.ts -g the four new tests, fixed build (green)",
+   "exit": 0,
+   "summary": "4 passed"
+  },
+  {
+   "cmd": "playwright T12.spec.ts:1242 --repeat-each 20 --workers 1, fixed build",
+   "exit": 0,
+   "summary": "80 passed, 0 failed; load 17 to 31 (mean about 23); long hydration tasks: cases 9 of 240, control 17 of 240"
+  },
+  {
+   "cmd": "RATE=1 RUNS=5 and RUNS=9 node <scratch>/ab/hydration-ab.mjs <base dist> site/dist 7312 7313 (RT-07 trace script, not committed)",
+   "exit": 0,
+   "summary": "true hydration-task medians (RUNS=9, load 21 to 25), base then fix: C8:7 45.3 then 23.0 ms; E7:7 44.5 then 21.9; no link 25.4 then 24.2. RUNS=5 run (noisier): C8:7 42.9 then 31.5; E7:7 57 then 23.6"
+  },
+  {
+   "cmd": "npm run size -- --port 7311 --dist <base dist>",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget; /tools/rep/ 85.7 kB, /tools/numbers/ 73.1 kB, /modules/m8-lie-algebras/ 85.7"
+  },
+  {
+   "cmd": "npm run size -- --port 7311 (fix)",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget; /tools/rep/ 85.8 kB, /tools/numbers/ 73.2 kB, /modules/m8-lie-algebras/ 85.8"
+  },
+  {
+   "cmd": "playwright T05.spec.ts T12.spec.ts (full, fixed build)",
+   "exit": 0,
+   "summary": "110 passed"
+  },
+  {
+   "cmd": "playwright M8.spec.ts history-popstate.spec.ts history-popstate-sweep.spec.ts history-no-write-on-load.spec.ts nojs.spec.ts (fixed build)",
+   "exit": 1,
+   "summary": "259 passed, 1 failed: history-popstate.spec.ts:83 modules/m8-lie-algebras/?b12.k=2 hit the 30 s test timeout at load 20 to 31"
+  },
+  {
+   "cmd": "playwright history-popstate.spec.ts -g b12 --repeat-each 4, fixed build, then the base build swapped into site/dist",
+   "exit": 1,
+   "summary": "fix: 3 passed, 1 failed (test timeout, 22 to 35 s per run); base: 4 of 4 failed the same way at load 23 to 31; this is load, and the base fails it more"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after, twice)",
+   "exit": 1,
+   "summary": "2725 and 2723 passed of 2728; 3 then 5 failed, every one 'Test timed out in 5000ms' at load 21 to 32; no file under packages/ changed (git diff --stat 9b24eea..HEAD -- packages/ is empty)"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- --testTimeout=60000 <the five timed-out files>",
+   "exit": 0,
+   "summary": "5 files, 36 passed"
+  },
+  {
+   "cmd": "git diff --name-only 9b24eea..HEAD | grep forbidden paths",
+   "exit": 1,
+   "summary": "nothing printed"
+  },
+  {
+   "cmd": "git diff 9b24eea..HEAD added-line grep for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on: directives and em-dash",
+   "exit": 1,
+   "summary": "nothing printed"
+  },
+  {
+   "cmd": "git diff --name-only 9b24eea..HEAD | grep -i redteam",
+   "exit": 1,
+   "summary": "nothing printed (the redteam-* files git ls-files lists are the base's records under build-plan/reports/)"
+  },
+  {
+   "cmd": "git log --format=%s 9b24eea..HEAD",
+   "exit": 0,
+   "summary": "4 subjects, each starts with 'RT-FIX P6-RT-'"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "empty; no astro preview running on 7310"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "Gate G6 run 1 failure, T12.spec.ts:1242 'a link to C8 node 7 (1024 positions) hydrates without a long task' (no finding id; P6-RT-07-04 was refuted and is listed only for its evidence)",
+   "status": "fixed",
+   "test": "site/tests/e2e/T12.spec.ts > regressions > a link is read in a task after the hydration task, the tool frozen meanwhile, and a link the back button loads before it is the one shown; and the unchanged site/tests/e2e/T12.spec.ts:1242 long-task tests",
+   "evidence": "Cause: the hydration $effect ran readLink and load(state) inside the island's hydration task, so for a link that task held both the hydration of the server markup and the re-render to the link's state, with the engine facts of its node. Fix (3bd9069): when the address holds a key of the instance's form, the effect freezes the tool (linkPending, read by frozen), counts one drawing run (data-drawn='false'), and reads the link in a setTimeout task of its own. That task calls readLink and then activate as before, and is dropped if a popstate load changed the generation. Addresses without such a key take the old path unchanged. Red at base: at hydration the base showed D4 node 2 with the picker enabled. Green: 4 passed. Measured true task lengths (trace, RUNS=9 alternated, load 21 to 25): C8:7 45.3 to 23.0 ms, E7:7 44.5 to 21.9 ms, no link 25.4 to 24.2 ms. The link's hydration task is now the same length as a page without a link. Counts for --repeat-each 20 --workers 1: base 80 of 80 at load 6 to 1, and 73 of 80 at load 1 to 28 (7 failures; 52 of 240 case tasks and 59 of 240 control tasks were long). Fix: 80 of 80 at load 17 to 31 (9 of 240 and 17 of 240 long). The test is still marginal under heavy contention: the remaining long tasks are the hydration of the server markup itself (about 22 to 25 ms at quiet load) when the load is 5 to 8 times the 4 processors. The test, its limits and its throttling are unchanged."
+  },
+  {
+   "item": "P6-RT-11-03: The fix of P5-RT-11-03 is partial: T12.test.ts still types the golden dimensions 27 and 56, in shapes its regression grep does not look for",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T12.test.ts > regressions > T12.test.ts types no golden dimension in a data-rows pattern or a toHaveLength",
+   "evidence": "Severity minor (no adjustment). Red: with the typed lines written back, the adopted test failed with exactly the finding's lines ('1329: ... data-rows=\"27\"', '1331: ... data-rows=\"56\"', '1444: expect(h).toHaveLength(27)'). Green: T12.test.ts 83 passed. Cause: three assertions typed minuscule_representations dimensions (E6 node 1 = 27, E7 node 7 = 56). They now read matchRecord(RECORDS, {type, node}).dimension. Commit ee4a778. The test bites: it is red against the base's lines."
+  },
+  {
+   "item": "P6-RT-11-03 (sibling): the P5-RT-11-03 grep widened to toHaveLength(N) and data-rows=\"N\"; two more typed golden values (D4 node 1 = 8, D7 node 7 = 64)",
+   "status": "fixed",
+   "test": "site/tests/unit/tools/T12.test.ts > regressions > T12.test.ts and T12.spec.ts read the golden orbit sizes and dimensions instead of typing them",
+   "evidence": "The grep now also matches toHaveLength(24|8|6|240|576|56|1792|27|64) and data-rows=\"(same)\". It was red with the base's lines on 7 lines and is green after the fix. The headers of D4 node 1 and the basis of D7 node 7 now read the golden file (matchRecord; fundamental_orbit_sizes). Two lines whose numbers are not golden were rewritten to the same assertion from their own data, so the grep needs no exception: the B8 steps now use named('B8').n and the hand-made grid uses headers.length. Commit ee4a778."
+  },
+  {
+   "item": "P6-RT-03-01: T5 writes long numbers in full in the tape, the sorted tapes and the end positions of 'Two games compared'",
+   "status": "fixed",
+   "test": "site/tests/e2e/T05.spec.ts > regressions > the tape after firing a node whose number has 20 digits; site/tests/e2e/T05.spec.ts > regressions > two games compared: the sorted tape and the end position of game A after the same move",
+   "evidence": "Severity major (no adjustment). Red at base: '2 failed' matching the verifier's observed values: tape '12345678901234567890' instead of '1.2345... x 10^19 (20 digits)'; sortedA ['12345678901234567890']; endA ['12345678901234567890', '12345678901234567889']. Green: 3 passed; full T05.spec.ts plus T12.spec.ts 110 passed. Cause: the figure wrote these values through display, listText and tuple, which never call shortValue. The figure now uses shortText, shortList and shortTuple with the exact digits in a title. The table view and the exports are unchanged. Commit e9e7a8d."
+  },
+  {
+   "item": "P6-RT-03-01 (sibling): the start line (data-out startKind), the tape tab's table and game B's end (endB) and sorted tape (sortedB) used the same helpers",
+   "status": "fixed",
+   "test": "site/tests/e2e/T05.spec.ts > regressions > the start line, the tape table and the ends of both games are shortened, with the exact digits in the tooltip and the table view",
+   "evidence": "Red at base: the start line held ['12345678901234567890']. Green: passed. The test also checks that every title holds the exact digits and that the table view keeps '−12345678901234567890'. Commit e9e7a8d."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX P6 prompt (keep T12 edits to the hydration $effect, readLink and load)",
+   "what": "Beyond the hydration $effect, T12RepresentationBuilder.svelte gained one $state field (linkPending, next to busy), one term in the frozen $derived, and normalisePrefix in its urlCodec import",
+   "why": "Freezing the tool while the deferred read is pending is what makes it race-free: no pick, move, typed start or relation can arrive before the link is read. The edits are one line each and far from the export code."
+  },
+  {
+   "spec": "CONTRACTS 5.2 'A tool reads the URL on hydration'",
+   "what": "For a link, T12 reads the URL in the task right after the hydration task",
+   "why": "Recorded in decisions/RT-FIX-P6-t12-t5.md; history.ts already provides for a link applied a task after hydration"
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P6-t12-t5.md",
+ "openQuestions": [
+  "Under load 20 to 32 on this 4-processor container, history-popstate.spec.ts:83 (M8 ?b12.k=2) hits its 30 s test timeout: 4 of 4 runs failed on the base build and 1 of 4 on this branch. Five engine tests also time out at 5000 ms (p6a-restricted, p10-affine, p7-roots-signs, mainthread-fast-paths, satake-coordinates). They pass alone with --testTimeout=60000, and no engine file changed. Both are load, not this branch.",
+  "In the one task between hydration and the deferred link read, ToolFrame's Copy link and Download data, which are not frozen, would give the server's state. Closing that would need a change in ToolFrame, which belongs to cluster shared-a11y."
+ ],
+ "handoff": "All edited files are inside T12 and T5, plus the fragment. T12RepresentationBuilder.svelte changed only in the hydration $effect, the linkPending field, the frozen line and one import, not in the export code, so the latex cluster's Export LaTeX wiring should merge cleanly. For the lens rerun: T12.spec.ts:1242 is untouched. Measured by trace, a link's hydration task now equals the no-link one (about 22 to 25 ms at full speed); the test can still see long tasks when the load is many times the processor count. I followed P6-RT-07-04's second proposedFix (change the product), not the first (measure differently), as MERGE's ruling requires. /tools/rep/ is 85.8 kB (85.7 before) and /tools/numbers/ 73.2 kB (73.1)."
+}

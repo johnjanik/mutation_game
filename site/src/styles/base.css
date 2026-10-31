@@ -16,6 +16,18 @@ body {
   font-family: var(--font-prose);
 }
 
+/* RT-FIX P6-RT-05-01: links take the text colour and links and buttons the focus ring of A-2 on every page,
+   /embed/<tool> included, which does not use Base.astro (the rules lived there); the browser's own link
+   blue is about 2 to 1 on the dark page (A-6). */
+a {
+  color: var(--text);
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 /* RT-FIX P3-RT-05-11: the display formulas of every page reflow at 320 pixels (A-11), not only those
    of a lesson or of Page.astro (the rule lived there). A display formula breaks after a relation or
    a binary operator of its outer level, where KaTeX already splits it into pieces (as TeX breaks an

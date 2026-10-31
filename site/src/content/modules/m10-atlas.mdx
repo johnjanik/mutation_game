@@ -22,6 +22,7 @@ export const sandbox = linkIfReleased({ kind: 'tool', id: 'sandbox' });
 export const sources = linkIfReleased({ kind: 'static', name: 'sources' });
 export const history = page('history');
 export const glossary = page('glossary');
+export const Term = ({ a = "", children } = {}) => (glossary ? <a href={`${glossary}#${a}`}>{children}</a> : <>{children}</>);
 export const credits = page('credits');
 export const openProblem = page('open-problem');
 export const confusions = page('confusions');
@@ -40,6 +41,10 @@ export const BOARD_LINK = { display: 'inline-block', minWidth: '24px', minHeight
     ModuleLinks closes the module with the sandbox (SPEC 4 T16, 8.1 P6), with the board A3 (plan).
     No number with a golden value is printed; the years of the history item are dates of sources. */}
 
+{/* RT-FIX P6-RT-10-03: SPEC 8.4 binds the hub too (9.2), so a later use of a glossary term links to its entry
+    through Term, as on M9: board and finite type in the Atlas item, the numbers game and Kostant's game in the
+    credit line. The glossary item says "term" where it meant a word of a vocabulary, not a word of moves. */}
+
 This last module has no beats and no challenges. It gathers the reference pages of the site, each listed below with one sentence on what it holds.
 
 <figure class="atlas-boards" data-first-figure aria-labelledby="m10-figure-caption">
@@ -52,11 +57,11 @@ This last module has no beats and no challenges. It gathers the reference pages 
 </figure>
 
 <ul class="hub" data-hub>
-<li data-hub-item="atlas"><To href={atlas}>The Atlas</To> gives each named board of finite type with at most eight nodes a data sheet, such as <To href={atlasB3} label="the sheet of B3">the sheet of <Tex src="B_3"/></To>, with a switch that prints the Cartan matrix as this site, Kac and SageMath write it or as Bourbaki and Humphreys write it, transposed, and with a link from each item to a tool that shows it on that board.</li>
+<li data-hub-item="atlas"><To href={atlas}>The Atlas</To> gives each named <Term a="board">board</Term> of <Term a="finite">finite type</Term> with at most eight nodes a data sheet, such as <To href={atlasB3} label="the sheet of B3">the sheet of <Tex src="B_3"/></To>, with a switch that shows the Cartan matrix in the convention of this site, Kac and SageMath or in that of Bourbaki and Humphreys, who print its transpose, and with a link from each item to a tool that shows it on that board.</li>
 <li data-hub-item="sandbox"><To href={sandbox}>The sandbox</To> is the free editor, where you draw a board of your own, play both games on it in free play with whole numbers of any size, and import or export the board as JSON.</li>
 <li data-hub-item="history"><To href={history}>The history page</To> sets out the work on the two games in order of date and with the credit each author is owed, from Proctor's use of the firing process in 1984 to Wildberger's paper of 2020, and places beside it Kostant's game, an oral tradition attributed to Kostant, and the diagrams of Satake and Araki.</li>
 <li data-hub-item="sources"><To href={sources}>The sources page</To> is generated from the annotated bibliography kept with the site's code and lists every work the site cites, with where to read it and its status in words: read in the source, reported by a later source, checked by computation, or unverified.</li>
-<li data-hub-item="glossary"><To href={glossary}>The glossary</To> sets each word of the site beside the words of Wildberger, of the literature on the numbers game and of Lie theory, and links each word back to the module that first uses it.</li>
+<li data-hub-item="glossary"><To href={glossary}>The glossary</To> sets each term of the site beside the words of Wildberger, of the literature on the numbers game and of Lie theory, and links each term back to the module that first uses it.</li>
 <li data-hub-item="credits"><To href={credits}>The credits page</To> acknowledges Wildberger's game, story and words, states the licences of the site's text and code, and lists every library, font and linked video the site uses with its licence.</li>
 <li data-hub-item="open-problem"><To href={openProblem}>The Mutation Conjecture</To> is the open problem of the site: its page states Wildberger's question about the signs of root populations, shows that the statement fails on a board with a road in one direction only, and invites attempts at a proof that uses only the game.</li>
 <li data-hub-item="confusions"><To href={confusions}>Common confusions</To> corrects statements about the two games that are sometimes made and are not right, such as the claim that a mutation changes the board, each with the source of its correction.</li>
@@ -64,6 +69,6 @@ This last module has no beats and no challenges. It gathers the reference pages 
 <li data-hub-item="about"><To href={about}>About</To> says what the site teaches, names its two views, <View v="populations"/> and <View v="numbers"/>, and lists the seven statements that the modules develop.</li>
 </ul>
 
-<p data-credit-line>Credit, as every page of the site gives it: the mutation game is Wildberger's; the numbers game is Mozes', with Proctor's earlier use of the same process and Eriksson's development acknowledged; Kostant's game is "attributed to Kostant".</p>
+<p data-credit-line>Credit, as every page of the site gives it: the mutation game is Wildberger's; the <Term a="numbers-game">numbers game</Term> is Mozes', with Proctor's earlier use of the same process and Eriksson's development acknowledged; <Term a="kostants-game">Kostant's game</Term> is "attributed to Kostant".</p>
 
 <ModuleLinks module={10} board="A3" />

@@ -17,6 +17,10 @@
 // Properties of T13 beyond the common ones of 4.0 Configuration (id, board, prediction, preset, caption):
 // black (labels of the black nodes), tau (images of all nodes in label order) and root (a population in
 // label order). coords, start, moves and linkTo do not apply.
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   admissibility,
@@ -27,6 +31,8 @@ import {
   restrictedBoard,
   restrictedCoordinates,
   satake,
+  satakeCatalogue,
+  satakeRecord,
   shadow2,
   symmetries,
   theta,
@@ -53,6 +59,7 @@ import {
   defaultRoot,
   diagramOf,
   displayName,
+  displayRecord,
   exportData,
   failureNote,
   failureSentence,
@@ -84,6 +91,7 @@ import { whereToRun } from '../../../src/lib/worker';
 import { announceTemplates } from '../../../src/lib/a11y';
 import T13 from '../../../src/tools/registry/T13';
 import { ssrLoader, type SsrLoader } from '../_svelteSsr';
+import { writeSatakeNames, writeSatakeNamesByBoard } from '../../../../scripts/names.mjs';
 
 interface GoldenSatakeRecord {
   dynkin_type: string;
@@ -1194,4 +1202,134 @@ describe('T13 registry entry and server render', () => {
 afterAll(async () => {
   all = [];
   await loader?.close();
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 6 red-team round (RT-FIX P6, cluster t13)
+// ---------------------------------------------------------------------------------------------
+
+describe('regressions', () => {
+  // Adopted from the RT-02 lens (site/tests/unit/redteam-RT-02-p6-c2-once.test.ts), attack 13 (the C2 adjustment
+  // applied by the wrong function). SPEC 6.4: "This adjustment is made by satake_record (engine: satakeRecord);
+  // the plain function satake would say B2." SPEC Appendix H, Rules (and CLAUDE.md): "Satake records for display
+  // come from satakeRecord, which applies the C2 naming of SPEC 6.4." The second test checks that the records T13
+  // shows are satakeRecord's for the reader's own pair, on every catalogue pair and every symmetry image of one.
+  describe('RT-02 p6 attack 13: the C2 naming of SPEC 6.4 is applied by satakeRecord only', () => {
+    // regression: P6-RT-02-01
+    it('t13/model.ts does not apply the C2 adjustment itself', () => {
+      const src = readFileSync(fileURLToPath(new URL('../../../src/components/tools/t13/model.ts', import.meta.url)), 'utf8');
+      const code = src
+        .split('\n')
+        .map((line, k) => [k + 1, line] as const)
+        .filter(([, line]) => !/^\s*(\/\/|\*|\/\*\*)/.test(line));
+      const hits = code.filter(([, line]) => /restricted_type_display === 'C2'|restrictedBoardName = 'C2'|order\.reverse\(\)/.test(line)).map(([k, line]) => `model.ts:${k}: ${line.trim()}`);
+      expect(hits).toEqual([]);
+    });
+
+    // regression: P6-RT-02-01
+    it('satakeRecord on the reader\'s own pair gives the restricted board and Bourbaki orbits T13 shows (every catalogue pair and symmetry image, rank at most 6)', () => {
+      let checked = 0;
+      for (const name of T13_BOARDS) {
+        const board = boardFromName(name) as Board<number>;
+        if (board.n > 6) continue;
+        const auts = symmetries(board);
+        for (const e of satakeCatalogue(name)) {
+          for (const g of auts) {
+            const black = e.black_nodes.map((i) => g[i]!).sort((a, b) => a - b);
+            const tau: number[] = new Array(board.n).fill(0);
+            e.tau.forEach((t, i) => {
+              tau[g[i]!] = g[t]!;
+            });
+            const d: SatakeDiagram = { board, black, tau };
+            const records = matchCatalogue(d);
+            const data = assembleData(satake(d), black.length === board.n ? { orbits: [], simpleRestrictedRoots2: [], cartan: [], compositeWords: [] } : restrictedBoard(d), records, d);
+            data.entries.forEach((shown, k) => {
+              const r = satakeRecord(name, { ...records[k]!, black_nodes: black, tau });
+              expect([shown.restricted_board, shown.restricted_orbits_in_bourbaki_order], `${name} ${shown.real_form} ${black.join('.')} ${tau.join('.')}`).toEqual([
+                r.restricted_board,
+                r.restricted_orbits_in_bourbaki_order,
+              ]);
+              checked++;
+            });
+          }
+        }
+      }
+      expect(checked).toBeGreaterThan(100);
+    });
+
+    // The fix takes the records for display from satakeRecord (t13/model.ts displayRecord); on E7 and E8 that must
+    // not put satakeRecord on the main thread (SPEC 5.1 E-9 item 3). Their only symmetry is the identity, so every
+    // record matchCatalogue returns there is of the reader's own pair and is returned as it is (the same object:
+    // satakeRecord would make a new one).
+    // regression: P6-RT-02-01
+    it('on E7 and E8 the record for display of every admissible pair is the record matchCatalogue returned (no satakeRecord on the main thread, E-9)', () => {
+      let checked = 0;
+      for (const type of ['E7', 'E8']) {
+        for (const [black, tau] of PAIRS[type]!) {
+          const d = diagramOf(type, black, tau);
+          const records = matchCatalogue(d);
+          expect(records.length, `${type} ${black.join('.')}`).toBeGreaterThan(0);
+          for (const r of records) {
+            expect(displayRecord(d, r), `${type} ${r.real_form}`).toBe(r);
+            checked++;
+          }
+        }
+      }
+      expect(checked).toBe(RECORDS.filter((r) => r.dynkin_type === 'E7' || r.dynkin_type === 'E8').length);
+    });
+  });
+
+  // Adopted from the RT-02 lens (site/tests/unit/redteam-RT-02-p6-label-arith.test.ts), attack 1 (stray
+  // conversions between positions and labels) on T13's restricted board. SPEC 5.1 E-7: "Two functions, toLabels
+  // and toPositions, convert node lists and words; nothing else converts." T13 draws the restricted board as
+  // boardFromName(<restricted board name>), and the arrays of the drawing (orbits, pairs, orbitIndex,
+  // coordinates) are in its position order; a label of a drawn node is turned into an index of those arrays only
+  // by toPositions on the drawn board, and back only by toLabels.
+  describe('RT-02 p6: T13 converts restricted-board labels only through toLabels and toPositions (E-7)', () => {
+    const FILES = ['../../../src/components/tools/t13/model.ts', '../../../src/components/tools/T13SatakeStudio.svelte'];
+    /** Index arithmetic on a restricted-board label: x[k - 1], x[l - 1], or a label written as k + 1. */
+    const PATTERNS: RegExp[] = [/(orbits|pairs|orbitIndex|coords|drawnPairs)\[[kl] - 1\]/, /\$\{k \+ 1\}/];
+
+    // regression: P6-RT-02-02
+    it('no label arithmetic on the drawn restricted board', () => {
+      const hits: string[] = [];
+      for (const rel of FILES) {
+        const path = fileURLToPath(new URL(rel, import.meta.url));
+        readFileSync(path, 'utf8')
+          .split('\n')
+          .forEach((line, k) => {
+            if (/^\s*(\/\/|\*|\/\*\*)/.test(line)) return;
+            if (PATTERNS.some((p) => p.test(line))) hits.push(`${rel.replace('../../../', 'site/')}:${k + 1}: ${line.trim()}`);
+          });
+      }
+      expect(hits).toEqual([]);
+    });
+  });
+
+  // MERGE follow-up of P6-RT-07-01 (rtconfirm-p6-t13): a link state showed the plain markup of t13/names.ts until
+  // the reader's first action, because the whole section of typeset names (about 5 kB gzipped) did not fit in the
+  // 90 kB of SPEC 7.6. The browser now fetches the names of one board, from the file names.mjs writes for it; the
+  // file must hold every name the Studio shows on that board (the Data panel's records and the Catalogue, both of
+  // satakeCatalogue on that board), typeset as in satake-names.json (SPEC 7.3, 7.5 A-12). The browser test is in
+  // site/tests/e2e/T13.spec.ts (regressions).
+  // regression: P6-MERGE-T13-01
+  it('names.mjs writes one file per board holding the typeset names of exactly that board\'s catalogue, as satake-names.json typesets them', () => {
+    const dir = mkdtempSync(join(tmpdir(), 't13-names-'));
+    try {
+      writeSatakeNames(join(dir, 'satake-names.json'));
+      const whole = JSON.parse(readFileSync(join(dir, 'satake-names.json'), 'utf8')) as { katex: string; realForms: Record<string, unknown> };
+      expect(writeSatakeNamesByBoard(join(dir, 'satake-names'))).toEqual({ boards: T13_BOARDS.length, realForms: Object.keys(whole.realForms).length });
+      expect(readdirSync(join(dir, 'satake-names')).sort()).toEqual(T13_BOARDS.map((b) => `${b}.json`).sort());
+      for (const name of T13_BOARDS) {
+        const file = JSON.parse(readFileSync(join(dir, 'satake-names', `${name}.json`), 'utf8')) as { katex: string; realForms: Record<string, unknown> };
+        expect(Object.keys(file), name).toEqual(['katex', 'realForms']);
+        expect(file.katex, name).toBe(whole.katex);
+        const forms = [...new Set(satakeCatalogue(name).map((e) => e.real_form))];
+        expect(Object.keys(file.realForms), name).toEqual(forms);
+        for (const f of forms) expect(file.realForms[f], `${name} ${f}`).toEqual(whole.realForms[f]);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

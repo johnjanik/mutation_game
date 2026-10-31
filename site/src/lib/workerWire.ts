@@ -4,7 +4,7 @@
 // bundle never contains the code that starts a worker.
 //   bigint          -> { "$big": "decimal" }
 //   Map             -> { "$map": [[k, v], ...] }   (keys and values serialized in turn)
-//   Board           -> { "$board": BoardSpec }      (rebuilt with resolveBoard)
+//   Board           -> { "$board": BoardSpec }      (rebuilt with resolveBoard; the name only for the standard board of it)
 //   bigBoard copy   -> { "$board": BoardSpec, "arith": "Big" }   (plan: a named finite board in Big)
 // Rationals ({ num, den } of bigint) pass through the $big rule.
 import {
@@ -17,6 +17,7 @@ import {
   NotAdmissible,
   NotAffine,
   NotFiniteType,
+  boardFromName,
   cartanNumbers,
 } from '@two-games/engine';
 import type { Admissibility, AnyBoard } from '@two-games/engine';
@@ -55,9 +56,34 @@ function isBoard(x: unknown): x is AnyBoard {
   return typeof b.n === 'number' && Array.isArray(b.cartan) && Array.isArray(b.labels) && typeof b.arith === 'object' && b.arith !== null;
 }
 
-/** The BoardSpec of a board: its name when it has one, otherwise its Cartan matrix. */
+/** The matrix and labels of the standard board of each name met so far; null for a name boardFromName refuses. */
+const standardBoards = new Map<string, { cartan: number[][]; labels: readonly number[] } | null>();
+
+/** True when the board is the standard board of `name`, position by position: the same matrix and the same labels. */
+function isStandardBoard(board: AnyBoard, name: string): boolean {
+  let std = standardBoards.get(name);
+  if (std === undefined) {
+    try {
+      const b = boardFromName(name);
+      std = { cartan: cartanNumbers(b), labels: b.labels };
+    } catch {
+      std = null;
+    }
+    standardBoards.set(name, std);
+  }
+  if (std === null || std.cartan.length !== board.n) return false;
+  const C = cartanNumbers(board);
+  return std.labels.every((l, i) => l === board.labels[i]) && std.cartan.every((row, i) => row.every((x, j) => x === C[i]![j]));
+}
+
+/**
+ * The BoardSpec of a board: its name when it is the standard board of that name (a name denotes the
+ * standard board, SPEC 6.6), otherwise its Cartan matrix in its own position order. A named board in
+ * another position order (a restricted or folded board whose positions follow its orbits) so comes back
+ * with the same matrix in the same positions, without its name and labels, which BoardSpec cannot carry.
+ */
 export function specOf(board: AnyBoard): BoardSpec {
-  return board.name !== undefined ? board.name : { cartan: cartanNumbers(board) };
+  return board.name !== undefined && isStandardBoard(board, board.name) ? board.name : { cartan: cartanNumbers(board) };
 }
 
 export function serialize(value: unknown): Serialized {

@@ -1,0 +1,184 @@
+{
+ "agent": "rtfix-p6-tableview-reflow",
+ "status": "done",
+ "branch": "worktree-agent-a685dd7b812705157",
+ "base": "36781de575d53d5919a6a903f75c016352d4bdba",
+ "commits": [
+  "8569f31 RT-FIX P6-MERGE-TV-01: the table view's inner fieldset no longer sets the width of its tables"
+ ],
+ "filesChanged": [
+  "site/src/components/board/ToolFrame.svelte",
+  "site/tests/e2e/table-reflow.spec.ts"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard 36781de; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "worktree /home/user/mutation_game/.claude/worktrees/agent-a685dd7b812705157, branch worktree-agent-a685dd7b812705157, base 36781de575d53d5919a6a903f75c016352d4bdba"
+  },
+  {
+   "cmd": "shasum -a 256 reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: all three match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (base 36781de)",
+   "exit": 0,
+   "summary": "links: 4007 internal links on 90 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "scratch probe: every table of every table view at 320 without JavaScript, 41 routes (tools, embed, modules), base build",
+   "exit": 0,
+   "summary": "331 tables; 14 laid out wider than the 288 px box although their min-content fits (only T13: 'Multiplicities by length class' 304 px on /tools/satake/, /embed/satake/, M9 b1 to b9, b11, b12; b10 'The three conditions' 315.8 px, min-content 231.1)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7380> table-reflow.spec.ts (red, base build)",
+   "exit": 1,
+   "summary": "1 failed, 6 passed: 'at 320 the table \"The three conditions\" of satake b10 ... laid out 315.78125 pixels wide in a box 288 wide (its narrowest layout is 231.125, the widest table of the view needs 315.78125)'; the T4 'Verdict' contrast case passed"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (with the fix)",
+   "exit": 0,
+   "summary": "links: 4007 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> table-reflow.spec.ts frozen-table-scroll.spec.ts (green)",
+   "exit": 0,
+   "summary": "12 passed"
+  },
+  {
+   "cmd": "scratch probe rerun on the fixed build, compared table by table with the base",
+   "exit": 0,
+   "summary": "331 tables, 0 laid out wider than the box when their min-content fits; only T13's 14 tables changed, all to 288 px (b10 'The three conditions' back to 288x373, its size before RT-FIX P6-RT-05-02); every box's scrollWidth unchanged (370 on T13 views with a restricted table, 316 on b10, 306 on T9, 385/329 on T1 D4~/D4)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> toolframe-hydration.spec.ts T13.spec.ts M9.spec.ts",
+   "exit": 1,
+   "summary": "75 passed, 1 failed: M9.spec.ts:381 'the panel figures without JavaScript' (b7 data-board Expected \"restricted\" Received \"populations\"); fails the same on a build without this fix (see the scratch revert below); not caused by this change"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> nojs.spec.ts",
+   "exit": 0,
+   "summary": "198 passed (3.0m)"
+  },
+  {
+   "cmd": "scratch axe probe (tags of a11y.spec.ts) at 320, every island hydrated, every 'Show as table' opened by keyboard, on /modules/m9-real-forms/, /tools/satake/, /embed/satake/",
+   "exit": 0,
+   "summary": "3 passed: no serious or critical violation, page scrollWidth 320"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> a11y.spec.ts",
+   "exit": 0,
+   "summary": "91 passed (8.8m)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings, 2 hints (T06.spec, atlas.test, existing); svelte-check: 0 errors, 1 warning (LayerChart, existing)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/toolframe.test.ts",
+   "exit": 0,
+   "summary": "1 file, 2 passed"
+  },
+  {
+   "cmd": "npm run size -- --port 7381 --json (fixed build)",
+   "exit": 0,
+   "summary": "size: 90 routes measured, 0 over budget"
+  },
+  {
+   "cmd": "scratch revert: ToolFrame.svelte from 36781de, OUT_DIR=<scratch>/dist-base npm run build, then git checkout restores it",
+   "exit": 0,
+   "summary": "build 0 problems; tree restored, git status clean"
+  },
+  {
+   "cmd": "OUT_DIR=<scratch>/dist-base npx playwright test -c <scratch config> table-reflow.spec.ts M9.spec.ts:381",
+   "exit": 1,
+   "summary": "2 failed, 6 passed: the new b10 test (315.78125 > 288) and M9.spec.ts:381 (data-board \"populations\"), so M9:381 already fails without the fix"
+  },
+  {
+   "cmd": "npm run size -- --port 7381 --dist <scratch>/dist-base --json; node cmp-size.mjs; node cmp-js.mjs",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget. 57 rows identical, 33 differ by 1 to 2 bytes gzip. Masking the file-name hashes leaves 58 of 59 JS files identical. The one left is export.js, which holds the build commit (36781de against 8569f31), so no route's JavaScript changed. The ToolFrame scoped hash svelte-199a7cw is the same in both. The CSS rule went from .table-fields{border:0;margin:0;padding:0} to {border:0;min-width:0;margin:0;padding:0}"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728), baseline 2728"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no output"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (clean committed tree 8569f31)",
+   "exit": 0,
+   "summary": "links: 4007 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> table-reflow.spec.ts frozen-table-scroll.spec.ts toolframe-hydration.spec.ts T13.spec.ts M9.spec.ts (final build)",
+   "exit": 1,
+   "summary": "87 passed, 1 failed: only the pre-existing M9.spec.ts:381"
+  },
+  {
+   "cmd": "grep -rn \"regression: P6-MERGE-TV-01\" packages/engine/test site/tests",
+   "exit": 0,
+   "summary": "site/tests/e2e/table-reflow.spec.ts:61"
+  },
+  {
+   "cmd": "git diff --name-only 36781de..HEAD | grep -i redteam",
+   "exit": 1,
+   "summary": "nothing (the redteam-* files git ls-files lists are all in build-plan/reports/orchestrator/ at the base)"
+  },
+  {
+   "cmd": "git diff --name-only 36781de..HEAD",
+   "exit": 0,
+   "summary": "site/src/components/board/ToolFrame.svelte, site/tests/e2e/table-reflow.spec.ts"
+  },
+  {
+   "cmd": "git diff 36781de..HEAD added lines: grep em-dash, en-dash, .only(, .skip(, xit(, toBeCloseTo, console.log, ': any', astro dev, export let, $:, on:<event>",
+   "exit": 1,
+   "summary": "nothing printed"
+  },
+  {
+   "cmd": "git log --format=%s 36781de..HEAD",
+   "exit": 0,
+   "summary": "RT-FIX P6-MERGE-TV-01: the table view's inner fieldset no longer sets the width of its tables"
+  },
+  {
+   "cmd": "ps for astro preview on 7380/7381; rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain",
+   "exit": 0,
+   "summary": "no preview running; status empty"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-MERGE-TV-01: T13's narrower tables no longer reflow at 320 px in ToolFrame's table view (the inner fieldset keeps min-inline-size: min-content)",
+   "status": "fixed",
+   "test": "site/tests/e2e/table-reflow.spec.ts > at 320 the table \"The three conditions\" of satake b10 on /modules/m9-real-forms/ is laid out within the width of its table view (with the contrast case: at 320 the table \"Verdict\" of lab on /tools/lab/ is laid out within the width of its table view)",
+   "evidence": "Severity minor. Red on base 36781de: 1 failed, 6 passed, 'laid out 315.78125 pixels wide in a box 288 wide (its narrowest layout is 231.125, the widest table of the view needs 315.78125)'. This matches the confirmer's 316 px. The T4 contrast case passed. The same red came from the branch's test on a scratch-revert build. Cause: the fieldset .table-fields that RT-FIX P6-RT-05-02 placed inside the scroll box div.bare kept the UA default min-inline-size: min-content. So it was as wide as the widest table, and every narrower table was laid out at that width. The old fieldset.bare had min-width: 0. Fix: min-width: 0 on .table-fields. Green: table-reflow + frozen-table-scroll 12 passed. A probe of all 331 tables in the table views of 41 routes at 320 found that only T13's 14 narrower tables changed, all back to 288 px. No other table changed. Every box's scrollWidth is unchanged, so a wider table still scrolls in its named tab-stop box. nojs 198 passed, a11y 91 passed, axe at 320 with the table views open on M9, /tools/satake/ and /embed/satake/ clean. Size 90 routes, 0 over budget, and no JavaScript changed apart from the embedded build commit. Engine 2728 passed (baseline 2728). Commit 8569f31."
+  }
+ ],
+ "deviations": [],
+ "decisionsFragment": "none",
+ "openQuestions": [
+  "site/tests/e2e/M9.spec.ts:381 ('the panel figures without JavaScript', regression P6-RT-06-01, written by shared-a11y on 9b24eea) asserts data-board=\"restricted\" on the b7/b12 restricted board's node buttons. ba3dba8 (RT-FIX P6-RT-10-05, t13 cluster, an ancestor of 36781de) changed RestrictedBoardView.svelte to data-board=\"populations\". So the test fails on the integration head 36781de with or without this change: 'b7 Expected: \"restricted\" Received: \"populations\"'. The two merged clusters disagree, and this belongs to t13-followup or MERGE. I did not touch it, because T13's files and that test are outside this item."
+ ],
+ "handoff": "Both changed files are in the shared-a11y area that this item names: one CSS declaration in ToolFrame.svelte's .table-fields rule and two new tests at the end of table-reflow.spec.ts. The LaTeX branch's edit near the Export LaTeX prop is not in this hunk. A lens rerun can rely on this: T13's narrower tables now lay out at 288 px at 320, the box keeps tabindex 0 and role group, and it still scrolls to 370 px where the restricted table needs it. The one failing browser test seen, M9.spec.ts:381, was already failing at the base (openQuestions). The prompt's suggested fix (min-inline-size: 0 on the inner fieldset) was followed, written as min-width: 0 to match the file's other fieldsets."
+}

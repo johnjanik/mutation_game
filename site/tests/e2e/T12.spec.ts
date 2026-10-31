@@ -1463,4 +1463,68 @@ test.describe('regressions', () => {
     await expect(live(page)).toHaveText('Start set. Numbers now 2, 0.');
     expect(errors).toEqual([]);
   });
+
+  /**
+   * Opens a link and records, when the island's data-hydrated is set, the state shown, whether the board picker
+   * is disabled and the figure's data-drawn. The record is taken in a MutationObserver's callback, which runs in
+   * the task that set the attribute (the hydration task), before any later task. With `popTo`, a second link is
+   * then loaded by the back button's event in that same task.
+   */
+  async function openWatched(page: Page, query: string, popTo: string | null): Promise<void> {
+    await page.addInitScript((to) => {
+      const w = window as unknown as { __atHydration: Record<string, string | null> | null };
+      w.__atHydration = null;
+      new MutationObserver((ms) => {
+        for (const m of ms) {
+          const t = m.target as Element;
+          if (w.__atHydration !== null || t.getAttribute('data-tool') !== 'rep' || t.getAttribute('data-hydrated') !== 'true') continue;
+          w.__atHydration = {
+            board: t.querySelector('[data-out="state-board"]')!.textContent,
+            node: t.querySelector('[data-out="state-node"]')!.textContent,
+            picker: t.querySelector('[data-control="picker"]')!.hasAttribute('disabled') ? 'disabled' : 'enabled',
+            drawn: t.querySelector('[data-drawn]')!.getAttribute('data-drawn'),
+          };
+          if (to !== null) {
+            history.pushState(null, '', to);
+            dispatchEvent(new PopStateEvent('popstate', { state: null }));
+          }
+        }
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-hydrated'] });
+    }, popTo);
+    await page.goto(`${ROUTE}?${query}`);
+    await expect(root(page)).toHaveAttribute('data-hydrated', 'true');
+  }
+  const atHydration = (page: Page): Promise<Record<string, string | null> | null> =>
+    page.evaluate(() => (window as unknown as { __atHydration: Record<string, string | null> | null }).__atHydration);
+
+  // Gate G6, run 1 (reports/gate-G6.md, section 12; the evidence of P6-RT-07-04, refuted as a finding): the
+  // link case of the long-task tests above failed for C8 node 7, because the hydration $effect read the link and
+  // loaded its state (readLink, load) inside the island's hydration task, which then held the hydration of the
+  // server's markup and the re-render to the link's state. A link is now read in a task of its own after
+  // hydration: in the hydration task the figure still shows the server's state, the tool is frozen (no pick can
+  // arrive before the link is read) and the figure counts as being drawn; then the link's state is shown and the
+  // tool is live. A second link loaded by the back button before the first is read is the one shown.
+  // regression: gate G6 run 1, T12.spec.ts link hydration
+  test('a link is read in a task after the hydration task, the tool frozen meanwhile, and a link the back button loads before it is the one shown', async ({ page }) => {
+    test.setTimeout(120000);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await open(page);
+    const server = { board: await out(page, 'state-board').textContent(), node: await out(page, 'state-node').textContent() };
+    expect(server.board, 'the link below names another board than the default state').not.toBe('D4');
+    await openWatched(page, 'g=D4&k=2', null);
+    await shownAndPicked(page, 'D4', 2);
+    await expect(control(page, 'picker')).toBeEnabled();
+    expect(await atHydration(page)).toEqual({ ...server, picker: 'disabled', drawn: 'false' });
+    await expect(out(page, 'relation-verdict')).toHaveAttribute('data-holds', 'false');
+    const second = await page.context().newPage();
+    second.on('pageerror', (e) => errors.push(e.message));
+    await openWatched(second, 'g=A3&k=2', '?g=D4&k=2');
+    await shownAndPicked(second, 'D4', 2);
+    await expect(control(second, 'picker')).toBeEnabled();
+    expect(await atHydration(second)).toEqual({ ...server, picker: 'disabled', drawn: 'false' });
+    expect(await second.evaluate(() => location.search)).toBe('?g=D4&k=2');
+    await second.close();
+    expect(errors).toEqual([]);
+  });
 });

@@ -1,0 +1,224 @@
+{
+ "agent": "rtfix-p6-shared-a11y",
+ "status": "done",
+ "branch": "worktree-agent-aed99a0d0d9bc947e",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-aed99a0d0d9bc947e",
+ "base": "9b24eea928df2ab6faf5e11ed2c229e8807b9ed0",
+ "commits": [
+  "7d61e68 RT-FIX P6-RT-05-01: link colour and focus ring in base.css, so /embed/<id> has them",
+  "e2844c8 RT-FIX P6-RT-05-02: the table view's scroll box is a named tab stop",
+  "e4febcc RT-FIX P6-RT-05-04: a prediction's negative answer is shown with U+2212 and spoken \"minus\"",
+  "46c73aa RT-FIX P6-RT-06-01: the run without JavaScript reads a figure's marks and T13's panel figures",
+  "a4b73b7 RT-FIX P6-RT-05-01 P6-RT-05-02 P6-RT-05-04 P6-RT-06-01: decisions fragment",
+  "2dc24dd RT-FIX P6-RT-06-01: an HTML drawing of role img still needs a child element"
+ ],
+ "filesChanged": [
+  "site/src/layouts/Base.astro",
+  "site/src/styles/base.css",
+  "site/src/components/board/ToolFrame.svelte",
+  "site/src/components/board/Predict.svelte",
+  "site/src/components/tools/t01/interop.ts",
+  "site/tests/e2e/embed.spec.ts",
+  "site/tests/e2e/frozen-table-scroll.spec.ts",
+  "site/tests/e2e/predict-answer-minus.spec.ts",
+  "site/tests/e2e/nojs.spec.ts",
+  "site/tests/e2e/M9.spec.ts",
+  "site/tests/e2e/T14.spec.ts",
+  "decisions/RT-FIX-P6-shared-a11y.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard 9b24eea; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "worktree agent-aed99a0d0d9bc947e, branch worktree-agent-aed99a0d0d9bc947e, base 9b24eea928df2ab6faf5e11ed2c229e8807b9ed0"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: equal to CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 1,
+   "summary": "1 failed | 2727 passed (2728): p6a-restricted 'composite words reflect the shadows' timed out at 5000 ms, load 16 on 4 CPUs; alone: 7 passed"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (base)",
+   "exit": 0,
+   "summary": "90 pages; links: 3998 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch copy, port 7320> the four reproducers (base build)",
+   "exit": 1,
+   "summary": "9 failed, 1 passed (the /tools/atlas control): embed atlas ratio 1.99 rgb(0, 0, 238) on rgb(18, 18, 18); frozen table 'box scrolls (370 in 288) ... focusable inside 0' on b6 and b7 and '(306 in 288)' on M1 b5, axe serious scrollable-region-focusable 'details[open=\"\"] > .bare'; predict result 'The answer is (-1, -1, 0).' and live 'Shown. The answer is (-1, -1, 0). ...'; nojs ['b3 as board','b7 as board','b12 as board'] and ['atlas (page) as drawing'] twice. The affine embed test timed out on hydration under load; alone it gave 1 failed with ratio 1.99 on the [GSS12] link"
+  },
+  {
+   "cmd": "npx playwright test embed.spec.ts -g 'dark theme' (adopted tests, base build)",
+   "exit": 1,
+   "summary": "3 failed, 1 passed (control): atlas and affine ratio 1.99; /embed/garden/ jumpRow and data-table-node buttons 'auto 1px rgb(16, 16, 16)'"
+  },
+  {
+   "cmd": "npm run build (cause 1); npx playwright test embed.spec.ts",
+   "exit": 0,
+   "summary": "101 passed (1.9m)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit contrast.test.ts scaffold.test.ts",
+   "exit": 0,
+   "summary": "27 passed"
+  },
+  {
+   "cmd": "npx playwright test a11y.spec.ts (cause 1 build)",
+   "exit": 1,
+   "summary": "90 passed, 1 failed: modules/m8-lie-algebras/ timed out at 120 s inside axe (load 25); alone it timed out again; the base sources rebuilt time out the same way (load 20)"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings, 1 hint (T06.spec, existing); svelte-check 0 errors, 1 warning (LayerChart.svelte, existing)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit tools/T01.test.ts a11y.test.ts",
+   "exit": 0,
+   "summary": "51 passed"
+  },
+  {
+   "cmd": "npm run build (causes 2, 3); npx playwright test frozen-table-scroll predict-answer-minus predict-result",
+   "exit": 0,
+   "summary": "12 passed"
+  },
+  {
+   "cmd": "scratch mutation build (tabindex removed from the box; Predict back on predictionAnswerText), then the adopted tests",
+   "exit": 1,
+   "summary": "8 failed, 1 passed, with the finding's values ('370 in 288 ... focusable inside 0', '306 in 288', 'The answer is (-1, -1, 0).'); the no-JS test then got an explicit tabIndex assertion, red on the mutation (Expected 0, Received -1); sources restored"
+  },
+  {
+   "cmd": "npx playwright test nojs.spec.ts M9.spec.ts T14.spec.ts -g <the P6-RT-06-01 tests>",
+   "exit": 0,
+   "summary": "6 passed"
+  },
+  {
+   "cmd": "same tests with nojs.spec.ts's base predicate (scratch revert)",
+   "exit": 1,
+   "summary": "4 failed: ['b3 as board','b7 as board','b12 as board'], ['atlas (page) as drawing'] on atlas/B3/ and tools/atlas/, b3 shadow-picture not reported; fixed file restored"
+  },
+  {
+   "cmd": "built pages mutated (shadow picture and restricted nodes renamed away, Atlas node circles turned into ellipses), M9 and T14 no-JS tests",
+   "exit": 1,
+   "summary": "the new M9 and T14 tests failed (2), the existing 'M9 renders without JavaScript' and 'B3 without JavaScript' passed (2); pages restored"
+  },
+  {
+   "cmd": "npm run build (final); npx playwright test frozen-table-scroll predict-answer-minus predict-result predict-focus frozen-board table-reflow toolframe-hydration embed M0 M1 M3 M9 T09 T13 T13-keyboard T14 nojs a11y",
+   "exit": 1,
+   "summary": "608 passed, 3 failed, all test timeouts at load 21 to 25: M1 axe 30 s, M3 axe 30 s, a11y M8 120 s; alone M1 and M3 passed, M8 timed out (same on base)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit toolframe dependencies-bundled contrast history history-popstate-copy-link T01 T10 scaffold a11y",
+   "exit": 1,
+   "summary": "147 passed, 1 failed (history.test.ts 5 s timeout under load); history.test.ts alone: 17 passed"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run size -- --port 7321 (final, then base for comparison)",
+   "exit": 0,
+   "summary": "90 routes measured, 0 over budget; 35 routes grew 0.1 to 0.2 kB of JavaScript; largest /tools/satake/, /embed/satake/ and /modules/m9-real-forms/ 87.1 to 87.2 kB"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after)",
+   "exit": 1,
+   "summary": "3 failed | 2725 passed (2728), all 5 s timeouts at load 17 to 31 (p3b-complete-games cap on A5, p6a-restricted, satake-coordinates); alone: all passed (29, then 6); no engine file changed"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run check -w site (committed tree)",
+   "exit": 0,
+   "summary": "0 errors, 0 warnings"
+  },
+  {
+   "cmd": "npm run build; npx playwright test nojs.spec.ts (after the last predicate commit)",
+   "exit": 0,
+   "summary": "198 passed (4.9m)"
+  },
+  {
+   "cmd": "grep -rn 'regression: P6-RT-' site/tests; git ls-files and diff names for redteam; git diff --name-only 9b24eea..HEAD; git log --format=%s",
+   "exit": 0,
+   "summary": "13 regression markers (embed 4, frozen-table-scroll 2, predict-answer-minus 3, nojs 3, M9 1, T14 1); no redteam file added; no forbidden path changed; every subject starts 'RT-FIX P6-RT-'"
+  },
+  {
+   "cmd": "python3 diff_checks.py on git diff 9b24eea..HEAD",
+   "exit": 0,
+   "summary": "0 added lines with .only(, .skip(, xit(, toBeCloseTo, console.log, : any, astro dev, export let, $:, on: directive, em-dash"
+  },
+  {
+   "cmd": "rm -rf node_modules packages/engine/node_modules site/node_modules site/dist; git status --porcelain; pkill -f 'port [7]32[0-3]'",
+   "exit": 0,
+   "summary": "0 porcelain lines; no preview on ports 7320 to 7323 (the preview still running is another agent's, port 7480)"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-RT-05-01: Attacks 29 and 45: on /embed/<id> links drawn inside a tool keep the browser's default link colour (#0000EE), 1.99 to 1 on the dark page",
+   "status": "fixed",
+   "test": "site/tests/e2e/embed.spec.ts > the dark theme on the embed routes > dark theme, /embed/atlas/?g=E8: every link inside the tool is at least 4.5 to 1 against the page (A-6); ... /embed/affine/ after Play on of the pentagon puzzle ...; control ...; dark theme, /embed/garden/: every tab stop of the tool shows the focus ring it shows on /tools/garden/ (A-2)",
+   "evidence": "Severity major (no adjustment). Red at base 9b24eea: atlas and affine 'ratio 1.99' on rgb(0, 0, 238) against rgb(18, 18, 18); garden jumpRow and data-table-node buttons 'auto 1px'. Cause: the link colour and the a/button focus-visible rule lived only in Base.astro's is:global style, which the embed page does not use. The two rules moved unchanged to styles/base.css, which both pages import. Green: embed.spec.ts 101 passed. Commit 7d61e68."
+  },
+  {
+   "item": "P6-RT-05-02: Attacks 9, 33, 34 and 39: while a prediction is pending, the 'Show as table' view of T13 (M9 b6, b7) and T9 (M1 b5) overflows at 320 with no tab stop (axe scrollable-region-focusable, serious)",
+   "status": "fixed",
+   "test": "site/tests/e2e/frozen-table-scroll.spec.ts > /modules/m9-real-forms/ satake b6 (b7; M1 kostant b5; M3 kostant b8) at 320 x 800, prediction pending, \"Show as table\" open: the table view can be scrolled from the keyboard",
+   "evidence": "Severity major (no adjustment). Red at base: '370 in 288 ... focusable inside 0' on b6 and b7, '306 in 288' on M1 b5, axe serious on 'details[open=\"\"] > .bare'. Cause: the table view scrolled inside a fieldset with no tab stop, so it was reachable only through buttons that are all disabled while frozen (and before hydration). Fix in ToolFrame only: the box is a div with tabindex 0, role group, aria-label 'Table of <title>', the A-2 ring and the hook data-scroll=\"table-view\", outside the fieldset, which still disables the buttons. Green: 12 passed with predict tests. Bite: tabindex removed in a scratch build, 4 frozen tests red with the same messages. M3 b8 was added to the reproducer's cases. Commit e2844c8."
+  },
+  {
+   "item": "P6-RT-05-02 (sibling): the table view's box had no tab stop before hydration and without JavaScript (the fieldset is disabled)",
+   "status": "fixed",
+   "test": "site/tests/e2e/frozen-table-scroll.spec.ts > without JavaScript > /modules/m9-real-forms/ satake b6 at 320 x 800 without JavaScript, \"Show as table\" open: Tab from the summary reaches the box, which scrolls from the keyboard",
+   "evidence": "Same cause and fix (commit e2844c8). Red on the scratch build without tabindex: 'the box is a tab stop of its own' Expected 0, Received -1. Chromium alone reaches a scroll box with nothing focusable inside, so the test asserts tabIndex; green on the final build."
+  },
+  {
+   "item": "P6-RT-05-04: Attacks 1 and 9: a prediction's negative answer is shown and announced with the ASCII hyphen-minus, not read through speak ('minus'); first reached on M9 b6 and b7",
+   "status": "fixed",
+   "test": "site/tests/e2e/predict-answer-minus.spec.ts > M9 b6: \"Show me\" by keys announces the negative answer with \"minus\" and shows it with U+2212 (plus M9 b7 and M0 b4 'Show me', and M0 b4 a wrong answer)",
+   "evidence": "Severity minor (no adjustment); Predict.svelte and interop.ts are files of this cluster. Red at base: 'Expected \"The answer is (−1, −1, 0).\" Received \"The answer is (-1, -1, 0).\"'; live region 'Shown. The answer is (-1, -1, 0). ...'. Cause: the result line and the announcement were built from predictionAnswerText's raw join. interop.ts adds predictionAnswerShown (displayValue) and predictionAnswerSpoken (speak, speakList); Predict uses them. Green: 4 tests passed, predict-result.spec.ts 3 passed. Bite: Predict pointed back at predictionAnswerText in a scratch build, all 4 red. Commit e4febcc."
+  },
+  {
+   "item": "P6-RT-06-01: Attacks 1 and 10, retest of P5-RT-06-01: the no-JS runs accept a blank T13 panel figure (M9 b3 shadow picture, b7 and b12 restricted board) and a blank T14 board drawing as the default figure",
+   "status": "fixed",
+   "test": "site/tests/e2e/nojs.spec.ts > retest P5-RT-06-01 on T13: a blank shadow picture or restricted board passes the runs without JavaScript (M9 b3, b7, b12); same cause on T14: a blank drawing passes the runs without JavaScript (atlas/B3/, tools/atlas/); a T13 panel that names its restricted board without drawing it, or a shadow picture with empty points, is rejected without JavaScript (M9 b3, b7); site/tests/e2e/M9.spec.ts > without JavaScript > the panel figures without JavaScript: the shadow picture of b3, the restricted boards of b7 and b12; site/tests/e2e/T14.spec.ts > regressions > without JavaScript every Atlas drawing holds a disc and a label per node (atlas/B3/, tools/atlas/)",
+   "evidence": "Severity minor (no adjustment); a test-strength finding, so the test is the fix. Red at base (reproducer) and again with the base predicate (scratch revert): ['b3 as board', 'b7 as board', 'b12 as board'] and ['atlas (page) as drawing'] on both routes. Cause: the predicate checked a figure's container, not its marks (any child element counted), and never read T13's configured panel. Fix: SVG figures need a mark outside defs, title and desc; every shown board group and named drawing must hold content; T13's shadow-picture needs a drawn data-point, restricted-board a board, and a panel naming its restricted board must draw it. HTML role-img drawings keep the old rule (commit 2dc24dd, so nothing is loosened). Green: 6 passed; full nojs sweep 198 passed. The M9 and T14 additions fail on built pages with the figures removed, where the existing checks still pass. Commits 46c73aa, 2dc24dd."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX 5.3 (adoption changes names, paths and selectors only)",
+   "what": "frozen-table-scroll.spec.ts adds the case M3 kostant b8 (named in the finding's observed) and a no-JavaScript test; predict-answer-minus.spec.ts adds M9 b7 and M0 b4; the embed adoption adds a garden focus-ring test; the reproducer's selectors details.table-view > summary and fieldset.bare became the summary 'Show as table' and [data-scroll=\"table-view\"]",
+   "why": "they cover parts of the same findings the reproducers did not reach (b7, M3 b8, the garden focus ring) and the no-JS state of the same cause; the reproducers' own inputs and assertions are unchanged"
+  },
+  {
+   "spec": "CONTRACTS 5.1 ToolFrame hooks",
+   "what": "additive hook data-scroll=\"table-view\"; the table fieldset's visually hidden legend 'Table of <title>' became the group's aria-label",
+   "why": "tests must read data-* hooks (5.2) and the box had none; T5's data-scroll=\"tally\" is the precedent. No hook or prop was renamed or removed"
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P6-shared-a11y.md",
+ "openQuestions": [
+  "The <details> answer without JavaScript (Predict's .answer-text) and T10's own <details> still use predictionAnswerText with an ASCII hyphen. Changing them to U+2212 would change expected values in site/tests/unit/tools/T01.test.ts ('(1, -1, 1)') and site/tests/e2e/M9.spec.ts ('every prediction has a details fallback', tuple(THETA13)); left for the owner.",
+  "T2's layer-chart box (.chart-box, tabindex 0, role region) has no focus-visible rule and shows the browser's 'auto 1px' ring on both /tools/garden/ and /embed/garden/ in the dark theme (A-2). Seen in the Tab walk; no finding names it.",
+  "Chromium makes a scroll box with nothing focusable inside keyboard-reachable by itself, so a Tab-only Chromium test cannot show a missing tab stop; tests should assert tabIndex or use axe scrollable-region-focusable.",
+  "a11y.spec.ts 'modules/m8-lie-algebras/' times out at 120 s inside axe at load 20 to 25, on the base sources as well; M1 and M3 lesson axe tests (30 s) and some engine and history unit tests (5 s) also time out under that load and pass alone."
+ ],
+ "handoff": "Files outside the shared-component area: site/src/components/tools/t01/interop.ts (two new pure exports beside predictionAnswerText; that function is unchanged), site/tests/e2e/M9.spec.ts (one new test in its no-JS describe, no content touched) and site/tests/e2e/T14.spec.ts (a regressions block and a header hook name); T13SatakeStudio.svelte and T09 are not edited, since the box is now the tab stop and their table buttons can stay disabled while frozen (the P1-A5 and RT-FIX-P3 records). proposedFix of P6-RT-05-02 asked for role=region; I used role=group, the site's pattern for scroll boxes, to avoid several landmarks with one name on a lesson (axe landmark-unique). The lens rerun should read the box by data-scroll=\"table-view\", not fieldset.bare. The T13-cluster fixer should keep T13's table inside ToolFrame's table snippet, which the box wraps."
+}

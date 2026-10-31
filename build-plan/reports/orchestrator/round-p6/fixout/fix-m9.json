@@ -1,0 +1,226 @@
+{
+ "agent": "rtfix-p6-m9",
+ "status": "done",
+ "branch": "worktree-agent-a2cd2d4659a5716b4",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a2cd2d4659a5716b4",
+ "base": "0436a53efadd67a0d03add5bd286d03b2f5185ca",
+ "commits": [
+  "dc15e78 RT-FIX P6-RT-08-02: M9 beat 1 says black means fixed for real forms, verified by computation",
+  "69c7cff RT-FIX P6-RT-13-02: M9 states the answers of its predictions b6 and b7 in the prose after them",
+  "cc7c65b RT-FIX P6-RT-13-06: M9 links real rank to its glossary entry at its first use",
+  "95641cc RT-FIX P6-RT-13-04: M9 says what k and p are at their first use; glossary row dim k, dim p",
+  "e04d79e RT-FIX P6-RT-05-05: M9's captions and b6's question write w_X and dim k in words and with 𝔨 and 𝔭",
+  "6b8dae8 RT-FIX P6-RT-08-02 P6-RT-05-05 P6-RT-13-02 P6-RT-13-04 P6-RT-13-06: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/content/modules/m9-real-forms.mdx",
+  "site/src/content/pages/glossary.mdx",
+  "site/tests/e2e/M9.spec.ts",
+  "site/tests/unit/content-m9-black-provenance.test.ts",
+  "decisions/RT-FIX-P6-m9.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 0436a53; npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "worktree at base 0436a53; dependencies installed"
+  },
+  {
+   "cmd": "node --version; git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "v22.22.0; the worktree; worktree-agent-a2cd2d4659a5716b4; 0436a53efadd67a0d03add5bd286d03b2f5185ca"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474636fc9..., 485caee8eb85..., 1fc9f82bf62d...: all three equal CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline, load 14)",
+   "exit": 0,
+   "summary": "88 files, 2728 passed"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (base)",
+   "exit": 0,
+   "summary": "links: 3998 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch copy, port 7370> M9.spec.ts -g 'word count' (base)",
+   "exit": 0,
+   "summary": "M9 prose words: 1785"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/redteam-RT-08-p6-m9-black-provenance.test.ts (red at base)",
+   "exit": 1,
+   "summary": "1 failed | 1 passed (2): 'm9-real-forms.mdx beat 1: a general statement with no provenance: expected false to be true'"
+  },
+  {
+   "cmd": "npx playwright test redteam-RT-05-p6-m9-ascii-math (red at base, lens file brought in, then removed)",
+   "exit": 1,
+   "summary": "1 failed: the b2, b3 and b6 captions and the b6 question, with 'w_X', 'dim k = 4' and 'dim k = 9, dim p = 6'"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-m9-black-provenance.test.ts (adopted, red at base)",
+   "exit": 1,
+   "summary": "2 failed | 2 passed (4): the provenance assertion and the scope assertion fail; the computation over the 167 records passes"
+  },
+  {
+   "cmd": "npx playwright test M9.spec.ts -g regressions (adopted tests, base build)",
+   "exit": 1,
+   "summary": "4 failed: the four captions/question; 'b6/b7: stated outside the reveal, after the prediction block, in: nowhere'; first use of 𝔨 in beat 1 has no defining sentence; real rank first used in beat 1, not linked or defined"
+  },
+  {
+   "cmd": "npx playwright test a11y.spec.ts -g m9-real-forms (formula links without a label)",
+   "exit": 1,
+   "summary": "1 failed: link-name (serious) on a[href$=glossary/#dim-k] and a[href$=glossary/#dim-p]; fixed with aria-label"
+  },
+  {
+   "cmd": "commit A: npm run build; npx playwright test M9.spec.ts; vitest content-m9-black-provenance",
+   "exit": 0,
+   "summary": "33 passed, M9 prose words 1792; 4 passed"
+  },
+  {
+   "cmd": "commit B: npm run build; npx playwright test M9.spec.ts glossary-later-uses.spec.ts",
+   "exit": 0,
+   "summary": "35 passed, M9 prose words 1794"
+  },
+  {
+   "cmd": "commit C: npm run build; npx playwright test M9.spec.ts glossary-later-uses.spec.ts",
+   "exit": 0,
+   "summary": "36 passed, 1794 words"
+  },
+  {
+   "cmd": "commit D: npm run build; vitest glossary.test.ts; playwright M9.spec.ts glossary-later-uses.spec.ts M10.spec.ts; a11y.spec.ts nojs.spec.ts -g 'm9-real-forms|glossary/'",
+   "exit": 0,
+   "summary": "3 passed; 57 passed, 1791 words; 6 passed"
+  },
+  {
+   "cmd": "commit E: npm run build; npx playwright test M9.spec.ts glossary-later-uses.spec.ts M10.spec.ts",
+   "exit": 0,
+   "summary": "links 4003 on 90 pages, 0 problems; 58 passed (M9 37, later-uses 1, M10 20), M9 prose words 1791"
+  },
+  {
+   "cmd": "npx playwright test a11y.spec.ts nojs.spec.ts formula-scroll.spec.ts pages.spec.ts -g 'm9-real-forms|glossary' (HEAD)",
+   "exit": 0,
+   "summary": "8 passed"
+  },
+  {
+   "cmd": "npx playwright test M9.spec.ts glossary-later-uses.spec.ts M10.spec.ts formula-scroll.spec.ts pages.spec.ts (final content, before the commit split)",
+   "exit": 0,
+   "summary": "85 passed"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 378 files 0 errors 0 warnings; svelte-check 1207 files 0 errors, 1 warning (src/components/tools/t02/LayerChart.svelte, existing)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-m9-black-provenance glossary content-glossary-fire released numbers-in-prose-fallbacks numbers-in-prose-comments scripts",
+   "exit": 0,
+   "summary": "7 files, 49 passed"
+  },
+  {
+   "cmd": "node scripts/numbers-in-prose.mjs",
+   "exit": 0,
+   "summary": "2 numbers in 1 file (not M9), 5 in fallbacks; 0 lines for m9-real-forms"
+  },
+  {
+   "cmd": "npm test -w packages/engine (clean tree, load 20 to 27, three runs)",
+   "exit": 1,
+   "summary": "2725, 2721 and 2727 passed of 2728: only 5 s timeouts, each in a different file per run; packages/ has no change since base"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- the 7 files that timed out (alone)",
+   "exit": 0,
+   "summary": "p3b-complete-games, p10-affine, mainthread-fast-paths 17 passed; satake-coordinates, p6a-restricted, p6a-satake-computed passed; p7-roots-signs alone 2 passed"
+  },
+  {
+   "cmd": "grep of the added diff lines for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' 'on:' em-dash en-dash",
+   "exit": 1,
+   "summary": "no match"
+  },
+  {
+   "cmd": "git diff --name-only 0436a53..HEAD",
+   "exit": 0,
+   "summary": "5 files, none forbidden, no redteam file"
+  },
+  {
+   "cmd": "grep -rn 'regression: P6-RT-' site/tests",
+   "exit": 0,
+   "summary": "7 lines: M9.spec.ts (05-05, 13-02, 13-04, 13-06), content-m9-black-provenance.test.ts (08-02 three times)"
+  },
+  {
+   "cmd": "git log --format=%s 0436a53..HEAD",
+   "exit": 0,
+   "summary": "6 subjects, each starting with 'RT-FIX P6-RT-'"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep -f 'port 7370'",
+   "exit": 0,
+   "summary": "status empty; no preview server"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-RT-08-02: Attack 26: M9 beat 1 states 'A node is black exactly when θ fixes its root' with no provenance, and the statement depends on condition 2",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m9-black-provenance.test.ts > its paragraph, or the Seen box that restates it, carries a provenance (+ 'the sentence itself says which pairs it is true of, and carries its provenance', 'verified by computation: on every record of the catalogue, a node is black exactly when theta fixes its root')",
+   "evidence": "severity major (original and verifiers). Red at base 0436a53: 1 failed | 1 passed (the reproducer), 2 failed | 2 passed (adopted file), 'a general statement with no provenance: expected false to be true'. Cause: a consequence of condition 2 stated as a general fact, with no provenance. Fix: '..., for every real form, verified by computation;'. The computation is the test: engine theta on the simple roots of all 167 records, plus the A3 case with nodes 1 and 2 black where theta(alpha_1) = alpha_2 (oracle (0, 1, 0)). Green: 4 passed. Commit dc15e78."
+  },
+  {
+   "item": "P6-RT-05-05: Attack 36: M9's T13 captions and b6's prediction question write mathematics as ASCII TeX ('w_X', 'dim k = 4', 'dim p = 6')",
+   "status": "fixed",
+   "test": "site/tests/e2e/M9.spec.ts > regressions > M9: no T13 caption or prediction question writes mathematics as ASCII TeX (w_X, dim k, dim p)",
+   "evidence": "severity minor. Red on the base build: 1 failed, listing the b2, b3 and b6 captions and the b6 question. Cause: the lesson's caption and question props spelled formulas as ASCII TeX. Fix: they now read 'the longest word of the black nodes', 'dim 𝔨' and 'dim 𝔭', as T13's captions do (P6-A3 ruling (6)). Green: 37 passed in M9.spec.ts. Commit e04d79e."
+  },
+  {
+   "item": "P6-RT-13-02: Attack 8 (P2): the answers of M9's two predictions are stated only in their reveals, and M9.spec.ts asserts that the prose must not state them (the sibling of P5-RT-13-01)",
+   "status": "fixed",
+   "test": "site/tests/e2e/M9.spec.ts > regressions > without JavaScript > the answers of M9 predictions b6 and b7 are stated outside their reveals, after the prediction block",
+   "evidence": "severity major. Red on the base build: 'b6: stated outside the reveal, after the prediction block, in: nowhere', and the same for b7. Cause: both answers were only in the closed details. Fix: beat 6 opens 'In the last figure θ sends (0,0,1) to (−1,−1,0).' and beat 7 opens 'Restricted node 2 and then node 1 give the shadow coordinates (−1,−1).', both computed by the engine. M9.spec.ts:437 (no (−1,−1,0) anywhere in the prose) is replaced by 'no text before b6 holds it', which is the M8 pattern. Green: 35 passed. Commit 69c7cff."
+  },
+  {
+   "item": "P6-RT-13-04: Attack 13 and LO9: the reader is asked to read dim 𝔨 and dim 𝔭 on M9, but 𝔨 and 𝔭 are defined nowhere on the reader's path or in the glossary",
+   "status": "fixed",
+   "test": "site/tests/e2e/M9.spec.ts > regressions > without JavaScript > 𝔨 and 𝔭 are defined at their first use on M9, and the glossary has entries for them that later uses link",
+   "evidence": "severity major. Red on the base build: the first use (beat 1, 'The data of beat 5 differ too: real rank 1 against 0, dim 𝔨 1 against 3.') has no defining sentence, and the glossary has no entry. Fix: beat 1 says 'On the real form, θ fixes a part 𝔨 and changes the sign of a part 𝔭.'; glossary row 87 adds dim-k and dim-p; later uses in beats 4 and 5 link there with aria-labels. Axe link-name was red on bare formula links and is green with the labels. Green: 57 passed (M9, later-uses, M10), axe and nojs 6 passed. Commit 95641cc."
+  },
+  {
+   "item": "P6-RT-13-06: Attack 13: 'real rank' first appears on the reader's path in M9 beat 1, undefined and unlinked; it is defined in beat 5",
+   "status": "fixed",
+   "test": "site/tests/e2e/M9.spec.ts > regressions > without JavaScript > real rank is defined or linked to its glossary entry at its first use on M9",
+   "evidence": "severity minor from the lens, raised to major by both verifiers. Red on the base build: 'real rank, first used in beat 1: ... expected true, received false'. Fix: the first use links to glossary#real-rank through Term, with no word added. Green: 36 passed. Commit cc7c65b."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX 5.3 (adoption changes only names, paths, selectors)",
+   "what": "Three tests were added beside the RT-08 reproducer: the scope and provenance sit in the sentence itself, and the computation over the catalogue. The RT-13 scripts became Playwright tests that ask for more than the scripts did: P6-RT-13-04 needs both a definition at first use and glossary entries with linked later uses, where the script took either one.",
+   "why": "The findings' expected text asks for both, and the provenance 'verified by computation' needs its computation in the suite. All additions point the stronger way, and the reproducers' inputs and expected values are unchanged."
+  },
+  {
+   "spec": "M9.spec.ts:437",
+   "what": "The assertion that the whole article prose does not contain (−1,−1,0) is replaced by one that no text before b6 contains it.",
+   "why": "The finding asks for exactly this replacement, following M8's P5-RT-13-01. The 'after' half is the regression test."
+  }
+ ],
+ "requests": [
+  {
+   "to": "MERGE",
+   "what": "When folding decisions/RT-FIX-P6-m9.md, note in DECISIONS.md that the node labels 2 and 1 in beat 7's first sentence of M9 join the list 'numbers typed without a golden value' of decisions/P6-A7.md."
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P6-m9.md",
+ "openQuestions": [
+  "Beat 3 says 'exactly the roots of the black sub-board cast the shadow zero'. It has the same hypothesis gap: on A3 with nodes 1 and 2 black and τ the identity, the shadow of α1 is ½(α1 − α2), not zero. Its paragraph does carry 'verified by computation for every real form in the catalogue'. No finding names it, so it is not fixed.",
+  "npm test -w packages/engine on the clean tree, at load 19 to 27 on 4 processors, gave 1 to 7 tests over the 5 s timeout, in a different file on each run. Every one of those files passes alone. No file under packages/ changed. The baseline at load 14 was 2728 passed.",
+  "Running a scratch copy of playwright.config.ts that imports site/astro.config.mjs or site/src/lib/siteAndBase.mjs makes Playwright load those modules as CommonJS. pages.spec.ts then fails with 'does not provide an export named outDirFrom'. The copy used here hardcodes base '/'. Other agents following P6-FIX-INSTRUCTIONS may hit this."
+ ],
+ "handoff": "Only one file outside the M9 files changed: site/src/content/pages/glossary.mdx. Row 87 (dim-k, dim-p) is appended after row 86, with no other row touched, so it should not conflict with the m10-glossary cluster's rows 35, 36 and 64. M9 is at 1791 words (base 1785), with cuts in beat 2, the opening of beat 6 and the Lie theory paragraph, all recorded in the fragment. The page's Term helper now takes an optional label (aria-label) for links whose text is a formula. For the lens rerun: the RT-08 proposal 'by condition 2, verified by computation' was shortened to 'for every real form, verified by computation' to fit the word budget. The proposedFix of RT-13-02, RT-13-04 and RT-13-06 was followed as written. No T13 code, T13 spec or Predict file was touched."
+}

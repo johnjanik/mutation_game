@@ -1,0 +1,76 @@
+[
+ {
+  "id": "P6-RT-08-04",
+  "severity": "minor",
+  "title": "Attack 30 (a), sibling of P5-RT-08-01: the Atlas writes 'the fundamental weight ω_i' in its sentences and link texts, where the site's word is the fundamental position e_i",
+  "location": "site/src/components/atlas/AtlasSheet.astro:236, :258; site/src/components/atlas/atlasData.ts:341, :347 (all 32 /atlas/<T>/ pages)",
+  "claim": "T14, new in phase 6, uses the Lie theory name as its working term in tool text. The phase 5 fix removed exactly this from T12, on the ground of Appendix C and 8.4.",
+  "expected": "SPEC 8.4 'Use the site's words consistently ... Give the standard term once, in the Lie theory paragraph'; Appendix C 'fundamental position e_i'. DECISIONS RT-FIX-P5-t12-content: 'every text T12 writes names the fundamental position of node i e_i ... the site's term of SPEC Appendix C; omega_i stays in the Lie theory paragraphs'.",
+  "observed": "/atlas/A2/: 'The orbit of the fundamental weight ω_i of each node, in the order of the nodes, has (3, 3) positions.'; 'A node is minuscule when every number fired in the game from its fundamental weight is 1'; link texts 'Play the numbers game on A2 from the fundamental weight of node 1 in the Game Board; played to the end it stops at minus the weight of node 2' and 'Open the Orbit Garden on A2 at the fundamental weight of node 1 and grow its orbit'. No other tool or lesson outside a Lie theory paragraph writes ω_i or 'fundamental weight' (extraction of 90 routes).",
+  "reproduction": "npm ci --prefer-offline; npx vitest run site/tests/unit/redteam-RT-08-p6-atlas-omega.test.ts (2 tests fail and list the four lines)",
+  "specRef": "SPEC 8.4 bullets 1 and 2; Appendix C row 'fundamental position e_i'; DECISIONS.md 2026-10-25 RT-FIX-P5-t12-content. The item heading 'Orbits of the fundamental weights' follows SPEC 4 T14's list and is not counted.",
+  "proposedFix": "Write e_i and 'the fundamental position of node 1' in the sentences and link texts, keeping the heading from the T14 list.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p6-atlas-omega.test.ts",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a3775b5da62a67ad5",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-08-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.4 bullets 1 and 2; Appendix C row 'fundamental position e_i'; DECISIONS.md 2026-10-25 RT-FIX-P5-t12-content. The item heading 'Orbits of the fundamental weights' follows SPEC 4 T14's list and is not counted.",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-atlas-omega.test.ts, absent at the gate. git status --porcelain lists it as 'A', plus the earlier applied files. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-atlas-omega.test.ts, exit 1. Output: 'Tests 2 failed (2)'. The four lines it lists: 'AtlasSheet.astro:236: A node is minuscule when every number fired in the game from its fundamental weight is 1; ...'; 'AtlasSheet.astro:258: The orbit of the fundamental weight <Fragment set:html={tex('\\\\omega_i')} /> of each node, in the order of the nodes, has'; 'atlasData.ts:341: `Play the numbers game on ${name} from the fundamental weight of node 1 in the Game Board; played to the end it stops at minus the weight of node ${mi'; 'atlasData.ts:347: `Open the Orbit Garden on ${name} at the fundamental weight of node 1 and grow its orbit`'. Built /atlas/A2/ text reads: 'The orbit of the fundamental weight ωi of each node, in the order of the nodes, has (3, 3) positions.'; 'A node is minuscule when every number fired in the game from its fundamental weight is 1'; 'Play the numbers game on A2 from the fundamental weight of node 1 in the Game Board; played to the end it stops at minus the weight of node 2'; 'Open the Orbit Garden on A2 at the fundamental weight of node 1 and grow its orbit'. This matches observed. SPEC 8.4 bullet 2 reads: 'Use the site's words consistently ... Give the standard term once, in the Lie theory paragraph.'",
+    "severityAdjustment": "raise to major",
+    "reason": "reproduced as stated; observed matches: 2 tests fail on AtlasSheet.astro:236 and :258 and atlasData.ts:341 and :347, and /atlas/A2/ prints 'the fundamental weight ωi'; Lie theory terms in tool text break SPEC 8.4 bullet 2, and RED-TEAM-COMMON 4 lists 'a prose rule of 8.4 broken' as major, which is also the level of the phase 5 sibling P5-RT-08-01"
+   },
+   "refute": {
+    "findingId": "P6-RT-08-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 8.4 bullet 2: 'Use the site's words consistently ... Give the standard term once, in the Lie theory paragraph'. Appendix C row 'fundamental position e_i' / 'fundamental weight ω_i'. DECISIONS.md 'RT-FIX-P5-t12-content: the fundamental position written e_i'. These support the finding.",
+    "evidence": "At f07eec6, AtlasSheet.astro:236 reads 'every number fired in the game from its fundamental weight is 1' and :258 reads 'The orbit of the fundamental weight ω_i of each node'. atlasData.ts:341 and :347 put 'the fundamental weight of node 1' in the link texts. SPEC 4 T14 lists 'orbit sizes of the fundamental weights', but that is the item list, and the finding exempts the heading. SPEC T12 also writes ω_i, and still the logged RT-FIX-P5-t12-content reading ('What the specification left open: nothing, by Appendix C and 8.4') required e_i in every text the tool writes. So the T14 entry's wording permits no more than T12's did. P6-A4's fragment ('the items as shown', 'names', 'four link and sentence texts', 'provenance') and the MERGE P6-A4 rulings record no choice of this term. It is not in the known-and-decided list. T14 is phase 6.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 T14's list names the item, not the sentence wording, and the same use of ω_i in SPEC T12 was not taken as permission for T12; R2 the finding reads Appendix C and 8.4 as the logged RT-FIX reading does; R3 T14 is phase 6; R4 the oracle does not decide this; R5 no logged choice for T14's wording; R6 the P5-RT-08-01 fix covered T12 only. Minor is the rubric's level for wording or a name."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-10-02",
+  "severity": "major",
+  "title": "Every Atlas page shows the highest root as a population beside its numbers, and states a = Cp, without the bridge sentence of 2.4(a)",
+  "location": "site/src/components/atlas/AtlasSheet.astro:106 ('the numbers of a position are its Dynkin labels'), :156 ('its numbers are Cθ = ...'), :161, :224 ('The translation a = Cp ...')",
+  "claim": "The 32 Atlas pages put the two views together (a root population and its numbers, and the translator a = Cp) but never print 'The number on node i is the amount by which a mutation would lower city i.' Every other built page that states a = Cp carries the sentence.",
+  "expected": "SPEC 2.4(a): 'The number on node i is the amount by which a mutation would lower city i.' ... 'This sentence is the bridge between the two views and must appear, with the same wording, wherever the two views are shown together [D].'",
+  "observed": "redteam-RT-10-p6-atlas-bridge.mjs on the built site: '32 Atlas pages show a population with its numbers and lack the sentence of 2.4(a)' (A1 to G2). The sentence is present on confusions, glossary, not-quiver-mutation and M0. Example: /atlas/B3/ reads 'The highest root is θ = (1, 2, 2), ...; its numbers are Cθ = (0, 1, 0).' No mention of the bridge in decisions/P6-A4.md.",
+  "reproduction": "npm ci; npm run build; node redteam/redteam-RT-10-p6-atlas-bridge.mjs (exit 1). The same result on the release archive: node redteam/redteam-RT-10-p6-atlas-bridge.mjs <unpacked release-1.0-root.tar.gz>.",
+  "specRef": "SPEC.md 2.4(a) (the bridge sentence and 'must appear ... wherever the two views are shown together [D]'); 4 T14 ('highest roots and their numbers'); RT-10 attack 25",
+  "proposedFix": "Print the sentence of 2.4(a), with the letters set as mathematics, once on each sheet next to the 'Nodes are numbered' paragraph or in the Highest roots item, and assert it in T14.spec.ts.",
+  "reproducer": "redteam/redteam-RT-10-p6-atlas-bridge.mjs",
+  "lens": "RT-10",
+  "branch": "worktree-agent-a689e5f789a50ceae",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-10-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 2.4(a) (the bridge sentence and 'must appear ... wherever the two views are shown together [D]'); 4 T14 ('highest roots and their numbers'); RT-10 attack 25",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied worktree-agent-a689e5f789a50ceae:redteam/redteam-RT-10-p6-atlas-bridge.mjs, which does not exist at the gate commit; git status listed 'A  redteam/redteam-RT-10-p6-atlas-bridge.mjs'. Ran npm ci --prefer-offline (exit 0) and npm run build (exit 0). Ran node redteam/redteam-RT-10-p6-atlas-bridge.mjs; exit 1. Output: 32 lines from 'A1: population and its numbers shown yes; bridge sentence no' to 'G2: ... bridge sentence no', then 'confusions: bridge sentence yes', 'glossary: bridge sentence yes', 'not-quiver-mutation: bridge sentence yes', 'modules/m0-start: bridge sentence yes', and '32 Atlas pages show a population with its numbers and lack the sentence of 2.4(a)'. Cross-check by grep: 0 files under site/dist/atlas/ contain 'would lower city', and site/dist/atlas/B3/index.html contains 'The highest root is <katex...>' and 'its numbers are <katex...>'. Observed matches the finding: 32 Atlas pages, A1 to G2, lack the sentence. After the run the tree held only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: '32 Atlas pages show a population with its numbers and lack the sentence of 2.4(a)', and the sentence is present on confusions, glossary, not-quiver-mutation and M0"
+   },
+   "refute": {
+    "findingId": "P6-RT-10-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 2.4(a) [D]: 'The number on node i is the amount by which a mutation would lower city i. ... This sentence is the bridge between the two views and must appear, with the same wording, wherever the two views are shown together [D].' SPEC 1.7: 'the two views of a board are called Populations (the mutation game; roots) and Numbers (the numbers game; weights)'. SPEC 4 T14: 'highest roots and their numbers'.",
+    "evidence": "The [D] sentence is an obligation ('must appear ... wherever'). It has no exception for static or reference pages. By SPEC 1.7 the two views are Populations (roots) and Numbers. AtlasSheet.astro at f07eec6 prints θ (a root population) beside 'its numbers are Cθ', the highest short root 'with the numbers', the paragraph 'A population lists the coefficients of a root ...; the numbers of a position are its Dynkin labels', and 'The translation a=Cp sends the populations onto ...'. So the Atlas puts both coordinate systems of one root side by side, which T14 itself requires. Bridge records in DECISIONS.md: P1-A5, P1-A8, P1-A9, P3-A4, P3-A8, P3-A9 'no linked view' (M5, about T1's linked view only) and the P6-A8 glossary row 10. None exempts the Atlas. The P6-A4 entries (lines 3990 to 4039) and 'MERGE: P6-A4 reviewed; rulings' never mention the sentence. Earlier rounds' coverage lines (round-p4 RT-10, round-p5 RT-10 and RT-08) apply the sentence wherever both views appear, including prose pages such as /not-quiver-mutation/, and excuse it only where a page shows one view (T10, T11, T12, M8). The known-and-decided list has no bridge item. The P6-A4 plan has no bridge item. reports/gate-G6.md has no open item.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, because 2.4(a) [D] has no qualifier that lets a page showing a population and its numbers together leave the sentence out; R2 failed, because the finding quotes the sentence exactly and the Atlas does show both views by 1.7's definition; R3 failed, because T14 is phase 6, at G6; R4 does not apply; R5 failed, because the [D] text requires the sentence and leaving it out is a departure, not a choice within the text, with no owner ruling; R6 failed, because no earlier ruling or open item covers the Atlas. A stated message is missing, so the severity stays major."
+   }
+  }
+ }
+]

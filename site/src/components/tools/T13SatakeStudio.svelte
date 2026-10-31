@@ -50,6 +50,7 @@
     defaultRoot,
     diagramOf,
     displayName,
+    drawnPosition,
     exportData,
     failureNote,
     failureSentence,
@@ -215,15 +216,18 @@
   const rows = $derived(data !== null && panel === 'shadows' ? shadowRows(d) : null);
   const points = $derived(rows !== null && data !== null ? shadowPoints(d, data, rows) : null);
   const drawn = $derived(data?.drawing ? boardOf(data.drawing.name) : null);
+  // The coordinates, the names and the pairs of the drawn restricted board, indexed by its positions (the
+  // Bourbaki order of the drawing's arrays); a drawn node's label becomes a position only by drawnPosition (E-7).
   const drawnValues = $derived.by(() => {
     if (drawn === null || coords === null) return null;
-    return drawn.labels.map((l) => String(coords[l - 1]!));
+    return coords.map((c) => String(c));
   });
   const drawnNames = $derived.by(() => {
-    if (drawn === null || data === null) return [];
-    return drawn.labels.map((l) => `${restrictedNodeName(d, data, l)}${coords !== null ? `, shadow coordinate ${speakList([coords[l - 1]!])}` : ''}`);
+    if (drawn === null || data === null || data.drawing === null) return [];
+    const drawing = data.drawing;
+    return drawn.labels.map((l) => `${restrictedNodeName(d, data, l)}${coords !== null ? `, shadow coordinate ${speakList([coords[drawnPosition(drawing, l)]!])}` : ''}`);
   });
-  const drawnPairs = $derived(drawn === null || data === null ? [] : drawn.labels.map((l) => `(${data.drawing!.pairs[l - 1]![0]}, ${data.drawing!.pairs[l - 1]![1]})`));
+  const drawnPairs = $derived(drawn === null || data === null || data.drawing === null ? [] : data.drawing.pairs.map(([a, b]) => `(${a}, ${b})`));
   const composite = $derived(step !== null && step.kind === 'composite' ? step : null);
   const catalogue = $derived(panel === 'catalogue' ? catalogueRows(cfg.board) : null);
   const roots = $derived(rootsOffered(board));
@@ -305,7 +309,17 @@
     cfg = next;
     play = { start: defaultRoot(d), steps: [], cursor: 0 };
     refresh();
-    void loadNames().then(() => namesVersion++);
+  }
+
+  /**
+   * Fetches the typeset names of the board shown (t13/names.ts: one small chunk per board), wherever the Studio
+   * shows a pair the server did not render: a link read while the island hydrates, the reader's own actions (a
+   * paint, tau, the picker, an example, a catalogue entry, a panel) and the back button. SPEC 7.6 counts every
+   * script a route fetches before the first interaction; one board's names keep a link state within 90 kB, and
+   * the default state fetches none (decisions/RT-FIX-P6-t13-followup.md; RT-FIX P6-RT-07-01, P6-MERGE-T13-01).
+   */
+  function loadTypesetNames(): void {
+    void loadNames(cfg.board).then(() => namesVersion++);
   }
 
   function readLink(): void {
@@ -318,6 +332,7 @@
       predictionResolved = true;
     }
     setConfig(next);
+    loadTypesetNames();
   }
 
   // Hydration: read the URL once with the instance prefix (6.6), and ask the worker for data the server
@@ -340,6 +355,7 @@
     const black = isBlack ? cfg.black.filter((l) => l !== label) : [...cfg.black, label].sort((a, b) => a - b);
     notice = null;
     setConfig({ board: cfg.board, black, tau: cfg.tau });
+    loadTypesetNames();
     announce(announcePaint(board, label, !isBlack, lv));
   }
 
@@ -347,6 +363,7 @@
     if (frozen) return;
     notice = null;
     setConfig({ board: cfg.board, black: cfg.black, tau: tauToLabels(board, t) });
+    loadTypesetNames();
     announce(announceTau(board, d.tau, lv));
   }
 
@@ -355,6 +372,7 @@
     if (frozen || !T13_BOARDS.includes(name)) return;
     notice = null;
     setConfig(splitState(name));
+    loadTypesetNames();
     announce(`Board ${name}, no black node, τ the identity. ${verdictTail(lv)}`);
   }
 
@@ -363,6 +381,7 @@
     if (frozen) return;
     notice = null;
     setConfig(next);
+    loadTypesetNames();
     exampleLoaded(instanceId, toolStateOf(next));
     announce(`Loaded ${what}. ${verdictTail(lv)}`);
   }
@@ -495,7 +514,7 @@
   /** Opens a panel; the reader's first action also fetches the typeset names (t13/names.ts). */
   function openPanel(id: T13Panel): void {
     panel = id;
-    void loadNames().then(() => namesVersion++);
+    loadTypesetNames();
   }
 
   function onTabKey(event: KeyboardEvent): void {
@@ -904,7 +923,7 @@
             >
           </td>
           <td class="numeral">{cfg.tau[j]}</td>
-          <td class="numeral">{inLabelOrder(board, shown)[j]}</td>
+          <td class="numeral" data-table-population={l}>{intText(inLabelOrder(board, shown)[j]!)}</td>
         </tr>
       {/each}
     </tbody>
@@ -926,11 +945,12 @@
       </thead>
       <tbody>
         {#each drawn.labels as l (l)}
+          {@const p = drawnPosition(data.drawing, l)}
           <tr>
             <th scope="row">{l}</th>
             <td class="numeral">{orbitText(d, data, l)}</td>
-            <td class="numeral">{drawnPairs[l - 1]}</td>
-            <td class="numeral">{coords === null ? '' : intText(coords[l - 1]!)}</td>
+            <td class="numeral">{drawnPairs[p]}</td>
+            <td class="numeral">{coords === null ? '' : intText(coords[p]!)}</td>
             <td>
               <button type="button" class="cell" data-table-restricted={l} disabled={!api.hydrated || frozen} aria-label="Play the composite move of restricted node {l}" onclick={() => compositeMove(l, api.announce)}
                 >Play</button
@@ -966,7 +986,10 @@
   {figureLabel}
   boardName={cfg.board}
   derivedForExport={() => exportData(d, adm, data, data === null ? null : shadowRows(d))}
-  onPopState={() => readLink()}
+  onPopState={() => {
+    readLink();
+    loadTypesetNames();
+  }}
   {figure}
   {table}
 />

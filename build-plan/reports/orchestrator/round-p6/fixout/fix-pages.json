@@ -1,0 +1,212 @@
+{
+ "agent": "rtfix-p6-pages",
+ "status": "done",
+ "branch": "worktree-agent-afcbb146688e20524",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-afcbb146688e20524",
+ "base": "e76cd3d385cade2a0a3e78b1bc21897c73057522",
+ "commits": [
+  "c23e8be RT-FIX P6-RT-09-02: the history page states the theorem of [DE08] with its hypothesis",
+  "98c437b RT-FIX P6-RT-08-01: /open-problem/ places the Mutation Conjecture in section 2 of [W20]",
+  "8d45331 RT-FIX P6-RT-08-08: the section on lattices of /confusions/ gives its provenance",
+  "5a190f7 RT-FIX P6-RT-10-04: record defaults D10 and D12 in the decisions fragment",
+  "476ab7b RT-FIX P6-RT-08-07: /confusions/ names node i once per sentence"
+ ],
+ "filesChanged": [
+  "decisions/RT-FIX-P6-pages.md",
+  "site/src/content/pages/confusions.mdx",
+  "site/src/content/pages/history.mdx",
+  "site/src/content/pages/open-problem.mdx",
+  "site/tests/unit/content-confusions-node-city.test.ts",
+  "site/tests/unit/content-confusions-provenance.test.ts",
+  "site/tests/unit/content-history-de08-hypothesis.test.ts",
+  "site/tests/unit/content-open-problem-w20-section.test.ts",
+  "site/tests/unit/repo-defaults-recorded.test.ts"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD (after git reset --hard e76cd3d)",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-afcbb146688e20524; worktree-agent-afcbb146688e20524; e76cd3d385cade2a0a3e78b1bc21897c73057522"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474636fc9..., 485caee8eb85..., 1fc9f82bf62d...: all three equal CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed (before the container restart; node_modules was kept)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline, load 0.7)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728)"
+  },
+  {
+   "cmd": "TMPDIR=<scratch>/tmp npx vitest run --project site-unit site/tests/unit/content-history-de08-hypothesis.test.ts (red, base)",
+   "exit": 1,
+   "summary": "1 failed (1): history (2008): \"... a connected graph with whole-number road counts is a Dynkin diagram of finite type ...\" ... ends after 2 moves ...: expected true to be false"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-open-problem-w20-section, content-confusions-node-city, content-confusions-provenance, repo-defaults-recorded (red, base)",
+   "exit": 1,
+   "summary": "Test Files 4 failed (4); Tests 6 failed | 3 passed (9); received: open-problem.mdx:31 'states it near its end (page {'57'} ...'; the 'city $i$ ... node $i$' sentence; ['lattices']; missing ['D10','D12']"
+  },
+  {
+   "cmd": "grep -rn -E 'MutationGraph|\\bEnglish\\b|section 10, D1[02]|^## .*\\bD1[02]\\b' DECISIONS.md decisions/ (red, base)",
+   "exit": 1,
+   "summary": "no output: no record of D10 or D12"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-history-de08-hypothesis.test.ts (green after c23e8be)",
+   "exit": 0,
+   "summary": "1 passed (1)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit content-open-problem-w20-section, content-confusions-provenance (green before 98c437b and 8d45331)",
+   "exit": 0,
+   "summary": "both files passed; node-city still red as expected until 476ab7b"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit repo-defaults-recorded.test.ts (green with the fragment)",
+   "exit": 0,
+   "summary": "3 passed (3)"
+  },
+  {
+   "cmd": "grep (the same) on the branch",
+   "exit": 0,
+   "summary": "decisions/RT-FIX-P6-pages.md:3 '## 2026-10-31 RT-FIX-P6-pages: D12 default used, English (P6-RT-10-04)'; :6 '## 2026-10-31 RT-FIX-P6-pages: D10 default used, the projects kept separate (P6-RT-10-04)'"
+  },
+  {
+   "cmd": "node <scratch>/sim/redteam/defaults.mjs (the lens script on DECISIONS.md + the fragment, a simulated fold)",
+   "exit": 0,
+   "summary": "D10: 1 dated entries; D12: 1 dated entries; D6 owner's part"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (5 adopted files + content-open-problem, links-internal, released, scaffold) from a clean tree",
+   "exit": 0,
+   "summary": "Test Files 9 passed (9); Tests 42 passed (42)"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run check -w site (final)",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings, 1 hint (T06.spec.ts, existing); svelte-check 0 errors, 1 warning (LayerChart.svelte, existing)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build",
+   "exit": 0,
+   "summary": "built; links: 3998 internal links on 90 pages of site/dist checked, 0 problems"
+  },
+  {
+   "cmd": "PLAYWRIGHT_BROWSERS_PATH=... npx playwright test -c <scratch>/rtfix-p6-pages/pw.config.ts (port 7340) pages.spec.ts pages-6.spec.ts glossary-later-uses.spec.ts",
+   "exit": 0,
+   "summary": "45 passed (5.4m)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7340> nojs.spec.ts a11y.spec.ts --grep \"(history|confusions|open-problem)/\"",
+   "exit": 0,
+   "summary": "9 passed (41.6s)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after, load 26)",
+   "exit": 1,
+   "summary": "9 failed | 2719 passed (2728), every failure 'Test timed out in 5000ms' (satake-coordinates, p6a-restricted, mainthread-fast-paths, p7-roots-signs, p10-affine, p3b-complete-games); no engine file is in the diff"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- <each of the six timed-out files, alone>",
+   "exit": 0,
+   "summary": "16, 7, 10, 2 and 7 tests passed, all files green"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- --maxWorkers=2 (load 25), then npm test -w packages/engine (load 11 to 20)",
+   "exit": 1,
+   "summary": "3 timeouts, then 1 timeout (p7-roots-signs, 6.6 s against the 5 s limit); 2725 and 2727 passed of 2728"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- --maxWorkers=1 (load 23)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728), the baseline count"
+  },
+  {
+   "cmd": "sh <scratch>/diffchecks.sh (RT-FIX section 6 greps over git diff e76cd3d..HEAD)",
+   "exit": 0,
+   "summary": "forbidden paths: none; .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' 'on:': 0 each; em-dash 0 in diff and commit messages; no redteam file added; 5 subjects all 'RT-FIX P6-RT-..'"
+  },
+  {
+   "cmd": "rm -rf node_modules packages/engine/node_modules site/node_modules site/dist; git status --porcelain; pgrep -af 'port 7340'",
+   "exit": 0,
+   "summary": "status empty; no server on 7340"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-RT-08-01: /open-problem/ says [W20] states the Mutation Conjecture 'near its end'; the P6-A6 repair fixed only /history/",
+   "status": "fixed",
+   "test": "site/tests/unit/content-open-problem-w20-section.test.ts > /open-problem/ says [W20] states the Mutation Conjecture near its end: open-problem.mdx does not say that [W20] states it near its end",
+   "evidence": "severity major (no adjustment). Red at base e76cd3d: the test failed with the verifier's observed value, received 'open-problem.mdx:31: The paper <Cite k=\"W20\"/> states it near its end (page {'57'}, without a number) for any multigraph'. Cause: the sentence placed the conjecture near the end of a paper on pp. 55-78 that states it on p. 57 in section 2 (SOURCES.md 11.1, SPEC 2.11). It now reads 'states it in its section {'2'} (page {'57'}, without a number)', as /history/ does. Green: 3 passed. Commit 98c437b."
+  },
+  {
+   "item": "P6-RT-09-02: The history page states Donnelly and Eriksson's finite-type theorem without the hypothesis that roads run both ways; the one-way board contradicts it",
+   "status": "fixed",
+   "test": "site/tests/unit/content-history-de08-hypothesis.test.ts > the one-way board is connected, not of finite type, and the game from (1,0) ends",
+   "evidence": "severity blocker. Red at base e76cd3d: 1 failed (1), 'history (2008): \"... a connected graph with whole-number road counts is a Dynkin diagram of finite type exactly when ...\". The one-way board ... ends after 2 moves ...: expected true to be false'. The engine asserts classify kinds ['one-way'] and play {status 'ended', moves 2, end [-1,-1]}, which matches the oracle. Cause: the theorem of [DE08] was stated without its hypothesis (SOURCES.md [DE08], M3 beat 7, SPEC 2.1). It now reads 'a connected graph whose roads all run both ways, with whole-number road counts, is a Dynkin diagram of finite type ...'. Green: 1 passed. Commit c23e8be."
+  },
+  {
+   "item": "P6-RT-08-07: Attack 39: /confusions/ names city i and node i in one sentence",
+   "status": "fixed",
+   "test": "site/tests/unit/content-confusions-node-city.test.ts > no sentence of the page other than the bridge sentence names both node i and city i",
+   "evidence": "severity minor. Fixed under RT-FIX 5.4.7, because confusions.mdx was already being changed for P6-RT-08-08, which was adjusted to major. Red at base: received ['The first relation says: translate a population $p$ into the position $a=Cp$, and a mutation at city $i$ becomes the firing of node $i$.']. Cause: one sentence called the same place city i and node i (SPEC 8.1 P8). It now says 'a mutation at node $i$', as that section's own matrix forms do. Green: 1 passed. Commit 476ab7b."
+  },
+  {
+   "item": "P6-RT-08-08: Attacks 26 and 37: /confusions/ promises a source for every correction, but the section 'Which lattice each game lives in' has none",
+   "status": "fixed",
+   "test": "site/tests/unit/content-confusions-provenance.test.ts > each section carries a citation or a computation",
+   "evidence": "severity minor as filed, raised to major by the reproduce verifier (refute: none); worked as major. Red at base: 'sections of confusions.mdx with no source for their correction: expected [ 'lattices' ] to deeply equal []'. Cause: the section stated SPEC 2.6's definitions and the index det C without provenance. It now says the two readings are definitions (the standard reading in Lie theory, used throughout the site), and that the index is a fact of linear algebra, in the Atlas's wording (an integer matrix with a nonzero determinant sends the integer vectors onto a sublattice whose index is the absolute value of its determinant). No citation was invented. Green: 2 passed. Commit 8d45331. The choice is recorded in the fragment."
+  },
+  {
+   "item": "P6-RT-10-04: DECISIONS.md records neither default D12 (English) nor D10 (keep separate from MutationGraph)",
+   "status": "fixed",
+   "test": "site/tests/unit/repo-defaults-recorded.test.ts > every default due by phase 6 has a dated entry in DECISIONS.md or a decisions fragment (with the two record tests in the same file); decisions/RT-FIX-P6-pages.md > ## 2026-10-31 RT-FIX-P6-pages: D12 default used, English (P6-RT-10-04) and ## 2026-10-31 RT-FIX-P6-pages: D10 default used, the projects kept separate (P6-RT-10-04)",
+   "evidence": "severity major. Red at base: the grep over DECISIONS.md and decisions/ printed nothing (exit 1), and the adopted test failed with missing ['D10','D12'] (3 failed). Fix: two dated entries in the fragment for MERGE to fold (RT-FIX 5.5). D12: English, with <html lang=\"en\"> in Base.astro and embed/[tool].astro. D10: kept separate, with no fixtures shared and no source naming MutationGraph. The note D10 asks for already stands on the site in M2 beat 3 (B=2I-A on single roads is C=2I-A^T because A is symmetric, 'the rule of module one'), so no page needed a new sentence; the entry names that location. The MutationGraph side is outside the repository and is the owner's. The test checks the records and what they claim (lang=\"en\" on every html root, no MutationGraph in site/src or packages/engine/src, the M2 note). Green: the grep prints both headings, 3 passed, and the lens script on a simulated fold exits 0 (D10: 1, D12: 1). Commit 5a190f7."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX 5.3 (adoption changes nothing but names and paths)",
+   "what": "P6-RT-09-02: the reproducer's first assertion expect(HISTORY).toContain(<the old sentence word for word>) is replaced by finding the sentence by its opening words ('Donnelly and Eriksson use the game to prove that'). Its last assertion is kept, but applies only while the sentence covers one-way boards (no 'roads ... both ways' in it). Every engine assertion and value is unchanged. Only the reproducer's P6-RT-09-02 describe block was adopted.",
+   "why": "As written, the reproducer required the false sentence to be present and its counterexample to be absent, so no fix could make it pass. The form follows content-m7-finite-type.test.ts (RT-FIX-P4). The other describe blocks (P6-RT-09-01, 03, 04) belong to the m10-glossary cluster."
+  },
+  {
+   "spec": "RT-FIX 5.3 (a script reproducer becomes the equivalent test)",
+   "what": "The RT-10 script redteam-RT-10-p6-defaults.mjs became repo-defaults-recorded.test.ts. Its DUE list, owner exemption and entry rule are unchanged. It reads DECISIONS.md plus every decisions/*.md, not DECISIONS.md alone, and adds checks of what the D10 and D12 records claim.",
+   "why": "RT-FIX 5.5 says a missing entry is supplied in the fragment, which MERGE folds; a test over DECISIONS.md alone would stay red on this branch."
+  },
+  {
+   "spec": "P6-FIX-INSTRUCTIONS heading form '## 2026-10-26 RT-FIX-P6-<cluster>: ...'",
+   "what": "The fragment headings carry 2026-10-31.",
+   "why": "That is the day the entries were written, after the usage-limit pause and container restart. Otherwise the form is kept."
+  },
+  {
+   "spec": "RT-FIX 5.7 (engine suite at or above baseline)",
+   "what": "The engine suite was green after the fixes (2728 passed, the baseline count) only with --maxWorkers=1. Default-parallel runs at load 11 to 26 hit 1 to 9 'Test timed out in 5000ms' failures, all in files that pass when run alone.",
+   "why": "The machine was shared with other agents (load average 20 to 30 on 4 processors), and no engine file is in the diff."
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P6-pages.md",
+ "openQuestions": [
+  "Not fixed (no finding confirmed it): the section on lattices of /confusions/, SPEC 2.4(c) and the Lie theory paragraphs of M0 and M4 state the index of the populations in the positions as det C for every board. That holds when det C > 0, as on every board of finite type. On an affine board det C = 0 (A1~, C = [[2,-2],[-2,2]]) and the image has infinite index. On the bidirected board with three roads each way det C = 4 - 9 = -5 and the index is 5. The new provenance sentence states the linear-algebra fact with its condition (nonzero determinant, absolute value)."
+ ],
+ "handoff": "Every source change is in site/src/content/pages (open-problem, history, confusions). The new tests are in site/tests/unit, and decisions/RT-FIX-P6-pages.md is for MERGE to fold. P6-RT-10-04's location, DECISIONS.md, is MERGE's file, so the records are fragment entries (RT-FIX 5.5) and not the 'dated MERGE lines' of the proposed fix. The D10 note needed no page change: it already stands in a lesson, M2 beat 3, which the D10 entry names and the test reads; the MutationGraph side is the owner's. For P6-RT-08-07 I took the proposed fix's 'node i in both halves' option. For P6-RT-08-08 I used 'definitions' plus 'a fact of linear algebra' and no citation, since none recorded in SOURCES.md states the lattices. When the lens reruns: its RT-09 reproducer cannot pass as written (it requires the old sentence), and its RT-10 script passes once MERGE folds the fragment (checked on a simulated fold)."
+}

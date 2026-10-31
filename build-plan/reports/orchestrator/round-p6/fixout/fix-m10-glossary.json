@@ -1,0 +1,211 @@
+{
+ "agent": "rtfix-p6-m10-glossary",
+ "status": "done",
+ "branch": "worktree-agent-a78dcd48e6b91f4ca",
+ "base": "e76cd3d385cade2a0a3e78b1bc21897c73057522",
+ "commits": [
+  "63636c4 RT-FIX P6-RT-09-01 P6-RT-13-01: glossary rows 35 and 36 true on every board of finite type",
+  "cf00a6a RT-FIX P6-RT-09-03: glossary row 64, the ringed nodes fix the faces, not the shape",
+  "cae177e RT-FIX P6-RT-09-04: M10 Atlas item names the convention as the repaired legend does",
+  "057ea17 RT-FIX P6-RT-10-03: M10 links later uses of glossary terms, and the shared spec covers it",
+  "e839365 RT-FIX P6-RT-09-01 P6-RT-13-01 P6-RT-09-03 P6-RT-09-04 P6-RT-10-03: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/content/pages/glossary.mdx",
+  "site/src/content/modules/m10-atlas.mdx",
+  "site/tests/unit/content-glossary-highest-root.test.ts",
+  "site/tests/unit/content-glossary-wythoff.test.ts",
+  "site/tests/unit/content-m10-atlas-convention.test.ts",
+  "site/tests/e2e/glossary-later-uses.spec.ts",
+  "site/tests/e2e/M10.spec.ts",
+  "decisions/RT-FIX-P6-m10-glossary.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard e76cd3d",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-a78dcd48e6b91f4ca, worktree-agent-a78dcd48e6b91f4ca, HEAD e76cd3d"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474..., 485cae..., 1fc9f8...: all three equal CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed (run once, before the container restart; node_modules was kept)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline, load 0.7)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728)"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (base, spec change only)",
+   "exit": 0,
+   "summary": "90 page(s) built; links: 3998 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7350> glossary-later-uses.spec.ts (M10 added to ROUTES, base content)",
+   "exit": 1,
+   "summary": "RED: 1 failed; modules/m10-atlas/: board -> #board (9 uses), finite -> #finite (2 uses), numbers game -> #numbers-game (2 uses), word -> #word (2 uses)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-glossary-highest-root.test.ts (base content)",
+   "exit": 1,
+   "summary": "RED: 2 failed (2); 'on 16 of 32 boards two root populations are raised by no mutation (B2 (1,2) (1,1); B3 (1,1,1) (1,2,2); ... C3 (2,2,1) (1,2,1); ... F4 (2,3,4,2) (1,2,3,2); G2 (2,1) (3,2))'; root poset: 'on B2 the raising moves are (0,1)->(1,1), (1,0)->(1,2), the covers ... (0,1)->(1,1), (1,0)->(1,1), (1,1)->(1,2)'"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-glossary-highest-root.test.ts site/tests/unit/glossary.test.ts",
+   "exit": 0,
+   "summary": "GREEN: Test Files 2 passed; Tests 5 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-glossary-wythoff.test.ts (base content)",
+   "exit": 1,
+   "summary": "RED: 1 failed; 'Its shape depends only on which nodes are ringed ... same face counts (24, 36, 14) but squared edge lengths 2 and 4 against 2 and 16'"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-glossary-wythoff.test.ts content-glossary-highest-root.test.ts glossary.test.ts",
+   "exit": 0,
+   "summary": "GREEN: Test Files 3 passed; Tests 6 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-m10-atlas-convention.test.ts (base content)",
+   "exit": 1,
+   "summary": "RED: 1 failed; atlas item '... with a switch that prints the Cartan matrix as this site, Kac and SageMath write it or as Bourbaki and Humphreys write it, transposed ...': expected true to be false"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/content-m10-atlas-convention.test.ts",
+   "exit": 0,
+   "summary": "GREEN: 1 passed"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> M10.spec.ts -g regressions (base build)",
+   "exit": 1,
+   "summary": "RED: '0 glossary links on the page'; board (#board): 9 uses, numbers game: 2, Kostant's game: 2, finite: 2, no glossary link"
+  },
+  {
+   "cmd": "scratch revert: git checkout e76cd3d -- glossary.mdx m10-atlas.mdx; vitest the three new unit files; git checkout HEAD -- both",
+   "exit": 1,
+   "summary": "RED under revert: 3 files failed, 4 tests failed; after restore GREEN: 4 files, 7 tests passed"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (final)",
+   "exit": 0,
+   "summary": "90 page(s) built; links: 4002 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> glossary-later-uses.spec.ts M10.spec.ts pages.spec.ts",
+   "exit": 0,
+   "summary": "40 passed (5.2m), M10 regressions included"
+  },
+  {
+   "cmd": "playwright M8.spec.ts nojs.spec.ts a11y.spec.ts -g 'later uses of a term link to the glossary|glossary/|m10-atlas/|routes are discovered'",
+   "exit": 0,
+   "summary": "8 passed: M8 later uses; nojs render and server markup for glossary/ and modules/m10-atlas/; axe for both routes"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (the 3 new files, glossary, numbers-in-prose-comments, numbers-in-prose-fallbacks, content-components, content-glossary-fire, released)",
+   "exit": 0,
+   "summary": "Test Files 9 passed; Tests 43 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (aliases-one-source, content-components, katex, links-internal, names-catalogue, scaffold, sources-cite-title-labels, content-open-problem)",
+   "exit": 0,
+   "summary": "Test Files 8 passed; Tests 89 passed"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run check -w site",
+   "exit": 0,
+   "summary": "astro check 380 files, 0 errors, 0 warnings; svelte-check 0 errors, 1 warning (LayerChart.svelte tabindex, already there at base)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after, three runs at load 18 to 31 on 4 CPUs)",
+   "exit": 1,
+   "summary": "2726, 2723 and 2721 passed of 2728; every failure is 'Test timed out in 5000ms' (7 timeouts, 0 AssertionError in the last run); git diff e76cd3d..HEAD -- packages reference is empty"
+  },
+  {
+   "cmd": "npm test -w packages/engine -- the timed-out files alone (p6a-restricted, mainthread-fast-paths; then p6a-restricted, p7-roots-signs)",
+   "exit": 0,
+   "summary": "Test Files 2 passed, Tests 17 passed; Test Files 2 passed, Tests 9 passed (at load 18 to 24)"
+  },
+  {
+   "cmd": "grep the branch diff for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' 'on:'; em-dash in diff and fragment",
+   "exit": 0,
+   "summary": "0 matches for every pattern; 0 em-dashes"
+  },
+  {
+   "cmd": "git diff --name-only e76cd3d..HEAD; git ls-files | grep -i redteam",
+   "exit": 0,
+   "summary": "7 site files plus the fragment; no forbidden path; the 85 redteam paths are orchestrator records under build-plan/reports at base, none added"
+  },
+  {
+   "cmd": "git log --format=%s e76cd3d..HEAD",
+   "exit": 0,
+   "summary": "5 subjects, each starts with 'RT-FIX ' and a finding id of the cluster"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep preview on 7350",
+   "exit": 0,
+   "summary": "porcelain empty; no preview server running"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-RT-09-01: Glossary rows 35 and 36 define 'highest root' and 'root poset' by facts of simply laced boards, false on B, C, F, G",
+   "status": "fixed",
+   "test": "site/tests/unit/content-glossary-highest-root.test.ts > highest root: the definition names one root population on each of the 32 boards, and it is the highest root; > root poset: the definition is the order of the positive root populations, and its raising moves are its covers only with single roads",
+   "evidence": "Severity blocker (no adjustment). Red at base e76cd3d: 2 failed (2), same observed as the verifier (16 of 32 boards with two unraised roots; B2 raising moves (0,1)->(1,1), (1,0)->(1,2) against covers (0,1)->(1,1), (1,0)->(1,1), (1,1)->(1,2)). Cause: both definitions dropped M1's hypothesis 'a board of finite type with single roads'. Row 35 is now 'the root population of largest form value at which no mutation raises any city' (SPEC 2.6). Its data-claim says that with single roads it is the only one, that with a double or triple road there is exactly one other of smaller form value, the highest short root, and that Kostant's game, attributed to Kostant, ends there from a short simple root population (F13, T9). Row 36 is the order of the positive root populations, city by city; the raising-move picture is the root poset only with single roads (T2, 2.16). The test checks every statement on all 32 golden boards with the engine (roots, mutate, formValue, kostantPlay) against types.highest_root, highest_short_root and kostant.end_from_node. Green: 5 passed with glossary.test.ts; M10.spec 22 passed. Commit 63636c4."
+  },
+  {
+   "item": "P6-RT-13-01: The glossary defines the highest root by a rule that also gives the highest short root on 16 of the 32 boards of finite type (DUPLICATE of P6-RT-09-01)",
+   "status": "fixed",
+   "test": "site/tests/unit/content-glossary-highest-root.test.ts > highest root: the definition names one root population on each of the 32 boards, and it is the highest root",
+   "evidence": "Severity blocker. Same cause and commit as P6-RT-09-01 (63636c4). The RT-13 script redteam/redteam-RT-13-p6-oracle-highest.py (branch worktree-agent-a46277fe7c5321fb3) becomes the loop over the 32 golden types in the same test, under its own '// regression: P6-RT-13-01'. Red at base: 'on 16 of 32 boards two root populations are raised by no mutation', boards B2 to B8, C2 to C8, F4, G2, as the verifier observed. Green after the fix. The proposed fix's 'add highest short root' is followed in the entry text, with no new anchor (fragment)."
+  },
+  {
+   "item": "P6-RT-09-03: Glossary row 64 says the shape of a Wythoff polytope depends only on which nodes are ringed; SPEC says its combinatorics",
+   "status": "fixed",
+   "test": "site/tests/unit/content-glossary-wythoff.test.ts > B3 (0,1,1) and (0,2,1): the same rings and face counts, edge lengths in the ratio 2 against 8",
+   "evidence": "Severity minor; fixed because the fixer was already in glossary.mdx. Red at base: 1 failed, f-vector (24, 36, 14) for both, squared edge lengths 2 and 4 against 2 and 16. Cause: 'shape' was used where SPEC 2.14 says combinatorics. The cited claim now reads 'Its faces, and the way they meet, depend only on which nodes are ringed (Cox35, CKPS95)', followed by 'The lengths of its edges depend on the rings too, so two orbits with the same ringed nodes can differ in shape.' The f-vectors now come from the engine's wythoffFVector and the lengths from its symmetrizer, beside the oracle's values. Green: 1 passed. Commit cf00a6a."
+  },
+  {
+   "item": "P6-RT-09-04: M10 says the Atlas switch prints the Cartan matrix 'as this site, Kac and SageMath write it' on every board; the Atlas legend was repaired away from this claim",
+   "status": "fixed",
+   "test": "site/tests/unit/content-m10-atlas-convention.test.ts > SPEC 2.9: Kac numbers the nodes of E6 differently [S2]; the Atlas legend was repaired for this, and the hub follows it",
+   "evidence": "Severity minor; fixed because m10-atlas.mdx is a cluster file changed for P6-RT-10-03. Red at base: 1 failed, the item contains 'prints the Cartan matrix as this site, Kac and SageMath write it'. Cause: the hub kept the wording the P6-A4 ruling (b) rejected. It now follows the repaired legend: 'a switch that shows the Cartan matrix in the convention of this site, Kac and SageMath or in that of Bourbaki and Humphreys, who print its transpose'. The test also checks that the item speaks of Kac and numbering nowhere outside an E4 wrapper. Nothing on the hub rests on E4, so no Unverified is added (fragment). Green: 1 passed; M10.spec 'open items are wrapped' and 'no link to preview-only pages' pass. Commit cae177e."
+  },
+  {
+   "item": "P6-RT-10-03: M10 links no later use of a glossary term, and the later-use spec leaves M10 out although its comment names the M10 hub",
+   "status": "fixed",
+   "test": "site/tests/e2e/glossary-later-uses.spec.ts > later uses of a glossary term link to the glossary on every lesson and reference page (ROUTES now holds modules/m10-atlas/); site/tests/e2e/M10.spec.ts > regressions > M10 links later uses of board, numbers game, Kostant's game and finite to the glossary",
+   "evidence": "Severity major (no adjustment). Red at base build: the shared spec failed on modules/m10-atlas/ (board 9 uses, finite 2, numbers game 2, word 2). The adopted RT-10 script failed with '0 glossary links on the page' (board 9, numbers game 2, Kostant's game 2, finite 2). Cause: M10 had no Term helper, and the shared spec's ROUTES left it out. M10 now has the Term helper of M0 to M9. It links board and finite type in the Atlas item, and the numbers game and Kostant's game in the credit line (words unchanged, as on history). The glossary item's 'each word' (a vocabulary word) became 'each term'. Green: 40 passed (later-uses, M10, pages); M8 later uses, nojs and axe for both routes, 8 passed. Word count 601 by a plain count of the built article (597 before), far below 1800. Commit 057ea17."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX.md 5.3 (adoption changes nothing else)",
+   "what": "The RT-09 reproducers for P6-RT-09-01 and P6-RT-09-03 opened with assertions that the old text was present (toBe the old definition; toContain 'Its shape depends only on which nodes are ringed'), and the RT-09-01 test then asserted that the highest short root is raised by some mutation, which can never pass. Those assertions are replaced by assertions of the new text and of the finding's expected; every computation and value the reproducers observed is kept.",
+   "why": "These assertions describe the symptom and could not pass after the fix. The adoptions of P3-RT-09-02 and P4-RT-09-02 set the precedent. Recorded in the fragment."
+  },
+  {
+   "spec": "RT-FIX.md 5.3 (a script reproducer becomes an equivalent test)",
+   "what": "redteam-RT-10-p6-m10-terms.py became a Playwright test in M10.spec.ts > regressions, reading the built M10 page and glossary as the script did. Curly and straight apostrophes are read as one.",
+   "why": "The script read site/dist; a browser test reads the same built pages."
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P6-m10-glossary.md",
+ "handoff": "Only cluster files changed: glossary.mdx rows 35, 36 and 64; m10-atlas.mdx; the shared glossary-later-uses.spec.ts (ROUTES gains modules/m10-atlas/); M10.spec.ts (a new 'regressions' describe at the end); three new site/tests/unit content files. No anchor was added to the glossary, so a later M9 cluster's entries merge cleanly. Proposed fixes not followed: RT-09-01's row 36 fix kept the 'arranged by total population' picture scoped to single roads, but the true definition (the city-by-city order) is now given first; for P6-RT-09-04 no E4 wrapper was added, because the new sentence says nothing of Kac's numbering and a wrapper would put an open-items link on the hub, which M10.spec forbids. Logged, not fixed (outside the files changed): (1) M7 beat 2 (m7-geometry.mdx) has the same words 'its shape depends only on which nodes are ringed', a sibling of P6-RT-09-03, and so does a code comment in t10/scene.ts. (2) glossary-later-uses.spec.ts never matches a term with an apostrophe: the glossary's dfn text has a curly apostrophe and the prose is normalised to straight, so Kostant's game and Wythoff's construction are checked on no page. M1 prints Kostant's game 5 times with no glossary link (unconfirmed). M10.spec > regressions covers Kostant's game on M10. (3) The engine suite failed only by 5000 ms timeouts under a load of 18 to 31 on 4 processors; the files passed alone, and packages/ is unchanged since base, where all 2728 tests passed. For the lens rerun: build, then run glossary-later-uses.spec.ts and M10.spec.ts; the unit files run without a build."
+}

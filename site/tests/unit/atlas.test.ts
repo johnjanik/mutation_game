@@ -552,3 +552,39 @@ describe('the links of B3', () => {
     );
   });
 });
+
+describe('regressions', () => {
+  // Adopted from the RT-08 reproducer of the phase 6 round (RT-08 attack 30 (a), a sibling of the fix of
+  // P5-RT-08-01): tool text that uses the Lie theory name of the fundamental position. SPEC 8.4 "Use the site's
+  // words consistently ... Give the standard term once, in the Lie theory paragraph"; Appendix C: the site's word
+  // is "fundamental position e_i", the Lie theory column "fundamental weight omega_i" (DECISIONS.md,
+  // RT-FIX-P5-t12-content: "the fundamental position written e_i"). The source lines are read without their
+  // comments. The item heading follows its own decision (decisions/RT-FIX-P6-atlas.md) and is checked on the
+  // built pages by T14.spec.ts.
+  const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
+  const lines = (file: string, rel: string) =>
+    read(rel)
+      .split('\n')
+      .map((l, i) => [i + 1, l] as const)
+      .filter(([, l]) => !/^\s*(\/\/|\*|\/\*)/.test(l));
+
+  describe('the Atlas writes the fundamental weight omega_i where the site writes e_i', () => {
+    // regression: P6-RT-08-04
+    it('AtlasSheet.astro: no omega_i and no "fundamental weight" in the sentences of the sheet', () => {
+      const hits = lines('AtlasSheet.astro', '../../src/components/atlas/AtlasSheet.astro')
+        .filter(([, l]) => /\\\\omega_i|The orbit of the fundamental weight|from its fundamental weight/.test(l))
+        .map(([n, l]) => `AtlasSheet.astro:${n}: ${l.trim().slice(0, 150)}`);
+      // Observed at f07eec6: line 258 ("The orbit of the fundamental weight <Fragment set:html={tex('\\omega_i')} />")
+      // and line 236 ("A node is minuscule when every number fired in the game from its fundamental weight is 1").
+      expect(hits).toEqual([]);
+    });
+    // regression: P6-RT-08-04
+    it('atlasData.ts: no "fundamental weight" or "the weight of node" in the link texts', () => {
+      const hits = lines('atlasData.ts', '../../src/components/atlas/atlasData.ts')
+        .filter(([, l]) => /`[^`]*(fundamental weight|the weight of node)[^`]*`/.test(l))
+        .map(([n, l]) => `atlasData.ts:${n}: ${l.trim().slice(0, 150)}`);
+      // Observed at f07eec6: the link texts of the items minus-w0 and orbit-sizes.
+      expect(hits).toEqual([]);
+    });
+  });
+});

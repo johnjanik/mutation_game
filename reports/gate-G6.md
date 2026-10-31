@@ -1,16 +1,20 @@
-# Gate G6: Real forms, atlas, release 1.0 (run 1)
+# Gate G6: Real forms, atlas, release 1.0 (rerun after the phase 6 red-team round)
 
-Gate commit: f07eec66a8b80d249101630305ef6d2d23882738 (local tag gate-G6-candidate), on the integration branch claude/session-6a181f60-hzzoud, which stands in for main. Run by the orchestrator in the GATE role on 2026-10-26, 00:23 to 03:40 UTC, alone on the machine (load average 0.4 to 3), in three parts (build-plan/reports/orchestrator/scripts/gate-g6-chain.sh A, B, C). Logs: reports/gate-G6/ (not committed).
-
-**Verdict: RED.** Two items fail. (1) `npm run e2e` had one failed test: T12.spec.ts:1242 'a link to C8 node 7 (1024 positions) hydrates without a long task, as when it is picked' measured the hydration task at [0, 53, 56] ms, median 53 against at most 50 (G5 and its rerun measured [0, 0, 0]); the same test passed in the e2e run at the CI base two hours later ([0, 0, 51], median 0). A test that fails in any run fails its item (GATE 5.8); no rerun is cited as proof. (2) The lab on every route: 20 of 89 routes over the Total Blocking Time limit of 200 ms (`lab: 89 routes measured, 20 over threshold`, exit 1); every LCP and CLS is within its limit. Every other item passes.
-
-Release named: 1.0, with the built site archived. The owner tags the release; nothing is pushed but the integration branch.
+- Phase: 6. Round: the phase 6 red-team round, rerun after its fixes.
+- Date: 2026-10-31, 09:28 to 12:15 UTC, alone on the machine (no agent, no other preview server; load average 0.8 to 1.4 at the starts of the parts), in three parts (build-plan/reports/orchestrator/scripts/gate-g6-rerun-chain.sh A, B, C). Logs: reports/gate-G6-rerun/ (not committed).
+- Gate commit (the tested commit, local tag gate-G6-candidate): facff375ac33a40d822560c34842538d706f6fb5 MERGE: prediction-links.spec.ts presses and reads T13's paint controls.
+- Report commit: the commit that carries this file, the child of the gate commit. Read this report there or on the integration branch; the copy at the gate commit is run 1's.
+- **Verdict: RED** on one roster item, the lab timings on every page: 28 of 89 routes over the Total Blocking Time limit of 200 ms (`lab: 89 routes measured, 28 over threshold`, exit 1); every LCP (at most 2.216 s) and every CLS (at most 0.0033) is within its limit. Every other roster item and every supporting row passes, among them the e2e row that failed run 1 (T12.spec.ts:1242, the C8 link hydration).
+- Release named: 1.0, with the built site archived (section 9). The owner tags the release; nothing is pushed but the integration branch.
+- Integration branch: `claude/session-6a181f60-hzzoud` stands in for `main` (DECISIONS.md, P0-A1 entry).
+- Previous runs:
+  - run 1, RED, on f07eec6 (2026-10-26 00:23 to 03:40): T12.spec.ts:1242 'a link to C8 node 7 (1024 positions) hydrates without a long task' failed in the preview e2e run (median 53 ms against 50), and the lab had 20 of 89 routes over TBT. The red-team round at f07eec6 confirmed 32 of 48 findings; its fix clusters, with a product repair of T12's link hydration (cluster t12-t5), were confirmed and merged (DECISIONS.md, "MERGE: the phase 6 red-team round, fixes merged"). This report quotes only the run on facff37.
 
 ## 1. Preconditions
 
-- The working tree was clean at the start (`git status --porcelain` empty); earlier content reports were moved to reports/gate-G6/previous/ (00-moves.log).
-- Every merge of phase 6 is recorded in DECISIONS.md (the MERGE entries of 2026-10-25 and 2026-10-26); the fragments check prints `1265 fragment headings, 0 not in DECISIONS.md`.
-- Merge checks with no agent running, on 6214e96 (the commit below the gate commit's two record commits): npm test 3940 passed, e2e 1692 passed and 2 skipped, size 90 routes 0 over (reports/merge-pregate-g6-6214e96/).
+- The working tree was clean at the start (`git status --porcelain` empty); the content reports left by the last build were moved to reports/gate-G6-rerun/previous/ (00-moves.log). Run 1's archives were moved to reports/gate-G6/run1-archives/ before the chain.
+- Every merge of the round is recorded in DECISIONS.md; the fragments check prints `1312 fragment headings, 0 not in DECISIONS.md`.
+- Merge checks with no agent running, on 9e9b492 (the round merged; reports/merge-p6-round-9e9b492/): npm test 3995 of 3996 (the scaffold test 'astro dev appears nowhere' at its 5 s limit, passing alone), typecheck, build, size 90 routes 0 over; e2e 1749 passed, 2 failed: prediction-links.spec.ts on M9, a stale test that pressed T13's first node button, adapted by MERGE in the gate commit (11 of 11 then pass), and T08 F4 pick (one 320 ms task under the full run, 20 of 20 alone). Both pass in this run.
 
 ## 2. Reference hashes
 
@@ -42,21 +46,21 @@ Release named: 1.0, with the built site archived. The owner tags the release; no
 
 | item | command(s) | exit | relevant output lines | pass or fail |
 |---|---|---|---|---|
-| all golden tests of phases 0 to 6 pass | `npm test` | 0 | `Test Files  188 passed (188)`; `Tests  3940 passed (3940)`; the engine's coverage gate (phase in force 6, read from the T13 and T14 registry entries) passed: coverage-after-npm-test.json missingByPhase 0 to 6 empty (phase 7 lists golden_boards, golden_folds, orbit_plus_zero_representations, generalized_satake_example, not in force). `npm run verify` regenerates the golden file byte for byte (supporting row) | pass |
-| property tests 1 to 13 pass | `npm test` | 0 | packages/engine/test/properties/p1 to p13 exist (`ls`) and passed within the 188 files | pass |
-| acceptance of T13 and T14 as automated tests | `npm test`; `npm run e2e` | 0; 1 | site/tests/unit/tools/T13.test.ts and site/tests/unit/atlas.test.ts (with atlas-build-path.test.ts) passed within the 188 files; in the browser T13.spec.ts 27 passed, T13-keyboard.spec.ts 3 passed, T14.spec.ts 29 passed, none failed or skipped | pass |
-| full accessibility scan of every page and tool route; keyboard scripts for T1, T4, T13 | `npm run e2e` | 1 | a11y.spec.ts 91 passed, 0 failed (every route of site/dist, no serious or critical violation); `✓ T01.spec.ts:284:1 › keyboard-only play on A3 and E8`; T04.spec.ts 21 passed (its keyboard-only tests among them); T13-keyboard.spec.ts 3 passed. The command's exit 1 is the T12 test of the supporting e2e row | pass |
-| sizes and lab timings of SPEC 7.6 on every page | `npm run size` (preview and root release builds); `npm run lab -- --all --json reports/gate-G6/lab.json` | 0; 0; 1 | `size: 90 routes measured, 0 over budget` (preview) and `size: 89 routes measured, 0 over budget` (root release), section 7. Lab on the root release build: `lab: 89 routes measured, 20 over threshold, 0 missing or in error`; over on TBT only: /atlas/C7/, /dev/draw-time/, /embed/form/, /embed/geometry/, /embed/mirror/, /embed/satake/, /embed/weyl/, /glossary/, /modules/m8-lie-algebras/, /sources/, /tools/board/, /tools/fold/, /tools/garden/, /tools/geometry/, /tools/mirror/, /tools/rep/, /tools/sandbox/, /tools/satake/, /tools/symbolic/, /tools/weyl/; every LCP at most 2.102 s and every CLS 0.0000; the canary over on all three as it must be; section 8 | fail (lab) |
-| a release build succeeds; its report of open items is left in reports/ | `RELEASE=1 SITE_URL=https://johnjanik.github.io BASE_PATH=/mutation_game/ npm run build`; `npm run report`; `RELEASE=1 BASE_PATH=/ npm run build` | 0; 0; 0 | both release builds succeeded; 26 `open item ... (fallback shown)` lines (section 9); `report: open items report of 2026-10-26T00:58:56.936Z: 13 open items used on 18 pages, 0 unknown items`; `numbers-in-prose: 2 numbers in 1 files, 5 in fallbacks` (the two are years in M10's history item); reports/open-items-report.json and .md are the root release build's (mode release), the Pages build's copies in reports/gate-G6/ | pass |
-| the two archives of SPEC 7.8 (Pages address; BASE_PATH=/) built and left in reports/ | tar after each release build | 0; 0 | pages archive: 3288670 bytes, 325 entries, sha256 78588232bc259d02a63c87e441443b586fb33fd4101ac5fe69eced03c53afa05; RELEASE=1 SITE_URL=https://johnjanik.github.io BASE_PATH=/mutation_game/; root archive: 3284259 bytes, 325 entries, sha256 eaa20cd9fdf0c6d3dde0592aed22bfdb637fa82d0680b3fdbeac3dec10cc6700; RELEASE=1 BASE_PATH=/ | pass |
-| LaTeX export produces the three forms of 6.7 (compiling them is the owner's part) | `npm test`; `LATEX_SAMPLES_DIR=reports/gate-G6/latex/ npm run e2e -- site/tests/e2e/latex-export.spec.ts` | 0; 0 | site/tests/unit/latex.test.ts passed with the three byte-for-byte forms of 6.7; the samples spec `5 passed`; reports/gate-G6/latex/ holds dynkin.tex (`\dynkin E{oooooo}`), tikz-graph.tex (12 nodes, 15 edges) and tikz-points.tex (12 points, 24 edges) for the owner's compile | pass |
+| all golden tests of phases 0 to 6 pass | `npm test` | 0 | `Test Files  205 passed (205)`; `Tests  3996 passed (3996)`; the engine's coverage gate (phase in force 6) passed: coverage-after-npm-test.json missingByPhase 0 to 6 empty (phase 7 lists golden_boards, golden_folds, orbit_plus_zero_representations, generalized_satake_example, not in force). `npm run verify` regenerates the golden file byte for byte (supporting row) | pass |
+| property tests 1 to 13 pass | `npm test` | 0 | packages/engine/test/properties/p1 to p13 passed within the 205 files | pass |
+| acceptance of T13 and T14 as automated tests | `npm test`; `npm run e2e` | 0; 0 | site/tests/unit/tools/T13.test.ts and site/tests/unit/atlas.test.ts (with atlas-build-path.test.ts) passed within the 205 files; in the browser T13.spec.ts 40 passed, T13-keyboard.spec.ts 7 passed, T14.spec.ts 32 passed, none failed or skipped (the round added tests to all three) | pass |
+| full accessibility scan of every page and tool route; keyboard scripts for T1, T4, T13 | `npm run e2e` | 0 | a11y.spec.ts 91 passed, 0 failed (every route of site/dist, no serious or critical violation); `✓ T01.spec.ts:284:1 › keyboard-only play on A3 and E8`; T04.spec.ts 21 passed (its keyboard-only tests among them); T13-keyboard.spec.ts 7 passed | pass |
+| sizes and lab timings of SPEC 7.6 on every page | `npm run size` (preview and root release builds); `npm run lab -- --all --json reports/gate-G6-rerun/lab.json` | 0; 0; 1 | `size: 90 routes measured, 0 over budget` (preview) and `size: 89 routes measured, 0 over budget` (root release), section 7; the largest are /tools/satake/ and /embed/satake/ at 88.1 of 90 kB. Lab on the root release build: `lab: 89 routes measured, 28 over threshold, 0 missing or in error`; over on TBT only: /atlas/B6/, /atlas/D6/, /atlas/D8/, /dev/draw-time/, /embed/geometry/, /embed/rep/, /embed/sandbox/, /embed/satake/, /embed/symbolic/, /embed/weyl/, /glossary/, /modules/m5-weyl/, /modules/m8-lie-algebras/, /modules/m9-real-forms/, /sources/, /tools/board/, /tools/fold/, /tools/form/, /tools/garden/, /tools/geometry/, /tools/lab/, /tools/mirror/, /tools/numbers/, /tools/rep/, /tools/sandbox/, /tools/satake/, /tools/symbolic/, /tools/weyl/; every LCP at most 2.216 s and every CLS at most 0.0033; the canary over on all three as it must be; section 8 | fail (lab) |
+| a release build succeeds; its report of open items is left in reports/ | `RELEASE=1 SITE_URL=https://johnjanik.github.io BASE_PATH=/mutation_game/ npm run build`; `npm run report`; `RELEASE=1 BASE_PATH=/ npm run build` | 0; 0; 0 | both release builds succeeded (89 pages each, `links: 3855 internal links on 89 pages of site/dist checked, 0 problems`); 26 `open item ... (fallback shown)` lines, the same as run 1 (section 9); `report: open items report of 2026-10-31T10:07:01.311Z: 13 open items used on 18 pages, 0 unknown items`; `numbers-in-prose: 2 numbers in 1 files, 5 in fallbacks`; reports/open-items-report.json and .md are the root release build's, the Pages build's copies in reports/gate-G6-rerun/ | pass |
+| the two archives of SPEC 7.8 (Pages address; BASE_PATH=/) built and left in reports/ | tar after each release build | 0; 0 | pages archive: 3317641 bytes, 358 entries, sha256 c459abae6f4b30271a47a6142551c23004289f8f6f970241e9506443d3a679d6; RELEASE=1 SITE_URL=https://johnjanik.github.io BASE_PATH=/mutation_game/; root archive: 3313050 bytes, 358 entries, sha256 20b609c87603ae13398016f5b29521449cb93e3badd89e9bc963b367b3f9de38; RELEASE=1 BASE_PATH=/ | pass |
+| LaTeX export produces the three forms of 6.7 (compiling them is the owner's part) | `npm test`; `LATEX_SAMPLES_DIR=reports/gate-G6-rerun/latex/ npm run e2e -- site/tests/e2e/latex-export.spec.ts` | 0; 0 | site/tests/unit/latex.test.ts passed with the three byte-for-byte forms of 6.7; the samples spec `13 passed`; reports/gate-G6-rerun/latex/ holds dynkin.tex (`\dynkin E{oooooo}`), tikz-graph.tex (T2), tikz-points.tex (T10), and, new in the round (P6-RT-10-01), tikz-graph-weyl.tex (T8) and tikz-graph-rep.tex (T12), for the owner's compile | pass |
 | reference hashes unchanged | sha256sum | 0 | section 2 | pass |
-| supporting: `npm run e2e` (the whole browser suite at the preview build) | `npm run e2e` | 1 | `1 failed`, `2 skipped`, `1691 passed (26.0m)`; failed: `T12.spec.ts:1242:5 › regressions › a link to C8 node 7 (1024 positions) hydrates without a long task, as when it is picked`: `Expected: <= 50, Received: 53` (`link to C8 node 7 [0, 53, 56] ms, median 53; control E7 node 7 [0, 0, 0] ms`). Skipped: mathml.spec.ts › LinearForm renders in WebKit and in Firefox (not installable here). `T12 long tasks after picking E6 at 4x: []`, `... E7 at 4x: []`; E8 drawing time median 11.9 ms | fail |
-| supporting: the e2e suite at the CI base (P4-RT-12-02) | `GITHUB_REPOSITORY=johnjanik/mutation_game npm run build`; `... npm run e2e` | 0; 0 | base /mutation_game/; `1692 passed (26.0m)`, `2 skipped` (the same two); the C8 test recorded `[0, 0, 51] ms, median 0` | pass |
-| supporting: `npm run verify` | `npm run verify` | 0 | `6649 checks passed, 0 failed, 120.6s` | pass |
+| supporting: `npm run e2e` (the whole browser suite at the preview build) | `npm run e2e` | 0 | `1751 passed (28.3m)`, `2 skipped`, 0 failed, none flaky. Skipped: mathml.spec.ts › LinearForm renders in WebKit and in Firefox (not installable here). The test that failed run 1, `✓ T12.spec.ts:1242:5 › regressions › a link to C8 node 7 (1024 positions) hydrates without a long task, as when it is picked`: `link to C8 node 7 [0, 0, 0] ms, median 0`. `T12 long tasks after picking E6 at 4x: []`, `... E7 at 4x: []`; E8 drawing time median 9 ms | pass |
+| supporting: the e2e suite at the CI base (P4-RT-12-02) | `GITHUB_REPOSITORY=johnjanik/mutation_game npm run build`; `... npm run e2e` | 0; 0 | base /mutation_game/, 90 pages; `1751 passed (27.4m)`, `2 skipped` (the same two), 0 failed, 0 flaky; the C8 test recorded `link to C8 node 7 [0, 0, 0] ms, median 0` | pass |
+| supporting: `npm run verify` | `npm run verify` | 0 | `6649 checks passed, 0 failed, 133.8s`; `verify: regenerated file is byte for byte reference/golden_data.json (455014 bytes)` | pass |
 | supporting: `npm run e2e:basepath` | `npm run e2e:basepath` | 0 | `91 passed (1.5m)` | pass |
-| supporting: the benchmark | `npm run bench -w packages/engine` (alone) | 0 | `orbit benchmark: median 12.82 ms of 7 runs [16.59, 10.76, 14.42, 16.53, 12.61, 12.82, 8.83] ms, threshold 25 ms, 2000 positions, truncated true` | pass |
-| supporting: `npm run bench`, `npm run build`, `npm run typecheck` | the three commands | 0; 0; 0 | root bench 2 files passed; build 90 pages, 0 link problems; typecheck `0 errors` | pass |
+| supporting: the benchmark | `npm run bench -w packages/engine` (alone) | 0 | `orbit benchmark: median 8.59 ms of 7 runs [12.89, 9.71, 8.59, 9.81, 6.46, 7.78, 7.76] ms, threshold 25 ms, 2000 positions, truncated true` | pass |
+| supporting: `npm run bench`, `npm run build`, `npm run typecheck` | the three commands | 0; 0; 0 | root bench (the engine's bench, then site/tests/timing) `Test Files` 6 passed (6); 2 passed (2); build 90 pages, `links: 4012 internal links on 90 pages of site/dist checked, 0 problems`; typecheck `0 errors` | pass |
 
 ## 5. Commands run
 
@@ -66,15 +70,15 @@ Release named: 1.0, with the built site archived. The owner tags the release; no
 | 2 | `npm --prefix /home/user/mutation_game test` | 0 | 02-npm-test.log |
 | 3 | `npm --prefix /home/user/mutation_game run verify` | 0 | 03-npm-verify.log |
 | 4 | `npm --prefix /home/user/mutation_game run build` | 0 | 04-build.log |
-| 5 | `npm --prefix /home/user/mutation_game run e2e` | 1 | 05-e2e.log |
+| 5 | `npm --prefix /home/user/mutation_game run e2e` | 0 | 05-e2e.log |
 | 6 | `npm --prefix /home/user/mutation_game run size` | 0 | 06-size.log |
-| 6c | `env LATEX_SAMPLES_DIR=.../reports/gate-G6/latex/ npm --prefix /home/user/mutation_game run e2e -- site/tests/e2e/latex-export.spec.ts` | 0 | 06c-latex-samples.log |
+| 6c | `env LATEX_SAMPLES_DIR=.../reports/gate-G6-rerun/latex/ npm --prefix /home/user/mutation_game run e2e -- site/tests/e2e/latex-export.spec.ts` | 0 | 06c-latex-samples.log |
 | 7 | `npm --prefix /home/user/mutation_game run e2e:basepath` | 0 | 07-e2e-basepath.log |
 | 8 | `env RELEASE=1 SITE_URL=https://johnjanik.github.io BASE_PATH=/mutation_game/ npm --prefix /home/user/mutation_game run build` | 0 | 08-release-build-pages.log |
 | 9 | `npm --prefix /home/user/mutation_game run report` | 0 | 09-report.log |
 | 10 | `env RELEASE=1 BASE_PATH=/ npm --prefix /home/user/mutation_game run build` | 0 | 10-release-build-root.log |
 | 11 | `npm --prefix /home/user/mutation_game run size` (root release build) | 0 | 11-size-release.log |
-| 12 | `npm --prefix /home/user/mutation_game run lab -- --all --json /home/user/mutation_game/reports/gate-G6/lab.json` | 1 | 12-lab.log (5710 s) |
+| 12 | `npm --prefix /home/user/mutation_game run lab -- --all --json /home/user/mutation_game/reports/gate-G6-rerun/lab.json` | 1 | 12-lab.log (5753 s) |
 | 13 | `npm --prefix /home/user/mutation_game run bench -w packages/engine` | 0 | 13-bench.log |
 | 13b | `npm --prefix /home/user/mutation_game run bench` | 0 | 13b-bench-root.log |
 | 14 | `npm --prefix /home/user/mutation_game run typecheck` | 0 | 14-typecheck.log |
@@ -131,56 +135,56 @@ route                        label      limit (kB, 1 kB = 1000 bytes)  status  s
 /dev/draw-time/              tool       90                             200     7        39.2       ok
 /dev/lesson-check/           tool       90                             200     0        0.0        ok
 /dev/math-check/             no-tool    15                             200     0        0.0        ok
-/embed/affine/               tool       90                             200     15       67.7       ok
-/embed/atlas/                tool       90                             200     7        46.0       ok
-/embed/board/                tool       90                             200     21       70.4       ok
-/embed/fold/                 tool       90                             200     16       69.0       ok
-/embed/form/                 tool       90                             200     16       68.8       ok
-/embed/garden/               tool       90                             200     15       66.7       ok
-/embed/geometry/             tool       90                             200     20       80.7       ok
-/embed/kostant/              tool       90                             200     16       67.5       ok
-/embed/lab/                  tool       90                             200     11       64.4       ok
-/embed/mirror/               tool       90                             200     18       70.2       ok
-/embed/numbers/              tool       90                             200     16       73.1       ok
-/embed/rep/                  tool       90                             200     19       85.7       ok
-/embed/sandbox/              tool       90                             200     18       73.4       ok
-/embed/satake/               tool       90                             200     18       87.1       ok
-/embed/symbolic/             tool       90                             200     19       69.0       ok
-/embed/weyl/                 tool       90                             200     21       77.4       ok
+/embed/affine/               tool       90                             200     15       67.9       ok
+/embed/atlas/                tool       90                             200     7        46.1       ok
+/embed/board/                tool       90                             200     21       70.7       ok
+/embed/fold/                 tool       90                             200     16       69.2       ok
+/embed/form/                 tool       90                             200     16       69.0       ok
+/embed/garden/               tool       90                             200     15       66.8       ok
+/embed/geometry/             tool       90                             200     20       81.0       ok
+/embed/kostant/              tool       90                             200     16       67.8       ok
+/embed/lab/                  tool       90                             200     11       64.6       ok
+/embed/mirror/               tool       90                             200     18       70.4       ok
+/embed/numbers/              tool       90                             200     16       73.5       ok
+/embed/rep/                  tool       90                             200     19       86.2       ok
+/embed/sandbox/              tool       90                             200     18       73.6       ok
+/embed/satake/               tool       90                             200     18       88.1       ok
+/embed/symbolic/             tool       90                             200     19       69.3       ok
+/embed/weyl/                 tool       90                             200     21       77.7       ok
 /glossary/                   no-tool    15                             200     0        0.0        ok
 /history/                    no-tool    15                             200     0        0.0        ok
 /modules/                    no-tool    15                             200     0        0.0        ok
-/modules/m0-start/           lesson     120                            200     21       70.4       ok
-/modules/m1-mutation/        lesson     120                            200     21       70.4       ok
+/modules/m0-start/           lesson     120                            200     21       70.7       ok
+/modules/m1-mutation/        lesson     120                            200     21       70.7       ok
 /modules/m10-atlas/          lesson     120                            200     0        0.0        ok
-/modules/m2-form/            lesson     120                            200     21       70.4       ok
-/modules/m3-classification/  lesson     120                            200     11       64.4       ok
-/modules/m4-numbers/         lesson     120                            200     21       70.4       ok
-/modules/m5-weyl/            lesson     120                            200     21       70.4       ok
-/modules/m6-multiple-edges/  lesson     120                            200     21       70.4       ok
-/modules/m7-geometry/        lesson     120                            200     20       80.7       ok
-/modules/m8-lie-algebras/    lesson     120                            200     19       85.7       ok
-/modules/m9-real-forms/      lesson     120                            200     18       87.1       ok
+/modules/m2-form/            lesson     120                            200     21       70.7       ok
+/modules/m3-classification/  lesson     120                            200     11       64.6       ok
+/modules/m4-numbers/         lesson     120                            200     21       70.7       ok
+/modules/m5-weyl/            lesson     120                            200     21       70.7       ok
+/modules/m6-multiple-edges/  lesson     120                            200     21       70.7       ok
+/modules/m7-geometry/        lesson     120                            200     20       81.0       ok
+/modules/m8-lie-algebras/    lesson     120                            200     19       86.2       ok
+/modules/m9-real-forms/      lesson     120                            200     18       88.1       ok
 /not-quiver-mutation/        no-tool    15                             200     0        0.0        ok
 /open-items/                 no-tool    15                             200     0        0.0        ok
 /open-problem/               no-tool    15                             200     0        0.0        ok
 /sources/                    no-tool    15                             200     0        0.0        ok
-/tools/affine/               tool       90                             200     15       67.7       ok
-/tools/atlas/                tool       90                             200     7        46.0       ok
-/tools/board/                tool       90                             200     21       70.4       ok
-/tools/fold/                 tool       90                             200     16       69.0       ok
-/tools/form/                 tool       90                             200     16       68.8       ok
-/tools/garden/               tool       90                             200     15       66.7       ok
-/tools/geometry/             tool       90                             200     20       80.7       ok
-/tools/kostant/              tool       90                             200     16       67.5       ok
-/tools/lab/                  tool       90                             200     11       64.4       ok
-/tools/mirror/               tool       90                             200     18       70.2       ok
-/tools/numbers/              tool       90                             200     16       73.1       ok
-/tools/rep/                  tool       90                             200     19       85.7       ok
-/tools/sandbox/              tool       90                             200     18       73.4       ok
-/tools/satake/               tool       90                             200     18       87.1       ok
-/tools/symbolic/             tool       90                             200     19       69.0       ok
-/tools/weyl/                 tool       90                             200     21       77.4       ok
+/tools/affine/               tool       90                             200     15       67.9       ok
+/tools/atlas/                tool       90                             200     7        46.1       ok
+/tools/board/                tool       90                             200     21       70.7       ok
+/tools/fold/                 tool       90                             200     16       69.2       ok
+/tools/form/                 tool       90                             200     16       69.0       ok
+/tools/garden/               tool       90                             200     15       66.8       ok
+/tools/geometry/             tool       90                             200     20       81.0       ok
+/tools/kostant/              tool       90                             200     16       67.8       ok
+/tools/lab/                  tool       90                             200     11       64.6       ok
+/tools/mirror/               tool       90                             200     18       70.4       ok
+/tools/numbers/              tool       90                             200     16       73.5       ok
+/tools/rep/                  tool       90                             200     19       86.2       ok
+/tools/sandbox/              tool       90                             200     18       73.6       ok
+/tools/satake/               tool       90                             200     18       88.1       ok
+/tools/symbolic/             tool       90                             200     19       69.3       ok
+/tools/weyl/                 tool       90                             200     21       77.7       ok
 size: 90 routes measured, 0 over budget
 ```
 
@@ -228,64 +232,66 @@ route                        label      limit (kB, 1 kB = 1000 bytes)  status  s
 /dev/draw-time/              tool       90                             200     7        39.2       ok
 /dev/lesson-check/           tool       90                             200     0        0.0        ok
 /dev/math-check/             no-tool    15                             200     0        0.0        ok
-/embed/affine/               tool       90                             200     15       67.7       ok
-/embed/atlas/                tool       90                             200     7        46.0       ok
-/embed/board/                tool       90                             200     21       70.4       ok
-/embed/fold/                 tool       90                             200     16       69.0       ok
-/embed/form/                 tool       90                             200     16       68.8       ok
-/embed/garden/               tool       90                             200     15       66.7       ok
-/embed/geometry/             tool       90                             200     20       80.7       ok
-/embed/kostant/              tool       90                             200     16       67.5       ok
-/embed/lab/                  tool       90                             200     11       64.4       ok
-/embed/mirror/               tool       90                             200     18       70.2       ok
-/embed/numbers/              tool       90                             200     16       73.1       ok
-/embed/rep/                  tool       90                             200     19       85.7       ok
-/embed/sandbox/              tool       90                             200     18       73.4       ok
-/embed/satake/               tool       90                             200     18       87.1       ok
-/embed/symbolic/             tool       90                             200     19       69.0       ok
-/embed/weyl/                 tool       90                             200     21       77.4       ok
+/embed/affine/               tool       90                             200     15       67.9       ok
+/embed/atlas/                tool       90                             200     7        46.1       ok
+/embed/board/                tool       90                             200     21       70.7       ok
+/embed/fold/                 tool       90                             200     16       69.2       ok
+/embed/form/                 tool       90                             200     16       69.0       ok
+/embed/garden/               tool       90                             200     15       66.8       ok
+/embed/geometry/             tool       90                             200     20       81.0       ok
+/embed/kostant/              tool       90                             200     16       67.8       ok
+/embed/lab/                  tool       90                             200     11       64.6       ok
+/embed/mirror/               tool       90                             200     18       70.4       ok
+/embed/numbers/              tool       90                             200     16       73.5       ok
+/embed/rep/                  tool       90                             200     19       86.2       ok
+/embed/sandbox/              tool       90                             200     18       73.6       ok
+/embed/satake/               tool       90                             200     18       88.1       ok
+/embed/symbolic/             tool       90                             200     19       69.3       ok
+/embed/weyl/                 tool       90                             200     21       77.7       ok
 /glossary/                   no-tool    15                             200     0        0.0        ok
 /history/                    no-tool    15                             200     0        0.0        ok
 /modules/                    no-tool    15                             200     0        0.0        ok
-/modules/m0-start/           lesson     120                            200     21       70.4       ok
-/modules/m1-mutation/        lesson     120                            200     21       70.4       ok
+/modules/m0-start/           lesson     120                            200     21       70.7       ok
+/modules/m1-mutation/        lesson     120                            200     21       70.7       ok
 /modules/m10-atlas/          lesson     120                            200     0        0.0        ok
-/modules/m2-form/            lesson     120                            200     21       70.4       ok
-/modules/m3-classification/  lesson     120                            200     11       64.4       ok
-/modules/m4-numbers/         lesson     120                            200     21       70.4       ok
-/modules/m5-weyl/            lesson     120                            200     21       70.4       ok
-/modules/m6-multiple-edges/  lesson     120                            200     21       70.4       ok
-/modules/m7-geometry/        lesson     120                            200     20       80.7       ok
-/modules/m8-lie-algebras/    lesson     120                            200     19       85.7       ok
-/modules/m9-real-forms/      lesson     120                            200     18       87.1       ok
+/modules/m2-form/            lesson     120                            200     21       70.7       ok
+/modules/m3-classification/  lesson     120                            200     11       64.6       ok
+/modules/m4-numbers/         lesson     120                            200     21       70.7       ok
+/modules/m5-weyl/            lesson     120                            200     21       70.7       ok
+/modules/m6-multiple-edges/  lesson     120                            200     21       70.7       ok
+/modules/m7-geometry/        lesson     120                            200     20       81.0       ok
+/modules/m8-lie-algebras/    lesson     120                            200     19       86.2       ok
+/modules/m9-real-forms/      lesson     120                            200     18       88.1       ok
 /not-quiver-mutation/        no-tool    15                             200     0        0.0        ok
 /open-problem/               no-tool    15                             200     0        0.0        ok
 /sources/                    no-tool    15                             200     0        0.0        ok
-/tools/affine/               tool       90                             200     15       67.7       ok
-/tools/atlas/                tool       90                             200     7        46.0       ok
-/tools/board/                tool       90                             200     21       70.4       ok
-/tools/fold/                 tool       90                             200     16       69.0       ok
-/tools/form/                 tool       90                             200     16       68.8       ok
-/tools/garden/               tool       90                             200     15       66.7       ok
-/tools/geometry/             tool       90                             200     20       80.7       ok
-/tools/kostant/              tool       90                             200     16       67.5       ok
-/tools/lab/                  tool       90                             200     11       64.4       ok
-/tools/mirror/               tool       90                             200     18       70.2       ok
-/tools/numbers/              tool       90                             200     16       73.1       ok
-/tools/rep/                  tool       90                             200     19       85.7       ok
-/tools/sandbox/              tool       90                             200     18       73.4       ok
-/tools/satake/               tool       90                             200     18       87.1       ok
-/tools/symbolic/             tool       90                             200     19       69.0       ok
-/tools/weyl/                 tool       90                             200     21       77.4       ok
+/tools/affine/               tool       90                             200     15       67.9       ok
+/tools/atlas/                tool       90                             200     7        46.1       ok
+/tools/board/                tool       90                             200     21       70.7       ok
+/tools/fold/                 tool       90                             200     16       69.2       ok
+/tools/form/                 tool       90                             200     16       69.0       ok
+/tools/garden/               tool       90                             200     15       66.8       ok
+/tools/geometry/             tool       90                             200     20       81.0       ok
+/tools/kostant/              tool       90                             200     16       67.8       ok
+/tools/lab/                  tool       90                             200     11       64.6       ok
+/tools/mirror/               tool       90                             200     18       70.4       ok
+/tools/numbers/              tool       90                             200     16       73.5       ok
+/tools/rep/                  tool       90                             200     19       86.2       ok
+/tools/sandbox/              tool       90                             200     18       73.6       ok
+/tools/satake/               tool       90                             200     18       88.1       ok
+/tools/symbolic/             tool       90                             200     19       69.3       ok
+/tools/weyl/                 tool       90                             200     21       77.7       ok
 size: 89 routes measured, 0 over budget
 ```
+
+Against run 1, the tool, embed and lesson routes with scripts are 0.1 to 1.0 kB heavier (the round's fixes), and / and /dev/draw-time/ are unchanged; none is over its budget.
 
 ## 8. Lab timings (root release build, every route)
 
 lab: Lighthouse CI (@lhci/cli 0.15.1, Lighthouse 12.6.1) on Chromium 141.0.7390.37; profile 360x800, CPU slowdown 4x, network not throttled; runs per route: 3, median per metric; dist site/dist; base /; processor check: ok, throttlingMethod devtools, cpuSlowdownMultiplier 4, screen 360x800 in all 268 reports
 
 ```
-lab: canary (slow fixture) at http://127.0.0.1:46683/, 1 run
+lab: canary (slow fixture) at http://127.0.0.1:33603/, 1 run
 lab: route 1/89 / (http://localhost:4324/), runs: 3
 lab: route 2/89 /about/ (http://localhost:4324/about/), runs: 3
 lab: route 3/89 /atlas/ (http://localhost:4324/atlas/), runs: 3
@@ -377,101 +383,114 @@ lab: route 88/89 /tools/symbolic/ (http://localhost:4324/tools/symbolic/), runs:
 lab: route 89/89 /tools/weyl/ (http://localhost:4324/tools/weyl/), runs: 3
 lab: Lighthouse CI (@lhci/cli 0.15.1, Lighthouse 12.6.1) on Chromium 141.0.7390.37; profile 360x800, CPU slowdown 4x, network not throttled; runs per route: 3, median per metric; dist site/dist; base /; processor check: ok, throttlingMethod devtools, cpuSlowdownMultiplier 4, screen 360x800 in all 268 reports
 route                               LCP (<= 2.5 s)  TBT (<= 200 ms)  CLS (<= 0.1)  status
-/                                   0.200           51.5             0.0000        ok
-/about/                             0.116           4.4              0.0000        ok
-/atlas/                             0.402           0.0              0.0000        ok
-/atlas/A1/                          0.608           0.0              0.0000        ok
-/atlas/A2/                          0.550           22.7             0.0000        ok
-/atlas/A3/                          0.500           0.0              0.0000        ok
-/atlas/A4/                          0.395           108.1            0.0000        ok
-/atlas/A5/                          0.425           85.0             0.0000        ok
-/atlas/A6/                          0.643           0.0              0.0000        ok
-/atlas/A7/                          0.555           49.6             0.0000        ok
-/atlas/A8/                          0.635           20.6             0.0000        ok
-/atlas/B2/                          0.554           0.0              0.0000        ok
-/atlas/B3/                          0.616           0.0              0.0000        ok
-/atlas/B4/                          0.502           78.9             0.0000        ok
-/atlas/B5/                          0.557           119.5            0.0000        ok
-/atlas/B6/                          0.421           189.6            0.0000        ok
-/atlas/B7/                          0.643           0.0              0.0000        ok
-/atlas/B8/                          0.638           19.9             0.0000        ok
-/atlas/C2/                          0.613           76.4             0.0000        ok
-/atlas/C3/                          0.639           31.8             0.0000        ok
-/atlas/C4/                          0.602           0.0              0.0000        ok
-/atlas/C5/                          0.693           37.2             0.0000        ok
-/atlas/C6/                          0.680           0.0              0.0000        ok
-/atlas/C7/                          0.323           233.2            0.0000        OVER (TBT)
-/atlas/C8/                          0.553           63.6             0.0000        ok
-/atlas/D4/                          0.581           38.6             0.0000        ok
-/atlas/D5/                          0.397           126.1            0.0000        ok
-/atlas/D6/                          0.537           37.0             0.0000        ok
-/atlas/D7/                          0.384           166.1            0.0000        ok
-/atlas/D8/                          0.464           189.3            0.0000        ok
-/atlas/E6/                          0.527           30.5             0.0000        ok
-/atlas/E7/                          0.623           0.0              0.0000        ok
-/atlas/E8/                          0.408           148.6            0.0000        ok
-/atlas/F4/                          0.530           0.0              0.0000        ok
-/atlas/G2/                          0.462           56.8             0.0000        ok
-/confusions/                        0.545           0.0              0.0000        ok
-/credits/                           0.362           0.0              0.0000        ok
-/dev/draw-time/                     0.177           339.8            0.0000        OVER (TBT)
-/dev/lesson-check/                  0.269           0.0              0.0000        ok
-/dev/math-check/                    0.301           0.0              0.0000        ok
-/embed/affine/                      0.286           131.4            0.0000        ok
-/embed/atlas/                       0.300           84.3             0.0000        ok
-/embed/board/                       0.300           123.0            0.0000        ok
-/embed/fold/                        0.364           182.8            0.0000        ok
-/embed/form/                        0.363           219.7            0.0000        OVER (TBT)
-/embed/garden/                      0.348           176.0            0.0000        ok
-/embed/geometry/                    0.328           208.1            0.0000        OVER (TBT)
-/embed/kostant/                     0.298           101.7            0.0000        ok
-/embed/lab/                         0.297           127.0            0.0000        ok
-/embed/mirror/                      0.340           202.8            0.0000        OVER (TBT)
-/embed/numbers/                     0.338           161.1            0.0000        ok
-/embed/rep/                         0.341           196.0            0.0000        ok
-/embed/sandbox/                     0.329           194.9            0.0000        ok
-/embed/satake/                      0.307           219.7            0.0000        OVER (TBT)
-/embed/symbolic/                    0.194           171.0            0.0000        ok
-/embed/weyl/                        0.271           309.9            0.0000        OVER (TBT)
-/glossary/                          0.394           432.4            0.0000        OVER (TBT)
-/history/                           0.309           0.0              0.0000        ok
-/modules/                           0.170           0.0              0.0000        ok
-/modules/m0-start/                  0.910           126.0            0.0000        ok
-/modules/m1-mutation/               1.133           129.9            0.0000        ok
-/modules/m10-atlas/                 0.359           0.0              0.0000        ok
-/modules/m2-form/                   1.207           137.4            0.0000        ok
-/modules/m3-classification/         1.345           162.8            0.0000        ok
-/modules/m4-numbers/                1.159           127.7            0.0000        ok
-/modules/m5-weyl/                   1.583           132.8            0.0000        ok
-/modules/m6-multiple-edges/         1.458           148.0            0.0000        ok
-/modules/m7-geometry/               2.102           165.3            0.0000        ok
-/modules/m8-lie-algebras/           2.052           329.1            0.0000        OVER (TBT)
-/modules/m9-real-forms/             1.800           195.7            0.0000        ok
-/not-quiver-mutation/               0.583           0.0              0.0000        ok
-/open-problem/                      0.220           0.0              0.0000        ok
-/sources/                           0.624           236.3            0.0000        OVER (TBT)
-/tools/affine/                      0.198           193.4            0.0000        ok
-/tools/atlas/                       0.229           81.4             0.0000        ok
-/tools/board/                       0.222           202.9            0.0000        OVER (TBT)
-/tools/fold/                        0.212           232.2            0.0000        OVER (TBT)
-/tools/form/                        0.197           160.8            0.0000        ok
-/tools/garden/                      0.196           202.9            0.0000        OVER (TBT)
-/tools/geometry/                    0.238           221.4            0.0000        OVER (TBT)
-/tools/kostant/                     0.208           148.0            0.0000        ok
-/tools/lab/                         0.255           177.0            0.0000        ok
-/tools/mirror/                      0.232           218.8            0.0000        OVER (TBT)
-/tools/numbers/                     0.203           193.8            0.0000        ok
-/tools/rep/                         0.213           270.3            0.0000        OVER (TBT)
-/tools/sandbox/                     0.257           245.7            0.0000        OVER (TBT)
-/tools/satake/                      0.338           289.3            0.0000        OVER (TBT)
-/tools/symbolic/                    0.211           208.4            0.0000        OVER (TBT)
-/tools/weyl/                        0.207           273.6            0.0000        OVER (TBT)
-canary (slow fixture, not a route)  3.626           553.7            0.3730        over on LCP, TBT, CLS (as it must be)
-lab: 89 routes measured, 20 over threshold, 0 missing or in error
-lab: finished in 5710 s
+/                                   0.294           49.0             0.0000        ok
+/about/                             0.180           0.0              0.0000        ok
+/atlas/                             0.369           38.1             0.0000        ok
+/atlas/A1/                          0.586           0.0              0.0000        ok
+/atlas/A2/                          0.609           17.6             0.0000        ok
+/atlas/A3/                          0.586           95.8             0.0000        ok
+/atlas/A4/                          0.407           163.0            0.0000        ok
+/atlas/A5/                          0.495           128.2            0.0000        ok
+/atlas/A6/                          0.684           0.0              0.0000        ok
+/atlas/A7/                          0.586           98.0             0.0000        ok
+/atlas/A8/                          0.715           31.5             0.0000        ok
+/atlas/B2/                          0.405           62.3             0.0000        ok
+/atlas/B3/                          0.447           178.1            0.0000        ok
+/atlas/B4/                          0.412           139.9            0.0000        ok
+/atlas/B5/                          0.549           106.6            0.0000        ok
+/atlas/B6/                          0.554           210.1            0.0000        OVER (TBT)
+/atlas/B7/                          0.517           140.1            0.0000        ok
+/atlas/B8/                          0.604           69.6             0.0000        ok
+/atlas/C2/                          0.397           141.5            0.0000        ok
+/atlas/C3/                          0.400           128.4            0.0000        ok
+/atlas/C4/                          0.655           97.7             0.0000        ok
+/atlas/C5/                          0.645           0.0              0.0000        ok
+/atlas/C6/                          0.529           122.6            0.0000        ok
+/atlas/C7/                          0.444           111.5            0.0000        ok
+/atlas/C8/                          0.421           191.4            0.0000        ok
+/atlas/D4/                          0.407           132.7            0.0000        ok
+/atlas/D5/                          0.544           56.1             0.0000        ok
+/atlas/D6/                          0.402           202.7            0.0000        OVER (TBT)
+/atlas/D7/                          0.508           142.0            0.0000        ok
+/atlas/D8/                          0.389           224.7            0.0000        OVER (TBT)
+/atlas/E6/                          0.533           86.4             0.0000        ok
+/atlas/E7/                          0.522           0.0              0.0000        ok
+/atlas/E8/                          0.426           87.3             0.0000        ok
+/atlas/F4/                          0.546           0.0              0.0000        ok
+/atlas/G2/                          0.480           59.1             0.0000        ok
+/confusions/                        0.502           31.9             0.0000        ok
+/credits/                           0.342           0.0              0.0000        ok
+/dev/draw-time/                     0.161           305.0            0.0000        OVER (TBT)
+/dev/lesson-check/                  0.265           0.0              0.0000        ok
+/dev/math-check/                    0.312           0.0              0.0000        ok
+/embed/affine/                      0.247           153.2            0.0000        ok
+/embed/atlas/                       0.301           92.5             0.0000        ok
+/embed/board/                       0.362           186.4            0.0000        ok
+/embed/fold/                        0.348           173.5            0.0000        ok
+/embed/form/                        0.319           150.0            0.0033        ok
+/embed/garden/                      0.323           178.0            0.0000        ok
+/embed/geometry/                    0.390           275.0            0.0000        OVER (TBT)
+/embed/kostant/                     0.301           145.4            0.0000        ok
+/embed/lab/                         0.195           152.2            0.0000        ok
+/embed/mirror/                      0.369           157.2            0.0000        ok
+/embed/numbers/                     0.329           191.1            0.0000        ok
+/embed/rep/                         0.233           277.4            0.0000        OVER (TBT)
+/embed/sandbox/                     0.366           262.1            0.0000        OVER (TBT)
+/embed/satake/                      0.408           310.5            0.0000        OVER (TBT)
+/embed/symbolic/                    0.194           228.2            0.0000        OVER (TBT)
+/embed/weyl/                        0.300           309.4            0.0000        OVER (TBT)
+/glossary/                          0.562           419.0            0.0000        OVER (TBT)
+/history/                           0.425           0.0              0.0000        ok
+/modules/                           0.160           0.0              0.0000        ok
+/modules/m0-start/                  0.906           168.7            0.0000        ok
+/modules/m1-mutation/               1.222           95.2             0.0000        ok
+/modules/m10-atlas/                 0.372           0.0              0.0000        ok
+/modules/m2-form/                   1.370           170.5            0.0000        ok
+/modules/m3-classification/         1.416           152.4            0.0000        ok
+/modules/m4-numbers/                1.306           134.1            0.0000        ok
+/modules/m5-weyl/                   1.538           209.6            0.0000        OVER (TBT)
+/modules/m6-multiple-edges/         1.475           122.9            0.0000        ok
+/modules/m7-geometry/               1.960           170.6            0.0000        ok
+/modules/m8-lie-algebras/           2.216           220.7            0.0000        OVER (TBT)
+/modules/m9-real-forms/             1.719           250.5            0.0000        OVER (TBT)
+/not-quiver-mutation/               0.360           79.1             0.0000        ok
+/open-problem/                      0.193           0.0              0.0000        ok
+/sources/                           0.726           375.5            0.0000        OVER (TBT)
+/tools/affine/                      0.224           184.5            0.0000        ok
+/tools/atlas/                       0.262           150.9            0.0000        ok
+/tools/board/                       0.193           262.4            0.0000        OVER (TBT)
+/tools/fold/                        0.250           203.9            0.0000        OVER (TBT)
+/tools/form/                        0.234           271.8            0.0000        OVER (TBT)
+/tools/garden/                      0.259           273.8            0.0000        OVER (TBT)
+/tools/geometry/                    0.290           351.2            0.0000        OVER (TBT)
+/tools/kostant/                     0.236           142.3            0.0000        ok
+/tools/lab/                         0.286           268.3            0.0000        OVER (TBT)
+/tools/mirror/                      0.245           281.0            0.0000        OVER (TBT)
+/tools/numbers/                     0.262           271.0            0.0000        OVER (TBT)
+/tools/rep/                         0.236           364.8            0.0000        OVER (TBT)
+/tools/sandbox/                     0.298           300.4            0.0000        OVER (TBT)
+/tools/satake/                      0.212           414.7            0.0000        OVER (TBT)
+/tools/symbolic/                    0.294           389.2            0.0000        OVER (TBT)
+/tools/weyl/                        0.249           295.7            0.0000        OVER (TBT)
+canary (slow fixture, not a route)  3.811           556.7            0.3730        over on LCP, TBT, CLS (as it must be)
+lab: 89 routes measured, 28 over threshold, 0 missing or in error
+lab: finished in 5753 s
 ```
 
-The owner accepted gate G3's lab item as machine-bound on 17 October 2026 (TBT 242 to 332 ms on this container); 19 of the 20 routes over lie between 202.8 and 339.8 ms, and /glossary/ (a page with no tool, 83 typeset entries) measures 432.4 ms. Whether the same acceptance holds at G6, and for the glossary, is the owner's.
+The owner accepted gate G3's lab item as machine-bound on 17 October 2026 (TBT 242 to 332 ms on this container). Here 27 of the 28 routes over lie between 202.7 and 414.7 ms, and /glossary/ (a page with no script, 83 typeset entries; P6-RT-07-03 measured its layout of KaTeX markup) measures 419.0 ms. Against run 1, the median change of the median TBT per route is: the 16 tool routes +70 ms; the 16 embed routes +28 ms; the 32 Atlas sheets +46 ms; the lessons M0 to M9 +6 ms; the pages with no script +0 ms. The canary measured 556.7 ms against 553.7 in run 1, and the per-run values swing widely (/tools/symbolic/ 159, 389 and 496 ms in its three runs). The rise on the tool routes sits in the hydration task (Astro's client chunk, the same file in both runs).
+
+A diagnostic after the chain, cited as proof of nothing about the verdict: the root release builds of f07eec6 (run 1) and facff37 (this run) were built in scratch worktrees and measured with the same lab script on six routes, alternating f07eec6, facff37, f07eec6, facff37 (3 runs each, so 6 runs per route and commit; load average 0.9 to 1.5; the canary 554.1 to 555.4 ms in all four). Median TBT in ms, f07eec6 then facff37:
+
+| route | f07eec6 | facff37 | change |
+|---|---|---|---|
+| /tools/geometry/ | 228.2 | 215.4 | -12.7 |
+| /tools/satake/ | 309.4 | 312.8 | +3.4 |
+| /tools/symbolic/ | 209.3 | 248.9 | +39.6 |
+| /tools/rep/ | 258.8 | 375.2 | +116.4 |
+| /tools/form/ | 223.8 | 262.8 | +39.0 |
+| /sources/ | 392.7 | 364.6 | -28.1 |
+
+The single runs swing widely on both commits (/tools/rep/ 198 to 491 ms on f07eec6). /tools/geometry/ and /tools/satake/ do not move, so most of their rise between the two gate runs is the container. /tools/rep/ rises by about 116 ms: after Astro's hydration task, four of its six runs on facff37 show a T12RepresentationBuilder task, a task of 50 to 68 ms and a second T12RepresentationBuilder task; none of the six runs on f07eec6 shows that sequence (two of them have two T12RepresentationBuilder tasks with nothing between). That fits the round's repair of T12's link hydration (cluster t12-t5: the link is read after hydration; P6-RT-11-03 and run 1's T12.spec.ts:1242). It reads as a regression of T12's default state in the lab (/tools/rep/, and /embed/rep/ through the same component), which no test measures. /tools/symbolic/ and /tools/form/ rise by about 40 ms, within the spread of single runs. Whether the G3 acceptance holds at G6, for the tool routes above 332 ms and for the glossary, is the owner's decision; so is whether T12's extra task is repaired before release 1.0.
 
 ## 9. Release build, reports and archives
 
@@ -506,23 +525,23 @@ open item E16 used on /mutation_game/modules/m6-multiple-edges/ (fallback shown)
 open item E17 used on /mutation_game/confusions/ (fallback shown)
 ```
 
-Archives: pages archive: 3288670 bytes, 325 entries, sha256 78588232bc259d02a63c87e441443b586fb33fd4101ac5fe69eced03c53afa05; RELEASE=1 SITE_URL=https://johnjanik.github.io BASE_PATH=/mutation_game/; root archive: 3284259 bytes, 325 entries, sha256 eaa20cd9fdf0c6d3dde0592aed22bfdb637fa82d0680b3fdbeac3dec10cc6700; RELEASE=1 BASE_PATH=/. site/dist holds the last build of the chain, the CI-base preview build (15a); the root release build is the one the lab measured.
+Archives: pages archive: 3317641 bytes, 358 entries, sha256 c459abae6f4b30271a47a6142551c23004289f8f6f970241e9506443d3a679d6; RELEASE=1 SITE_URL=https://johnjanik.github.io BASE_PATH=/mutation_game/; root archive: 3313050 bytes, 358 entries, sha256 20b609c87603ae13398016f5b29521449cb93e3badd89e9bc963b367b3f9de38; RELEASE=1 BASE_PATH=/. Files: reports/release-1.0-pages.tar.gz and reports/release-1.0-root.tar.gz (run 1's are in reports/gate-G6/run1-archives/). site/dist holds the last build of the chain, the CI-base preview build (15a); the root release build is the one the lab measured.
 
 ## 10. Fragments merged
 
-Every fragment of phase 6 is folded into DECISIONS.md: P6-A1 (with its follow-up), P6-A2, P6-A3, P6-A4, P6-A5, P6-A6, P6-A7, P6-A8, P6-size, P6-tikz, P6-terms, and the MERGE entries (`1265 fragment headings, 0 not in DECISIONS.md`).
+Every fragment of phase 6 and of its red-team round is folded into DECISIONS.md: the phase's fragments (section 10 of run 1) and the round's 45 RT-FIX-P6 sections with the MERGE entry "the phase 6 red-team round, fixes merged" (`1312 fragment headings, 0 not in DECISIONS.md`).
 
 ## 11. The owner's part
 
-- [ ] Every item of Appendix E not settled earlier, items 1, 4, 5 and 8 first (the open-items report above lists 13 items in use; E8, E11, E12, E14 are used on no page).
+- [ ] Every item of Appendix E not settled earlier, items 1, 4, 5 and 8 first (the open-items report lists 13 items in use; E8, E11, E12, E14 are used on no page).
 - [ ] Accessibility script A-13 on the whole site.
 - [ ] Interaction to Next Paint on one phone.
-- [ ] One exported LaTeX file of each kind compiled (reports/gate-G6/latex/: dynkin.tex, tikz-graph.tex, tikz-points.tex; the files hold `% needs \usepackage{...}` and a body to \input).
+- [ ] One exported LaTeX file of each kind compiled (reports/gate-G6-rerun/latex/: dynkin.tex, tikz-graph.tex, tikz-points.tex, tikz-graph-weyl.tex, tikz-graph-rep.tex; each holds `% needs \usepackage{...}` and a body to \input).
 - [ ] Approval of the text of M6 to M10 (M9 and M10 carry the draft mark).
-- [ ] The lab item: whether the machine-bound acceptance of G3 holds for the 20 routes over at G6, /glossary/ included.
+- [ ] The lab item: whether the machine-bound acceptance of G3 holds for the 28 routes over at G6, /glossary/ and the tool routes above 332 ms included, and whether T12's extra task after hydration (/tools/rep/, about +116 ms against run 1) is repaired before release 1.0 (section 8).
+- [ ] The decisions the round left to the owner (DECISIONS.md, "MERGE: the phase 6 red-team round, fixes merged"): the worker wire labels (a change to CONTRACTS.md 4), T6's LaTeX export, and the findings refuted but recorded for the owner.
 
 ## 12. Failures, reruns and repairs
 
-- e2e (step 5): T12.spec.ts:1242 for C8 node 7 failed once with a median hydration task of 53 ms (runs 0, 53, 56); it passed in step 15b ([0, 0, 51]). It fails its row. Next: a repair of T12's hydration on its largest boards (the margin under 50 ms that G5 measured is gone since phase 6: ToolFrame's two new buttons and moves prop, and the engine split into more chunks), then the gate rerun after the phase 6 red-team round.
-- lab (step 12): 20 routes over TBT; the item fails as measured. The red-team round's performance lens and the owner read section 8.
-- No test was skipped beyond the two MathML engines, no timeout was lengthened, no test was retried for this report.
+- lab (step 12): 28 routes over TBT; the item fails as measured. The diagnostic of section 8 finds one regression from the round, the extra task after T12's hydration on /tools/rep/ (about +116 ms); a repair would go to the T12 role, and a lab run on every route would follow it.
+- No test failed in either e2e run. No test was skipped beyond the two MathML engines, no timeout was lengthened, no test was retried for this report.

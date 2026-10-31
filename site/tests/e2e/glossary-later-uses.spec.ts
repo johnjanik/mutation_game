@@ -1,5 +1,6 @@
 // P6-terms: SPEC.md 8.4, "Define every term on first use and link later uses to a glossary entry", on every
-// lesson M0 to M9 and on the reference pages history, confusions, open-problem, not-quiver-mutation and about.
+// lesson M0 to M9, on the M10 hub (RT-FIX P6-RT-10-03) and on the reference pages history, confusions,
+// open-problem, not-quiver-mutation and about.
 // The rule is that of M8.spec.ts > "later uses of a term link to the glossary" (P5-A3), applied to every page:
 // for every term of the glossary (each dfn[id] of glossary/, its formula left out) used at least twice in the
 // prose of a page, some use after the first is a link to that term's own entry (glossary/#<anchor>).
@@ -26,7 +27,10 @@
 // <a href="<base>glossary/#<anchor>"> around words of the text.
 import { expect, test, type Page } from '@playwright/test';
 
-/** The lessons M0 to M9 and the reference pages named by SPEC 3 M10 and the M10 hub (P6-A8). */
+/**
+ * The lessons M0 to M9, module M10 itself (the hub, SPEC 3 M10; 9.2 binds it to the writing rules of 8.4), and the
+ * reference pages named by SPEC 3 M10 and the M10 hub (P6-A8).
+ */
 const ROUTES = [
   'modules/m0-start/',
   'modules/m1-mutation/',
@@ -38,6 +42,8 @@ const ROUTES = [
   'modules/m7-geometry/',
   'modules/m8-lie-algebras/',
   'modules/m9-real-forms/',
+  // regression: P6-RT-10-03
+  'modules/m10-atlas/',
   'history/',
   'confusions/',
   'open-problem/',
@@ -105,14 +111,18 @@ interface Term {
   term: string;
 }
 
-/** The glossary's terms: every dfn with an id, its formula left out (as M8.spec.ts reads them). */
+/**
+ * The glossary's terms: every dfn with an id, its formula left out (as M8.spec.ts reads them), with its curly
+ * apostrophes made straight, as the prose is read in markedProse (RT-FIX P6-MERGE-C-02: the built glossary prints
+ * "Kostant’s game", so a term read as printed met no use in the straightened prose).
+ */
 async function glossaryTerms(page: Page): Promise<Term[]> {
   await page.goto('glossary/');
   return page.locator('article dfn[id]').evaluateAll((els) =>
     els.map((e) => {
       const copy = e.cloneNode(true) as HTMLElement;
       for (const k of copy.querySelectorAll('.katex')) k.remove();
-      return { id: e.id, term: (copy.textContent ?? '').replace(/\s+/g, ' ').trim() };
+      return { id: e.id, term: (copy.textContent ?? '').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim() };
     }),
   );
 }
@@ -242,5 +252,23 @@ test('later uses of a glossary term link to the glossary on every lesson and ref
   expect(unused, 'OTHER_SENSE phrases met on no page').toEqual([]);
   // Not vacuous: many terms are used twice or more, and linked, on these pages.
   expect(satisfied).toBeGreaterThan(150);
+});
+
+// regression: P6-MERGE-C-02
+test('a term with an apostrophe is read alike in the glossary and in the prose, so an unlinked later use of it is found', async ({ page }) => {
+  const terms = await glossaryTerms(page);
+  const ids = terms.filter((t) => t.term.includes("'")).map((t) => t.id);
+  expect(ids, 'the glossary terms written with an apostrophe').toEqual(expect.arrayContaining(['kostants-game', 'wythoffs-construction']));
+  expect(terms.filter((t) => /[‘’]/.test(t.term)).map((t) => t.term), 'terms left with a curly apostrophe').toEqual([]);
+  // A page that uses Kostant's game twice, as the built pages print it (curly apostrophe), the second use linked
+  // or not. The rule of the test above: some use after the first is a link to the term's own entry.
+  for (const linked of [false, true]) {
+    const later = linked ? '<a href="glossary/#kostants-game">Kostant’s game</a>' : 'Kostant’s game';
+    await page.setContent(`<main><article><p>Kostant’s game starts from a simple root population. Later ${later} ends at the highest root.</p></article></main>`);
+    const { marked, links } = await markedProse(page);
+    const mine = usesOf(marked, terms, new Map()).filter((h) => h.id === 'kostants-game');
+    expect(mine.length, `uses of Kostant's game in "${marked}"`).toBe(2);
+    expect(mine.slice(1).some((h) => linkAt(marked, links, h.start) === 'kostants-game'), `linked: ${String(linked)}`).toBe(linked);
+  }
 });
 

@@ -682,21 +682,31 @@ function texLabel(label: unknown): string {
   return label === '' ? '' : `$${label.replace(/[\\#$%&_{}~^]/g, (c) => TEX_SPECIALS[c]!)}$`;
 }
 
+/**
+ * The entries of a list read by index, 0 to length - 1, so that a hole of a sparse list is read as
+ * undefined and meets the same check as an explicit undefined (map, every and forEach skip holes).
+ */
+function entries(list: readonly unknown[]): unknown[] {
+  return Array.from(list);
+}
+
 /** A list of edges, each a pair of integer indices below `count`. */
 function edgeList(value: unknown, count: number): [number, number][] {
   if (!Array.isArray(value)) throw new RangeError('exportLaTeX: edges must be a list of pairs of indices');
-  for (const e of value) {
-    const ok = Array.isArray(e) && e.length === 2 && e.every((k) => typeof k === 'number' && Number.isInteger(k) && k >= 0 && k < count);
-    if (!ok) throw new RangeError(`exportLaTeX: the edge ${JSON.stringify(e)} does not join two of the ${count} vertices`);
-  }
-  return value as [number, number][];
+  const isEnd = (k: unknown): k is number => typeof k === 'number' && Number.isInteger(k) && k >= 0 && k < count;
+  return entries(value).map((e): [number, number] => {
+    if (!Array.isArray(e) || e.length !== 2 || !isEnd(e[0]) || !isEnd(e[1])) {
+      throw new RangeError(`exportLaTeX: the edge ${JSON.stringify(e)} does not join two of the ${count} vertices`);
+    }
+    return [e[0], e[1]];
+  });
 }
 
 const picture = (lines: string[]): string => ['\\begin{tikzpicture}', ...lines.map((l) => `  ${l}`), '\\end{tikzpicture}'].join('\n');
 
 function tikzGraph(data: unknown): string {
   if (!isRecord(data) || !Array.isArray(data.nodes)) throw new RangeError('exportLaTeX: tikz-graph data must be { nodes, edges, directed? }');
-  const nodes = data.nodes as unknown[];
+  const nodes = entries(data.nodes as unknown[]);
   const lines = nodes.map((v, k) => {
     if (!isRecord(v)) throw new RangeError(`exportLaTeX: vertex ${k} must be { x, y, label? }`);
     const label = v.label === undefined ? '' : texLabel(v.label);
@@ -710,14 +720,15 @@ function tikzGraph(data: unknown): string {
 
 function tikzPoints(data: unknown): string {
   if (!isRecord(data) || !Array.isArray(data.points)) throw new RangeError('exportLaTeX: tikz-points data must be { points, edges?, labels? }');
-  const points = (data.points as unknown[]).map((p, k) => {
+  const points = entries(data.points as unknown[]).map((p, k) => {
     if (!Array.isArray(p) || p.length !== 2) throw new RangeError(`exportLaTeX: point ${k} must be a pair [x, y]`);
     return `(${coordinate(p[0])},${coordinate(p[1])})`;
   });
   let labels: unknown[] = [];
   if (data.labels !== undefined) {
     if (!Array.isArray(data.labels) || data.labels.length !== points.length) throw new RangeError('exportLaTeX: labels must give one label or null per point');
-    labels = data.labels;
+    // A hole reads as undefined, which, as null and '', writes no label.
+    labels = entries(data.labels);
   }
   const lines: string[] = [];
   points.forEach((at, k) => {
@@ -734,6 +745,8 @@ function tikzPoints(data: unknown): string {
  * dynkin-diagrams, explicit marks in Bourbaki order and the arrows as the involutions option
  * (DynkinExportData). 'tikz-graph' and 'tikz-points': a tikzpicture of plain coordinates (TikzGraphData,
  * TikzPointsData). No trailing newline. Throws RangeError, naming the fault, on data it cannot write.
+ * Every list is read by index, so a hole of a sparse list is read as undefined: refused as a vertex, a
+ * point, an edge or an end of an edge, and no label in a label list, as an explicit undefined.
  */
 export function exportLaTeX(kind: 'dynkin' | 'tikz-graph' | 'tikz-points', data: unknown): string {
   switch (kind) {

@@ -20,6 +20,7 @@
   // P6-A5 (additive): data-control="latex", "cite"; data-out="citeText", rendered after a click on Cite.
   // P6-A3 (additive, MERGE ruling (3) on P6-A3): the prop `moves` overrides state.moves?.length for data-moves,
   // for a tool whose moves are not part of its state (T13 keeps its steps out of the link).
+  // RT-FIX P6-RT-05-02 (additive): data-scroll="table-view" on the table view's scroll box.
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import { createAnnouncer } from '../../lib/a11y';
@@ -51,8 +52,12 @@
     onPopState?: (state: ToolState, notice: string | null) => void;
     /** P2-A6: the board name of the export footer (SPEC 8.3, D19); default: state.board when it is a name, else `custom board`. */
     boardName?: string;
-    /** P6-A5: what "Export LaTeX" writes; default: the diagram of a named finite board (defaultLatexExport). */
-    latexForExport?: LatexChoice | (() => LatexChoice | null);
+    /**
+     * P6-A5: what "Export LaTeX" writes; default: the diagram of a named finite board (defaultLatexExport).
+     * RT-FIX-P6-latex (additive): the function may answer with a promise, so that a tool's writer is
+     * fetched by import() on the click, as export.ts is (7.6).
+     */
+    latexForExport?: LatexChoice | (() => LatexChoice | null | Promise<LatexChoice | null>);
     figure: Snippet<[FrameApi]>;
     controls?: Snippet<[FrameApi]>;
     table?: Snippet<[FrameApi]>;
@@ -190,8 +195,10 @@
 
   async function onExportLatex(): Promise<void> {
     try {
+      // The tool's choice is read at the click; a promise (its writer being fetched) is awaited.
+      const chosen = await (typeof latexForExport === 'function' ? latexForExport() : latexForExport);
       const { latexDownload } = await import('../../lib/export');
-      const { filename, text } = latexDownload(latexForExport, toolState, toolId, boardName, linkFor(instanceId));
+      const { filename, text } = latexDownload(chosen === undefined ? undefined : () => chosen, toolState, toolId, boardName, linkFor(instanceId));
       save(new Blob([text], { type: 'application/x-tex' }), filename);
       exportNotice = '';
       announce(`Downloaded ${filename}.`);
@@ -262,10 +269,15 @@
   {#if table}
     <details class="table-view">
       <summary>Show as table</summary>
-      <fieldset class="bare" disabled={!hydrated}>
-        <legend class="visually-hidden">Table of {title}</legend>
-        {@render table(api)}
-      </fieldset>
+      <!-- RT-FIX P6-RT-05-02 (A-11, A-1): the box the table scrolls in is a tab stop with a name of its own, so it
+           scrolls from the keyboard while every button inside is disabled (before hydration, or while a
+           prediction freezes the tool); the fieldset inside it disables the buttons until hydration. -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div class="bare" tabindex="0" role="group" aria-label="Table of {title}" data-scroll="table-view">
+        <fieldset class="table-fields" disabled={!hydrated}>
+          {@render table(api)}
+        </fieldset>
+      </div>
     </details>
   {/if}
   <p class="nojs"><noscript><span data-out="noscript">Interactive when scripts are allowed.</span></noscript></p>
@@ -327,7 +339,8 @@
     cursor: default;
   }
   .control:focus-visible,
-  .table-view summary:focus-visible {
+  .table-view summary:focus-visible,
+  .bare:focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
   }
@@ -342,6 +355,15 @@
     border: 0;
     min-width: 0;
     overflow-x: auto;
+  }
+  /* RT-FIX P6-MERGE-TV-01: a fieldset's min-inline-size is min-content by default, so it was as wide as the
+     widest table and every narrower table was laid out at that width. With min-width 0 each table that can
+     reflow within the box does, and a wider one overflows into the scroll box (.bare), A-11. */
+  .table-fields {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
   }
   .nojs {
     margin: 0;

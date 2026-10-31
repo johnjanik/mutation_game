@@ -13,7 +13,9 @@
 // compared by its presence, not its value. RT-FIX P4-RT-06-02 adds data-out="snapshot" (the SVG snapshot of a
 // canvas tool, 7.4) and reads whether a figure is visible. RT-FIX P5-RT-06-01 adds data-out="orbit-graph" with
 // data-drawn, data-positions, data-vertex, data-edge and data-layer-count, and a matrix's data-format,
-// data-rows, data-cols and its cells' data-row and data-col (T12's figure).
+// data-rows, data-cols and its cells' data-row and data-col (T12's figure). RT-FIX P6-RT-06-01 adds T13's
+// data-out="shadow-picture" with its data-point, "restricted-board" and "restricted-name", the role tabpanel,
+// and the marks of a drawing (its SVG shapes and text).
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { hydrateEveryIsland } from './hydrate';
@@ -71,20 +73,35 @@ interface ToolReport {
  * one edge into each vertex below layer 0, or, when it is not drawn (above 300 positions), layer counts that
  * add up to them; a matrix (data-format, data-rows, data-cols) holds every cell of a grid, and a value cell in
  * each row of a list (or its one row "no nonzero entries").
+ * A figure holds content by its marks, not by its elements (RT-FIX P6-RT-06-01; a T14 drawing whose roads and
+ * nodes are gone keeps its empty <g> groups): an SVG drawing holds a circle, ellipse, line, path, polyline,
+ * polygon or text outside its definitions, title and description; an HTML drawing of role img (a chart of bars,
+ * a fraction) holds an element, as before. Every board group and every named drawing that is shown, not only the
+ * first, holds its content (a board group its nodes and a drawing beside it with marks), else it is a blank part.
+ * The panel a T13 instance is configured to show is the only one rendered (decisions/P6-A3.md) and its figure holds
+ * its content (SPEC 4 T13 "Shadows: ... a picture", "Restricted board: drawn in Bourbaki order"): the shadow
+ * picture (data-out="shadow-picture") a point (data-point) drawn by a mark, the restricted board
+ * (data-out="restricted-board") a board, and a panel that names its restricted board (data-out="restricted-name")
+ * draws it.
  */
 function toolReport(root: Element): ToolReport {
   const outside = (el: Element): boolean => el.closest('details, noscript') === null;
   const visible = (el: Element): boolean => (el as HTMLElement).checkVisibility?.() ?? true;
   const named = (el: Element | null): boolean =>
     !!el && ((el.getAttribute('aria-label') ?? '').trim() !== '' || (el.getAttribute('aria-labelledby') ?? '').trim() !== '');
-  const boards = [...root.querySelectorAll('[data-board-group]')]
+  const marked = (el: Element): boolean =>
+    [...el.querySelectorAll('circle, ellipse, line, path, polyline, polygon, text')].some((m) => m.closest('defs, marker, title, desc, clipPath, mask, pattern, symbol') === null);
+  const hasMarks = (d: Element): boolean =>
+    d.tagName.toLowerCase() === 'svg' || d.querySelector('svg') !== null ? marked(d) : d.childElementCount > 0;
+  const groups = [...root.querySelectorAll('[data-board-group]')].filter(outside).filter(visible);
+  const boards = groups.filter(
+    (g) => g.querySelector('[data-node]') !== null && [...(g.parentElement?.children ?? [])].some((c) => c.tagName.toLowerCase() === 'svg' && marked(c)),
+  );
+  const namedDrawings = [...root.querySelectorAll('[role="img"]')]
     .filter(outside)
     .filter(visible)
-    .filter((g) => g.querySelector('[data-node]') !== null && [...(g.parentElement?.children ?? [])].some((c) => c.tagName.toLowerCase() === 'svg' && c.childElementCount > 0));
-  const drawings = [...root.querySelectorAll('[role="img"]')]
-    .filter(outside)
-    .filter(visible)
-    .filter((d) => d.childElementCount > 0 && (named(d) || d.querySelector(':scope > title') !== null));
+    .filter((d) => named(d) || d.querySelector(':scope > title') !== null);
+  const drawings = namedDrawings.filter(hasMarks);
   const imgs = [...root.querySelectorAll('img')].filter(
     (i) => i.closest('noscript') === null && visible(i) && (i.getAttribute('src') ?? '').trim() !== '' && (i.getAttribute('alt') ?? '').trim() !== '',
   );
@@ -124,6 +141,17 @@ function toolReport(root: Element): ToolReport {
     )
     .map((b) => `${b.getAttribute('data-board') ?? '?'} ${b.getAttribute('data-node') ?? '?'}`);
   const blankParts: string[] = [];
+  for (const g of groups.filter((x) => !boards.includes(x))) blankParts.push(`board "${g.getAttribute('aria-label') ?? ''}"`);
+  for (const d of namedDrawings.filter((x) => !drawings.includes(x))) blankParts.push(`drawing "${(d.getAttribute('aria-label') ?? d.querySelector(':scope > title')?.textContent ?? '').slice(0, 40)}"`);
+  for (const p of [...root.querySelectorAll('[data-out="shadow-picture"]')].filter(outside)) {
+    if (![...p.querySelectorAll('[data-point]')].some(marked)) blankParts.push('shadow-picture');
+  }
+  for (const p of [...root.querySelectorAll('[data-out="restricted-board"]')].filter(outside)) {
+    if (!boards.some((b) => p.contains(b))) blankParts.push('restricted-board');
+  }
+  for (const panel of [...root.querySelectorAll('[role="tabpanel"]')].filter(outside)) {
+    if (panel.querySelector('[data-out="restricted-name"]') !== null && panel.querySelector('[data-out="restricted-board"]') === null) blankParts.push('restricted-board');
+  }
   for (const g of [...root.querySelectorAll('[data-out="orbit-graph"]')].filter(outside)) {
     const n = Number(g.getAttribute('data-positions'));
     const full =
@@ -537,3 +565,105 @@ for (const route of ['modules/m8-lie-algebras/']) {
     expect(accepted, `${route}: T12 roots with a blank orbit and blank matrices that nojs.spec.ts accepts as having their default figure`).toEqual([]);
   });
 }
+
+/** Blanks the configured panel's figure of a T13 root: the shadow picture's marks, the restricted board's drawing and buttons. */
+function blankT13Panel(root: Element): { points: number; restrictedShapes: number; restrictedNodes: number } {
+  const points = [...root.querySelectorAll('[data-out="shadow-picture"] svg *')];
+  const shapes = [...root.querySelectorAll('[data-out="restricted-board"] svg *')];
+  const nodes = [...root.querySelectorAll('[data-out="restricted-board"] [data-node]')];
+  for (const e of [...points, ...shapes, ...nodes]) e.remove();
+  return { points: points.length, restrictedShapes: shapes.length, restrictedNodes: nodes.length };
+}
+
+// Adopted from the RT-06 phase 6 reproducer of P6-RT-06-01 (attacks 1 and 10), the retest of P5-RT-06-01 on its
+// sibling T13: a T13 root was accepted as "board" through its game board (the first data-board-group), and the panel
+// the instance is configured to show, the figure each M9 beat is about, was never read: the shadow picture of b3
+// (preset "shadows", SPEC 4 T13 "Shadows"), the restricted board of b7 and b12 (preset "restricted", "Restricted
+// board"). With scripts off, the points of b3's shadow picture and the drawing and node buttons of the restricted
+// board of b7 and b12 are removed; the figure check of the sweep rejects the three roots, through the same
+// functions, as the per-instance checks of M9.spec.ts shown to miss it do not. SPEC.md 7.4: "A Playwright run with
+// JavaScript disabled checks, for every lesson, that the text, every default figure and every table are present."
+// regression: P6-RT-06-01
+test('retest P5-RT-06-01 on T13: a blank shadow picture or restricted board passes the runs without JavaScript (M9 b3, b7, b12)', async ({ page }) => {
+  const ROUTE = 'modules/m9-real-forms/';
+  await page.goto(ROUTE);
+  const ids = ['b3', 'b7', 'b12'];
+  // Before the blanking: the build is sound, each root holds the figure of its panel.
+  for (const id of ids) {
+    const root = page.locator(`[data-tool="satake"][data-instance="${id}"]`);
+    await expect(root, id).toHaveCount(1);
+    const removed = await root.evaluate((r, fn) => new Function(`return (${fn})`)()(r), blankT13Panel.toString());
+    if (id === 'b3') expect(removed.points, `${id}: points of the shadow picture before the blanking`).toBeGreaterThan(0);
+    else expect(removed.restrictedShapes > 0 && removed.restrictedNodes > 0, `${id}: restricted board before the blanking ${JSON.stringify(removed)}`).toBe(true);
+  }
+  // After it, nothing of the panels' figures is left.
+  expect(await page.locator('[data-out="shadow-picture"] svg *, [data-out="restricted-board"] svg *, [data-out="restricted-board"] [data-node]').count()).toBe(0);
+
+  // M9.spec.ts's per-instance checks without JavaScript still pass on the blank roots.
+  for (const id of ids) {
+    const root = page.locator(`[data-tool="satake"][data-instance="${id}"]`);
+    await expect(root.locator('[data-out="decoration"] svg').first(), id).toBeAttached();
+    expect(await root.locator('[data-out="game-board"] button[data-node]').count(), id).toBeGreaterThan(0);
+    await expect(root.locator('details table[data-table="decoration"]'), id).toHaveCount(1);
+  }
+  await expect(page.locator('[data-instance="b7"] [data-out="restricted-name"]')).not.toHaveText('');
+
+  // This file's predicate: the three roots are rejected.
+  const reports = await page.$$eval('[data-tool="satake"]', (rs, fn) => rs.map((r) => new Function(`return (${fn})`)()(r)), toolReport.toString());
+  const accepted = (reports as ToolReport[]).filter((r) => ids.includes(r.instance) && figureProblems(r).length === 0).map((r) => `${r.instance} as ${r.figure}`);
+  expect(accepted, `${ROUTE}: T13 roots whose blank panel figure nojs.spec.ts accepts as their default figure`).toEqual([]);
+});
+
+// The same cause on T14: the Atlas page's default figure is the drawing of the board (role img, inside the data-tool
+// root), and the picker's figures are the 32 drawings. A role-img element with any child element counted as a
+// drawing, so a drawing whose roads and nodes are all removed (its empty <g> groups kept) was still accepted; a
+// drawing now holds marks.
+for (const route of ['atlas/B3/', 'tools/atlas/']) {
+  // regression: P6-RT-06-01
+  test(`same cause on T14: a blank drawing passes the runs without JavaScript (${route})`, async ({ page }) => {
+    await page.goto(route);
+    const removed = await page.evaluate(() => {
+      let k = 0;
+      for (const s of document.querySelectorAll('[data-tool="atlas"] svg[role="img"]')) {
+        for (const e of s.querySelectorAll('line, path, polygon, circle, ellipse, rect, text')) {
+          e.remove();
+          k++;
+        }
+      }
+      return k;
+    });
+    expect(removed, `${route}: marks of the drawings before the blanking`).toBeGreaterThan(0);
+    // T14.spec.ts's checks of the drawing without JavaScript still pass.
+    const drawing = page.locator('[data-tool="atlas"] svg[role="img"]').first();
+    await expect(drawing).toBeVisible();
+    expect((await drawing.getAttribute('aria-label')) ?? '').not.toBe('');
+    // This file's predicate.
+    const reports = await page.$$eval('[data-tool="atlas"]', (rs, fn) => rs.map((r) => new Function(`return (${fn})`)()(r)), toolReport.toString());
+    const accepted = (reports as ToolReport[]).filter((r) => figureProblems(r).length === 0).map((r) => `${r.tool} ${r.instance || '(page)'} as ${r.figure}`);
+    expect(accepted, `${route}: Atlas roots whose blank drawing nojs.spec.ts accepts as their default figure`).toEqual([]);
+  });
+}
+
+// The figure of the panel a T13 instance is configured to show is read, not only its markup: a restricted board
+// removed whole while its panel still names it, and a shadow picture whose points lose their marks while their
+// data-point groups stay, are rejected too (the same cause as P6-RT-06-01, with the containers kept or removed).
+// regression: P6-RT-06-01
+test('a T13 panel that names its restricted board without drawing it, or a shadow picture with empty points, is rejected without JavaScript (M9 b3, b7)', async ({ page }) => {
+  await page.goto('modules/m9-real-forms/');
+  const removed = await page.evaluate(() => {
+    const b7 = document.querySelector('[data-tool="satake"][data-instance="b7"] [data-out="restricted-board"]');
+    b7?.remove();
+    let marks = 0;
+    for (const m of document.querySelectorAll('[data-tool="satake"][data-instance="b3"] [data-out="shadow-picture"] [data-point] > *')) {
+      m.remove();
+      marks++;
+    }
+    return { board: b7 !== null, marks };
+  });
+  expect(removed.board && removed.marks > 0, `the build holds both figures: ${JSON.stringify(removed)}`).toBe(true);
+  await expect(page.locator('[data-instance="b3"] [data-out="shadow-picture"] [data-point]').first()).toBeAttached();
+  const reports = await page.$$eval('[data-tool="satake"]', (rs, fn) => rs.map((r) => new Function(`return (${fn})`)()(r)), toolReport.toString());
+  const problems = Object.fromEntries((reports as ToolReport[]).filter((r) => ['b3', 'b7'].includes(r.instance)).map((r) => [r.instance, figureProblems(r)]));
+  expect((problems.b3 ?? []).join('; '), 'b3: the shadow picture without marks').toMatch(/^content of .*\bshadow-picture\b/);
+  expect((problems.b7 ?? []).join('; '), 'b7: the restricted board removed').toMatch(/^content of .*\brestricted-board\b/);
+});

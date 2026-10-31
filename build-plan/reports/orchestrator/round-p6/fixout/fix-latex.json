@@ -1,0 +1,191 @@
+{
+ "agent": "rtfix-p6-latex",
+ "status": "done",
+ "branch": "worktree-agent-a7a741bdf24636c6c",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a7a741bdf24636c6c",
+ "base": "9b24eea928df2ab6faf5e11ed2c229e8807b9ed0",
+ "commits": [
+  "8de73de RT-FIX P6-RT-03-03: exportLaTeX reads every list by index, so a hole is refused",
+  "67f0794 RT-FIX P6-RT-10-01: T8 and T12 export their orbit graphs as TikZ coordinates",
+  "0a0f9a3 RT-FIX P6-RT-10-01: the writers of T8 and T12 do their work after the click",
+  "01c9b25 RT-FIX P6-RT-10-01 P6-RT-03-03: decisions fragment"
+ ],
+ "filesChanged": [
+  "site/src/lib/export.ts",
+  "site/src/components/board/ToolFrame.svelte",
+  "site/src/components/tools/T08WeylExplorer.svelte",
+  "site/src/components/tools/T12RepresentationBuilder.svelte",
+  "site/src/components/tools/t12/OrbitLayers.svelte",
+  "site/src/components/tools/t08/latex.ts",
+  "site/src/components/tools/t12/latex.ts",
+  "site/tests/unit/export-latex-holes.test.ts",
+  "site/tests/unit/tools/T08-latex.test.ts",
+  "site/tests/unit/tools/T12-latex.test.ts",
+  "site/tests/e2e/latex-export.spec.ts",
+  "decisions/RT-FIX-P6-latex.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git reset --hard 9b24eea; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "worktree agent-a7a741bdf24636c6c, branch worktree-agent-a7a741bdf24636c6c, HEAD 9b24eea928df"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c45474..., 485cae..., 1fc9f8...: match CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 1,
+   "summary": "Tests 1 failed | 2727 passed (2728): p7-roots-signs timed out at 5000 ms at load 18.7 on 4 processors; the file alone: 2 passed"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/export-latex-holes.test.ts (red, before the fix)",
+   "exit": 1,
+   "summary": "Tests 4 failed | 3 passed (7); received '\\draw (0,0) -- undefined;', '\\draw (nundefined) -- (n1);', '\\draw undefined -- (1,1);', and '\\draw (n0) -- (n1);' for a vertex list with a hole, all with threw: null"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit export-latex-holes latex T02-latex T10-latex (green)",
+   "exit": 0,
+   "summary": "Test Files 4 passed (4), Tests 42 passed (42)"
+  },
+  {
+   "cmd": "npm run build (base plus the hole fix)",
+   "exit": 0,
+   "summary": "90 pages; links: 3998 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config, port 7300> latex-scope-red.spec.ts (RT-10 reproducer, red, not committed)",
+   "exit": 1,
+   "summary": "2 failed, 1 passed: T8 A3 '\\dynkin A{ooo}', T12 A2 k=1 '\\dynkin A{oo}', expected substring \\begin{tikzpicture}; T2 control passed"
+  },
+  {
+   "cmd": "npm run size -- --port 7301 --json size-before.json",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget; /tools/rep/ 85706, /tools/weyl/ 77359 gzip bytes"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit T08-latex T12-latex T08 T12 toolframe latex export-latex-holes T02-latex T10-latex export atlas",
+   "exit": 1,
+   "summary": "Tests 1 failed | 283 passed (284): T08.test.ts 'separating roots count the layer' timed out (6850 ms) at load 28; alone: 1 passed. The earlier run of the 7 files T08, T12, toolframe, latex, holes, T02-latex, T10-latex gave 152 passed"
+  },
+  {
+   "cmd": "npm run check -w site (after each change, final)",
+   "exit": 0,
+   "summary": "astro check 0 errors, 0 warnings, 1 hint; svelte-check 1211 files 0 errors 1 warning (the existing LayerChart.svelte tabindex)"
+  },
+  {
+   "cmd": "npm run build (final sources)",
+   "exit": 0,
+   "summary": "90 pages; links: 3998 internal links, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> latex-export.spec.ts (final)",
+   "exit": 0,
+   "summary": "13 passed: the 5 T2/T10 tests, 5 new T8/T12 tests and the 3 regressions (an earlier run had 1 failure in the existing T10 test at :201, which reads edgeCount once without retrying; it passed 3 of 3 with --repeat-each 3)"
+  },
+  {
+   "cmd": "LATEX_SAMPLES_DIR=<scratch>/samples npx playwright test ... latex-export.spec.ts -g RT-FIX-P6-latex",
+   "exit": 0,
+   "summary": "5 passed; wrote tikz-graph-weyl.tex (2521 B) and tikz-graph-rep.tex (3045 B)"
+  },
+  {
+   "cmd": "npm run size -- --port 7301 --json size-after2.json; node size-compare.mjs",
+   "exit": 0,
+   "summary": "90 routes, 0 over budget; /tools/rep/, /embed/rep/ and /modules/m8-lie-algebras/ 85706 -> 85875 (+169); /tools/weyl/ and /embed/weyl/ 77359 -> 77443 (+84); every other ToolFrame route +17 or +18; the writer chunks are fetched by no route before the click"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> T08.spec.ts T12.spec.ts embed.spec.ts export.spec.ts (first version)",
+   "exit": 1,
+   "summary": "209 passed, 1 failed: T08 'picking F4 ... without a long task' (timing, load 20); alone it failed once, then passed"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> nojs.spec.ts a11y.spec.ts toolframe-hydration.spec.ts",
+   "exit": 1,
+   "summary": "287 passed, 1 failed: a11y m8-lie-algebras timed out at 120 s inside AxeBuilder.analyze; the base build (9b24eea sources, OUT_DIR scratch) fails the same way at load 19; a11y tools/rep and tools/weyl pass"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch config> T08 T12 embed export nojs toolframe-hydration latex-export (final sources)",
+   "exit": 1,
+   "summary": "404 passed, 4 failed, all long-task timing tests at load 25 to 27 (T08 F4 pick, T12 E6 and E7 picked at 4x slowdown, T12 D8 node 3 link). Same 3 pick tests with --repeat-each 3: base build 2 of 9 failed, branch 3 of 9 failed, at the same load; the D8 link test passed alone"
+  },
+  {
+   "cmd": "npm test -w packages/engine (final)",
+   "exit": 1,
+   "summary": "Tests 1 failed | 2727 passed (2728): p6a-restricted timed out at load 26 (an earlier run had 5 timeouts); the 5 timed-out files alone: 36 passed. No engine file changed"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no errors"
+  },
+  {
+   "cmd": "grep over the added lines of git diff 9b24eea..HEAD for .only( .skip( xit( console.log ': any' 'astro dev' 'export let' '$:' ' on:' em-dash",
+   "exit": 0,
+   "summary": "0 matches for every pattern"
+  },
+  {
+   "cmd": "git diff --name-only 9b24eea..HEAD; git ls-files | grep -i redteam",
+   "exit": 0,
+   "summary": "12 files, none forbidden; no redteam file added (the 85 tracked redteam paths are under build-plan/reports at base)"
+  },
+  {
+   "cmd": "grep -rn 'regression: P6-RT-' site/tests packages/engine/test",
+   "exit": 0,
+   "summary": "export-latex-holes.test.ts:42; latex-export.spec.ts:399 and :405"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; pgrep -fl 'astro.mjs preview'",
+   "exit": 0,
+   "summary": "status empty; no preview server running"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-RT-10-01: Export LaTeX on the Weyl Explorer (T8) and the Representation Builder (T12) writes the \\dynkin line of the board, not their orbit graphs, which 6.7 says are exported as TikZ coordinates",
+   "status": "fixed",
+   "test": "site/tests/e2e/latex-export.spec.ts > regressions > the Weyl Explorer (T8) exports its orbit graph as TikZ coordinates (6.7); ... > the Representation Builder (T12) exports its orbit graph as TikZ coordinates (6.7)",
+   "evidence": "Severity major (no adjustment). Red at base 9b24eea (the lens reproducer): 2 failed, 1 passed; T8 A3 gave '\\dynkin A{ooo}' and T12 A2 k=1 gave '\\dynkin A{oo}', the same as the verifier saw. Cause: only T2 and T10 passed latexForExport, so T8 and T12 fell back to export.ts defaultLatexExport. Fix: T8 and T12 pass a function that writes a tikz-graph of the graph as drawn (new pure writers t08/latex.ts and t12/latex.ts, same rules as T2: cm, y up, at most 16 cm wide, undirected). The writers are fetched with import() on the click, and ToolFrame now awaits a latexForExport that returns a promise. T12 reads its box positions from a new orbitGeometry in OrbitLayers.svelte, which the drawing uses too. Green: latex-export.spec.ts 13 passed, including checks against the drawing's own hooks (T8 A3 and B4 canvas mode; T12 E6 node 1; the notice on E7 node 2) and a check that no script holding the writers is fetched before the click. Writer unit tests: T08-latex 3 passed, T12-latex 4 passed. Commits 67f0794 and 0a0f9a3. T6 keeps \\dynkin; T15 and T16 keep the notice; the fragment records why."
+  },
+  {
+   "item": "P6-RT-03-03: exportLaTeX writes TeX with 'undefined' and missing node names for lists that have a hole, instead of refusing",
+   "status": "fixed",
+   "test": "site/tests/unit/export-latex-holes.test.ts > RT-03 P6: exportLaTeX on lists with a hole (CONTRACTS 4: RangeError on data it cannot write) > <four cases> is refused with a RangeError, never written as \"undefined\"",
+   "evidence": "Severity minor (no adjustment). Red at base 9b24eea: Tests 4 failed | 3 passed (7), with the 4 outputs the verifier saw. Cause: tikzGraph, tikzPoints and edgeList checked lists with map, every and forEach, which skip holes. Fix: every list is read by index (Array.from), so a hole gets the same check as an explicit undefined: a vertex, point, edge or edge end that is a hole throws RangeError, and a hole in a label list writes no label. This rule is in the exportLaTeX docstring and the fragment, and has 3 added tests covering a label hole, an edge-list hole, and dynkin black and tau. Green: 10 passed; latex.test.ts, T02-latex and T10-latex unchanged and green (42 passed with the new file). Commit 8de73de."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "decisions/P6-A5.md 'ToolFrame, the prop latexForExport' (plan prop; not in CONTRACTS 5.1)",
+   "what": "latexForExport is widened to also accept a function that returns Promise<LatexChoice | null>; onExportLatex awaits that answer, then imports export.ts and passes the answer to latexDownload unchanged",
+   "why": "the orchestrator's note: each tool's writer stays behind the dynamic import of the click. Values, functions that return values, and functions that return null behave as before"
+  },
+  {
+   "spec": "CONTRACTS.md 5.2 (one unit file per tool)",
+   "what": "new site/tests/unit/tools/T08-latex.test.ts and T12-latex.test.ts",
+   "why": "follows the P6-tikz precedent (T02-latex.test.ts, T10-latex.test.ts) and avoids T12.test.ts, which the t12-t5 cluster is editing"
+  },
+  {
+   "spec": "RT-FIX 5.3 adoption",
+   "what": "the RT-10 reproducer was adopted into latex-export.spec.ts (a regressions block) rather than as its own file; its two console.log lines were left out and its assertions are unchanged",
+   "why": "the reproducer covers two tools and a control and belongs with the LaTeX export spec; console.log is forbidden in the diff"
+  }
+ ],
+ "decisionsFragment": "decisions/RT-FIX-P6-latex.md",
+ "openQuestions": [
+  "latex-export.spec.ts:201 (P6-tikz's T10 test 'the projection follows the view') reads data-out=\"edgeCount\" once with innerText() and failed once at load 27 ('Expected \"\" Received \"6\"'). It passed 3 of 3 on rerun. It is a race in an existing test; I did not change it",
+  "Timing tests fail at both base and branch under load 19 to 27 on 4 processors: the a11y m8-lie-algebras axe run (120 s timeout), T08 'picking F4 ... without a long task' and T12 'no long task when E6/E7 is picked' (base 2 of 9 failed, branch 3 of 9 failed). They need a quiet machine to judge"
+ ],
+ "handoff": "Files outside the tools' LaTeX writers: ToolFrame.svelte, where only the latexForExport type and onExportLatex changed (shared-a11y cluster: expect a small conflict near the prop list), and T12RepresentationBuilder.svelte, where only the OrbitLayers import, a closure after the `orbit` derived, the orbitPanel `texts` line and the ToolFrame props changed. readLink and the hydration $effect of cluster t12-t5 are untouched. OrbitLayers.svelte gains orbitGeometry, the old geometry moved out unchanged; T12.test.ts OrbitLayers tests pass. For the lens rerun: T8 and T12 now export tikz-graph. T12 with no orbit drawn (more than 300 positions, or no matrices) shows 'nothing to export as LaTeX' and does not fall back to \\dynkin, by P6-tikz's null rule. T6 keeps \\dynkin because neither TikZ form can draw mirrors, chambers or arrows without adding dots; the fragment gives the owner 3 options. T15 and T16 keep the notice. The proposedFix was followed, with two additions: the writers load behind import(), and ToolFrame accepts a promise. Size cost: rep +169 B, weyl +84 B, every other tool route +17 or +18 B for the wiring; the writers are not fetched before the click. The owner's G6 compile gains the samples tikz-graph-weyl.tex and tikz-graph-rep.tex."
+}
