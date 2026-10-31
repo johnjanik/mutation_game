@@ -433,8 +433,11 @@ test('a prediction asks about what is not yet on screen', async ({ page }) => {
     const about_ = sentences(plain(before)).filter((x) => about.test(x));
     expect(about_.length, id).toBeGreaterThan(0);
     for (const s of about_) expect(s.replace(/\s/g, ''), `${id}: ${s}`).not.toContain(`(${want.join(',')})`);
+    // RT-FIX P6-RT-13-02: no sentence at all before the tool holds the answer of b6; the prose states it after
+    // the prediction block (SPEC 8.1 P2), which the regressions at the end of this file test, as M8 does
+    // (P5-RT-13-01). This assertion replaces the one that forbade the answer anywhere in the prose.
+    if (id === 'b6') expect(plain(before).replace(/\s/g, ''), `${id}: the prose before the tool`).not.toContain(`(${want.join(',')})`);
   }
-  expect(plain(await proseText(page, 'article')).replace(/\s/g, '')).not.toContain(`(${THETA13.join(',')})`);
   // b6 opens on the data panel: theta of the root is not shown until the reader plays it.
   const panel = norm(await tool(page, 'b6').locator('[data-panel]').textContent());
   expect(plain(panel).replace(/\s/g, '')).not.toContain(`(${THETA13.join(',')})`);
@@ -1370,4 +1373,73 @@ test('links resolve', async ({ page }) => {
   for (const h of hrefs.filter((x) => x.includes('glossary'))) expect(h.startsWith(`${base}glossary/#`) || h.startsWith(`${base}glossary#`), h).toBe(true);
   await page.goto(`${base}modules/m6-multiple-edges/`);
   await expect(page.locator('[data-anatomy="title"]')).not.toHaveText('');
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 6 red-team round (build-plan/red-team/RT-FIX.md 5.3)
+// ---------------------------------------------------------------------------------------------
+
+/** A block of the article as a reader meets it: its text with formulas as $TeX$, its links, where it sits. */
+type ReadingBlock = { text: string; after: string[]; tool: boolean; challenge: boolean; lie: boolean; beat: string | null; links: { href: string; text: string }[] };
+
+/**
+ * The paragraphs, list items, captions and table cells of the article in document order, with the tools'
+ * captions, outside every prediction block and every <details> (the reveals and the explanations). `after`
+ * names the tools whose prediction block comes before the block.
+ */
+async function readingBlocks(page: Page): Promise<ReadingBlock[]> {
+  return page.locator('article').evaluate((article) => {
+    const blocks = [...article.querySelectorAll('p, li, figcaption, td, th, caption, [data-out="caption"]')].filter((el) => el.closest('[data-prediction], details') === null);
+    const predictions = [...article.querySelectorAll('[data-tool] [data-prediction]')];
+    return blocks.map((el) => {
+      const copy = el.cloneNode(true) as HTMLElement;
+      for (const k of copy.querySelectorAll('.katex')) k.replaceWith(document.createTextNode(`$${k.querySelector('annotation')?.textContent ?? ''}$`));
+      for (const d of copy.querySelectorAll('[data-prediction], details, script, style')) d.remove();
+      return {
+        text: (copy.textContent ?? '').replace(/−/g, '-').replace(/\s+/g, ' ').trim(),
+        after: predictions.filter((p) => (p.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0).map((p) => p.closest('[data-tool]')?.getAttribute('data-instance') ?? ''),
+        tool: el.closest('[data-tool]') !== null,
+        challenge: el.closest('[data-challenge]') !== null,
+        lie: el.closest('[data-anatomy="lie-theory"]') !== null,
+        beat: el.closest('[data-beat]')?.getAttribute('data-beat') ?? null,
+        links: [...el.querySelectorAll('a[href]')].map((a) => ({ href: a.getAttribute('href') ?? '', text: (a.textContent ?? '').replace(/\s+/g, ' ').trim() })),
+      };
+    });
+  });
+}
+
+test.describe('regressions', () => {
+  test.describe('without JavaScript', () => {
+    test.use({ javaScriptEnabled: false });
+    // RT-13, attack 8 (P2), from the script redteam/redteam-RT-13-p6-m9-reveal-only.mjs of the lens branch, which
+    // read a reading log of the release build without JavaScript and found the answers of b6 and b7 "stated
+    // outside the reveal in: nowhere" (SPEC 8.1 P2: "Results are stated in the prose."; 4.0 Starts meaningful).
+    // The script left out the prediction blocks and the closed <details>, and looked for each answer, with the
+    // patterns below, in every other block of the page (prose, captions and the tools' own text). Oracle
+    // (redteam/redteam-RT-13-p6-oracle-m9.py on the lens branch): b6, su(1,3) on A3, theta(0,0,1) = (-1,-1,0);
+    // b7, e6(-26), from the shadow coordinates (0,1) node 2 gives (0,-1) and node 1 then (-1,-1). Adoption: the
+    // same patterns on the same page without JavaScript, formulas read as $TeX$; the stating text must also
+    // follow its prediction block and nothing before it may state the answer, the pattern of M8's test for
+    // P5-RT-13-01 (the held class P3-RT-13-01: no answer readable before the reader commits).
+    // regression: P6-RT-13-02
+    test('the answers of M9 predictions b6 and b7 are stated outside their reveals, after the prediction block', async ({ page }) => {
+      await page.goto(ROUTE);
+      const start = plain(await out(page, 'b7', 'shadow-coordinates').textContent()).replace(/[()]/g, '').split(', ').map(Number);
+      expect(THETA13).toEqual([-1, -1, 0]);
+      expect(restrictedMove(E626.restricted_board!, restrictedMove(E626.restricted_board!, start, 2), 1)).toEqual([-1, -1]);
+      const answers = [
+        { id: 'b6', stated: /\(-1, ?-1, ?0\)/ },
+        { id: 'b7', stated: /coordinates?[^.]*\(-1, ?-1\)|\(-1, ?-1\)[^.]*coordinates?/ },
+      ];
+      const blocks = await readingBlocks(page);
+      expect(blocks.length).toBeGreaterThan(40);
+      const report = answers.map(({ id, stated }) => {
+        const hits = blocks.filter((b) => stated.test(b.text));
+        return { id, after: hits.filter((h) => h.after.includes(id)).length, before: hits.filter((h) => !h.after.includes(id)).map((h) => `${id}: ${h.text}`) };
+      });
+      // Observed at f07eec6: both answers only in the closed <details> of their prediction blocks.
+      expect(report.filter((r) => r.after === 0).map((r) => `${r.id}: stated outside the reveal, after the prediction block, in: nowhere`)).toEqual([]);
+      expect(report.flatMap((r) => r.before), 'stated before the prediction block').toEqual([]);
+    });
+  });
 });
