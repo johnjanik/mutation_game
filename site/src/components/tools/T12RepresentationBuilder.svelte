@@ -36,7 +36,7 @@
   import OrbitLayersView, { layerCounts } from './t12/OrbitLayers.svelte';
   import RelationFormula from './t12/RelationFormula.svelte';
   import { digestMarkup, readDigest, staticMarkup } from './t12/static';
-  import { encodeState } from '../../lib/urlCodec';
+  import { encodeState, normalisePrefix } from '../../lib/urlCodec';
   import { speak } from '../../lib/a11y';
   import { engineCall, provide } from '../../lib/worker';
   import type { ToolState } from '../../lib/state';
@@ -161,6 +161,8 @@
   let version = $state(0);
   let notice = $state<string | null>(null);
   let busy = $state(false);
+  /** A link is waiting to be read in the task after hydration (the hydration $effect); the tool is frozen meanwhile. */
+  let linkPending = $state(false);
   let matrixNode = $state(initial.node);
   let startFields = $state<string[]>([...initial.start]);
   let startMessage = $state('');
@@ -231,7 +233,7 @@
   });
   const values = $derived(cur().values());
   const view = $derived(cur().string());
-  const frozen = $derived(!predictionResolved || busy || cur().pending);
+  const frozen = $derived(!predictionResolved || busy || linkPending || cur().pending);
   const toolState = $derived(cur().state());
   const captionText = $derived.by(() => {
     void checks;
@@ -755,11 +757,30 @@
   }
 
   // Hydration: read the URL once with the instance prefix (6.6); the configured state is then drawn from the
-  // state in tasks of its own (activate), unless the link loaded another state.
+  // state in tasks of its own (activate), unless the link loaded another state. An address that holds a key of
+  // this instance (a one-letter name after its prefix) is read in a task of its own after hydration, so that the
+  // hydration task holds only the hydration of the server's markup and the state the link loads is built and
+  // drawn in the tasks after it (SPEC 7.6; RT-FIX P6, gate G6: a link loaded in the hydration task made it 35 to
+  // 65 ms long). Until then the tool is frozen and its figure counts as being drawn (data-drawn="false"); a state
+  // that the back button loads meanwhile (popstate, a new generation) is the one shown.
   $effect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     untrack(() => {
-      if (!readLink()) activate(generation);
+      const pre = normalisePrefix(instanceId);
+      if (![...new URLSearchParams(window.location.search).keys()].some((k) => k.length === pre.length + 1 && k.startsWith(pre))) {
+        if (!readLink()) activate(generation);
+        return;
+      }
+      const g = generation;
+      linkPending = true;
+      drawing++;
+      timer = setTimeout(() => {
+        linkPending = false;
+        drawing--;
+        if (g === generation && !readLink()) activate(generation);
+      }, 0);
     });
+    return () => clearTimeout(timer);
   });
 
   /**
