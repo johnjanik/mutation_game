@@ -39,9 +39,12 @@
 //   restricted-board, restricted-name, restricted-name-note, composite-word, composite-length (the restricted board);
 //   catalogue, catalogue-row, same-form (the catalogue)
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
+import { outDirFrom, siteAndBase } from '../../astro.config.mjs';
 import { admissibility, boardFromName, positiveRoots, satake, theta, toPositions } from '../../../packages/engine/src/index';
 import type { Board, SatakeDiagram } from '../../../packages/engine/src/index';
 // the tool's own server-side functions, for the E7 island test (as registry-outs.spec.ts loads the registry)
@@ -814,6 +817,73 @@ test('the catalogue row headers have text (axe empty-table-header), with the typ
 // ---------------------------------------------------------------------------------------------
 
 test.describe('regressions', () => {
+  // Adopted from the RT-07 lens (site/tests/e2e/redteam-RT-07-p6-link-size.spec.ts, attacks 1, 30 and 35): the
+  // JavaScript /tools/satake/ fetches before the reader's first interaction when it is opened from a link that
+  // the site itself writes. SPEC 7.6: the budget of a route is the gzip size of "all JavaScript the route fetches
+  // before the reader's first interaction", 90 kB for "each tool alone, on /tools/<id>"; SPEC 6.6: "On a tool's
+  // own route (/tools/..., /embed/...) the keys are bare", so a link is the same route. decisions/P6-A3.md: the
+  // typeset names (t13/satakeNames.ts, about 5 kB gzipped) load only after the reader's first change. Measured as
+  // npm run size measures a route (scripts/size.mjs: 360 by 800, network idle, then quiet; gzip level 9 of the
+  // files from the built directory), with 3 s with no request as the settle. npm run size opens bare routes only.
+  const SITE_DIR = resolve(import.meta.dirname, '../..');
+  const dist = resolve(SITE_DIR, outDirFrom(process.env));
+  const { base } = siteAndBase(process.env);
+  const LIMIT = 90000; // SPEC 7.6, a tool alone; kB = 1000 bytes (DECISIONS.md, P0-A6)
+
+  async function scriptsBeforeInteraction(browser: Browser, baseURL: string, path: string): Promise<{ sum: number; files: string[] }> {
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, baseURL });
+    const page = await ctx.newPage();
+    const urls = new Set<string>();
+    let last = Date.now();
+    ctx.on('request', (r) => {
+      last = Date.now();
+      const u = new URL(r.url());
+      if (r.resourceType() === 'script' || /\.m?js$/.test(u.pathname)) urls.add(r.url());
+    });
+    await page.goto(path, { waitUntil: 'networkidle' });
+    const t0 = Date.now();
+    while (Date.now() - last < 3000 && Date.now() - t0 < 15000) await page.waitForTimeout(100);
+    await ctx.close();
+    let sum = 0;
+    const files: string[] = [];
+    for (const url of urls) {
+      const p = decodeURIComponent(new URL(url).pathname);
+      const file = join(dist, p.slice(base.length));
+      expect(existsSync(file), `${url} has a file in ${dist}`).toBe(true);
+      const gz = gzipSync(readFileSync(file), { level: 9 }).length;
+      sum += gz;
+      files.push(`${p.replace(/^.*\//, '')} ${gz}`);
+    }
+    return { sum, files: files.sort() };
+  }
+
+  // Links of the Atlas pages (atlas/<T>/ "Open this real form in the Satake Studio"), as the built HTML writes them.
+  const LINKS = [
+    'tools/satake/?z=1&g=A3&x=1.3&t=1.2.3', // atlas/A3/, su*(4)
+    'tools/satake/?z=1&g=D8&x=1.3.5.7&t=1.2.3.4.5.6.7.8', // atlas/D8/
+    'tools/satake/?z=1&g=E6&x=2.3.4.5&t=1.2.3.4.5.6', // atlas/E6/, e6(-26)
+  ];
+
+  // regression: P6-RT-07-01
+  test('the default state of /tools/satake/ is within 90 kB (control)', async ({ browser, baseURL }) => {
+    test.setTimeout(120000);
+    const r = await scriptsBeforeInteraction(browser, baseURL!, 'tools/satake/');
+    console.info(`/tools/satake/ default: ${r.sum} B before interaction (${r.files.length} scripts)`);
+    expect(r.sum).toBeLessThanOrEqual(LIMIT);
+  });
+
+  for (const link of LINKS) {
+    // regression: P6-RT-07-01
+    test(`/${link} (a link the Atlas writes) fetches at most 90 kB before the first interaction`, async ({ browser, baseURL }) => {
+      test.setTimeout(120000);
+      const def = await scriptsBeforeInteraction(browser, baseURL!, 'tools/satake/');
+      const r = await scriptsBeforeInteraction(browser, baseURL!, link);
+      const extra = r.files.filter((f) => !def.files.includes(f));
+      console.info(`/${link}: ${r.sum} B before interaction (default ${def.sum} B); scripts beyond the default: ${extra.join(', ') || 'none'}`);
+      expect(r.sum, `scripts beyond the default state: ${extra.join(', ')}`).toBeLessThanOrEqual(LIMIT);
+    });
+  }
+
   // Adopted from the RT-10 lens (site/tests/e2e/redteam-RT-10-p6-t13-hooks.spec.ts), attack 9 (SPEC 4.0 Test
   // hooks: "Every node button carries data-node (its label), data-board (populations or numbers, which matters in
   // the linked view), data-value (the value shown, as decimal text, or as p/q for a fraction) and data-can-act

@@ -305,6 +305,14 @@
     cfg = next;
     play = { start: defaultRoot(d), steps: [], cursor: 0 };
     refresh();
+  }
+
+  /**
+   * Fetches the typeset names (t13/names.ts), only from the reader's own actions (a paint, tau, the picker, an
+   * example, a catalogue entry, a panel, the back button), never while the island hydrates from a link: SPEC 7.6
+   * counts every script a route fetches before the first interaction (decisions/P6-A3.md; RT-FIX P6-RT-07-01).
+   */
+  function loadTypesetNames(): void {
     void loadNames().then(() => namesVersion++);
   }
 
@@ -340,6 +348,7 @@
     const black = isBlack ? cfg.black.filter((l) => l !== label) : [...cfg.black, label].sort((a, b) => a - b);
     notice = null;
     setConfig({ board: cfg.board, black, tau: cfg.tau });
+    loadTypesetNames();
     announce(announcePaint(board, label, !isBlack, lv));
   }
 
@@ -347,6 +356,7 @@
     if (frozen) return;
     notice = null;
     setConfig({ board: cfg.board, black: cfg.black, tau: tauToLabels(board, t) });
+    loadTypesetNames();
     announce(announceTau(board, d.tau, lv));
   }
 
@@ -355,6 +365,7 @@
     if (frozen || !T13_BOARDS.includes(name)) return;
     notice = null;
     setConfig(splitState(name));
+    loadTypesetNames();
     announce(`Board ${name}, no black node, τ the identity. ${verdictTail(lv)}`);
   }
 
@@ -363,6 +374,7 @@
     if (frozen) return;
     notice = null;
     setConfig(next);
+    loadTypesetNames();
     exampleLoaded(instanceId, toolStateOf(next));
     announce(`Loaded ${what}. ${verdictTail(lv)}`);
   }
@@ -495,7 +507,7 @@
   /** Opens a panel; the reader's first action also fetches the typeset names (t13/names.ts). */
   function openPanel(id: T13Panel): void {
     panel = id;
-    void loadNames().then(() => namesVersion++);
+    loadTypesetNames();
   }
 
   function onTabKey(event: KeyboardEvent): void {
@@ -966,7 +978,10 @@
   {figureLabel}
   boardName={cfg.board}
   derivedForExport={() => exportData(d, adm, data, data === null ? null : shadowRows(d))}
-  onPopState={() => readLink()}
+  onPopState={() => {
+    readLink();
+    loadTypesetNames();
+  }}
   {figure}
   {table}
 />
