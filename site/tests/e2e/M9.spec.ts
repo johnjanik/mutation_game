@@ -15,9 +15,10 @@
 //     restricted-type, real-rank, multiplicities, multiplicity-classes, dim-k, dim-p, character, theta-word,
 //     theta-stage, shadow, shadow-coordinates, shadow-table, restricted-board, restricted-name,
 //     composite-word, composite-length, catalogue-row (data-name), same-form; History: moveCounter;
-//     Predict: predictResult. Extra hooks of T13 (decisions/P6-A3.md): data-colour on the paint buttons,
-//     data-board "numbers" on the paint buttons and "populations" on the restricted board (SPEC 4.0;
-//     decisions/RT-FIX-P6-t13.md), data-arrow and data-black-arrow on the drawing,
+//     Predict: predictResult. Extra hooks of T13 (decisions/P6-A3.md): the paint buttons are controls,
+//     data-control "paint" with data-paint (the label) and data-colour (decisions/RT-FIX-P6-t13-followup.md);
+//     data-board "populations" on the restricted board (SPEC 4.0; decisions/RT-FIX-P6-t13.md), data-arrow and
+//     data-black-arrow on the drawing,
 //     data-panel-tab, data-control picker, tau (data-tau), toggle, root, theta-next, example
 //     (data-example); Predict: data-prediction, .question, details, data-control predictAnswer,
 //     predictCheck, predictShow
@@ -178,7 +179,7 @@ const minusTuple = (v: readonly number[]): string => `(${v.map((x) => (x < 0 ? `
 const tool = (page: Page, id: string): Locator => page.locator(`[data-tool="satake"][data-instance="${id}"]`);
 const out = (page: Page, id: string, name: string): Locator => tool(page, id).locator(`[data-out="${name}"]`);
 const control = (page: Page, id: string, name: string): Locator => tool(page, id).locator(`[data-control="${name}"]`);
-const deco = (page: Page, id: string, label: number): Locator => out(page, id, 'decoration').locator(`button[data-node="${label}"]`);
+const deco = (page: Page, id: string, label: number): Locator => out(page, id, 'decoration').locator(`button[data-paint="${label}"]`);
 const gameNodes = (page: Page, id: string): Locator => out(page, id, 'game-board').locator('button[data-node]');
 const restrictedNode = (page: Page, id: string, label: number): Locator => out(page, id, 'restricted-board').locator(`button[data-node="${label}"]`);
 const tab = (page: Page, id: string, panel: string): Locator => tool(page, id).locator(`[data-panel-tab="${panel}"]`);
@@ -292,7 +293,7 @@ test.describe('without JavaScript', () => {
       // The default figure: the drawing of the decoration and the game board, with their values (7.4).
       const n = B(board).n;
       await expect(out(page, id, 'decoration').locator('svg').first(), id).toBeAttached();
-      await expect(out(page, id, 'decoration').locator('button[data-node]'), id).toHaveCount(n);
+      await expect(out(page, id, 'decoration').locator('button[data-control="paint"]'), id).toHaveCount(n);
       await expect(gameNodes(page, id), id).toHaveCount(n);
       for (const v of await valuesOf(gameNodes(page, id))) expect(v, id).toMatch(/^-?\d+$/);
       for (const l of ident(n)) await expect(deco(page, id, l), `${id} node ${l}`).toHaveAttribute('data-colour', black.includes(l) ? 'black' : 'white');
