@@ -1,0 +1,208 @@
+{
+ "agent": "rtfix-p6-worker-wire",
+ "status": "done",
+ "branch": "worktree-agent-a5ea758b5b0b2afb8",
+ "worktree": "/home/user/mutation_game/.claude/worktrees/agent-a5ea758b5b0b2afb8",
+ "base": "7faf7b94247584188ae5ca272c8a252ccc677617",
+ "commits": [
+  "4ee1d13 RT-FIX P6-RT-03-02: a worker reply the main side cannot rebuild rejects the call",
+  "d20539d RT-FIX P6-RT-03-02 P6-RT-06-02: a board travels by its name only when it is the standard board of it",
+  "f5d0cd5 RT-FIX P6-RT-03-02 P6-RT-06-02: decisions fragment for the worker wire"
+ ],
+ "filesChanged": [
+  "site/src/lib/worker.ts",
+  "site/src/lib/workerWire.ts",
+  "site/tests/unit/worker-reply-settles.test.ts",
+  "site/tests/unit/workerWire-named-board.test.ts",
+  "decisions/RT-FIX-P6-worker-wire.md"
+ ],
+ "commandsRun": [
+  {
+   "cmd": "git reset --hard 7faf7b9",
+   "exit": 0,
+   "summary": "HEAD is now at 7faf7b9 Phase 6 round: RT-04 reported (0 findings); worker-wire cluster"
+  },
+  {
+   "cmd": "node --version",
+   "exit": 0,
+   "summary": "v22.22.0"
+  },
+  {
+   "cmd": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+   "exit": 0,
+   "summary": "/home/user/mutation_game/.claude/worktrees/agent-a5ea758b5b0b2afb8; worktree-agent-a5ea758b5b0b2afb8; 7faf7b94247584188ae5ca272c8a252ccc677617"
+  },
+  {
+   "cmd": "sha256sum reference/golden_data.json reference/lie_games.py reference/verify.py",
+   "exit": 0,
+   "summary": "c4547463..., 485caee8..., 1fc9f82b...: all three equal CONTRACTS.md 9"
+  },
+  {
+   "cmd": "npm ci --prefer-offline",
+   "exit": 0,
+   "summary": "installed (audit notice only)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (baseline)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728)"
+  },
+  {
+   "cmd": "TMPDIR=<scratch>/tmp1 npx vitest run --project site-unit redteam-RT-03-p6-worker-wire.test.ts redteam-RT-06-p6-worker-satake.test.ts (both reproducers from their lens branches, untracked, at base)",
+   "exit": 1,
+   "summary": "Tests 6 failed | 21 passed (27): E7 e7(-133), E8 e8(-248) NotABoard 'an adjacency matrix needs at least one node'; E8 e8(-24) twice in RT-03 and RT-06 (labels [1,2,3,4] and standard F4 against [4,3,2,1] and the orbit-order matrix); compact E8 through engineCall {settled: 'pending after 2 s', uncaught: [NotABoard]}. Same values the verifiers saw"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/worker-reply-settles.test.ts (before the worker.ts fix)",
+   "exit": 1,
+   "summary": "Tests 3 failed (3): settled 'pending after 2 s' with an uncaught NotABoard for e7(-133), e8(-248) and an unreadable reply"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit worker-reply-settles.test.ts worker-routing.test.ts worker-provide.test.ts (after the fix)",
+   "exit": 0,
+   "summary": "Test Files 3 passed (3); Tests 40 passed (40)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit site/tests/unit/workerWire-named-board.test.ts (before the specOf fix)",
+   "exit": 1,
+   "summary": "Tests 3 failed (3): e8(-24) comes back as the standard F4 matrix; A3 su(2,2) gives [[2,-1],[-2,2]] where the main thread has [[2,-2],[-1,2]]; the argument direction arrives as the standard F4"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit workerWire-named-board.test.ts worker-reply-settles.test.ts worker-routing.test.ts worker-provide.test.ts (after the fix)",
+   "exit": 0,
+   "summary": "Test Files 4 passed (4); Tests 43 passed (43)"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit (the two reproducers, after both fixes)",
+   "exit": 1,
+   "summary": "Tests 6 failed | 21 passed (27), the part that needs a decision: e8(-24) now has the same matrix in position order, but with labels [1,2,3,4], no name and bigint entries; the compact form now settles as 'rejected: NotABoard' (uncaught []) where the reproducer expects 'resolved'; e7(-133) and e8(-248) still cannot be rebuilt by resolveBoard"
+  },
+  {
+   "cmd": "TMPDIR=<scratch>/tmp2 npx vitest run --project site-unit (whole site unit suite)",
+   "exit": 1,
+   "summary": "Test Files 2 failed | 100 passed (102); Tests 2 failed | 1216 passed (1218): two 5000 ms timeouts at load 20 on 4 processors, T03 'meter is constant along 1000 random free moves on every type' and repo-ci-playwright-report"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit tools/T03.test.ts repo-ci-playwright-report.test.ts (rerun alone)",
+   "exit": 1,
+   "summary": "T03 passes; repo-ci-playwright-report times out again (5794 ms; it spawns node on playwright.config.ts)"
+  },
+  {
+   "cmd": "npm run check -w site (first run)",
+   "exit": 1,
+   "summary": "3 errors, all in my new workerWire-named-board.test.ts (AnyBoard where SatakeDiagram wants Board); fixed with 'as Board' and folded into the unreported commit d20539d"
+  },
+  {
+   "cmd": "npm run check -w site",
+   "exit": 0,
+   "summary": "astro check: 0 errors, 0 warnings, 1 hint; svelte-check: 1208 files, 0 errors, 1 warning (existing: t02/LayerChart.svelte tabindex)"
+  },
+  {
+   "cmd": "npm test -w packages/engine (after)",
+   "exit": 0,
+   "summary": "Test Files 88 passed (88); Tests 2728 passed (2728), the same as the baseline"
+  },
+  {
+   "cmd": "npx tsc --noEmit -p packages/engine",
+   "exit": 0,
+   "summary": "no output"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build",
+   "exit": 0,
+   "summary": "Complete; links: 3998 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch copy, port 7330> worker-on-demand.spec.ts T13.spec.ts",
+   "exit": 1,
+   "summary": "127 passed, 1 failed: T13 'no serious or critical axe violations on /tools/satake in both themes' hit its 30000 ms test timeout (no axe assertion failed)"
+  },
+  {
+   "cmd": "npx playwright test -c <scratch copy, port 7330> nojs.spec.ts a11y.spec.ts",
+   "exit": 1,
+   "summary": "284 passed, 1 failed: a11y 'modules/m8-lie-algebras/ has no serious or critical axe violations' hit its 120000 ms timeout inside AxeBuilder.analyze (load 21 to 27)"
+  },
+  {
+   "cmd": "bash <scratch>/retry-axe.sh (the two axe tests again, branch build)",
+   "exit": 1,
+   "summary": "2 failed, both on the timer (30.2 s and 2.9 m), load 19.9 to 27.4"
+  },
+  {
+   "cmd": "bash <scratch>/axe-long.sh (T13 axe test with --timeout 300000, diagnostic only)",
+   "exit": 0,
+   "summary": "1 passed (32.1 s): no serious or critical violation; 30 s is just exceeded under this load"
+  },
+  {
+   "cmd": "git checkout 7faf7b9 -- site/src/lib/worker.ts site/src/lib/workerWire.ts; npm run build; bash <scratch>/retry-axe.sh; npx vitest run repo-ci-playwright-report.test.ts; git checkout HEAD -- the two files",
+   "exit": 1,
+   "summary": "base comparison: the same two axe tests fail at base with the same timeouts (30.1 s, 2.4 m), and repo-ci-playwright-report times out at base (8015 ms). These three failures are not caused by this branch. Files restored, git diff HEAD empty"
+  },
+  {
+   "cmd": "NODE_DISABLE_COMPILE_CACHE=1 npm run build (final, clean tree)",
+   "exit": 0,
+   "summary": "links: 3998 internal links on 90 pages, 0 problems"
+  },
+  {
+   "cmd": "npx vitest run --project site-unit workerWire-named-board worker-reply-settles worker-routing worker-provide tools/T13 (final)",
+   "exit": 0,
+   "summary": "Test Files 5 passed (5); Tests 91 passed (91)"
+  },
+  {
+   "cmd": "bash <scratch>/diffchecks.sh (RT-FIX section 6 greps over git diff 7faf7b9..HEAD)",
+   "exit": 0,
+   "summary": "5 files changed, no forbidden path; 0 hits each for .only( .skip( xit( toBeCloseTo console.log ': any' 'astro dev' 'export let' '$:' on:; 0 em-dashes in the diff, the fragment and the commit messages; no redteam file in the diff; 7 regression comments; every subject starts 'RT-FIX P6-RT-0'"
+  },
+  {
+   "cmd": "rm -rf node_modules site/node_modules packages/engine/node_modules site/dist; git status --porcelain; ps for astro preview on 7330-7333",
+   "exit": 0,
+   "summary": "removed; status empty; no preview running"
+  }
+ ],
+ "acceptance": [
+  {
+   "item": "P6-RT-03-02: Satake data routed to the worker can come back changed, or never settle: restrictedBoard of E7 and E8 does not survive the worker wire",
+   "status": "needs-decision",
+   "test": "site/tests/unit/redteam-RT-03-p6-worker-wire.test.ts on worktree-agent-aaf7a474ed3a7598c",
+   "evidence": "Severity minor (lens), no verifier adjustment. Fixed without a contract change (two lines below): the promise now always settles (commit 4ee1d13), and a named board that is not the standard board of its name is no longer replaced by it (commit d20539d). Still red in the unchanged reproducer: 4 tests (e7(-133), e8(-248), e8(-24), compact E8 through engineCall). The thing that would have to change is CONTRACTS.md 4 (worker.ts) 'Serialization: ... Board as its BoardSpec (rebuilt with resolveBoard)', with BoardSpec = string | { cartan; xy? } (CONTRACTS 4, state.ts), which has no labels. resolveBoard ('throws on not-a-board') refuses { cartan: [] }, and a name always rebuilds the standard board (SPEC 6.6). Options for e8(-24) (name F4, labels 4,3,2,1, SafeInt): (a) carry labels and name with the matrix on the wire ({ $board: { cartan }, labels, name }, SafeInt for a finite name), a CONTRACTS 4 change that also repairs P1-A2's noted loss of sub-board labels; (b) the engine names or builds restricted (and folded) boards in their name's Bourbaki order, which changes the engine's output and the E-7 plan reading of P4-A1 and P6-A1; (c) record in CONTRACTS 4 that a non-standard named board crosses as its matrix without labels or name. Options for the empty board of a compact form: (a) a wire rule rebuilding { cartan: [] } as an empty board without resolveBoard (CONTRACTS 4; the engine exports no empty-board constructor, which would be a CONTRACTS 2 change); (b) keep the current rejection (NotABoard, same class) and record it, since T13 makes no call without a white node; (c) let resolveBoard accept 0 nodes, not recommended because SPEC 6.6 link validation would then let an empty board through. Recommendation: option (a) for labels, together with empty-board option (a) if the owner changes the wire format, otherwise empty-board option (b). Details in decisions/RT-FIX-P6-worker-wire.md."
+  },
+  {
+   "item": "P6-RT-06-02 (DUPLICATE of P6-RT-03-02): Attack 29: restrictedBoard's board comes back from the worker as the canonical F4 (another position order and matrix) on E8 e8(-24), because workerWire sends a named board by its name alone",
+   "status": "needs-decision",
+   "test": "site/tests/unit/redteam-RT-06-p6-worker-satake.test.ts on worktree-agent-ab01232faaf6b3607",
+   "evidence": "Severity minor, no adjustment. Same cause as P6-RT-03-02 (specOf in workerWire.ts), closed together in commit d20539d. Red at base: 2 failed | 16 passed (18), the values of the finding. After the fix the board comes back with the main thread's matrix [[2,-1,0,0],[-1,2,-2,0],[0,-1,2,-1],[0,0,-1,2]] in position order, consistent with rb.cartan and rb.orbits. Its 2 tests stay red only on what BoardSpec cannot carry: labels [1,2,3,4] against [4,3,2,1], no name against 'F4', and bigint entries (Big) against SafeInt. Fixed thing, options and recommendation: as in the P6-RT-03-02 line (CONTRACTS.md 4 'Board as its BoardSpec'; labels on the wire, an engine order change, or a recorded loss; recommendation: labels on the wire). The lens's alternative proposal (the engine names a board only in Bourbaki order) would change the engine's output and is not open to a fixer."
+  },
+  {
+   "item": "P6-RT-03-02 (part): engineCall's promise never settles when the main side cannot rebuild a worker reply (the empty restricted board of a compact form)",
+   "status": "fixed",
+   "test": "site/tests/unit/worker-reply-settles.test.ts > a reply of the engine worker always settles the call > restrictedBoard of the compact form e8(-248) of E8, routed to the worker, settles: the empty board that resolveBoard refuses rejects as NotABoard (also e7(-133) of E7, and 'a reply whose result or error data the main side cannot rebuild rejects the call with that error, and the next call is answered')",
+   "evidence": "Red before the fix: Tests 3 failed (3), {settled: 'pending after 2 s', uncaught: ['NotABoard: an adjacency matrix needs at least one node']}. Cause: worker.ts's onmessage deleted the pending entry and then called deserialize outside any catch, so a throw escaped the handler and the promise was never settled. Now the handler rejects with the error that deserialize or wireToError throws, keeping its class (CONTRACTS 4). Green: 3 files, 40 passed (with worker-routing and worker-provide). Commit 4ee1d13."
+  },
+  {
+   "item": "P6-RT-03-02 P6-RT-06-02 (part): a named board that is not the standard board of its name comes back from the worker as the standard board",
+   "status": "fixed",
+   "test": "site/tests/unit/workerWire-named-board.test.ts > a named board crosses the worker wire by its name only when it is the standard board of that name > E8 e8(-24): the restricted board that comes back from the worker has the matrix of the main thread in position order, not the standard F4 (also '... every restricted board of the Satake catalogue comes back from the worker with its own matrix in position order; a standard one keeps its name and labels')",
+   "evidence": "Red before the fix: Tests 3 failed (3): e8(-24) received the standard F4 [[2,-1,0,0],[-1,2,-1,0],[0,-2,2,-1],[0,0,-1,2]]; A3 su(2,2) received [[2,-1],[-2,2]] against [[2,-2],[-1,2]]. Cause: specOf sent every named board by its name, and a name rebuilds the standard board. Now specOf sends the name only when the matrix and labels equal those of boardFromName(name) position by position (cached per name), and otherwise sends { cartan } in position order. The test runs all 135 non-compact catalogue records: 7 now travel by matrix (su(2,2), sp(4,R), sp(2,2), so*(8), e6(2), e6(-14), e8(-24)); the other 128 keep their name and labels. Green: 4 files, 43 passed; final 5 files, 91 passed. Commit d20539d."
+  },
+  {
+   "item": "P6-RT-03-02 (sibling): a named board in another position order sent to the worker as an argument arrives as the standard board",
+   "status": "fixed",
+   "test": "site/tests/unit/workerWire-named-board.test.ts > a named board crosses the worker wire by its name only when it is the standard board of that name > a named board in another position order sent to the worker as an argument arrives with its own matrix",
+   "evidence": "Same function, the other direction of the call (main to worker; the folded board case MERGE recorded in phase 4). Red before the fix: e6(2)'s restricted F4 (labels 4,1,3,2) reached the worker's cartanNumbers as the standard F4. Green after commit d20539d; specOf(boardFromName('F4')) is still 'F4', and worker-routing.test.ts still pins { $board: 'E8', arith: 'Big' } for a bigBoard copy."
+  }
+ ],
+ "deviations": [
+  {
+   "spec": "RT-FIX.md 5.3 (adopt the reproducer)",
+   "what": "Neither reproducer was adopted. The fixed parts are guarded by new tests on the same inputs (E7 and E8 catalogue records, e8(-24), the stub worker of RT-03).",
+   "why": "6 of their 27 tests stay red until the owner decides the wire format (needs-decision). RT-FIX 5.5 keeps a needs-decision reproducer off the branch. No assertion of either reproducer was edited."
+  }
+ ],
+ "requests": [],
+ "decisionsFragment": "decisions/RT-FIX-P6-worker-wire.md",
+ "openQuestions": [
+  "Three timeouts not caused by this branch, all confirmed at base with worker.ts and workerWire.ts at 7faf7b9, at load 19 to 27 on 4 processors: T13.spec.ts 'no serious or critical axe violations on /tools/satake in both themes' (30 s; passes in 32.1 s with --timeout 300000 and no violation), a11y.spec.ts 'modules/m8-lie-algebras/ has no serious or critical axe violations' (120 s inside AxeBuilder.analyze), and site unit repo-ci-playwright-report.test.ts (5 s; it spawns node). T03 'meter is constant along 1000 random free moves' timed out once in the full suite and passes alone.",
+  "site/src/components/tools/t13/model.ts:387 says 'rb.board is never read: the worker rebuilds it by name'. For the 7 named restricted boards in orbit order it is now rebuilt by matrix. The comment belongs to T13's files, which I did not edit; T13 never reads rb.board.",
+  "packages/engine/src/satake.ts restrictedWith gives every restricted board arith SafeInt, named or not (an unnamed one, for instance a board in pieces, MERGE ruling (1) on P6-A1). CLAUDE.md and E-2 put SafeInt only on named finite-type boards, and through the wire an unnamed restricted board comes back Big. Not confirmed by any lens; noted only."
+ ],
+ "handoff": "Every changed file is inside the cluster (site/src/lib/worker.ts and workerWire.ts, two new site unit tests, the fragment); no engine, T13 or contract file was touched. Both findings are needs-decision for their remaining part: CONTRACTS.md 4 sends a Board as a label-less BoardSpec rebuilt with resolveBoard. So a non-standard named restricted board now keeps its matrix in position order but loses its name, its labels and SafeInt, and the empty board of a compact form now rejects promptly with NotABoard instead of hanging; the owner's options are in the fragment. When the lenses rerun, both reproducers stay red on 6 tests by design: the e8(-24) diff is now only labels, name and bigint entries, and the compact call settles as 'rejected: NotABoard'. Of the proposed fixes I followed the onmessage catch and the matrix part of 'send { cartan } unless standard'. I followed neither labels on the wire nor the engine reorder, because both are forbidden changes for a fixer, and I added no worker-side refusal of the empty board, because the main-side catch already rejects it with the same class. Fragment headings carry the round date 2026-10-26 as instructed; the work finished 2026-10-31 after the container restart, and commit d20539d was amended once before this report to fix a type error in its own test."
+}
