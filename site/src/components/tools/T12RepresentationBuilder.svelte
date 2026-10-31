@@ -33,7 +33,7 @@
   import Predict from '../board/Predict.svelte';
   import { shortcutOf } from '../board/keyboard';
   import MatrixView, { adoptableTable } from '../math/MatrixView.svelte';
-  import OrbitLayersView, { layerCounts } from './t12/OrbitLayers.svelte';
+  import OrbitLayersView, { layerCounts, orbitGeometry } from './t12/OrbitLayers.svelte';
   import RelationFormula from './t12/RelationFormula.svelte';
   import { digestMarkup, readDigest, staticMarkup } from './t12/static';
   import { encodeState } from '../../lib/urlCodec';
@@ -209,6 +209,17 @@
   const kAt = $derived(positionOf(anyBoard, matrixNode));
   /** The orbit in layers, read only by a drawn orbit panel or orbit table. */
   const orbit = $derived(rep.built ? orbitView(rep) : null);
+  /** The text of each vertex of the orbit as drawn (its position in label order, true minus signs). */
+  const orbitTexts = (o: NonNullable<typeof orbit>): string[] => o.layers.vertices.map((v) => positionText(inLabelOrder(anyBoard, v.values)));
+  // RT-FIX-P6-latex (P6-RT-10-01): Export LaTeX writes the orbit as drawn, a tikz-graph (t12/latex.ts; SPEC
+  // 6.7), read at the click; null (the notice) when no orbit is drawn. The writer is fetched then (7.6).
+  const latexForExport = () => {
+    const o = orbit;
+    const b = anyBoard;
+    if (o === null || o.drawing === null) return null;
+    const g = orbitGeometry(o.layers, o.drawing, orbitTexts(o));
+    return import('./t12/latex').then((m) => m.orbitLatex(o.layers, g, (v) => inLabelOrder(b, v)));
+  };
   const checks = $derived.by((): RelationCheck[] | null => {
     void version;
     return rep.checks;
@@ -1026,7 +1037,7 @@
       <OrbitLayersView
         layers={orbit.layers}
         drawing={orbit.drawing}
-        texts={orbit.layers.vertices.map((v) => positionText(inLabelOrder(anyBoard, v.values)))}
+        texts={orbitTexts(orbit)}
         title="The orbit of {omegaName(nodeLabel)} on {spec}: {rep.orbitSize} positions in {orbit.layers.layerSizes.length} layers, each edge labelled with the node fired."
         omegaText={omegaName(nodeLabel)}
         shown={orbitShown}
@@ -1372,6 +1383,7 @@
   {figureLabel}
   boardName={spec}
   derivedForExport={() => exportData(tool, digest)}
+  {latexForExport}
   onPopState={() => {
     readLink();
   }}
