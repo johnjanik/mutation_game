@@ -76,7 +76,7 @@ interface ToolReport {
  * A figure holds content by its marks, not by its elements (RT-FIX P6-RT-06-01; a T14 drawing whose roads and
  * nodes are gone keeps its empty <g> groups): an SVG drawing holds a circle, ellipse, line, path, polyline,
  * polygon or text outside its definitions, title and description; an HTML drawing of role img (a chart of bars,
- * a fraction) holds an element or text. Every board group and every named drawing that is shown, not only the
+ * a fraction) holds an element, as before. Every board group and every named drawing that is shown, not only the
  * first, holds its content (a board group its nodes and a drawing beside it with marks), else it is a blank part.
  * The panel a T13 instance is configured to show is the only one rendered (decisions/P6-A3.md) and its figure holds
  * its content (SPEC 4 T13 "Shadows: ... a picture", "Restricted board: drawn in Bourbaki order"): the shadow
@@ -92,7 +92,7 @@ function toolReport(root: Element): ToolReport {
   const marked = (el: Element): boolean =>
     [...el.querySelectorAll('circle, ellipse, line, path, polyline, polygon, text')].some((m) => m.closest('defs, marker, title, desc, clipPath, mask, pattern, symbol') === null);
   const hasMarks = (d: Element): boolean =>
-    d.tagName.toLowerCase() === 'svg' || d.querySelector('svg') !== null ? marked(d) : d.childElementCount > 0 || (d.textContent ?? '').trim() !== '';
+    d.tagName.toLowerCase() === 'svg' || d.querySelector('svg') !== null ? marked(d) : d.childElementCount > 0;
   const groups = [...root.querySelectorAll('[data-board-group]')].filter(outside).filter(visible);
   const boards = groups.filter(
     (g) => g.querySelector('[data-node]') !== null && [...(g.parentElement?.children ?? [])].some((c) => c.tagName.toLowerCase() === 'svg' && marked(c)),
