@@ -4,8 +4,9 @@
 //
 // Mathematics comes from the engine only (SPEC 7.3): admissibility, theta, shadow2, longestWord, mutate,
 // positiveRoots, satakeCatalogue, canonicalPair, choleskyBasis. What this file adds is bookkeeping: labels
-// and positions (converted with toLabels and toPositions only, E-7), the C2 display adjustment of SPEC 6.4
-// applied to the reader's own pair, the Bourbaki order of the drawn restricted board found by orbit, the
+// and positions (converted with toLabels and toPositions only, E-7), the records for display of the reader's
+// own pair taken from satakeRecord (which makes the C2 display adjustment of SPEC 6.4), the Bourbaki order of
+// the drawn restricted board found by orbit, the
 // three stages of theta (stage 1 moves entries along tau, stage 3 changes signs, stage 2 is the engine's
 // word played with mutate), and the sentences the Studio writes. The coordinates of a shadow in the simple
 // restricted roots come from the engine's restrictedCoordinates (P6-A1's follow-up); no linear system is solved here.
@@ -21,6 +22,7 @@ import {
   positiveRoots,
   restrictedCoordinates,
   satakeCatalogue,
+  satakeRecord,
   shadow2,
   symmetries,
   theta,
@@ -424,14 +426,40 @@ export interface Assembled {
 
 const sameList = (a: readonly number[], b: readonly number[]): boolean => a.length === b.length && a.every((x, k) => x === b[k]);
 
+/** Whether a record's pair is the diagram's own pair (black nodes as a set, and tau). */
+function isOwnPair(r: SatakeRecord, d: SatakeDiagram): boolean {
+  return sameList(recordBlack(r), [...d.black].sort((a, b) => a - b)) && sameList(r.tau, d.tau);
+}
+
+/**
+ * The record for display of the reader's own pair for one record matchCatalogue returned (SPEC 6.4; Appendix H:
+ * "Satake records for display come from satakeRecord, which applies the C2 naming of SPEC 6.4"): satakeRecord on
+ * the board's name with the record's catalogue fields (real form, Cartan's label, restricted_type_display) and the
+ * reader's black nodes and tau. matchCatalogue's records are satakeRecord's own output for their catalogue pairs,
+ * so a record whose pair is the reader's is already that record and is returned as it is; satakeRecord runs only
+ * for a pair that is the image of a catalogue pair under a symmetry of the board. E7 and E8 have no symmetry but
+ * the identity, so there every matched record is the reader's own and nothing runs here on the main thread (E-9;
+ * site/tests/unit/tools/T13.test.ts checks it).
+ */
+export function displayRecord(d: SatakeDiagram, r: SatakeRecord): SatakeRecord {
+  if (isOwnPair(r, d)) return r;
+  return satakeRecord(d.board.name!, {
+    cartan_label: r.cartan_label,
+    real_form: r.real_form,
+    restricted_type_display: r.restricted_type_display,
+    black_nodes: [...d.black].sort((a, b) => a - b),
+    tau: [...d.tau],
+  });
+}
+
 /**
  * Every displayed field of an admissible pair (plan signature assembleData(sat, rb, records, board), with the
  * board carried by the diagram). Numbers come from satake on the reader's own pair; names, Cartan's labels and
  * restricted_type_display from the records matchCatalogue returns. Each entry is a complete record of SPEC 6.4
- * for the reader's pair (black_nodes, tau, arrows and tau_moves_black_nodes are the reader's), and the C2
- * adjustment of 6.4 is applied entry by entry: where the entry displays C2, restricted_board is C2 and the
- * orbits in Bourbaki order are satake's, reversed. The restricted board is drawn by the record whose pair is
- * the reader's own, otherwise by the first record (on D4 with black nodes 3 and 4, so(2,6), drawn B2).
+ * for the reader's pair (black_nodes, tau, arrows and tau_moves_black_nodes are the reader's); its restricted
+ * board and the orbits in Bourbaki order are those of the record for display (displayRecord: satakeRecord, which
+ * makes the C2 adjustment of 6.4). The restricted board is drawn by the record whose pair is the reader's own,
+ * otherwise by the first record (on D4 with black nodes 3 and 4, so(2,6), drawn B2).
  */
 export function assembleData(sat: SatakeComputed, rb: RestrictedLike, records: readonly SatakeRecord[], d: SatakeDiagram): Assembled {
   const board = d.board as Board<number>;
@@ -440,12 +468,8 @@ export function assembleData(sat: SatakeComputed, rb: RestrictedLike, records: r
   const arrows = arrowsOf(d);
   const moves = X.some((i) => tau[i] !== i);
   const entries: SatakeRecord[] = records.map((r) => {
-    let restrictedBoardName = sat.restricted_board;
-    let order = sat.restricted_orbits_in_bourbaki_order === null ? null : sat.restricted_orbits_in_bourbaki_order.map((o) => [...o]);
-    if (r.restricted_type_display === 'C2' && restrictedBoardName === 'B2' && order !== null) {
-      restrictedBoardName = 'C2';
-      order = order.reverse();
-    }
+    const shown = displayRecord(d, r);
+    const order = shown.restricted_orbits_in_bourbaki_order === null ? null : shown.restricted_orbits_in_bourbaki_order.map((o) => [...o]);
     return {
       dynkin_type: board.name ?? r.dynkin_type,
       cartan_label: r.cartan_label,
@@ -471,12 +495,12 @@ export function assembleData(sat: SatakeComputed, rb: RestrictedLike, records: r
       restricted_simple_orbits: sat.restricted_simple_orbits.map((o) => [...o]),
       restricted_simple_multiplicities: sat.restricted_simple_multiplicities.map(([a, b]) => [a, b] as [number, number]),
       restricted_cartan: sat.restricted_cartan === null ? [] : sat.restricted_cartan.map((row) => [...row]),
-      restricted_board: restrictedBoardName,
+      restricted_board: shown.restricted_board,
       restricted_orbits_in_bourbaki_order: order,
       restricted_reflection_word_lengths: [...sat.restricted_reflection_word_lengths],
     };
   });
-  const own = records.findIndex((r) => sameList(recordBlack(r), X) && sameList(r.tau, tau));
+  const own = records.findIndex((r) => isOwnPair(r, d));
   const drawingEntry = entries.length === 0 ? -1 : own >= 0 ? own : 0;
   let drawing: Drawing | null = null;
   const e = entries[drawingEntry];

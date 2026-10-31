@@ -17,6 +17,8 @@
 // Properties of T13 beyond the common ones of 4.0 Configuration (id, board, prediction, preset, caption):
 // black (labels of the black nodes), tau (images of all nodes in label order) and root (a population in
 // label order). coords, start, moves and linkTo do not apply.
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   admissibility,
@@ -27,6 +29,8 @@ import {
   restrictedBoard,
   restrictedCoordinates,
   satake,
+  satakeCatalogue,
+  satakeRecord,
   shadow2,
   symmetries,
   theta,
@@ -53,6 +57,7 @@ import {
   defaultRoot,
   diagramOf,
   displayName,
+  displayRecord,
   exportData,
   failureNote,
   failureSentence,
@@ -1194,4 +1199,80 @@ describe('T13 registry entry and server render', () => {
 afterAll(async () => {
   all = [];
   await loader?.close();
+});
+
+// ---------------------------------------------------------------------------------------------
+// Regressions of the phase 6 red-team round (RT-FIX P6, cluster t13)
+// ---------------------------------------------------------------------------------------------
+
+describe('regressions', () => {
+  // Adopted from the RT-02 lens (site/tests/unit/redteam-RT-02-p6-c2-once.test.ts), attack 13 (the C2 adjustment
+  // applied by the wrong function). SPEC 6.4: "This adjustment is made by satake_record (engine: satakeRecord);
+  // the plain function satake would say B2." SPEC Appendix H, Rules (and CLAUDE.md): "Satake records for display
+  // come from satakeRecord, which applies the C2 naming of SPEC 6.4." The second test checks that the records T13
+  // shows are satakeRecord's for the reader's own pair, on every catalogue pair and every symmetry image of one.
+  describe('RT-02 p6 attack 13: the C2 naming of SPEC 6.4 is applied by satakeRecord only', () => {
+    // regression: P6-RT-02-01
+    it('t13/model.ts does not apply the C2 adjustment itself', () => {
+      const src = readFileSync(fileURLToPath(new URL('../../../src/components/tools/t13/model.ts', import.meta.url)), 'utf8');
+      const code = src
+        .split('\n')
+        .map((line, k) => [k + 1, line] as const)
+        .filter(([, line]) => !/^\s*(\/\/|\*|\/\*\*)/.test(line));
+      const hits = code.filter(([, line]) => /restricted_type_display === 'C2'|restrictedBoardName = 'C2'|order\.reverse\(\)/.test(line)).map(([k, line]) => `model.ts:${k}: ${line.trim()}`);
+      expect(hits).toEqual([]);
+    });
+
+    // regression: P6-RT-02-01
+    it('satakeRecord on the reader\'s own pair gives the restricted board and Bourbaki orbits T13 shows (every catalogue pair and symmetry image, rank at most 6)', () => {
+      let checked = 0;
+      for (const name of T13_BOARDS) {
+        const board = boardFromName(name) as Board<number>;
+        if (board.n > 6) continue;
+        const auts = symmetries(board);
+        for (const e of satakeCatalogue(name)) {
+          for (const g of auts) {
+            const black = e.black_nodes.map((i) => g[i]!).sort((a, b) => a - b);
+            const tau: number[] = new Array(board.n).fill(0);
+            e.tau.forEach((t, i) => {
+              tau[g[i]!] = g[t]!;
+            });
+            const d: SatakeDiagram = { board, black, tau };
+            const records = matchCatalogue(d);
+            const data = assembleData(satake(d), black.length === board.n ? { orbits: [], simpleRestrictedRoots2: [], cartan: [], compositeWords: [] } : restrictedBoard(d), records, d);
+            data.entries.forEach((shown, k) => {
+              const r = satakeRecord(name, { ...records[k]!, black_nodes: black, tau });
+              expect([shown.restricted_board, shown.restricted_orbits_in_bourbaki_order], `${name} ${shown.real_form} ${black.join('.')} ${tau.join('.')}`).toEqual([
+                r.restricted_board,
+                r.restricted_orbits_in_bourbaki_order,
+              ]);
+              checked++;
+            });
+          }
+        }
+      }
+      expect(checked).toBeGreaterThan(100);
+    });
+
+    // The fix takes the records for display from satakeRecord (t13/model.ts displayRecord); on E7 and E8 that must
+    // not put satakeRecord on the main thread (SPEC 5.1 E-9 item 3). Their only symmetry is the identity, so every
+    // record matchCatalogue returns there is of the reader's own pair and is returned as it is (the same object:
+    // satakeRecord would make a new one).
+    // regression: P6-RT-02-01
+    it('on E7 and E8 the record for display of every admissible pair is the record matchCatalogue returned (no satakeRecord on the main thread, E-9)', () => {
+      let checked = 0;
+      for (const type of ['E7', 'E8']) {
+        for (const [black, tau] of PAIRS[type]!) {
+          const d = diagramOf(type, black, tau);
+          const records = matchCatalogue(d);
+          expect(records.length, `${type} ${black.join('.')}`).toBeGreaterThan(0);
+          for (const r of records) {
+            expect(displayRecord(d, r), `${type} ${r.real_form}`).toBe(r);
+            checked++;
+          }
+        }
+      }
+      expect(checked).toBe(RECORDS.filter((r) => r.dynkin_type === 'E7' || r.dynkin_type === 'E8').length);
+    });
+  });
 });
