@@ -1,0 +1,187 @@
+[
+ {
+  "id": "P6-RT-08-02",
+  "severity": "major",
+  "title": "Attack 26: M9 beat 1 states 'A node is black exactly when θ fixes its root' with no provenance, and the statement depends on condition 2",
+  "location": "site/src/content/modules/m9-real-forms.mdx:116 (beat 1, /modules/m9-real-forms/)",
+  "claim": "A general 'exactly when' statement in beat 1 has no provenance in its sentence, its paragraph or the Seen box. It is a consequence of condition 2, not a definition: it fails on decorations the Studio lets the reader paint.",
+  "expected": "SPEC 8.4: 'Every theorem-like statement carries its provenance' (a citation or 'verified by computation'), and 9.2: 'every statement has a provenance'. It should also be restricted to admissible pairs, or to pairs meeting condition 2.",
+  "observed": "Beat 1: 'A node is black exactly when θ fixes its root; a real form whose θ fixes every root is compact.' The paragraph holds no <Cite> and no 'verified by computation', and the four Seen statements do not restate it. The oracle (redteam/redteam-RT-08-p6-black-fixed.py) finds 0 failures on admissible pairs with τ the identity, but 6 decorations on A3 where it fails. Example: nodes 1 and 2 black, τ the identity (a row of the table in SPEC 2.15), where θ(α1) = α2.",
+  "reproduction": "npm ci --prefer-offline; npx vitest run site/tests/unit/redteam-RT-08-p6-m9-black-provenance.test.ts (fails); python3 redteam/redteam-RT-08-p6-black-fixed.py reference (prints A3: 0 admissible failures, 6 other decorations)",
+  "specRef": "SPEC 8.4 'Every theorem-like statement carries its provenance'; 9.2; 2.15 conditions 1 to 3; golden satake_examples[type=A3;black_nodes=1,2;tau=1,2,3]",
+  "proposedFix": "Say it for real forms (admissible pairs) and give it a provenance, for example 'by condition 2, verified by computation', or move it into the Seen box with one.",
+  "reproducer": "site/tests/unit/redteam-RT-08-p6-m9-black-provenance.test.ts; redteam/redteam-RT-08-p6-black-fixed.py",
+  "lens": "RT-08",
+  "branch": "worktree-agent-a3775b5da62a67ad5",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-08-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.4 'Every theorem-like statement carries its provenance'; 9.2; 2.15 conditions 1 to 3; golden satake_examples[type=A3;black_nodes=1,2;tau=1,2,3]",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738, detached. Applied site/tests/unit/redteam-RT-08-p6-m9-black-provenance.test.ts and redteam/redteam-RT-08-p6-black-fixed.py, both absent at the gate. The test imports nothing from redteam/. git status --porcelain lists both as 'A', plus the file applied for 01, which this run does not select. Ran from <wt>: npx vitest run site/tests/unit/redteam-RT-08-p6-m9-black-provenance.test.ts, exit 1. Output: 'Tests 1 failed | 1 passed (2)'; 'x its paragraph, or the Seen box that restates it, carries a provenance'; 'AssertionError: m9-real-forms.mdx beat 1: a general statement with no provenance: expected false to be true'. Ran: python3 redteam/redteam-RT-08-p6-black-fixed.py reference, exit 0. It printed 'A3: admissible pairs (tau = id) where the statement fails: 0; other decorations where it fails: 6; first: black positions (0, 1), node position 0, theta fixes its root: False'. The other boards gave A2 0/2, B3 0/2 and D4 0/12. Line 116 and the built page both read 'A node is black exactly when θ fixes its root; a real form whose θ fixes every root is compact.' None of the 4 Seen statements (lines 236-239) mentions black nodes fixed by θ. Own oracle check, a scratch script run with python3 -I against <wt>/reference, positions 0..2: L.theta(L.cartan('A',3), [0,1], [0,1,2], e_i) gives theta(alpha_1) = (0, 1, 0), theta(alpha_2) = (1, 0, 0) and theta(alpha_3) = (-1, -1, -1). L.admissibility gives condition_1 True, condition_2 False ('on the black nodes [1, 2], tau differs from -w_X'), condition_3 True and admissible False. Golden satake_examples entry for type A3, black_nodes [1,2], tau [1,2,3] agrees: condition_2 false, admissible false, real_forms []. So θ(α1) = α2, as the finding states. Observed matches.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: beat 1's 'A node is black exactly when θ fixes its root' has no provenance in its paragraph or the Seen box, and the oracle gives θ(α1) = α2 on A3 with nodes 1 and 2 black and τ the identity (condition 2 fails), with 0 failures on admissible pairs; this is an 8.4 provenance rule, so major stands, and the sentence speaks of real forms, where it holds"
+   },
+   "refute": {
+    "findingId": "P6-RT-08-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 8.4 bullet 4: 'Every theorem-like statement carries its provenance'. SPEC 9.2: 'every statement has a provenance'. SPEC 8.2 item 4. The passage supports the finding.",
+    "evidence": "m9-real-forms.mdx:116 at f07eec6, beat 1: 'A node is black exactly when θ fixes its root; a real form whose θ fixes every root is compact.' Its paragraph has no Cite and no 'verified by computation'. The four Seen statements (lines 236-239: admissible pairs; shadows, multiplicities and composite moves; the character; τ on black nodes) do not state it. SPEC 2.15 defines the pair (X,τ) with X given and θ=-w_X∘τ, so 'black exactly when θ fixes its root' is a consequence and not the definition (0.3). It is the simple-root case of 2.15's 'the roots with ᾱ=0 are exactly the roots of the black sub-board', which is asserted in the oracle's satake [V]. Beat 3 states a related zero-shadow sentence with 'verified by computation' in its own paragraph, but beat 1 does not. SPEC 3 M9 beat 1 ('why black means compact') asks for the explanation and exempts nothing. The P6-A7 fragment records no provenance choice for this sentence. M9 is phase 6.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 8.4 has no qualifier, and neither the paragraph nor the Seen box carries the statement; R2 the sentence is a general 'exactly when' consequence of the 2.15 definition, not a definition; R3 M9 is phase 6; R4 the finding does not dispute truth on admissible pairs; R5 no [D] or logged choice covers it; R6 no record. Major is the rubric's level for a broken 8.4 prose rule."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-05-05",
+  "severity": "minor",
+  "title": "Attack 36: M9's T13 captions and b6's prediction question write mathematics as ASCII TeX ('w_X', 'dim k = 4', 'dim p = 6')",
+  "location": "site/src/content/modules/m9-real-forms.mdx:129 (b2 caption 'of w_X'), :150 (b3 caption 'dim k = '), :183 (b6 question 'the word of w_X', caption 'dim k = ..., dim p = ...')",
+  "claim": "These plain-text props are the figures' captions and a prediction question, read by everyone and by screen readers ('w underscore X'). They carry mathematics outside MathML, in the spellings the tool's own captions were repaired to avoid.",
+  "expected": "A-12: mathematics is rendered with MathML available to assistive technology. In plain text the tool's repaired captions write words and 𝔨 and 𝔭 (MERGE ruling (6) on P6-A3: no underscore, no 'dim k').",
+  "observed": "/modules/m9-real-forms/: b2 caption '... after the word 1 3 of w_X, ...'; b3 caption '... real rank 1, dim k = 4.'; b6 caption '... dim k = 9, dim p = 6 and character −3.'; b6 question '... stage 2 plays the word of w_X, the single letter 2. ...'.",
+  "reproduction": "npm ci; npm run build; npx playwright test site/tests/e2e/redteam-RT-05-p6-m9-ascii-math.spec.ts (1 failed, listing the four texts).",
+  "specRef": "SPEC.md 7.5 A-12, A-10; 8.4; decisions/P6-A3.md 'display spellings in captions'",
+  "proposedFix": "Write these in words ('the longest word of the black nodes', 'dim 𝔨 = 4'), as the tool's captions do; a formula needing subscripts belongs in the prose with <Tex>.",
+  "reproducer": "site/tests/e2e/redteam-RT-05-p6-m9-ascii-math.spec.ts",
+  "lens": "RT-05",
+  "branch": "worktree-agent-a9713d93ac4c60748",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-05-05",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC.md 7.5 A-12, A-10; 8.4; decisions/P6-A3.md 'display spellings in captions'",
+    "evidence": "<wt> and <scratch> as in P6-RT-05-01. HEAD f07eec6 (detached). Applied site/tests/e2e/redteam-RT-05-p6-m9-ascii-math.spec.ts from worktree-agent-a9713d93ac4c60748 (status 'A  <path>'). The shared npm ci and npm run build both exited 0. Ran: npx --prefix <wt> playwright test -c <scratch>/playwright.config.ts site/tests/e2e/redteam-RT-05-p6-m9-ascii-math.spec.ts. Exit 1, '1 failed', with these received entries: 'b2 caption: On A3 with black nodes 1 and 3, the real form su*(4), θ takes the population (0, 1, 0) to (1, 1, 1) after the word 1 3 of w_X, ...'; 'b3 caption: For su(1,2) on A2 ... real rank 1, dim k = 4.'; 'b6 caption: On A3 with black node 2 and τ exchanging 1 and 3, the real form su(1,3): ... dim k = 9, dim p = 6 and character −3.'; 'b6 question: Here stage 1 of θ moves the population (0, 0, 1) to (1, 0, 0), and stage 2 plays the word of w_X, the single letter 2. Where does θ send (0, 0, 1)?'. These match the four texts in the finding's observed field. Tree after the run: only the applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: the M9 b2, b3 and b6 captions and the b6 question contain 'w_X', 'dim k = 4', 'dim k = 9, dim p = 6' as plain ASCII text"
+   },
+   "refute": {
+    "findingId": "P6-RT-05-05",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC.md 7.5 A-12 ('Mathematics is rendered with MathML available to assistive technology'). DECISIONS.md / decisions/P6-A3.md 'display spellings in captions, the figure's name and announcements': 'Formulas in captions are written in words, since a caption is plain text ... \"dim 𝔨\" and \"dim 𝔭\"'. Both support the finding.",
+    "evidence": "Read site/src/content/modules/m9-real-forms.mdx at f07eec6. Line 129, b2 caption: '... after the word ... of w_X, ...'. Line 150, b3 caption: '... dim k = ${...dim_k}.' Line 183, b6 question: '... stage 2 plays the word of w_X, the single letter ...'. Line 183, b6 caption: '... dim k = ..., dim p = ... and character ...'. Tried R5 with MERGE's P6-A7 ruling ('its deviations stand (... real rank and dim k of su(1,2) in the caption ...)') and P6-A7 deviation (2). That ruling is about where the values go (the b3 caption rather than the prose, for the word budget), not their spelling. It does not cover b2, b6 or the question. The P6-A3 repair test covers only T13's generated captions. No fragment records ASCII TeX in lesson captions. M9 had no review before this round (known-and-decided list).",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 nothing allows ASCII TeX in a plain-text caption, and the recorded rule for T13 captions is words or 𝔨 and 𝔭; R2 the finding reads A-12 and ruling (6) as written; R3 M9 is phase 6 at G6; R4 no oracle question; R5 the MERGE ruling on P6-A7's deviation (2) covers only where the b3 values go, not their spelling; R6 no earlier record. Minor (wording) stands."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-13-02",
+  "severity": "major",
+  "title": "Attack 8 (P2): the answers of M9's two predictions are stated only in their reveals, and M9.spec.ts asserts that the prose must not state them (the sibling of P5-RT-13-01)",
+  "location": "site/src/content/modules/m9-real-forms.mdx (b6 prediction, beat 5; b7 prediction, beat 6); site/tests/e2e/M9.spec.ts:437",
+  "claim": "No sentence of beats 5 to 9, no caption, no default output and nothing in the Seen box states either answer: b6's θ(0,0,1)=(−1,−1,0) and b7's coordinates (−1,−1). b7's answer appears only inside challenge 3's closed Explanation <details>. M9.spec.ts:437 asserts that the whole article prose does not contain (−1,−1,0), which forbids the fix that P5-RT-13-01 applied to M8.",
+  "expected": "SPEC 8.1 P2: 'Results are stated in the prose. Tooltips repeat information; they never hold it alone.' SPEC 4.0: 'Nothing the argument needs is available only after a click.' RT-13 attack 8: the answer must also appear in the prose after the prediction block, as M8 now does (M8-q08, M8-q29).",
+  "observed": "redteam-RT-13-p6-m9-reveal-only.mjs on the release and preview logs: b6 stated outside the reveal nowhere; b7 stated outside the reveal nowhere. 'FAIL: 2 of 2 prediction answers of M9 are held only by the reveal'. Without JavaScript the answers sit only in the closed <details> ('(-1, -1, 0)', '(-1, -1)').",
+  "reproduction": "npm ci; RELEASE=1 OUT_DIR=/tmp/rel npm run build; node redteam/redteam-RT-13-p6-serve.mjs /tmp/rel 5631 / (background); node redteam/redteam-RT-13-p6-read.mjs http://localhost:5631/ release /tmp/m9.json nojs 360 800 /modules/m9-real-forms/; node redteam/redteam-RT-13-p6-m9-reveal-only.mjs /tmp/m9.json (exits 1)",
+  "specRef": "SPEC 8.1 P2; 4.0 Starts meaningful; RT-13 attack 8; regression of P5-RT-13-01 (M8.spec.ts > regressions)",
+  "proposedFix": "As for M8: state θ(0,0,1)=(−1,−1,0) in a sentence after b6 (for example, opening beat 6), and (−1,−1) after b7 (for example, opening beat 7). Replace M9.spec.ts:437 with the M8 regression pattern: the answer is stated after the prediction block and nowhere before it.",
+  "reproducer": "redteam/redteam-RT-13-p6-m9-reveal-only.mjs (with redteam/redteam-RT-13-p6-read.mjs, redteam/redteam-RT-13-p6-serve.mjs)",
+  "lens": "RT-13",
+  "branch": "worktree-agent-a46277fe7c5321fb3",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-13-02",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.1 P2; 4.0 Starts meaningful; RT-13 attack 8; regression of P5-RT-13-01 (M8.spec.ts > regressions)",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied set and status as in P6-RT-13-01: m9-reveal-only.mjs, read.mjs and serve.mjs are among the 9 'A' lines. npm ci --prefer-offline: exit 0. As the prompt instructs, I replaced /tmp/rel and /tmp/m9.json with S=/tmp/claude-0/-home-user-mutation-game/03d88ee7-3b55-5f84-9822-84f78aad9733/scratchpad/verify-p6-rt13-reproduce and port 5631 with 5960/5961. (1) 'RELEASE=1 OUT_DIR=$S/rel npm run build': exit 0, 'links: 3841 internal links on 89 pages ... 0 problems'. This build finished before the coordinator's NODE_DISABLE_COMPILE_CACHE note arrived, and I ran no build after it. (2) 'node redteam/redteam-RT-13-p6-serve.mjs $S/rel 5961 /' in the background: 'serving ... at http://localhost:5961/'. (3) 'PLAYWRIGHT_BROWSERS_PATH=<scratch>/pw-browsers node redteam/redteam-RT-13-p6-read.mjs http://localhost:5961/ release $S/m9.json nojs 360 800 /modules/m9-real-forms/': exit 0, '/modules/m9-real-forms/ 52 blocks'. The browsers path is the environment setting the instructions require. (4) 'node redteam/redteam-RT-13-p6-m9-reveal-only.mjs $S/m9.json': exit 1. Output: 'b6 (beat 5): Where does theta send (0, 0, 1)? (answer (-1, -1, 0))  stated outside the reveal in: nowhere' / 'b7 (beat 6): ... (answer (-1, -1))  stated outside the reveal in: nowhere' / 'b6: \"...Where does θ send (0, 0, 1)?\" -> without JavaScript the answer sits in a closed <details>: \"(-1, -1, 0)\"' / 'b7: ... closed <details>: \"(-1, -1)\"' / 'FAIL: 2 of 2 prediction answers of M9 are held only by the reveal'. Observed matches on the release log. I did not run the preview-log variant, because the reproduction does not state it. Tree afterwards: only the 9 applied files.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: 'FAIL: 2 of 2 prediction answers of M9 are held only by the reveal'. b6 (-1, -1, 0) and b7 (-1, -1) appear only in the closed <details>. A stated behaviour (P2) that is missing is major."
+   },
+   "refute": {
+    "findingId": "P6-RT-13-02",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 8.1 P2 'Nothing the argument needs sits behind a click, a hover or a tab.', consequence 'Results are stated in the prose. Tooltips repeat information; they never hold it alone.' (8.1 is not [D]; 'They are requirements'); SPEC 4.0 [D] Starts meaningful 'Nothing the argument needs is available only after a click'. Both support the finding's expected. 4.0 Predict's '<details> element holding the answer and the reveal' describes the fallback without JavaScript and does not exempt the prose.",
+    "evidence": "Read at f07eec6. m9-real-forms.mdx: THETA13 (defined line 76) is printed only as b6's prediction answer (line 183); AFTER_ONE (line 91) only as b7's prediction answer (line 192) and in the explanation of Challenge b12 (line 260). Beat 5's prose (lines 175-181) gives n, r, the root counts, dim k, dim p, the character and the pair of su(1,3), not theta of (0,0,1); beat 6's prose (lines 188-190) gives the coordinates after node 2 only; the Seen box and the Lie theory paragraph state neither answer. M9.spec.ts:437 asserts that the whole article prose, with white space removed, does not contain the string of THETA13, so the suite forbids stating b6's answer anywhere in the prose. Oracle: L.theta(cartan('A',3), [1], [2,1,0], [0,0,1]) = (-1,-1,0) (positions: X = node 2, tau the flip), equal to the build's and the finding's value. Records: the P6-A7 predictions entry (DECISIONS.md:4105) and the MERGE ruling (DECISIONS.md:4180, 'the plan's predictions and challenges replaced to follow P3-RT-13-01') concern keeping answers off the screen before the question, not prose after it. The RT-FIX-P5-lessons entry (DECISIONS.md:3347) took option (a) of P3-RT-13-01 and states M8's answers after the prediction block; its regression test (M8.spec.ts:1580, '// regression: P5-RT-13-01') covers M8 only. reports/gate-G6.md (report commit d59af4a, names f07eec6) has no open item on predictions. Precedent: P5-RT-13-01, the same rule on M8, was not refuted and was confirmed.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, because no passage lets a prediction's answer sit only in its reveal, and 4.0 Predict's <details> describes the fallback, not an exemption from P2. R2 failed, because P2 'Results are stated in the prose' has no qualifier. As in P5-RT-13-01 there is an ambiguity for the owner: neither answer is a result of SPEC 3 M9's figure table, and both can be derived. But ambiguity is not a permitting sentence. R3 failed, because M9 is phase 6 at G6. R4 failed, because the oracle gives (-1,-1,0) as the build does, so the dispute is where the value is stated, not what it is. R5 failed, because P6-A7's choice and M9.spec.ts:437 are a builder's record, not a [D] text, a section 10 default or an owner's answer, and the MERGE ruling covers only the replacement of the plan's predictions. R6 failed, because P5-RT-13-01 is recorded as fixed for M8 with a regression test for M8 alone, so M9 is a sibling recurrence in a new lesson with no record. Severity stays major, as 'a behaviour the specification states is missing'. It is not a blocker, because the answers sit in a <details> that opens without JavaScript."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-13-04",
+  "severity": "major",
+  "title": "Attack 13 and LO9: the reader is asked to read dim 𝔨 and dim 𝔭 on M9, but 𝔨 and 𝔭 are defined nowhere on the reader's path or in the glossary",
+  "location": "site/src/content/modules/m9-real-forms.mdx beats 1, 4, 5, 7 (M9-q05, q19, q23, q24, q25, q30); site/src/content/pages/glossary.mdx ('character' entry)",
+  "claim": "Beat 1 compares 'dim 𝔨 1 against 3'. Beat 4's careful argument rests on 'dim 𝔨 equal to 5, while the real forms of A2 have 3, 4 and 8'. Beat 5 gives formulas for dim 𝔨 and dim 𝔭 and defines the character as dim 𝔭 − dim 𝔨. The only sentence that says what 𝔨 and 𝔭 are is in 'For readers who know Lie theory' (the decomposition 𝔨⊕𝔭 of a Cartan involution). The glossary has no entry for either, and its 'character' entry uses both undefined.",
+  "expected": "SPEC 8.4: 'Define every term on first use and link later uses to a glossary entry'. SPEC 1.2: 'The primary reader sets the level of the prose'. SPEC 3 M9 beat 5: 'Reading the data: real rank, the type of the shadows, dim 𝔨, the character'.",
+  "observed": "redteam-RT-13-p6-dimk.mjs on the release log: first use M9-q05. Six prose blocks use 𝔨/𝔭; 0 sentences outside the Lie-theory box say what 𝔨 is; 0 of 104 glossary terms name it. 'FAIL: 𝔨 and 𝔭 are first used at M9-q05 and defined nowhere a primary reader reads'.",
+  "reproduction": "npm ci; RELEASE=1 OUT_DIR=/tmp/rel npm run build; serve and read as in P6-RT-13-02 (log /tmp/m9.json); node redteam/redteam-RT-13-p6-dimk.mjs /tmp/m9.json /tmp/rel (exits 1)",
+  "specRef": "SPEC 8.4; 1.2; 3 M9 beat 5; RT-13 attack 13",
+  "proposedFix": "In beat 1 or 5, add one plain sentence saying what 𝔨 is (the part of the algebra that θ fixes, the compact part) and what 𝔭 is (the part θ negates). Add glossary entries 'dim 𝔨, dim 𝔭' and link later uses.",
+  "reproducer": "redteam/redteam-RT-13-p6-dimk.mjs",
+  "lens": "RT-13",
+  "branch": "worktree-agent-a46277fe7c5321fb3",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-13-04",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.4; 1.2; 3 M9 beat 5; RT-13 attack 13",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied set and status as in P6-RT-13-01, including redteam/redteam-RT-13-p6-dimk.mjs. Same release build ($S/rel), server (5961) and log ($S/m9.json) as in P6-RT-13-02, which this reproduction names ('serve and read as in P6-RT-13-02'). /tmp paths are replaced by scratch paths as the prompt instructs. Ran 'node redteam/redteam-RT-13-p6-dimk.mjs $S/m9.json $S/rel': exit 1. Output: 'FIRST M9-q05 beat=1 section=-: The data of beat 5 differ too: real rank 1 against 0, $\\dim\\mathfrak k$ 1 against 3.' Further blocks outside the Lie-theory box that use 𝔨 or 𝔭: M9-q19 (beat 4), q23, q24, q25 (beat 5) and q30 (beat 7), plus M9-q41 section=lie-theory ('a decomposition $\\mathfrak k\\oplus\\mathfrak p$'). 'glossary entries naming k or p: none (of 104 terms)' / 'sentences that say what k is: none' / 'FAIL: 𝔨 and 𝔭 are first used at M9-q05 and defined nowhere a primary reader reads (only in the Lie-theory box)'. Observed matches: first use M9-q05, six prose blocks outside the box, 0 defining sentences, 0 of 104 glossary terms.",
+    "severityAdjustment": "none",
+    "reason": "reproduced as stated; observed matches: 𝔨 and 𝔭 are first used at M9-q05 and appear in six prose blocks outside the Lie-theory box. No sentence there defines them, and 0 of 104 glossary terms names them. A broken 8.4 prose rule is major."
+   },
+   "refute": {
+    "findingId": "P6-RT-13-04",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 8.4 'Define every term on first use and link later uses to a glossary entry (Appendix C is its seed).' (not [D]); SPEC 1.2 'The primary reader sets the level of the prose.'; SPEC 3 M9 beat 5 'Reading the data: real rank, the type of the shadows, dim 𝔨, the character.' These support the finding's expected. SPEC 2.15 gives dim 𝔨 and dim 𝔭 only as read-off formulas [V] and never defines 𝔨, so no SPEC text exempts the lesson.",
+    "evidence": "Read at f07eec6, m9-real-forms.mdx. The first use is line 116 (beat 1): 'The data of beat 5 differ too: real rank ..., dim 𝔨 ... against ...', with no Term and no definition in that sentence or the next. Beat 4 (line 165) says 'the formula of beat 5 would give dim 𝔨 equal to 5'. Beat 5 (line 177) gives the two formulas, introduced as read-off rules 'verified by computation' (line 175). They compute the numbers but do not say what 𝔨 or 𝔭 is. Beat 7 (line 197) has 'equal data such as dim 𝔨 = ...', unlinked. The only sentence saying what 𝔨 and 𝔭 are is in the LieTheory paragraph (line 246, 'a Cartan involution θ and a decomposition 𝔨⊕𝔭'). glossary.mdx has no dfn for 𝔨 or 𝔭, and its 'character' entry (line 721) reads 'The number dim 𝔭 − dim 𝔨 of a real form.' Appendix C has no row for either. decisions/P6-A7.md, P6-A8.md, P6-terms.md and DECISIONS.md record no choice on defining them; P6-terms added rows only for M9's bold words compact, character, split form and quasi-split form. No other lens of this round reports the case (RT-08's coverage has no such finding). reports/gate-G6.md has no item on it. Partial point: beat 5's formulas are an operational rule for the two numbers, but they come after the first uses in beats 1 and 4 and do not explain the term, so the cause stands.",
+    "severityAdjustment": "none",
+    "reason": "not refuted: R1 failed, because no passage lets a term be used undefined in the primary reader's prose; SPEC 3 M9 beat 5 and the 2.15 wording of beat 4 require the notation dim 𝔨 but do not exempt it from 8.4. R2 failed, because the finding reads 8.4 and 1.2 correctly. Beat 5's formulas compute dim 𝔨 and dim 𝔭, but they come after the first use in beat 1 and do not say what 𝔨 or 𝔭 is, and the glossary has no entry for later uses to link to. R3 failed, because M9 and the glossary completion are phase 6 at G6. R4 does not apply, since no value is disputed. R5 failed: 8.4 is not [D], the [D] of 1.2 covers only the Lie theory paragraph, and no fragment, section 10 default or owner answer covers this. R6 failed, because no gate item, earlier round or other finding of this round records it. Severity stays major, since a prose rule of 8.4 is broken."
+   }
+  }
+ },
+ {
+  "id": "P6-RT-13-06",
+  "severity": "minor",
+  "title": "Attack 13: 'real rank' first appears on the reader's path in M9 beat 1, undefined and unlinked; it is defined in beat 5",
+  "location": "site/src/content/modules/m9-real-forms.mdx beat 1 (M9-q05)",
+  "claim": "'The data of beat 5 differ too: real rank 1 against 0, dim 𝔨 1 against 3.' This is the first use of 'real rank' on the path. It is not defined in that sentence or the next, and it is not linked to /glossary/#real-rank. The definition comes in beat 5 (M9-q22) and the first link in beat 6. The pointer to beat 5 keeps this minor.",
+  "expected": "SPEC 8.4: define every term on first use or link it. RT-13 attack 13: at its first occurrence a term is defined in that sentence or the next, or links to its glossary entry.",
+  "observed": "redteam-RT-13-p6-realrank.mjs on the release log: first use M9-q05 (beat 1); linked false; defined there or in the next block false; defined at M9-q22 (beat 5). Exits 1.",
+  "reproduction": "Read the release M9 log as in P6-RT-13-02, then node redteam/redteam-RT-13-p6-realrank.mjs /tmp/m9.json (exits 1)",
+  "specRef": "SPEC 8.4; RT-13 attack 13",
+  "proposedFix": "Link 'real rank' in beat 1 to its glossary entry, or add 'the number of τ-orbits of white nodes' there.",
+  "reproducer": "redteam/redteam-RT-13-p6-realrank.mjs",
+  "lens": "RT-13",
+  "branch": "worktree-agent-a46277fe7c5321fb3",
+  "verification": {
+   "reproduce": {
+    "findingId": "P6-RT-13-06",
+    "mode": "reproduce",
+    "reproduced": true,
+    "refuted": null,
+    "citation": "SPEC 8.4; RT-13 attack 13",
+    "evidence": "HEAD f07eec66a8b80d249101630305ef6d2d23882738 (detached). Applied set and status as in P6-RT-13-01, including redteam/redteam-RT-13-p6-realrank.mjs. I used the release M9 log $S/m9.json, read as in P6-RT-13-02 as the reproduction states, with /tmp/m9.json replaced per the prompt. Ran 'node redteam/redteam-RT-13-p6-realrank.mjs $S/m9.json': exit 1. Output: 'first use: /modules/m9-real-forms/ M9-q05 (beat 1): \"The data of beat 5 differ too: real rank 1 against 0, dimk 1 against 3.\"' / 'linked to #real-rank there: false; defined there or in the next block: false' / 'defined at: /modules/m9-real-forms/ M9-q22 (beat 5)' / 'FAIL: real rank is used before it is defined, unlinked'. Observed matches. The log covers M9 only, as the reproduction states, so 'first use' means first use within M9. Afterwards: release server stopped (curl to 5961 and 5960 returns 000). I deleted node_modules (root, site, packages/engine), site/dist, $S/rel, <wt>/test-results and reference/__pycache__. git status --porcelain lists only the 9 applied files ('A').",
+    "severityAdjustment": "raise to major",
+    "reason": "reproduced as stated; observed matches: 'real rank' is first used at M9-q05 (beat 1), not linked and not defined there or in the next block, and is defined at M9-q22 (beat 5). RED-TEAM-COMMON 4 lists 'a prose rule of 8.4 broken' as major, and 8.4 says 'Define every term on first use', so the claimed minor is raised. The pointer to beat 5 is neither a definition nor a glossary link."
+   },
+   "refute": {
+    "findingId": "P6-RT-13-06",
+    "mode": "refute",
+    "reproduced": null,
+    "refuted": false,
+    "citation": "SPEC 8.4 'Define every term on first use and link later uses to a glossary entry' (not [D]) supports the finding's expected; no sentence of SPEC 3 M9 asks beat 1 to name real rank or permits a forward mention.",
+    "evidence": "Read at f07eec6, m9-real-forms.mdx:116 (beat 1): '... The data of beat 5 differ too: real rank <G/> against <G/>, dim 𝔨 ... These are the 2 real forms of A1.' 'real rank' has no Term link and no definition in that sentence or the next. Line 175 (beat 5) defines it: 'The real rank r is the number of τ-orbits of white nodes'. Line 188 (beat 6) has the first Term a=\"real-rank\". The b1 caption (line 118) also says 'of real rank ...' with no definition. glossary.mdx:686-691 has #real-rank, with its FirstUse at beat 5. decisions/P6-A8.md, entry '2026-10-25 P6-A8: what \"first use\" means for a back-link', reads first use as 'the place where a module defines it ...; a mention before that place is not one'. That is a builder's reading for the glossary's back-links, not a [D] text, a section 10 default or an owner's answer, and it does not relax 8.4's 'define on first use'. No other finding of this round records the case (RT-08's coverage has none). reports/gate-G6.md has no item on it.",
+    "severityAdjustment": "raise to major",
+    "reason": "not refuted: R1 failed, because no passage permits a forward mention; beat 1's 'The data of beat 5' is a pointer, not a definition or a link. R2 failed, because the finding reads 8.4 correctly and the first use is in beat 1. R3 failed, because M9 is phase 6 at G6. R4 does not apply. R5 failed: 8.4 is not [D], and P6-A8's logged reading of 'first use' governs back-links and is a builder's record, not an owner decision. R6 failed, because there is no record. Severity: RED-TEAM-COMMON 4 lists 'a prose rule of 8.4 broken' as major, and RT-13 attack 13 calls this exact case major ('a term used undefined and unlinked at its first occurrence on the path'). The lens chose minor because of the pointer to beat 5, which its own rule for 'order slips that keep the meaning' could cover, so the owner may keep minor."
+   }
+  }
+ }
+]
