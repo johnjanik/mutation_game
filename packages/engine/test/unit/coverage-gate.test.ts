@@ -119,8 +119,11 @@ function scratchProject(omit: string | null): string {
 
 /** Runs the scratch project with Vitest, as npm test -w packages/engine runs this one (no file filter). */
 function runProject(engine: string): { status: number | null; output: string } {
+  // The child prints without colour (NO_COLOR, no FORCE_COLOR): run from a terminal, Vitest passes colour to
+  // its workers, and the escape codes between "Tests" and the count defeated the summary matches below.
   const env: Record<string, string> = {};
-  for (const [k, v] of Object.entries(process.env)) if (v !== undefined && !k.startsWith('VITEST')) env[k] = v;
+  for (const [k, v] of Object.entries(process.env)) if (v !== undefined && !k.startsWith('VITEST') && k !== 'FORCE_COLOR') env[k] = v;
+  env.NO_COLOR = '1';
   const vitest = join(ROOT, 'node_modules', 'vitest', 'vitest.mjs');
   const r = spawnSync(process.execPath, [vitest, 'run', '--root', engine], { cwd: engine, env, encoding: 'utf8', timeout: 240_000 });
   return { status: r.status, output: `${r.stdout ?? ''}${r.stderr ?? ''}` };
