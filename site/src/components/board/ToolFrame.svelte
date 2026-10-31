@@ -356,10 +356,14 @@
     min-width: 0;
     overflow-x: auto;
   }
+  /* RT-FIX P6-MERGE-TV-01: a fieldset's min-inline-size is min-content by default, so it was as wide as the
+     widest table and every narrower table was laid out at that width. With min-width 0 each table that can
+     reflow within the box does, and a wider one overflows into the scroll box (.bare), A-11. */
   .table-fields {
     margin: 0;
     padding: 0;
     border: 0;
+    min-width: 0;
   }
   .nojs {
     margin: 0;
