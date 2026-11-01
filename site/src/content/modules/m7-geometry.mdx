@@ -66,13 +66,21 @@ Start from a <Term a="position">position</Term> with no negative number. A node 
 
 The <Term a="orbit">orbit</Term> has <Tex src="|W|/|W_U|"/> <Term a="vertices">vertices</Term>, $W$ being the Weyl group of module five and <Tex src="W_U"/> that of the unringed nodes $U$. Clicking a <Term a="node">node</Term> rings it or clears its <Term a="ring">ring</Term>; the table under the studio lists what the rings give.
 
-{/* The table follows the studio, so that the prediction of b4 comes before the row that answers it (P5). */}
+{/* The table follows the studio, so that the prediction of b4 comes before the row that answers it (P5).
+    It reflows at 320 pixels whatever the font (A-11). The longest name, rhombicuboctahedron, is one word
+    of 170 to 180 pixels in the sans-serif faces (Inter, DejaVu Sans), wider than the column left beside
+    the rings and the face counts, so a name may break inside a word when its column cannot hold it
+    (overflow-wrap: anywhere on the name cells only; the rings, the counts and the headers still break
+    at spaces only). The indent of the figure, 16 pixels from 400 pixels up, shrinks to nothing at 320,
+    so the table has the whole prose column there. With the indent fixed and every word whole, the table
+    was 301 pixels wide in a column of 256 under DejaVu Sans, the face of the GitHub runner, and ran
+    past the right edge of the screen. */}
 <T10GeometryStudio slot="figure" client:visible id="b4" preset="rings" board="A3" prediction={{ question: 'Node 1 of A3 is ringed and the orbit is a tetrahedron. If nodes 2 and 3 are ringed as well, how many vertices will the orbit have?', answer: { type: 'number', value: gv(`${fv('A3', A3_ALL)}[0]`) }, reveal: `${f('A3', A3_ALL, 0)}: with every node ringed, U is empty and the orbit has one vertex for each element of the Weyl group. It is the ${fmt(`${W('A3', A3_ALL)}.name`)}, with ${f('A3', A3_ALL, 1)} edges and ${f('A3', A3_ALL, 2)} faces. Ring nodes 2 and 3 to see it.` }} caption={`One ring, on node 1 of A3: the orbit of (1, 0, 0) gives the ${f('A3', A3_ONE, 0)} vertices of a tetrahedron. Click the nodes to ring others and the polytope changes with them.`} />
-<figure slot="figure" data-figure="solids" style={{ margin: '0 16px' }}>
+<figure slot="figure" data-figure="solids" style={{ margin: '0 clamp(0px, (100vw - 320px) / 5, 16px)' }}>
 <table data-table="solids">
 <thead><tr><th scope="col">Rings</th><th scope="col">Polytope</th><th scope="col">Face counts</th></tr></thead>
-<tbody data-board="A3"><tr><th scope="rowgroup" colspan="3"><Tex src="A_3"/></th></tr>{SOLIDS.A3.map((r) => <tr data-solid={`A3:${r}`}><td><G k={`${W('A3', r)}.rings`}/></td><td><G k={`${W('A3', r)}.name`}/></td><td><G k={fv('A3', r)}/></td></tr>)}</tbody>
-<tbody data-board="B3"><tr><th scope="rowgroup" colspan="3"><Tex src="B_3"/></th></tr>{SOLIDS.B3.map((r) => <tr data-solid={`B3:${r}`}><td><G k={`${W('B3', r)}.rings`}/></td><td><G k={`${W('B3', r)}.name`}/></td><td><G k={fv('B3', r)}/></td></tr>)}</tbody>
+<tbody data-board="A3"><tr><th scope="rowgroup" colspan="3"><Tex src="A_3"/></th></tr>{SOLIDS.A3.map((r) => <tr data-solid={`A3:${r}`}><td><G k={`${W('A3', r)}.rings`}/></td><td style={{ overflowWrap: 'anywhere' }}><G k={`${W('A3', r)}.name`}/></td><td><G k={fv('A3', r)}/></td></tr>)}</tbody>
+<tbody data-board="B3"><tr><th scope="rowgroup" colspan="3"><Tex src="B_3"/></th></tr>{SOLIDS.B3.map((r) => <tr data-solid={`B3:${r}`}><td><G k={`${W('B3', r)}.rings`}/></td><td style={{ overflowWrap: 'anywhere' }}><G k={`${W('B3', r)}.name`}/></td><td><G k={fv('B3', r)}/></td></tr>)}</tbody>
 </table>
 <figcaption>What the rings give on <Tex src="A_3"/> and <Tex src="B_3"/>: the polytope and its numbers of vertices, edges and faces.</figcaption>
 </figure>
