@@ -561,11 +561,15 @@ Every fragment of phase 6 and of its red-team round is folded into DECISIONS.md:
 - [ ] Accessibility script A-13 on the whole site.
 - [ ] Interaction to Next Paint on one phone.
 - [ ] One exported LaTeX file of each kind compiled (reports/gate-G6-rerun/latex/: dynkin.tex, tikz-graph.tex, tikz-points.tex, tikz-graph-weyl.tex, tikz-graph-rep.tex; each holds `% needs \usepackage{...}` and a body to \input).
-- [ ] Approval of the text of M6 to M10 (M9 and M10 carry the draft mark).
-- [ ] The lab item: whether the machine-bound acceptance of G3 holds for the routes over at G6 (28 in the rerun, 35 in the second lab run on the same product code; 41 routes over in at least one of the three runs), /glossary/ (over 332 ms in every run) included (section 8; the regression first reported on /tools/rep/ is withdrawn in its addendum).
+- [ ] Approval of the text of M6 to M10 (D17). Every lesson, M0 to M10, still carries the draft mark (`draft: true` in its front matter); the approval of M0 to M5 is still open from G3.
+- [x] The lab item (accepted by the owner on 1 November 2026 as machine-bound, section 13): whether the machine-bound acceptance of G3 holds for the routes over at G6 (28 in the rerun, 35 in the second lab run on the same product code; 41 routes over in at least one of the three runs), /glossary/ (over 332 ms in every run) included (section 8; the regression first reported on /tools/rep/ is withdrawn in its addendum).
 - [ ] The decisions the round left to the owner (DECISIONS.md, "MERGE: the phase 6 red-team round, fixes merged"): the worker wire labels (a change to CONTRACTS.md 4), T6's LaTeX export, and the findings refuted but recorded for the owner.
 
 ## 12. Failures, reruns and repairs
 
 - lab (step 12): 28 routes over TBT; the item fails as measured. The diagnostic of section 8 first reported a regression on /tools/rep/ (about +116 ms); a fix agent's larger comparison found the same work and no significant difference, and the reading is withdrawn (section 8, addendum). A second lab run on every route followed, on the same product code: 35 routes over, 206.7 to 487.2 ms, LCP and CLS within limits (section 8, "Second lab run"; DECISIONS.md, "GATE: the G6 lab, second run").
 - No test failed in either e2e run. No test was skipped beyond the two MathML engines, no timeout was lengthened, no test was retried for this report.
+
+## 13. Addendum (2026-11-01)
+
+The owner built the site on their own machine and accepted the lab item of G6 as bound to the build container (DECISIONS.md, "OWNER: gate G6's lab item accepted as machine-bound"), as at G3; the automatic part of G6 is treated as passed. The measurements above are unchanged, and the verdict stays the record of what was measured. Section 11 corrected: every lesson carries the draft mark, not only M9 and M10.
