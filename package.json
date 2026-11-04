@@ -20,6 +20,7 @@
     "preview": "npm run preview -w site",
     "e2e": "playwright test",
     "e2e:basepath": "BASE_PATH=/sub/path/ OUT_DIR=dist-basepath npm run build && BASE_PATH=/sub/path/ OUT_DIR=dist-basepath playwright test site/tests/e2e/basepath.spec.ts",
+    "package": "RELEASE=1 OUT_DIR=dist-package npm run build && OUT_DIR=dist-package node scripts/package.mjs",
     "size": "node scripts/size.mjs",
     "lab": "node scripts/lab.mjs",
     "report": "node scripts/report.mjs",

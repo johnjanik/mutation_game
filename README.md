@@ -84,6 +84,14 @@ The site's address and base path come from the environment: `SITE_URL` and `BASE
 - `links.yml` checks external links weekly and opens an issue on a failure.
 - Each release is also archived as two copies of the built site: one for the Pages address, and one built with `BASE_PATH=/` that can be served as plain files from the root of any domain.
 
+### Serving the site from your own web host
+
+```sh
+SITE_URL=https://practicallyzen.com BASE_PATH=/mutation-game/ npm run package
+```
+
+This makes a release build for that address into `site/dist-package` and writes `reports/package/mutation-game-<commit>.zip`. The zip holds one folder, `mutation-game/`, with an `.htaccess` for Apache (from `deploy/apache/`). Unpack it in the web root (for example `public_html`), and the site is served at `https://practicallyzen.com/mutation-game/`. Every link is built from the address, so the zip only works in the place it was built for: another domain or folder needs a new build with its own `SITE_URL` and `BASE_PATH`. Rebuild and upload again after any change to the lessons, such as removing a draft mark.
+
 ## Status
 
 Version 1 (phases 0 to 6 of `SPEC.md` section 9) is built. Each phase ended with a gate and a red-team round; the reports are in `reports/`. Release 0.5 was prepared at gate G3, and release 1.0 at gate G6. Sentences that rest on an item of `SPEC.md` Appendix E not yet checked by a person are marked in preview builds and replaced by a weaker, safe sentence in release builds. The project owner settles those items and tags releases.

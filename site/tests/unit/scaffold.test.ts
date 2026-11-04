@@ -56,8 +56,9 @@ describe('scaffold', () => {
     expect(pkg.engines.node).toBe('>=22.12');
     expect(pkg.license).toBe('AGPL-3.0-only');
     // 'bench' runs the timing checks alone (MERGE, P4 wave 4.4, P4-X2); postbuild: the internal-link check of
-    // SPEC 7.7 after every build (RT-FIX P3-RT-12-01).
-    expect(Object.keys(pkg.scripts).sort()).toEqual([...SCRIPTS, 'e2e:basepath', 'prebuild', 'postbuild', 'bench'].filter((s) => s in pkg.scripts).sort());
+    // SPEC 7.7 after every build (RT-FIX P3-RT-12-01); 'package': the zip of a release build for a file upload
+    // to the owner's own host (PKG-package, SPEC 7.8).
+    expect(Object.keys(pkg.scripts).sort()).toEqual([...SCRIPTS, 'e2e:basepath', 'prebuild', 'postbuild', 'bench', 'package'].filter((s) => s in pkg.scripts).sort());
     for (const s of SCRIPTS) expect(pkg.scripts[s], s).toBeTypeOf('string');
     // A stub exits 2 with the exact text; once P0-A6 fills the bodies this assertion is dropped by MERGE.
     const stubs = SCRIPTS.filter((s) => pkg.scripts[s].includes('not yet implemented: P0-A6'));

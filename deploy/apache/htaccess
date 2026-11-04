@@ -1,0 +1,35 @@
+# Apache settings for the folder that holds the site (copied to <folder>/.htaccess by
+# scripts/package.mjs). Every directive is wrapped in IfModule, so a host that lacks a module
+# ignores that block instead of failing with a server error.
+
+DirectoryIndex index.html
+
+<IfModule mod_autoindex.c>
+  Options -Indexes
+</IfModule>
+
+# The tools load as JavaScript modules, which browsers run only when served with a JavaScript
+# type; the fonts are self-hosted KaTeX fonts. Older host configurations miss some of these.
+<IfModule mod_mime.c>
+  AddType text/javascript .js .mjs
+  AddType text/css .css
+  AddType application/json .json
+  AddType image/svg+xml .svg
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+  AddType font/ttf .ttf
+  AddCharset utf-8 .html .js .mjs .css .json .svg
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml font/ttf
+</IfModule>
+
+# Pages are revalidated on every visit, so a new upload shows at once. The hashed files under
+# _astro/ carry their own, longer cache rule (_astro/.htaccess).
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>

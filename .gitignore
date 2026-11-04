@@ -25,3 +25,5 @@ packages/engine/test/golden/.coverage/
 site/public/katex/
 # the BASE_PATH=/sub/path/ build of npm run e2e:basepath (OUT_DIR=dist-basepath)
 site/dist-basepath/
+# the release build of npm run package (OUT_DIR=dist-package)
+site/dist-package/
