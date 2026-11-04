@@ -9,6 +9,7 @@
 // `hydrate="visible"` for any tool after the first on the page (7.6). Every other property is passed on.
 import T15AffinePlayground from '../T15AffinePlayground.svelte';
 import { decide, isReleaseBuild, registerUsage } from '../../../lib/unverifiedRegistry';
+import { IDLE_HYDRATION } from '../../../tools/hydration';
 
 interface Props {
   hydrate?: 'idle' | 'visible';
@@ -24,5 +25,5 @@ const unverifiedMode = shown === 'marked' ? 'marked' : shown === 'plain' ? 'plai
 {hydrate === 'visible' ? (
   <T15AffinePlayground client:visible {...props} unverifiedMode={unverifiedMode} />
 ) : (
-  <T15AffinePlayground client:idle {...props} unverifiedMode={unverifiedMode} />
+  <T15AffinePlayground client:idle={IDLE_HYDRATION} {...props} unverifiedMode={unverifiedMode} />
 )}
