@@ -22,6 +22,11 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}${base}`,
     viewport: { width: 360, height: 800 },
+    // FIX-ci-e2e: under CI a failed test keeps a trace of its actions and of the browser console, with no
+    // DOM snapshot, screenshot or source, so the html report that ci.yml uploads says why an island did not
+    // hydrate (for example "[astro-island] Error hydrating ..." after "Failed to load resource: net::ERR_...").
+    // It decides nothing: no retry, no timeout, and a passing test keeps no trace.
+    trace: process.env.CI ? { mode: 'retain-on-failure', snapshots: false, screenshots: false, sources: false } : 'off',
   },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },

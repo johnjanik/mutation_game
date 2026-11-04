@@ -50,6 +50,12 @@ jobs:
         run: npx playwright install --with-deps chromium webkit firefox
       - name: Browser tests
         run: npm run e2e
+      # FIX-ci-e2e: when a step has failed, the browser console of each failed browser test (read from
+      # the slim trace that playwright.config.ts keeps under CI) is printed here, so that the cause of a
+      # tool that did not hydrate can be read in this log without downloading the report.
+      - name: Browser console of failed tests
+        if: failure()
+        run: node scripts/trace-console.mjs test-results
       - name: Size budget
         run: npm run size
       - name: Oracle reproduces the golden file
